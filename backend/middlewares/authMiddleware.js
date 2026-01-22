@@ -4,16 +4,25 @@ const User = require('../models/userSchema');
 const { UnauthorizedError } = require('../utils/ExpressError');
 
 const client = jwksClient({
-  jwksUri: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/discovery/v2.0/keys`
+  jwksUri: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/discovery/v2.0/keys`,
+  timeout: 30000, // Add timeout
+  cache: true,
+  cacheMaxAge: 86400000
 });
 
 function getKey(header, callback) {
+  console.log("Fetching signing key for kid:", header.kid);
   client.getSigningKey(header.kid, function (err, key) {
     if (err) {
-      console.error("JWKS Error:", err.message);
+      console.error("JWKS Error Details:", {
+        message: err.message,
+        code: err.code,
+        statusCode: err.statusCode
+      });
       return callback(err, null);
     }
     const signingKey = key.getPublicKey();
+    console.log("Successfully retrieved signing key");
     callback(null, signingKey);
   });
 }
@@ -26,6 +35,20 @@ const isLoggedIn = async (req, res, next) => {
   }
 
   const token = authHeader.split(" ")[1];
+  
+  // Log token header for debugging (don't log full token in production)
+  try {
+    const decoded = jwt.decode(token, { complete: true });
+    console.log("Token Header:", decoded?.header);
+    console.log("Token Claims (aud, iss):", {
+      aud: decoded?.payload?.aud,
+      iss: decoded?.payload?.iss,
+      oid: decoded?.payload?.oid,
+      upn: decoded?.payload?.upn
+    });
+  } catch (e) {
+    console.error("Failed to decode token:", e.message);
+  }
 
   const verifyOptions = {
     audience: [
@@ -39,19 +62,27 @@ const isLoggedIn = async (req, res, next) => {
     algorithms: ['RS256']
   };
 
+  console.log("Verifying token with options:", {
+    audience: verifyOptions.audience,
+    issuer: verifyOptions.issuer
+  });
+
   jwt.verify(token, getKey, verifyOptions, async (err, decoded) => {
     if (err) {
       console.error("--- TOKEN VERIFICATION FAILED ---");
-      console.error("Error:", err.message);
+      console.error("Error Name:", err.name);
+      console.error("Error Message:", err.message);
+      console.error("Stack:", err.stack);
       return next(new UnauthorizedError("Invalid or expired token"));
     }
+
+    console.log("Token verified successfully");
 
     try {
       // Identity Mapping
       let user = await User.findOne({ azureId: decoded.oid });
 
       if (!user) {
-        // FIX 2: Check 'upn' and 'email' for the address
         const email = decoded.upn || decoded.preferred_username || decoded.email;
 
         if (!email) {
