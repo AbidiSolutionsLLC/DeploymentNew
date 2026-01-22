@@ -2,7 +2,7 @@
 import { useState } from "react";
 import ProjectsTable from "../../Components/ProjectsTable";
 import NewProjectDrawer from "../../Components/NewProjectDrawer";
-import useProjects from "../../hooks/useProjects";
+import useProjects from "../../Hooks/useProjects";
 import projectApi from "../../api/projectApi";
 import { toast } from "react-toastify";
 
