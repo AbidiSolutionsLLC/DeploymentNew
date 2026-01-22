@@ -28,6 +28,46 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', require('./routes/allRoutes'));
 app.use('/api/web', require('./routes/webRoutesMount'));
 
+// Add this route WITHOUT isLoggedIn middleware
+app.get('/api/web/test-auth', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader) {
+    return res.status(400).json({ error: 'No authorization header' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  const jwt = require('jsonwebtoken');
+  
+  try {
+    // Decode without verifying to see the token contents
+    const decoded = jwt.decode(token, { complete: true });
+    
+    res.json({
+      message: 'Token received',
+      header: decoded?.header,
+      payload: {
+        aud: decoded?.payload?.aud,
+        iss: decoded?.payload?.iss,
+        oid: decoded?.payload?.oid,
+        upn: decoded?.payload?.upn,
+        exp: decoded?.payload?.exp,
+        expiresIn: decoded?.payload?.exp ? new Date(decoded.payload.exp * 1000).toISOString() : null
+      },
+      envVars: {
+        hasTenantId: !!process.env.AZURE_TENANT_ID,
+        hasClientId: !!process.env.AZURE_CLIENT_ID,
+        expectedAudience: [
+          process.env.AZURE_CLIENT_ID,
+          `api://${process.env.AZURE_CLIENT_ID}`
+        ]
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('*', (req, res, next) => {
