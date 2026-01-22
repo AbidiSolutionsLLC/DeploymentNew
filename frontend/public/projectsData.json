@@ -1,0 +1,24 @@
+[
+  {
+    "id": 1,
+    "name": "Website Redesign",
+    "ProjectOwner": "Sarah",
+    "NoOfUser": "6",
+    "Status": "In Progress",
+    "StartDate": "2025-09-05",
+    "EndDate": "2025-09-05",
+    "completion": 70 
+  },
+  {
+    "id": 2,
+    "name": "Code Review",
+    "ProjectOwner": "John",
+    "NoOfUser": "5",
+    "Status": "In Progress",
+    "StartDate": "2025-09-05",
+    "EndDate": "2025-09-05",
+    "completion": 50
+  }
+  
+]
+

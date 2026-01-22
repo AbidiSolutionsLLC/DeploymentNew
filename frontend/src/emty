@@ -1,0 +1,133 @@
+
+
+// // src/components/Files.jsx
+// import React, { useState } from 'react'
+// import { FaRegFolder }    from 'react-icons/fa6'
+// import { IoListOutline, IoFilterSharp } from 'react-icons/io5'
+// import { Spin, Alert }    from 'antd'
+// import FileTable         from './FileTable'
+// import FolderGrid        from './FolderGrid'
+// import OpenFolderScreen  from './OpenFolderScreen'
+
+// import { useFolderContents, useFileDownloader } from '../../Hooks/useDrive'
+// import { useSelector } from 'react-redux'
+
+// export default function Files() {
+//   const [viewMode, setViewMode]     = useState('table')
+//   const [searchTerm, setSearchTerm] = useState('Project')
+//   const [openedFolder, setOpenedFolder] = useState(null)
+//   const data = useSelector((state) => state);
+//   const { user } = data?.auth;
+//   const folderId   = openedFolder?.id || 'root'
+//   const folderPath = `users/${user.id}/${folderId}`
+
+//   const { folders, files, loading, error, reload } = useFolderContents(folderId)
+//   const { download, loading: dlLoading } = useFileDownloader()
+// const safeFolders = Array.isArray(folders) ? folders : [];
+// const safeFiles   = Array.isArray(files)   ? files   : [];
+
+// console.log("main",safeFiles);
+
+//   if (error) return <Alert message={error.message} type="error" />
+
+//   if (openedFolder) {
+//     return <OpenFolderScreen
+//       folder={openedFolder}
+//       onClose={() => setOpenedFolder(null)}
+//     />
+//   }
+
+//   return (
+//     <div className="...">
+//       {/* Controls (search, view toggles) */}
+//       {/* ...same as your JSX, updating props */}
+//       {/* Main Content */}
+//       <Spin spinning={loading}>
+//         {viewMode === 'grid'
+//           ? <FolderGrid
+//   folders={safeFolders}
+//   onOpenFolder={setOpenedFolder}
+// />
+
+//           :
+//           <FileTable
+//   files={safeFiles.filter(f =>
+//     // typeof f.name === 'string' && f.name?.includes(searchTerm)
+//     true
+//   )}
+//   onDownload={download}
+//   loading={dlLoading}
+// />
+//         }
+//       </Spin>
+//     </div>
+//   )
+// }
+
+
+
+// import { FiEye, FiDownload } from "react-icons/fi";
+
+// const FileTable = ({files,onDownload,loading, searchTerm = "" }) => {
+
+// console.log(files,"from component")
+//   const filtered = files.filter((f) => {
+//     const s = searchTerm.toLowerCase();
+//     return (
+//       f.fileName.toLowerCase().includes(s) ||
+//       f.sharedBy.toLowerCase().includes(s) ||
+//       f.category.toLowerCase().includes(s)
+//     );
+//   });
+
+//   return (
+//     <div className="bg-white rounded-xl shadow p-4 w-full">
+//       <div className="overflow-x-auto">
+//         <table className="min-w-full text-sm text-left border-separate border-spacing-0">
+//           <thead className="bg-gray-100">
+//             {["Files", "Shared by", "Shared on", "Category", "Actions"].map(
+//               (h) => (
+//                 <th
+//                   key={h}
+//                   className="p-3 font-medium text-gray-700 border-r last:border-none border-gray-300"
+//                 >
+//                   {h}
+//                 </th>
+//               )
+//             )}
+//           </thead>
+//           <tbody>
+//             {filtered.length ? (
+//               filtered.map((file, i) => (
+//                 <tr key={i} className="border-b hover:bg-gray-50">
+//                   <td className="p-3">{file.fileName}</td>
+//                   <td className="p-3">{file.sharedBy}</td>
+//                   <td className="p-3">{file.sharedOn}</td>
+//                   <td className="p-3">{file.category}</td>
+//                   <td className="p-3 flex items-center gap-3">
+//                     <button title="View" className="hover:brightness-110">
+//                       <FiEye className="text-lg text-purple-600" />
+//                     </button>
+//                     <button title="Download" className="hover:brightness-110">
+//                       <FiDownload className="text-lg text-green-600" />
+//                     </button>
+//                   </td>
+//                 </tr>
+//               ))
+//             ) : (
+//               <tr>
+//                 <td colSpan={5} className="p-4 text-center text-gray-500">
+//                   {searchTerm
+//                     ? `No files found matching “${searchTerm}”`
+//                     : "No files available"}
+//                 </td>
+//               </tr>
+//             )}
+//           </tbody>
+//         </table>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default FileTable;
