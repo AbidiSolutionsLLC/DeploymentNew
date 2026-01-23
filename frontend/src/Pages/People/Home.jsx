@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchCurrentStatus } from "../../slices/attendanceTimer";
 import api from "../../axios";
 import { toast } from "react-toastify";
+import { refreshUserData } from "../../slices/userSlice";
 
 function format(sec) {
   const h = String(Math.floor(sec / 3600)).padStart(2, "0");
@@ -25,18 +26,26 @@ function format(sec) {
 
 const Home = () => {
   const dispatch = useDispatch();
-  const userInfo = useSelector((state) => state.auth.user);
-  const { checkInn } = useSelector((state) => state.attendanceTimer);
+  const {user} = useSelector((state) => state.auth);
 
-  const profileImage = userInfo?.user?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e";
+useEffect(() => {
+    if (user?.user?._id) {
+        dispatch(refreshUserData(user.user._id));
+    }
+  }, [dispatch, user]);
+
+  const {userInfo} = useSelector((state) => state.user);
+
+  const { checkInn } = useSelector((state) => state.attendanceTimer);
+  const profileImage = userInfo?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e";
   const getSafeName = (data) => {
     if (typeof data === "string") return data;
     if (data && typeof data === "object" && data.name) return data.name;
     return "User";
   };
 
-  const firstName = getSafeName(userInfo?.user?.name);
-  const userId = userInfo?.user?._id || userInfo?.user?.id;
+  const firstName = getSafeName(userInfo?.name);
+  const userId = userInfo?._id || userInfo?.id;
 
   const [loading, setLoading] = useState(true);
   const [elapsed, setElapsed] = useState(0);

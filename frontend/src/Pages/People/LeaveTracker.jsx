@@ -10,7 +10,7 @@ const LeaveTracker = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [holidayModal, setHolidayModal] = useState(false);
   const [adminRefresh, setAdminRefresh] = useState(0);
-  const user = useSelector(state => state.auth.user);
+  const {userInfo} = useSelector(state => state.user);
   const [activeTab, setActiveTab] = useState(0);
 
   const handleHolidayAdded = () => {
@@ -30,7 +30,7 @@ const LeaveTracker = () => {
         onLeaveAdded={() => {
           // Refresh logic can be added here if needed
         }}
-        userLeaves={user?.leaves || {}}
+        userLeaves={userInfo?.leaves || {}}
       />
       <AddHolidayModal
         isOpen={holidayModal}

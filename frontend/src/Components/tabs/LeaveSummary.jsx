@@ -17,13 +17,14 @@ const LeaveSummary = () => {
     });
     const [errorMsg, setErrorMsg] = useState("");
 
+    const { user } = useSelector((state) => state.auth);
     const { userInfo, refreshing } = useSelector((state) => state.user);
 
     useEffect(() => {
-        if (userInfo?._id) {
-            dispatch(refreshUserData(userInfo._id));
+        if (user?.user?._id) {
+            dispatch(refreshUserData(user.user._id));
         }
-    }, [dispatch, userInfo?._id]);
+    }, [dispatch, user]);
 
     const userData = userInfo
 
@@ -227,10 +228,10 @@ const LeaveSummary = () => {
                                         <td className="p-4 text-slate-700 font-medium">{item.duration}</td>
                                         <td className="p-4">
                                             <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${item.status === "Approved"
-                                                    ? "bg-green-100 text-green-800"
-                                                    : item.status === "Rejected"
-                                                        ? "bg-red-100 text-red-800"
-                                                        : "bg-yellow-100 text-yellow-800"
+                                                ? "bg-green-100 text-green-800"
+                                                : item.status === "Rejected"
+                                                    ? "bg-red-100 text-red-800"
+                                                    : "bg-yellow-100 text-yellow-800"
                                                 }`}>
                                                 {item.status}
                                             </span>
