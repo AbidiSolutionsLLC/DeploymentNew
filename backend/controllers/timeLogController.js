@@ -4,14 +4,15 @@ const catchAsync = require("../utils/catchAsync");
 const { BadRequestError, NotFoundError } = require("../utils/ExpressError");
 const { cloudinary } = require("../storageConfig");
 const { containerClient } = require("../config/azureConfig");
+const { getStartOfESTDay, getEndOfESTDay } = require("../utils/dateUtils");
 
 
 // Create Time Log
 exports.createTimeLog = catchAsync(async (req, res) => {
   const { job, date, description, hours } = req.body;
   const employee = req.user.id;
-  
-const attachments = req.files?.map(file => ({
+
+  const attachments = req.files?.map(file => ({
     blobName: file.blobName, // Store blobName instead of public_id
     url: file.url || file.path,
     originalname: file.originalname,
@@ -24,7 +25,7 @@ const attachments = req.files?.map(file => ({
   const timeLog = new TimeLog({
     employee,
     job,
-    date,
+    date: getStartOfESTDay(date), // Align to EST start of day
     description,
     hours,
     attachments // This matches your schema
@@ -41,13 +42,10 @@ exports.getEmployeeTimeLogs = catchAsync(async (req, res) => {
 
   const query = { employee };
   if (date) {
-    
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
-    
+
+    const startDate = getStartOfESTDay(date);
+    const endDate = getEndOfESTDay(date);
+
     query.date = {
       $gte: startDate,
       $lte: endDate
@@ -62,14 +60,14 @@ exports.getEmployeeTimeLogs = catchAsync(async (req, res) => {
 exports.updateTimeLog = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { job, date, description, hours } = req.body;
-  
+
   const timeLog = await TimeLog.findById(id);
   if (!timeLog) throw new NotFoundError("TimeLog");
 
   if (timeLog.isAddedToTimesheet) {
     throw new BadRequestError("Cannot update time log already added to a timesheet");
   }
-if (req.files && req.files.length > 0) {
+  if (req.files && req.files.length > 0) {
     timeLog.attachments = req.files.map(file => ({
       blobName: file.blobName,
       url: file.url || file.path,
@@ -81,7 +79,7 @@ if (req.files && req.files.length > 0) {
 
   // Update other fields
   timeLog.job = job;
-  timeLog.date = date;
+  timeLog.date = getStartOfESTDay(date); // Align to EST
   timeLog.description = description;
   timeLog.hours = hours;
 
@@ -107,13 +105,13 @@ exports.deleteTimeLog = catchAsync(async (req, res) => {
 
 exports.downloadTimeLogAttachment = catchAsync(async (req, res) => {
   const { id, attachmentId } = req.params;
-  
+
   const timeLog = await TimeLog.findById(id);
   if (!timeLog) throw new NotFoundError("TimeLog");
-  
+
   const attachment = timeLog.attachments.id(attachmentId);
   if (!attachment) throw new NotFoundError("Attachment");
-  
+
   try {
     if (attachment.blobName) {
       const blockBlobClient = containerClient.getBlockBlobClient(attachment.blobName);

@@ -2,6 +2,7 @@ const LeaveRequest = require("../models/leaveRequestSchema");
 const User = require("../models/userSchema");
 const TimeTracker = require("../models/timeTrackerSchema");
 const catchAsync = require("../utils/catchAsync");
+const { getStartOfESTDay, moment, TIMEZONE } = require("../utils/dateUtils");
 const { BadRequestError, NotFoundError } = require("../utils/ExpressError");
 
 // Create Leave Request
@@ -11,15 +12,15 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
   if (!user) {
     throw new NotFoundError("User not found");
   }
-  
+
   if (!leaveType || !startDate || !endDate) {
     throw new BadRequestError("Missing required fields");
   }
 
-  // Calculate days difference
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  // Calculate days difference using moment to handle DST and Timezones strictly
+  const start = moment(startDate).tz(TIMEZONE).startOf('day');
+  const end = moment(endDate).tz(TIMEZONE).startOf('day');
+  const daysDiff = end.diff(start, 'days') + 1;
 
   // Check if user has enough leaves for the specific type
   const userLeaveBalance = user.leaves[leaveType.toLowerCase()] || 0;
@@ -90,12 +91,11 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
 
   // Create TimeTracker entries for each day in the leave range
   const timeTrackerEntries = [];
-  const currentDate = new Date(start);
-  
-  while (currentDate <= end) {
-    const dateStart = new Date(currentDate);
-    dateStart.setHours(0, 0, 0, 0);
-    
+  const curr = start.clone(); // Use moment object for iteration
+
+  while (curr.isSameOrBefore(end)) {
+    const dateStart = curr.toDate(); // Get JS Date aligned to EST start of day
+
     // Check if TimeTracker entry already exists for this date
     const existingEntry = await TimeTracker.findOne({
       user: user._id,
@@ -115,9 +115,9 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
         notes: `Leave: ${leaveType} - ${reason || 'No reason provided'}`
       });
     }
-    
+
     // Move to next day
-    currentDate.setDate(currentDate.getDate() + 1);
+    curr.add(1, 'days');
   }
 
   // Bulk insert TimeTracker entries if any
@@ -131,12 +131,12 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
 // Get all Leave Requests (filtered by logged-in user, unless admin)
 exports.getLeaveRequests = catchAsync(async (req, res) => {
   const query = {};
-  
+
   // If user is not admin, only show their own leaves
   if (req.user.role !== "Admin") {
     query.employee = req.user.id;
   }
-  
+
   // Additional query filters
   if (req.query.employeeName) query.employeeName = req.query.employeeName;
   if (req.query.leaveType) query.leaveType = req.query.leaveType;
@@ -197,9 +197,9 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
   }
 
   // Calculate days difference
-  const start = new Date(leaveRequest.startDate);
-  const end = new Date(leaveRequest.endDate);
-  const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  const start = moment(leaveRequest.startDate).tz(TIMEZONE).startOf('day');
+  const end = moment(leaveRequest.endDate).tz(TIMEZONE).startOf('day');
+  const daysDiff = end.diff(start, 'days') + 1;
 
   const updateObj = {
     $set: {
@@ -209,7 +209,7 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
 
   // Handle status changes and update booked/available leaves accordingly
   const oldStatus = leaveRequest.status;
-  
+
   if (oldStatus === "Pending" && status === "Rejected") {
     // Reverse the booking: return leaves and decrement booked, increment available
     updateObj.$inc = {};
@@ -238,13 +238,10 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
   });
 
   // Update TimeTracker entries based on status change
-  const leaveStart = new Date(leaveRequest.startDate);
-  const leaveEnd = new Date(leaveRequest.endDate);
-  const currentDate = new Date(leaveStart);
+  const curr = start.clone();
 
-  while (currentDate <= leaveEnd) {
-    const dateStart = new Date(currentDate);
-    dateStart.setHours(0, 0, 0, 0);
+  while (curr.isSameOrBefore(end)) {
+    const dateStart = curr.toDate();
 
     const timeTrackerEntry = await TimeTracker.findOne({
       user: leaveRequest.employee,
@@ -255,14 +252,14 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
       if (status === "Rejected") {
         // If rejected, check if this TimeTracker entry was created only for the leave
         // (i.e., no check-in/check-out times, meaning user didn't actually work that day)
-        const wasCreatedForLeave = !timeTrackerEntry.checkInTime && !timeTrackerEntry.checkOutTime && 
-                                   timeTrackerEntry.status === 'Leave';
-        
+        const wasCreatedForLeave = !timeTrackerEntry.checkInTime && !timeTrackerEntry.checkOutTime &&
+          timeTrackerEntry.status === 'Leave';
+
         if (wasCreatedForLeave) {
           // Check if this date is a holiday before deleting
           const Holiday = require("../models/holidaySchema");
           const holiday = await Holiday.findOne({ date: dateStart });
-          
+
           if (holiday) {
             // If it's a holiday, update to Holiday status instead of deleting
             timeTrackerEntry.status = 'Holiday';
@@ -277,7 +274,7 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
           // Just remove leave status and set to Present (unless it's a holiday)
           const Holiday = require("../models/holidaySchema");
           const holiday = await Holiday.findOne({ date: dateStart });
-          
+
           if (holiday) {
             timeTrackerEntry.status = 'Holiday';
             timeTrackerEntry.notes = timeTrackerEntry.notes?.replace(/Leave:.*/, '').trim() || `Holiday: ${holiday.holidayName}`;
@@ -303,7 +300,7 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
     }
 
     // Move to next day
-    currentDate.setDate(currentDate.getDate() + 1);
+    curr.add(1, 'days');
   }
 
   leaveRequest.status = status;

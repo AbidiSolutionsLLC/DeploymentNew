@@ -2,27 +2,23 @@ const TimeTracker = require("../models/timeTrackerSchema");
 const catchAsync = require("../utils/catchAsync");
 const { NotFoundError, BadRequestError } = require("../utils/ExpressError");
 
+const { getStartOfESTDay } = require("../utils/dateUtils");
+
 const isWeekend = (date) => {
   const day = date.getDay(); // 0 = Sunday, 6 = Saturday
   return day === 0 || day === 6;
-};
-
-const getStartOfDayUTC = (date = new Date()) => {
-  const d = new Date(date);
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
 };
 
 // 1. Check-In
 exports.checkIn = catchAsync(async (req, res) => {
   const userId = req.user.id;
   const now = new Date();
-  const todayStart = getStartOfDayUTC(now);
+  const todayStart = getStartOfESTDay(now);
 
   // 1. Strict Weekend Block
   if (isWeekend(now)) {
-    return res.status(403).json({ 
-      message: "Check-in is not allowed on weekends." 
+    return res.status(403).json({
+      message: "Check-in is not allowed on weekends."
     });
   }
 
@@ -34,8 +30,8 @@ exports.checkIn = catchAsync(async (req, res) => {
   });
 
   if (existingLogForToday) {
-    return res.status(400).json({ 
-      message: "You have already checked in for today. Multiple check-ins are not allowed." 
+    return res.status(400).json({
+      message: "You have already checked in for today. Multiple check-ins are not allowed."
     });
   }
 
@@ -51,7 +47,7 @@ exports.checkIn = catchAsync(async (req, res) => {
     abandonedSession.autoCheckedOut = true;
     abandonedSession.status = "Absent"; // Penalty for forgetting
     abandonedSession.notes = (abandonedSession.notes || "") + " | System closed during next check-in";
-    
+
     await abandonedSession.save();
     previousSessionMsg = "Note: Your previous open session was closed and marked Absent. ";
   }
@@ -64,9 +60,9 @@ exports.checkIn = catchAsync(async (req, res) => {
     status: 'Present' // Default status
   });
 
-  res.status(200).json({ 
-    message: `${previousSessionMsg}Checked in successfully.`, 
-    log: newLog 
+  res.status(200).json({
+    message: `${previousSessionMsg}Checked in successfully.`,
+    log: newLog
   });
 });
 
@@ -87,10 +83,10 @@ exports.checkOut = catchAsync(async (req, res) => {
   // Calculate Times
   const now = new Date();
   currentLog.checkOutTime = now;
-  
+
   const totalMs = currentLog.checkOutTime - new Date(currentLog.checkInTime);
   const totalHours = parseFloat((totalMs / (1000 * 60 * 60)).toFixed(2));
-  
+
   currentLog.totalHours = totalHours;
 
   // Apply Status Rules
@@ -104,17 +100,17 @@ exports.checkOut = catchAsync(async (req, res) => {
 
   await currentLog.save();
 
-  res.status(200).json({ 
-    message: "Checked out successfully", 
-    log: currentLog 
+  res.status(200).json({
+    message: "Checked out successfully",
+    log: currentLog
   });
 });
 
 // 3. Get Today's Status (For UI State)
 exports.getDailyLog = catchAsync(async (req, res) => {
   const { userId } = req.params;
-  const todayStart = getStartOfDayUTC();
-  
+  const todayStart = getStartOfESTDay();
+
   // Find log created TODAY
   const log = await TimeTracker.findOne({
     user: userId,

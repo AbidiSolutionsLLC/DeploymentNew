@@ -1,9 +1,11 @@
 const Ticket = require("../models/ticketManagementSchema");
+const User = require("../models/userSchema");
 const catchAsync = require("../utils/catchAsync");
 const { NotFoundError } = require("../utils/ExpressError");
 const nodemailer = require("nodemailer");
-const User = require("../models/userSchema");
 const { containerClient, containerName } = require("../config/azureConfig");const axios = require("axios");
+const sendEmail = require('../utils/emailService');
+const { BadRequestError } = require("../utils/ExpressError");
 
 
 const transporter = nodemailer.createTransport({
@@ -18,8 +20,10 @@ const transporter = nodemailer.createTransport({
 exports.createTicket = catchAsync(async (req, res) => {
   const { emailAddress, subject, description } = req.body;
 
-  const count = await Ticket.countDocuments();
-  const ticketID = String(count + 1).padStart(3, '0');
+   // Generate unique ticket ID using timestamp
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000);
+  const ticketID = `TKT-${timestamp}-${random}`;
 
   const newTicket = {
     emailAddress,
@@ -53,6 +57,36 @@ if (req.file) {
 
   res.status(201).json(savedTicket);
 });
+
+// exports.createTicket = async (req, res, next) => {
+
+
+//   try {
+ 
+
+//     const email = "tsaleem@abidisolutions.com" 
+
+//       const emailSubject = "Welcome to Abidi Solutions!";
+
+
+//   const emailBody = `
+//     <h1>Welcome, ${email}!</h1>
+//     <p>Your account has been successfully created.</p>
+//     <p>Click <a href="https://abidipro.abidisolutions.com">here</a> to login.</p>
+//     `;
+
+
+//     await sendEmail(email, emailSubject, emailBody);
+ 
+//     // 3. ONLY send response after everything worked
+//     return res.status(200).json({ message: "Ticket created and email sent" });
+ 
+//   } catch (error) {
+//     // 4. If anything above failed, this sends the ONE and ONLY error response
+//     next(error); 
+//   }
+// };
+
 
 const sendTicketCreationEmail = async (recipients, ticket) => {
   const mailOptions = {

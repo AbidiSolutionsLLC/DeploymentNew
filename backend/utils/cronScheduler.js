@@ -136,8 +136,7 @@ cron.schedule("0 0 * * *", async () => {
 
     if (logsToSend.length > 0) {
       console.log(
-        `${
-          logsToSend.length
+        `${logsToSend.length
         } logs found between ${thirtyMinutesAgo.toISOString()} and ${now.toISOString()}.`
       );
       // Send the logs via email
@@ -156,4 +155,6 @@ cron.schedule("0 0 * * *", async () => {
   } catch (err) {
     console.error("Error processing logs:", err);
   }
+}, {
+  timezone: "America/New_York"
 });

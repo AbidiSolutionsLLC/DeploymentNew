@@ -222,9 +222,10 @@ exports.deleteUser = catchAsync(async (req, res) => {
 
 // --- ADMIN / UTILS ---
 
-exports.getAdminUsers = catchAsync(async (req, res) => {
-  const admins = await User.find({ role: "Admin" });
-  res.status(200).json(admins);
+exports.getUserByRole = catchAsync(async (req, res) => {
+  const { role } = req.params;
+  const users = await User.find({ role });
+  res.status(200).json(users);
 });
 
 exports.getDashboardCards = catchAsync(async (req, res) => {
@@ -279,16 +280,29 @@ exports.getUserLeaves = catchAsync(async (req, res) => {
 
 exports.updateUserLeaves = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const { paid, sick, majlis, casual, earned } = req.body;
+  const { pto, sick } = req.body;
 
   const user = await User.findById(id);
   if (!user) throw new NotFoundError("User");
 
-  if (paid !== undefined) user.leaves.paid = paid;
+  // Update PTO and Sick leaves if provided
+  if (pto !== undefined) user.leaves.pto = pto;
   if (sick !== undefined) user.leaves.sick = sick;
-  if (majlis !== undefined) user.leaves.majlis = majlis;
-  if (casual !== undefined) user.leaves.casual = casual;
-  if (earned !== undefined) user.leaves.earned = earned;
+
+  // Recalculate available leaves (Logic: Total Assigned - Booked)
+  // Assuming 'avalaibleLeaves' tracks the REMAINING balance.
+  // Ideally: Available = (PTO + Sick) - Booked.
+  // However, based on schema default structure, we'll update the total potential first.
+
+  // Let's assume avalaibleLeaves is meant to be the current run-time balance.
+  // If we change the allocation, we should adjust propertly.
+  // For now, let's just save the allocation.
+  // User Schema has: leaves: { pto, sick }, avlaibleLeaves, bookedLeaves.
+
+  // Simplest logic: Update the allocation.
+  // Recalculate available leaves based on new total and existing booked.
+  const totalAllocated = (user.leaves.pto || 0) + (user.leaves.sick || 0);
+  user.avalaibleLeaves = totalAllocated - (user.bookedLeaves || 0);
 
   await user.save();
   res.status(200).json(user.leaves);
