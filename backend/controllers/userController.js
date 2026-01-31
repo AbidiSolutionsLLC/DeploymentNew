@@ -1,232 +1,230 @@
 const User = require("../models/userSchema");
-const Department = require("../models/departemt"); // Make sure this model exists
+const Department = require("../models/departemt");
 const catchAsync = require("../utils/catchAsync");
-const { BadRequestError, NotFoundError } = require("../utils/ExpressError");
-const { sendInvitationEmail } = require("../config/emailConfig");
+const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
+const sendEmail = require('../utils/emailService');
+const { getSearchScope } = require("../utils/rbac");
+
+// --- HELPER: Check Write Permissions ---
+const checkWritePermission = async (actor, targetUserId = null, targetRole = null) => {
+  // 1. Super Admin & HR have Global Write Access
+  if (['Super Admin', 'HR'].includes(actor.role)) return true;
+
+  // 2. Managers, Technicians, Employees have NO Write Access
+  if (['Manager', 'Technician', 'Employee'].includes(actor.role)) {
+    throw new ForbiddenError("You do not have permission to manage users.");
+  }
+
+  // 3. Admin Logic (Scoped Write Access)
+  if (actor.role === 'Admin') {
+    // Cannot create/edit Super Admins
+    if (targetRole === 'Super Admin') {
+      throw new ForbiddenError("Admins cannot manage Super Admin accounts.");
+    }
+
+    // If Editing/Deleting existing user:
+    if (targetUserId) {
+      const targetUser = await User.findById(targetUserId);
+      if (!targetUser) throw new NotFoundError("User not found");
+
+      // Cannot touch Super Admins
+      if (targetUser.role === 'Super Admin') {
+        throw new ForbiddenError("Admins cannot edit/delete Super Admins.");
+      }
+
+      // Must be a direct subordinate (Target reports to Actor)
+      if (targetUser.reportsTo?.toString() !== actor._id.toString()) {
+        throw new ForbiddenError("Admins can only manage their direct subordinates.");
+      }
+    }
+    return true;
+  }
+
+  return false;
+};
 
 const generateEmpID = async () => {
   const lastUser = await User.findOne({}, { empID: 1 }).sort({ createdAt: -1 });
-
-  if (!lastUser || !lastUser.empID || !lastUser.empID.startsWith("EMP-")) {
-    return "EMP-001";
-  }
-
+  if (!lastUser || !lastUser.empID || !lastUser.empID.startsWith("EMP-")) return "EMP-001";
   const lastIdStr = lastUser.empID.split("-")[1];
   const lastIdNum = parseInt(lastIdStr, 10);
-
-  if (isNaN(lastIdNum)) return "EMP-001";
-
-  return `EMP-${String(lastIdNum + 1).padStart(3, "0")}`;
+  return isNaN(lastIdNum) ? "EMP-001" : `EMP-${String(lastIdNum + 1).padStart(3, "0")}`;
 };
 
-// 1. Create User
-exports.createUser = catchAsync(async (req, res) => {
-  const {
-    name,
-    email,
-    timeZone,
-    reportsTo,
-    role,
-    phoneNumber,
-    designation,
-    department,
-    branch,
-    empType,
-    joiningDate,
-    about,
-    salary,
-    education,
-    address,
-    experience,
-    DOB,
-    maritalStatus,
-    emergencyContact,
-    addedby,
-  } = req.body;
+const getFileUrl = (req) => {
+  if (!req.file) return null;
+  if (req.file.url) return req.file.url; 
+  if (req.file.location) return req.file.location; 
+  let cleanPath = req.file.path.replace(/\\/g, "/");
+  cleanPath = cleanPath.replace(/^public\//, "");
+  return `${req.protocol}://${req.get('host')}/${cleanPath}`;
+};
 
-  // 1. Check if email exists
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw new BadRequestError("User with this email already exists");
+const sendInviteEmail = async (user) => {
+  const frontendLoginUrl = "https://abidipro.abidisolutions.com/auth/login";
+  const emailSubject = "You're Invited! Join the Abidi Solutions Portal";
+  const emailBody = `
+    <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+      <div style="background-color: #497a71; padding: 25px; text-align: center;">
+        <h1 style="color: #fff; margin: 0;">Welcome Aboard!</h1>
+      </div>
+      <div style="padding: 30px;">
+        <p>Hello <strong>${user.name}</strong>,</p>
+        <p>You have been invited to join the <strong>Abidi Solutions Employee Portal</strong>.</p>
+        <div style="background: #f8f9fa; padding: 15px; border-left: 4px solid #497a71; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Role:</strong> ${user.role}</p>
+          <p style="margin: 5px 0;"><strong>Username:</strong> ${user.email}</p>
+          <p style="margin: 5px 0; color: #e67e22;"><strong>Status:</strong> Pending Activation</p>
+        </div>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${frontendLoginUrl}" style="background-color: #497a71; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            Accept Invitation & Login
+          </a>
+        </div>
+        <p style="font-size: 13px; color: #666;">Please sign in using your Microsoft Account to activate your profile.</p>
+      </div>
+    </div>
+  `;
+  await sendEmail(user.email, emailSubject, emailBody);
+};
+
+// --- SECURED CREATE USER ---
+exports.createUser = catchAsync(async (req, res) => {
+  let { email, ...otherData } = req.body;
+  
+  // 1. RBAC Check
+  await checkWritePermission(req.user, null, otherData.role);
+
+  if (otherData.reportsTo === "NO MANAGER (TOP LEVEL)" || otherData.reportsTo === "") otherData.reportsTo = null;
+
+  // 2. Admin Restriction: Must set reportsTo = Themselves if they are an Admin
+  if (req.user.role === 'Admin' && (!otherData.reportsTo || otherData.reportsTo !== req.user.id)) {
+     // Optional: Force it or throw error. Let's force it for safety.
+     otherData.reportsTo = req.user.id;
   }
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) throw new BadRequestError("User with this email already exists");
 
   const newEmpID = await generateEmpID();
-
+  const defaultCards = [
+    { type: 'todo', id: Date.now().toString() + '-1' },
+    { type: 'feeds', id: Date.now().toString() + '-2' },
+    { type: 'leavelog', id: Date.now().toString() + '-3' }
+  ];
 
   const newUser = new User({
-    name,
     email,
-    timeZone: timeZone || "UTC",
-    reportsTo: reportsTo || null,
+    ...otherData,
     empID: newEmpID,
-    role,
-    phoneNumber,
-    designation,
-    department,
-    branch,
-    empType,
-    joiningDate,
-    about,
-    salary,
-    education,
-    address,
-    experience,
-    DOB,
-    maritalStatus,
-    emergencyContact,
-    addedby,
+    dashboardCards: defaultCards,
+    empStatus: "Pending",
+    isTechnician: otherData.isTechnician || false
   });
 
-  // 3. Save User
   const savedUser = await newUser.save();
+  if (otherData.department) await Department.findByIdAndUpdate(otherData.department, { $push: { members: savedUser._id } });
 
-  // 4. AUTO-LINK: Add this User to the Department's "members" array
-  if (department) {
-    await Department.findByIdAndUpdate(department, {
-      $push: { members: savedUser._id },
-    });
+  try {
+    await sendInviteEmail(savedUser);
+  } catch (err) {
+    console.error("❌ Failed to send invite email:", err.message);
   }
 
-  // 5. Send Invitation Email
-  // Replace with your actual frontend URL
-  const frontendLoginUrl = process.env.FRONTEND_URL || "http://localhost:3000/auth/login";
-
-  await sendInvitationEmail({
-    to: savedUser.email,
-    name: savedUser.name,
-    role: savedUser.role,
-    loginURL: frontendLoginUrl
-  });
-
-  res.status(201).json({
-    status: "success",
-    message: "User created and invitation email sent.",
-    data: savedUser,
-  });
+  res.status(201).json({ status: "success", message: "User invited successfully.", data: savedUser });
 });
-// 2. Get All Users
+
+exports.resendInvitation = catchAsync(async (req, res) => {
+  // RBAC: Only HR/Super Admin should resend, or Admin for their team.
+  // Re-using checkWritePermission for simplicity as it covers hierarchy.
+  await checkWritePermission(req.user, req.params.id);
+
+  const user = await User.findById(req.params.id);
+  if (!user) throw new NotFoundError("User not found");
+  if (user.empStatus !== "Pending" && user.empStatus !== "Inactive") throw new BadRequestError("User already active.");
+  
+  try {
+    await sendInviteEmail(user);
+    res.status(200).json({ status: "success", message: `Invitation resent to ${user.email}` });
+  } catch (error) {
+    throw new BadRequestError("Failed to send email: " + error.message);
+  }
+});
+
 exports.getAllUsers = catchAsync(async (req, res) => {
-  // Populate Department name and Manager name for the UI
-  const users = await User.find()
-    .populate("department", "name") // Only fetch department name
-    .populate("reportsTo", "name designation"); // Only fetch manager name & role
+  const { status } = req.query;
+  
+  // 1. Get Security Scope
+  // Uses 'attendance' scope: Managers/Admins see Team, HR/Super see All.
+  const rbacFilter = await getSearchScope(req.user, 'attendance'); 
+
+  const query = { ...rbacFilter };
+  if (status) query.empStatus = status;
+
+  const users = await User.find(query)
+    .populate("department", "name")
+    .populate("reportsTo", "name designation");
 
   res.status(200).json(users);
 });
 
-// 3. Get User by ID
 exports.getUserById = catchAsync(async (req, res) => {
   const { id } = req.params;
   const user = await User.findById(id)
-    .populate({
-      path: "department",
-      populate: {
-        path: "members",
-        model: "User",
-        select: "name email designation avatar role empStatus"
-      }
-    })
-    .populate({
-      path: "reportsTo",
-      select: "name email designation avatar role"
-    });
-
+    .populate({ path: "department", populate: { path: "members", model: "User", select: "name email designation avatar role empStatus" } })
+    .populate({ path: "reportsTo", select: "name email designation avatar role" });
   if (!user) throw new NotFoundError("User not found");
-
   res.status(200).json(user);
 });
 
-// 4. Update User
+// --- SECURED UPDATE USER ---
 exports.updateUser = catchAsync(async (req, res) => {
   const { id } = req.params;
+  
+  // 1. RBAC Check
+  await checkWritePermission(req.user, id, req.body.role);
+
   const updates = { ...req.body };
+  if (updates.reportsTo === "" || updates.reportsTo === "NO MANAGER") updates.reportsTo = null;
 
-  // Fix: Handle empty/invalid reportsTo value to avoid CastError
-  if (updates.reportsTo === "" || updates.reportsTo === "NO MANAGER") {
-    updates.reportsTo = null;
-  }
-
-  // Find original user to check for department changes
   const user = await User.findById(id);
   if (!user) throw new NotFoundError("User not found");
 
-  // --- HANDLE DEPARTMENT TRANSFER ---
-  // If department is changing, update the old and new department lists
   if (updates.department && updates.department !== user.department?.toString()) {
     const oldDeptId = user.department;
     const newDeptId = updates.department;
-
-    // Remove from Old Department
-    if (oldDeptId) {
-      await Department.findByIdAndUpdate(oldDeptId, {
-        $pull: { members: id }
-      });
-    }
-
-    // Add to New Department
-    if (newDeptId) {
-      await Department.findByIdAndUpdate(newDeptId, {
-        $push: { members: id }
-      });
-    }
+    if (oldDeptId) await Department.findByIdAndUpdate(oldDeptId, { $pull: { members: id } });
+    if (newDeptId) await Department.findByIdAndUpdate(newDeptId, { $push: { members: id } });
   }
-  // ----------------------------------
 
-  // Filter allowed fields
-  const allowedFields = [
-    "name", "email", "timeZone", "reportsTo", "empID", "role",
-    "phoneNumber", "designation", "department", "branch", "empType", "joiningDate",
-    "about", "salary", "education", "address", "experience", "DOB",
-    "maritalStatus", "emergencyContact", "addedby", "empStatus", "avalaibleLeaves"
-  ];
-
-  allowedFields.forEach(field => {
-    if (updates[field] !== undefined) {
-      user[field] = updates[field];
-    }
-  });
+  const allowedFields = ["name", "email", "timeZone", "reportsTo", "empID", "role", "phoneNumber", "designation", "department", "branch", "empType", "joiningDate", "about", "salary", "education", "address", "experience", "DOB", "maritalStatus", "emergencyContact", "addedby", "empStatus", "avalaibleLeaves", "isTechnician"];
+  allowedFields.forEach(field => { if (updates[field] !== undefined) user[field] = updates[field]; });
 
   const updatedUser = await user.save();
   res.status(200).json(updatedUser);
 });
 
-// 5. Delete User
+// --- SECURED DELETE USER ---
 exports.deleteUser = catchAsync(async (req, res) => {
   const { id } = req.params;
+  
+  // 1. RBAC Check
+  await checkWritePermission(req.user, id);
 
-  // Find user first to check if exists
   const user = await User.findById(id);
   if (!user) throw new NotFoundError("User not found");
-
-  // Cleanup: Remove user from their department before deleting
-  if (user.department) {
-    await Department.findByIdAndUpdate(user.department, {
-      $pull: { members: id }
-    });
-  }
-
-  // Remove user from any manager's reportsTo relationships
-  await User.updateMany(
-    { reportsTo: id },
-    { $set: { reportsTo: null } }
-  );
-
-  // Use findOneAndDelete to trigger the pre hook
+  if (user.department) await Department.findByIdAndUpdate(user.department, { $pull: { members: id } });
+  await User.updateMany({ reportsTo: id }, { $set: { reportsTo: null } });
   await User.findOneAndDelete({ _id: id });
-
-  res.status(200).json({
-    status: "success",
-    message: "User deleted successfully"
-  });
+  res.status(200).json({ status: "success", message: "User deleted successfully" });
 });
-
-// --- ADMIN / UTILS ---
 
 exports.getUserByRole = catchAsync(async (req, res) => {
   const { role } = req.params;
   const users = await User.find({ role });
   res.status(200).json(users);
 });
+
 
 exports.getDashboardCards = catchAsync(async (req, res) => {
   const { id } = req.params;
@@ -238,19 +236,10 @@ exports.getDashboardCards = catchAsync(async (req, res) => {
 exports.addDashboardCard = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { type } = req.body;
-
   const user = await User.findById(id);
   if (!user) throw new NotFoundError("User");
-
-  if (user.dashboardCards.some(card => card.type === type)) {
-    throw new BadRequestError("Card already exists");
-  }
-
-  user.dashboardCards.push({
-    type,
-    id: Date.now().toString()
-  });
-
+  if (user.dashboardCards.some(card => card.type === type)) throw new BadRequestError("Card already exists");
+  user.dashboardCards.push({ type, id: Date.now().toString() });
   await user.save();
   res.status(201).json(user.dashboardCards);
 });
@@ -259,14 +248,9 @@ exports.removeDashboardCard = catchAsync(async (req, res) => {
   const { id, cardId } = req.params;
   const user = await User.findById(id);
   if (!user) throw new NotFoundError("User");
-
   const initialLength = user.dashboardCards.length;
   user.dashboardCards = user.dashboardCards.filter(card => card.id !== cardId);
-
-  if (user.dashboardCards.length === initialLength) {
-    throw new NotFoundError("Card not found");
-  }
-
+  if (user.dashboardCards.length === initialLength) throw new NotFoundError("Card not found");
   await user.save();
   res.status(200).json(user.dashboardCards);
 });
@@ -281,29 +265,15 @@ exports.getUserLeaves = catchAsync(async (req, res) => {
 exports.updateUserLeaves = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { pto, sick } = req.body;
+  // RBAC: Only HR/Super Admin should manually edit leave balances
+  if (!['Super Admin', 'HR'].includes(req.user.role)) throw new ForbiddenError("Permission denied.");
 
   const user = await User.findById(id);
   if (!user) throw new NotFoundError("User");
-
-  // Update PTO and Sick leaves if provided
   if (pto !== undefined) user.leaves.pto = pto;
   if (sick !== undefined) user.leaves.sick = sick;
-
-  // Recalculate available leaves (Logic: Total Assigned - Booked)
-  // Assuming 'avalaibleLeaves' tracks the REMAINING balance.
-  // Ideally: Available = (PTO + Sick) - Booked.
-  // However, based on schema default structure, we'll update the total potential first.
-
-  // Let's assume avalaibleLeaves is meant to be the current run-time balance.
-  // If we change the allocation, we should adjust propertly.
-  // For now, let's just save the allocation.
-  // User Schema has: leaves: { pto, sick }, avlaibleLeaves, bookedLeaves.
-
-  // Simplest logic: Update the allocation.
-  // Recalculate available leaves based on new total and existing booked.
   const totalAllocated = (user.leaves.pto || 0) + (user.leaves.sick || 0);
   user.avalaibleLeaves = totalAllocated - (user.bookedLeaves || 0);
-
   await user.save();
   res.status(200).json(user.leaves);
 });
@@ -312,114 +282,42 @@ exports.getUpcomingBirthdays = catchAsync(async (req, res) => {
   const today = new Date();
   const currentMonth = today.getMonth() + 1;
   const currentDay = today.getDate();
-
   const users = await User.aggregate([
-    {
-      $project: {
-        name: 1,
-        DOB: 1,
-        avatar: 1,
-        birthMonth: { $month: { $toDate: "$DOB" } },
-        birthDay: { $dayOfMonth: { $toDate: "$DOB" } },
-        daysUntilBirthday: {
-          $let: {
-            vars: {
-              nextBirthday: {
-                $dateFromParts: {
-                  year: {
-                    $cond: [
-                      {
-                        $and: [
-                          { $gte: [{ $month: { $toDate: "$DOB" } }, currentMonth] },
-                          { $gt: [{ $dayOfMonth: { $toDate: "$DOB" } }, currentDay] }
-                        ]
-                      },
-                      today.getFullYear(),
-                      today.getFullYear() + 1
-                    ]
-                  },
-                  month: { $month: { $toDate: "$DOB" } },
-                  day: { $dayOfMonth: { $toDate: "$DOB" } }
-                }
-              }
-            },
-            in: {
-              $divide: [
-                { $subtract: ["$$nextBirthday", today] },
-                1000 * 60 * 60 * 24
-              ]
-            }
-          }
-        }
-      }
-    },
+    { $project: { name: 1, DOB: 1, avatar: 1, birthMonth: { $month: { $toDate: "$DOB" } }, birthDay: { $dayOfMonth: { $toDate: "$DOB" } }, daysUntilBirthday: { $let: { vars: { nextBirthday: { $dateFromParts: { year: { $cond: [{ $and: [{ $gte: [{ $month: { $toDate: "$DOB" } }, currentMonth] }, { $gt: [{ $dayOfMonth: { $toDate: "$DOB" } }, currentDay] }] }, today.getFullYear(), today.getFullYear() + 1] }, month: { $month: { $toDate: "$DOB" } }, day: { $dayOfMonth: { $toDate: "$DOB" } } } } }, in: { $divide: [{ $subtract: ["$$nextBirthday", today] }, 1000 * 60 * 60 * 24] } } } } },
     { $match: { daysUntilBirthday: { $gte: 0, $lte: 30 } } },
     { $sort: { daysUntilBirthday: 1 } },
     { $limit: 3 }
   ]);
-
   const formattedBirthdays = users.map(user => {
     const birthDate = new Date(user.DOB);
-    return {
-      name: user.name,
-      date: birthDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      day: birthDate.toLocaleDateString('en-US', { weekday: 'long' }),
-      avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`,
-      color: `bg-blue-100 text-blue-700`
-    };
+    return { name: user.name, date: birthDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), day: birthDate.toLocaleDateString('en-US', { weekday: 'long' }), avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`, color: `bg-blue-100 text-blue-700` };
   });
-
   res.status(200).json(formattedBirthdays);
 });
 
 exports.uploadAvatar = catchAsync(async (req, res) => {
   const { id } = req.params;
   if (!req.file) throw new BadRequestError('No file uploaded');
-
-  const user = await User.findByIdAndUpdate(
-    id,
-    { avatar: req.file.path },
-    { new: true }
-  );
-
+  const fileUrl = getFileUrl(req);
+  const user = await User.findByIdAndUpdate(id, { avatar: fileUrl }, { new: true });
   if (!user) throw new NotFoundError("User");
-
-  res.status(200).json({
-    status: 'success',
-    avatarUrl: user.avatar
-  });
+  res.status(200).json({ status: 'success', avatarUrl: user.avatar });
 });
 
-exports.getOrgChart = catchAsync(async (req, res, next) => {
-  // 1. Fetch all active users with necessary fields
-  const users = await User.find({ empStatus: "Active" })
-    .select("name designation avatar role email phone reportsTo department")
-    .populate("department", "name")
-    .lean();
-
-  // 2. Helper to build the tree recursively
+exports.getOrgChart = catchAsync(async (req, res) => {
+  const users = await User.find({ empStatus: "Active" }).select("name designation avatar role email phone reportsTo department").populate("department", "name").lean();
   const buildTree = (users, managerId = null) => {
-    return users
-      .filter((user) => {
-        // If managerId is null, we are looking for root nodes (CEO)
-        // Check if reportsTo is null OR if reportsTo doesn't exist in our list (orphan handling)
-        if (managerId === null) {
-          return !user.reportsTo;
-        }
-        return user.reportsTo && user.reportsTo.toString() === managerId.toString();
-      })
-      .map((user) => ({
-        ...user,
-        // Recursively find children for this user
-        children: buildTree(users, user._id)
-      }));
+    return users.filter((user) => { if (managerId === null) return !user.reportsTo; return user.reportsTo && user.reportsTo.toString() === managerId.toString(); }).map((user) => ({ ...user, children: buildTree(users, user._id) }));
   };
-
-  // 3. Build the hierarchy starting from roots (users with no manager)
   const hierarchy = buildTree(users, null);
+  res.status(200).json({ status: "success", data: hierarchy });
+});
 
-  res.status(200).json({
-    status: "success",
-    data: hierarchy
-  });
+exports.uploadCover = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  if (!req.file) throw new BadRequestError('No file uploaded');
+  const fileUrl = getFileUrl(req);
+  const user = await User.findByIdAndUpdate(id, { coverImage: fileUrl }, { new: true });
+  if (!user) throw new NotFoundError("User not found");
+  res.status(200).json({ status: 'success', coverUrl: user.coverImage });
 });

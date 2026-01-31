@@ -2,29 +2,33 @@ const User = require("../models/userSchema");
 const { UnauthorizedError } = require("../utils/ExpressError");
 
 exports.getCurrentUser = async (req, res) => {
-  if (!req.user) {
+  // 1. Check if user context exists (Set by authMiddleware)
+  if (!req.user || !req.user.id) {
     throw new UnauthorizedError("User context missing");
   }
 
-const user = await User.findById(req.user.id)
-  .populate({
-    path: "department",
-    populate: {
-      path: "members",
-      model: "User",
-      select: "name email designation avatar role empStatus"
-    }
-  })
-  .populate({
-    path: "reportsTo",
-    select: "name email designation avatar role"
-  });
+  // 2. Fetch User with populated fields
+  const user = await User.findById(req.user.id)
+    .populate({
+      path: "department",
+      populate: {
+        path: "members",
+        model: "User",
+        select: "name email designation avatar role empStatus"
+      }
+    })
+    .populate({
+      path: "reportsTo",
+      select: "name email designation avatar role"
+    });
 
   if (!user) {
     throw new UnauthorizedError("User record not found");
   }
 
+  // 3. Return User Data
   res.status(200).json({
+    status: "success",
     message: "Authenticated via Azure",
     user: user,
   });

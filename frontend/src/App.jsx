@@ -36,7 +36,7 @@ import AdminTickets from "./Pages/Tickets/AdminTickets";
 import AdminDashBoard from "./Pages/Admin/AdminDashBoard";
 import ActivityLogs from "./Pages/Admin/ActivityLogs";
 import MyTask from "./Pages/Projects/MyTask";
-// import useAutoLogin from "./Hooks/useAutoLogin";
+import useAutoLogin from "./Hooks/useAutoLogin";
 import { TimeLogProvider } from "../src/Pages/People/TimeLogContext";
 import Role from "./Pages/People/sharedWithRole";
 import UploadDocument from "./Pages/People/UploadDocument";
@@ -47,16 +47,18 @@ import AssignTicket from "./Pages/Tickets/AssignTickets";
 import ProjectDetail from "./Pages/Projects/ProjectDetail";
 import ComingSoon from "./Pages/Projects/ComingSoon";
 import OrgChartPage from "./Pages/Admin/OrgChart";
+import AssignedTickets from "./Pages/People/AssignedTickets";
+import AdminAttendance from "./Pages/Admin/AdminAttendance"; 
 
 
 function App() {
-  // useAutoLogin();
+  useAutoLogin();
   // useTokenRefresh();
   return (
     <>
       <ToastContainer
         position="top-right"
-autoClose={3000}        // Ensure this is set (3 seconds)
+        autoClose={3000}
         hideProgressBar={true}
         newestOnTop
         closeOnClick
@@ -64,6 +66,7 @@ autoClose={3000}        // Ensure this is set (3 seconds)
         draggable
         theme="light"
         limit={1}
+        style={{ zIndex: 9999999 }} 
       />
       <Routes>
         {/* Redirect to login by default */}
@@ -104,6 +107,7 @@ autoClose={3000}        // Ensure this is set (3 seconds)
           <Route index path="shared" element={<Files />} />
           {/* <Route path="files" element={<Files />} /> */}
           <Route index path="raise" element={<Ticket />} />
+          <Route path="assigned-tickets" element={<AssignedTickets />} />
           <Route index path="history" element={<TimeTracker />} />
           <Route path="profile" element={<Profile />} />
           <Route path="attendance" element={<Attendance />} />
@@ -155,7 +159,7 @@ autoClose={3000}        // Ensure this is set (3 seconds)
           <Route index element={<Navigate to="adminDashboard" replace />} /> //
           Redirect
           <Route index path="adminDashboard" element={<AdminDashBoard />} />
-             <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
+              <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
                 <Route path="upload" element={<UploadDocument />} />
           <Route path="userManagement" element={<UserManagement />} />
           {/* <Route path="logs" element={<ActivityLogs />} /> */}
@@ -163,6 +167,9 @@ autoClose={3000}        // Ensure this is set (3 seconds)
           <Route path="assign-ticket" element={<AdminTickets />} />
           <Route path="assign-ticket/:ticketId" element={<AssignTicket />} />
           <Route path="org-chart" element={<OrgChartPage />} />
+          
+          {/* --- NEW ROUTE ADDED HERE --- */}
+          <Route path="attendance" element={<AdminAttendance />} />
         </Route>
       </Routes>
     </>

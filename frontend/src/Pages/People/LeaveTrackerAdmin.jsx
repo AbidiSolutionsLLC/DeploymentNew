@@ -4,7 +4,9 @@ import { FaPlus, FaEye } from "react-icons/fa";
 import HolidayTable from "../../Components/HolidayTable";
 import AddHolidayModal from "../../Components/AddHolidayModal";
 import Toast from "../../Components/Toast";
-import ViewLeaveModal from "../../Components/ViewLeaveModal"; // Import the new modal
+import ViewLeaveModal from "../../Components/ViewLeaveModal";
+// IMPORT MODERN SELECT
+import ModernSelect from "../../Components/ui/ModernSelect"; 
 
 const LeaveTrackerAdmin = () => {
   const [departmentLeaveRecord, setDepartmentLeaveRecord] = useState([]);
@@ -13,9 +15,8 @@ const LeaveTrackerAdmin = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState(null);
   const [toast, setToast] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for holidays
+  const [refreshKey, setRefreshKey] = useState(0); 
 
-  // Manager User Leaves State
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState("");
   const [leaveBalances, setLeaveBalances] = useState({ pto: 0, sick: 0 });
@@ -26,7 +27,6 @@ const LeaveTrackerAdmin = () => {
     users: true
   });
 
-  // Helper to show toast
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -73,7 +73,6 @@ const LeaveTrackerAdmin = () => {
   const fetchUsers = async () => {
     try {
       const response = await api.get("/users");
-      // Filter out SuperAdmin if necessary, or just display all
       const filtered = response.data.filter(u => u.role !== 'SuperAdmin');
       setUsers(filtered);
     } catch (err) {
@@ -120,7 +119,6 @@ const LeaveTrackerAdmin = () => {
       await api.put(`/leaves/${leaveId}/status`, { status: newStatus });
       showToast(`Leave status updated to ${newStatus}`);
 
-      // Update local state immediately for better UX
       setDepartmentLeaveRecord(prev =>
         prev.map(leave =>
           leave.id === leaveId
@@ -129,20 +127,17 @@ const LeaveTrackerAdmin = () => {
         )
       );
 
-      await fetchLeaves(); // Refresh from server
+      await fetchLeaves(); 
     } catch (error) {
-      console.error(
-        "Failed to update status:",
-        error.response?.data || error.message
-      );
+      console.error("Failed to update status:", error.response?.data || error.message);
       showToast("Failed to update status", "error");
     }
   };
 
   const handleHolidayAdded = () => {
     showToast("Holiday added successfully");
-    fetchHolidays(); // Refresh holidays table
-    setRefreshKey(prev => prev + 1); // Force refresh HolidayTable component
+    fetchHolidays(); 
+    setRefreshKey(prev => prev + 1);
     setIsOpen(false);
   };
 
@@ -157,7 +152,6 @@ const LeaveTrackerAdmin = () => {
     fetchUsers();
   }, []);
 
-  // Get status color class
   const getStatusColor = (status) => {
     switch (status) {
       case "Approved": return "bg-green-100 text-green-800";
@@ -168,7 +162,6 @@ const LeaveTrackerAdmin = () => {
 
   return (
     <div className="min-h-screen bg-transparent p-2">
-      {/* Toast Notification */}
       {toast && (
         <Toast
           message={toast.message}
@@ -177,7 +170,6 @@ const LeaveTrackerAdmin = () => {
         />
       )}
 
-      {/* View Leave Modal */}
       {selectedLeave && (
         <ViewLeaveModal
           isOpen={viewModalOpen}
@@ -187,9 +179,7 @@ const LeaveTrackerAdmin = () => {
         />
       )}
 
-      {/* Main content area */}
       <div className="space-y-4">
-
         {/* Applied Leave Section */}
         <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
           <div className="mb-4">
@@ -201,21 +191,8 @@ const LeaveTrackerAdmin = () => {
             <table className="min-w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                  {[
-                    "Date",
-                    "ID",
-                    "Name",
-                    "Email",
-                    "Leave Type",
-                    "Reason",
-                    "Duration",
-                    "Status",
-                    "Actions",
-                  ].map((heading) => (
-                    <th
-                      key={heading}
-                      className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left"
-                    >
+                  {["Date", "ID", "Name", "Email", "Leave Type", "Reason", "Duration", "Status", "Actions"].map((heading) => (
+                    <th key={heading} className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left">
                       {heading}
                     </th>
                   ))}
@@ -265,13 +242,7 @@ const LeaveTrackerAdmin = () => {
                 ) : (
                   <tr>
                     <td colSpan={9} className="p-8 text-center text-slate-500 text-sm">
-                      <div className="flex flex-col items-center gap-2">
-                        <svg className="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p className="text-sm font-medium text-slate-500">No leave requests found</p>
-                        <p className="text-xs text-slate-400">All leave requests are processed</p>
-                      </div>
+                      <p className="text-sm font-medium text-slate-500">No leave requests found</p>
                     </td>
                   </tr>
                 )}
@@ -316,56 +287,54 @@ const LeaveTrackerAdmin = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="col-span-1 md:col-span-2">
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Select Employee</label>
-            <select
+            {/* UPDATED: Modern Select */}
+            <ModernSelect
+              label="Select Employee"
+              name="employee"
               value={selectedUser}
               onChange={handleUserSelect}
-              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm"
-            >
-              <option value="">Select an employee...</option>
-              {users.map(user => (
-                <option key={user._id} value={user._id}>
-                  {user.name} ({user.role})
-                </option>
-              ))}
-            </select>
+              placeholder="Select an employee..."
+              options={users.map(user => ({
+                value: user._id,
+                label: `${user.name} (${user.role})`
+              }))}
+            />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">PTO Balance</label>
+            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">PTO Balance</label>
             <input
               type="number"
               value={leaveBalances.pto}
               onChange={(e) => setLeaveBalances(prev => ({ ...prev, pto: Number(e.target.value) }))}
-              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm"
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
               disabled={!selectedUser}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Sick Leaves</label>
+            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Sick Leaves</label>
             <input
               type="number"
               value={leaveBalances.sick}
               onChange={(e) => setLeaveBalances(prev => ({ ...prev, sick: Number(e.target.value) }))}
-              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm"
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
               disabled={!selectedUser}
             />
           </div>
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-6 flex justify-end">
           <button
             onClick={handleUpdateLeaves}
             disabled={!selectedUser}
-            className="px-6 py-2.5 bg-[#64748b] text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+            className="px-6 py-3 bg-[#64748b] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-100"
           >
             Update Balances
           </button>
         </div>
       </div>
 
-      {/* Holiday Modal */}
       <AddHolidayModal
         isOpen={isOpen}
         setIsOpen={setIsOpen}

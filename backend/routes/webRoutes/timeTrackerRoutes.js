@@ -24,4 +24,9 @@ router.route("/:id")
   // .put(timeTrackerController.updateTimeLog) // Be careful exposing update without validation
   // .delete(timeTrackerController.deleteTimeLog);
 
+router.route("/:id")
+  .get(timeTrackerController.getTimeLogById)
+  .put(timeTrackerController.updateTimeLog) 
+  .delete(timeTrackerController.deleteTimeLog);
+
 module.exports = router;

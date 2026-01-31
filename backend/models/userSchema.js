@@ -26,6 +26,12 @@ const userSchema = new mongoose.Schema(
       required: true,
       default: "Employee",
     },
+    // --- NEW FIELD: DUAL ROLE SUPPORT ---
+    isTechnician: {
+      type: Boolean,
+      default: false
+    },
+    // ------------------------------------
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
@@ -59,7 +65,7 @@ const userSchema = new mongoose.Schema(
     },
     empStatus: {
       type: String,
-      enum: ["Active", "Inactive"],
+      enum: ["Active", "Inactive", "Pending"],
       default: "Active",
     },
     timeZone: {
@@ -73,7 +79,7 @@ const userSchema = new mongoose.Schema(
     joiningDate: { type: Date, default: Date.now },
     phoneNumber: {
       type: String,
-      sparse: true, // Changed to sparse to avoid unique conflicts on null
+      sparse: true, 
     },
     address: { type: String },
     salary: { type: Number },

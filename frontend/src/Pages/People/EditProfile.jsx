@@ -8,6 +8,10 @@ import { toast } from "react-toastify";
 import { Spin } from "antd";
 import { format } from "date-fns";
 
+// IMPORT YOUR NEW MODERN COMPONENTS
+import ModernSelect from "../../Components/ui/ModernSelect";
+import ModernDatePicker from "../../Components/ui/ModernDatePicker";
+
 export default function EditProfile() {
   const navigate = useNavigate();
 
@@ -15,6 +19,10 @@ export default function EditProfile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  // New States for Uploads
+  const [uploadingCover, setUploadingCover] = useState(false);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -69,28 +77,51 @@ export default function EditProfile() {
     fetchUser();
   }, []);
 
+  // --- HANDLER: Upload Cover Photo ---
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('coverImage', file);
+
+    try {
+      setUploadingCover(true);
+      const response = await api.post(`/users/${userId}/upload-cover`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setUser(prev => ({ ...prev, coverImage: response.data.coverUrl }));
+      toast.success("Cover photo updated!");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update cover photo");
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
   // Client-side validation
   const validateForm = () => {
     const errors = [];
 
-    // Required fields
     if (!formData.name.trim()) errors.push("Name is required");
     if (!formData.email.trim()) errors.push("Email is required");
     if (!formData.designation.trim()) errors.push("Designation is required");
     if (!formData.branch.trim()) errors.push("Branch is required");
     
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email && !emailRegex.test(formData.email)) {
       errors.push("Invalid email format");
     }
     
-    // Phone validation (if provided)
     if (formData.phoneNumber && !/^\d+$/.test(formData.phoneNumber.toString())) {
       errors.push("Phone number must contain only digits");
     }
 
-    // Date validation
     if (formData.DOB) {
       const dobDate = new Date(formData.DOB);
       if (isNaN(dobDate.getTime())) {
@@ -98,7 +129,6 @@ export default function EditProfile() {
       }
     }
 
-    // Education validation
     formData.education.forEach((edu, index) => {
       if (edu.institution && !edu.degree) {
         errors.push(`Education #${index + 1}: Degree is required if institution is provided`);
@@ -108,7 +138,6 @@ export default function EditProfile() {
       }
     });
 
-    // Experience validation
     formData.experience.forEach((exp, index) => {
       if (exp.startDate && exp.endDate) {
         const start = new Date(exp.startDate);
@@ -119,7 +148,6 @@ export default function EditProfile() {
       }
     });
 
-    // Emergency contact validation
     formData.emergencyContact.forEach((contact, index) => {
       if (contact.name && !contact.phone) {
         errors.push(`Emergency contact #${index + 1}: Phone number is required if name is provided`);
@@ -139,7 +167,6 @@ export default function EditProfile() {
     try {
       setSaving(true);
       
-      // Prepare payload with proper data types
       const payload = {
         name: formData.name.trim(),
         email: formData.email.trim(),
@@ -177,7 +204,6 @@ export default function EditProfile() {
           }))
       };
 
-      // Remove undefined values
       Object.keys(payload).forEach(key => {
         if (payload[key] === undefined || payload[key] === null) {
           delete payload[key];
@@ -201,13 +227,12 @@ export default function EditProfile() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file
     if (!file.type.startsWith('image/')) {
       toast.error("Please select an image file");
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file.size > 5 * 1024 * 1024) {
       toast.error("Image size should be less than 5MB");
       return;
     }
@@ -318,14 +343,14 @@ export default function EditProfile() {
   if (loading) {
     return (
       <div className="text-center p-6 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
-                <p className="mt-3 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading profile...</p>
-              </div>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
+        <p className="mt-3 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading profile...</p>
+      </div>
     );
   }
 
   return (
-    <div className="relative flex flex-col bg-transparent text-text p-6 rounded-[1.2rem] min-h-[700px]">
+    <div className="relative flex flex-col bg-transparent text-slate-800 p-6 rounded-[1.2rem] min-h-[700px]">
       {/* Back Button */}
       <button
         onClick={() => navigate("/people/profile")}
@@ -335,16 +360,37 @@ export default function EditProfile() {
         Back
       </button>
 
-      {/* Banner & Profile Pic */}
-      <div className="relative h-28 rounded-lg overflow-hidden shadow-md">
+      {/* --- BANNER (EDITABLE) --- */}
+      <div className="relative h-28 md:h-40 rounded-[1.5rem] overflow-hidden shadow-md group bg-slate-200">
         <img
-          src={`https://picsum.photos/1200/200?random=${user._id}`}
+          src={user.coverImage || `https://picsum.photos/1200/200?random=${user._id}`}
           alt="Banner"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-700"
+          onError={(e) => {e.target.src = 'https://via.placeholder.com/1200x300?text=No+Cover+Image'}}
+        />
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
+        
+        {/* Upload Cover Button (New) */}
+        <label 
+          htmlFor="cover-upload-edit"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-md text-white p-3 rounded-full cursor-pointer hover:bg-black/60 transition-all border border-white/30 shadow-lg opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+          title="Change Cover Photo"
+        >
+          {uploadingCover ? <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"/> : <FiCamera size={20} />}
+        </label>
+        <input 
+          id="cover-upload-edit" 
+          type="file" 
+          accept="image/*" 
+          className="hidden" 
+          onChange={handleCoverUpload}
+          disabled={uploadingCover} 
         />
       </div>
-      <div className="relative -mt-14 pl-6 z-10 mb-8">
-        <div className="relative group">
+
+      {/* --- PROFILE PIC SECTION --- */}
+      <div className="relative -mt-14 pl-6 z-10 mb-8 pointer-events-none">
+        <div className="relative group pointer-events-auto">
           <img
             src={user.avatar || `https://randomuser.me/api/portraits/lego/${user?._id ? user._id.length % 10 : 1}.jpg`}
             alt={user?.name || "User"}
@@ -410,15 +456,18 @@ export default function EditProfile() {
               placeholder="Digits only"
             />
           </div>
+          
+          {/* UPDATED: Modern Date Picker */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Date of Birth</label>
-            <input
-              type="date"
-              className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white/80 backdrop-blur-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+            <ModernDatePicker
+              label="Date of Birth"
+              name="DOB"
               value={formData.DOB}
               onChange={(e) => handleInputChange('DOB', e.target.value)}
+              placeholder="Select Date"
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Designation *</label>
             <input
@@ -441,20 +490,24 @@ export default function EditProfile() {
               disabled
             />
           </div>
+          
+          {/* UPDATED: Modern Select for Employment Type */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Employment Type</label>
-            <select
-              className="w-full p-3 bg-white/80 backdrop-blur-sm text-slate-700 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            <ModernSelect
+              label="Employment Type"
+              name="empType"
               value={formData.empType}
               onChange={(e) => handleInputChange('empType', e.target.value)}
-              disabled
-            >
-              <option value="Permanent">Permanent</option>
-              <option value="Contractor">Contractor</option>
-              <option value="Intern">Intern</option>
-              <option value="Part Time">Part Time</option>
-            </select>
+              options={[
+                { value: "Permanent", label: "Permanent" },
+                { value: "Contractor", label: "Contractor" },
+                { value: "Intern", label: "Intern" },
+                { value: "Part Time", label: "Part Time" }
+              ]}
+              disabled={true} // Keep disabled logic as per original
+            />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Marital Status</label>
             <input
@@ -641,34 +694,37 @@ export default function EditProfile() {
                 value={exp.company}
                 onChange={(e) => updateExperience(idx, 'company', e.target.value)}
               />
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <select
-                  className="w-full p-3 bg-white/90 backdrop-blur-sm text-slate-700 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+              
+              {/* UPDATED: Modern Select for Job Type */}
+              <div className="mb-3">
+                <ModernSelect
                   value={exp.jobType}
                   onChange={(e) => updateExperience(idx, 'jobType', e.target.value)}
-                >
-                  <option value="Full-time">Full-time</option>
-                  <option value="Part-time">Part-time</option>
-                  <option value="Contract">Contract</option>
-                  <option value="Internship">Internship</option>
-                </select>
+                  placeholder="Select Job Type"
+                  options={[
+                    { value: "Full-time", label: "Full-time" },
+                    { value: "Part-time", label: "Part-time" },
+                    { value: "Contract", label: "Contract" },
+                    { value: "Internship", label: "Internship" }
+                  ]}
+                />
               </div>
+
+              {/* UPDATED: Modern Date Pickers for Start/End Date */}
               <div className="grid grid-cols-2 gap-3 mb-3">
-                <input
-                  type="date"
+                <ModernDatePicker
                   placeholder="Start Date"
-                  className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white/90 backdrop-blur-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
                   value={exp.startDate ? format(new Date(exp.startDate), "yyyy-MM-dd") : ""}
                   onChange={(e) => updateExperience(idx, 'startDate', e.target.value)}
                 />
-                <input
-                  type="date"
+                
+                <ModernDatePicker
                   placeholder="End Date"
-                  className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white/90 backdrop-blur-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
                   value={exp.endDate ? format(new Date(exp.endDate), "yyyy-MM-dd") : ""}
                   onChange={(e) => updateExperience(idx, 'endDate', e.target.value)}
                 />
               </div>
+
               <textarea
                 placeholder="Job Description"
                 className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white/90 backdrop-blur-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"

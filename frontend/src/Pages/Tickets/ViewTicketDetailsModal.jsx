@@ -1,159 +1,164 @@
-import React, { useRef } from "react";
-import { FiPaperclip } from "react-icons/fi";
+import React, { useRef, useState } from "react";
 import api from "../../axios";
 import { toast } from "react-toastify";
-import { FaDownload } from "react-icons/fa";
+import { FaDownload, FaPaperPlane } from "react-icons/fa";
+import { XMarkIcon, PaperClipIcon } from "@heroicons/react/24/solid";
+import { format } from "date-fns";
 
+const DetailItem = ({ label, value }) => (
+  <div className="space-y-1">
+    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
+    <div className="text-sm sm:text-base text-slate-700 font-bold truncate">{value}</div>
+  </div>
+);
 
-const ViewTicketDetailsModal = ({ ticket, onClose }) => {
+const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
+  const [ticket, setTicket] = useState(initialTicket);
+  const [commentText, setCommentText] = useState("");
+  const [sending, setSending] = useState(false);
   const modalRef = useRef(null);
 
   if (!ticket) return null;
 
   const handleBackdropClick = (e) => {
-    if (modalRef.current && !modalRef.current.contains(e.target)) {
-      onClose();
-    }
+    if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
   };
 
-    const downloadAttachment = async (ticketId, attachmentId, filename) => {
+  const getDownloadUrl = (ticketId, attachmentId) => 
+    `http://localhost:4000/api/web/tickets/${ticketId}/attachment/${attachmentId}`;
+
+  // --- SEND RESPONSE FUNCTION ---
+  const handleSendResponse = async () => {
+    if (!commentText.trim()) return;
+    setSending(true);
     try {
-      // Use the direct download endpoint
-      const response = await api.get(`/tickets/${ticketId}/attachments/${attachmentId}/download`, {
-        responseType: 'blob'
+      // Get current user info for optimistic update (optional) or just wait for server
+      const { data: updatedTicket } = await api.post(`/tickets/${ticket._id}/response`, {
+        content: commentText
       });
       
-      // Create blob and download
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      
-      toast.success(`Downloading ${filename}`);
+      setTicket(updatedTicket); // Update local state with new response
+      setCommentText("");
+      toast.success("Reply sent!");
     } catch (error) {
-      console.error("Download failed:", error);
-      toast.error("Failed to download file");
+      toast.error("Failed to send reply");
+    } finally {
+      setSending(false);
     }
   };
 
-
-    // Handle ticket download
-  const handleDownloadAttachment = (ticket) => {
-    if (ticket.attachments?.[0]) {
-      const attachment = ticket.attachments[0];
-      downloadAttachment(ticket._id, attachment._id, attachment.name || attachment.originalname);
-    }
-  };
-
-  const statusStyles =
-    ticket.status === "opened"
+  const statusStyles = ticket.status?.toLowerCase() === "open"
       ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-      : "bg-rose-50 text-rose-600 border-rose-100";
+      : ticket.status?.toLowerCase() === "in progress" 
+        ? "bg-purple-50 text-purple-600 border-purple-100"
+        : "bg-gray-50 text-gray-600 border-gray-100";
 
   return (
-    <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6"
-      onClick={handleBackdropClick}
-    >
-      <div
-        ref={modalRef}
-        className="w-full max-w-md bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
-      >
-        {/* Close Cross Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
-        >
-          &times;
-        </button>
-
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6" onClick={handleBackdropClick}>
+      <div ref={modalRef} className="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden">
+        
         {/* Header */}
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
-          <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
-            TICKET OVERVIEW
-          </h2>
+        <div className="px-6 py-5 border-b border-slate-50 flex justify-between items-center bg-white z-10">
+          <div>
+            <h2 className="text-lg font-black text-slate-800 uppercase tracking-widest">TICKET OVERVIEW</h2>
+            <p className="text-[10px] text-slate-400 font-bold mt-1">ID: {ticket.ticketID}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all">
+            <XMarkIcon className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Scrollable Content Body */}
-        <div className="p-6 sm:p-10 space-y-6 overflow-y-auto custom-scrollbar">
-          <DetailItem label="TICKET ID" value={ticket.ticketID} />
-          
-          <div className="grid grid-cols-2 gap-4">
-            <DetailItem 
-              label="CREATED ON" 
-              value={new Date(ticket.createdAt).toLocaleDateString()} 
-            />
+        {/* Scrollable Body */}
+        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <DetailItem label="Created On" value={new Date(ticket.createdAt).toLocaleDateString()} />
             <div>
-              <label className="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">
-                STATUS
-              </label>
-              <span className={`inline-block px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg border ${statusStyles}`}>
-                {ticket.status}
-              </span>
+              <label className="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">STATUS</label>
+              <span className={`inline-block px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg border ${statusStyles}`}>{ticket.status}</span>
+            </div>
+            <DetailItem label="Subject" value={ticket.subject} />
+            <DetailItem label="Requester" value={ticket.emailAddress} />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">DESCRIPTION</label>
+            <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm text-slate-600 leading-relaxed font-medium">
+              {ticket.description}
             </div>
           </div>
 
-          <DetailItem 
-            label="REQUESTER EMAIL" 
-            value={ticket.emailAddress || "Not provided"} 
-          />
-          
-          <DetailItem label="SUBJECT" value={ticket.subject} />
+          {/* Attachments */}
+          {ticket.attachments?.length > 0 && (
+            <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest flex items-center gap-2">
+                <PaperClipIcon className="w-3 h-3" /> ATTACHMENTS
+              </label>
+              <div className="grid gap-2">
+                {ticket.attachments.map((file, idx) => (
+                  <a key={idx} href={getDownloadUrl(ticket._id, file._id)} target="_blank" rel="noreferrer"
+                    className="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-lg hover:border-blue-400 transition-colors group">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {file.name.split('.').pop().toUpperCase()}
+                      </div>
+                      <span className="text-xs font-bold text-slate-700 truncate">{file.name}</span>
+                    </div>
+                    <FaDownload className="w-3 h-3 text-slate-400 group-hover:text-blue-600" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              DESCRIPTION
-            </label>
-            <p className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm text-slate-600 font-medium leading-relaxed">
-              {ticket.description}
-            </p>
-          </div>
+          {/* --- TRIANGULAR CHAT SECTION --- */}
+          <div className="border-t border-slate-100 pt-6">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">DISCUSSION HISTORY</h3>
+            
+            {/* Message List */}
+            <div className="space-y-4 mb-4">
+              {ticket.responses?.length > 0 ? (
+                ticket.responses.map((res, i) => (
+                  <div key={i} className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                          {res.author.charAt(0)}
+                        </div>
+                        <span className="text-xs font-bold text-slate-800">{res.author}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {format(new Date(res.time), "MMM dd, HH:mm")}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600 pl-8">{res.content}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-xs text-slate-400 italic py-4">No messages yet.</p>
+              )}
+            </div>
 
-          <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              ATTACHMENT
-            </label>
-            {ticket.attachments && ticket.attachments.length > 0 ? (
+            {/* Message Input */}
+            <div className="relative">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Type your reply..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none h-14"
+              />
               <button
-                onClick={() => handleDownloadAttachment(ticket)}
-                className="flex items-center gap-2 text-blue-500 hover:text-blue-600 font-bold text-xs transition-colors"
+                onClick={handleSendResponse}
+                disabled={sending || !commentText.trim()}
+                className="absolute right-2 top-2 p-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-all"
               >
-                <FaDownload className="w-3 h-3" />
-                <span className="truncate">{ticket.attachments[0].name?.split('.').pop().toUpperCase() || "FILE"}</span>
+                {sending ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <FaPaperPlane className="w-3 h-3" />}
               </button>
-            ) : (
-              <span className="text-[10px] text-slate-300 font-bold uppercase">No file attached</span>
-            )}
+            </div>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 bg-white flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="w-full py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all"
-          >
-            CLOSE OVERVIEW
-          </button>
         </div>
       </div>
     </div>
   );
 };
 
-// Internal Helper for Detail Items
-const DetailItem = ({ label, value }) => (
-  <div className="space-y-1">
-    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
-      {label}
-    </label>
-    <div className="text-sm sm:text-base text-slate-700 font-bold truncate">
-      {value}
-    </div>
-  </div>
-);
-
-export default ViewTicketDetailsModal;  
+export default ViewTicketDetailsModal;

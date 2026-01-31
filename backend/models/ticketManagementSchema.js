@@ -5,6 +5,11 @@ const ticketSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  user: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User',
+    required: false 
+  },
   subject: {
     type: String,
     required: true
@@ -20,7 +25,7 @@ const ticketSchema = new mongoose.Schema({
   closedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false
   },
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,

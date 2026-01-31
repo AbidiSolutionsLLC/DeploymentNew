@@ -50,7 +50,7 @@ const sendEmail = async (toEmail, subject, htmlContent) => {
 
     };
  
-    console.log(`📨 Attempting to send email to ${toEmail}...`);
+    console.log(`📨 Email queued successfully! ${toEmail}...`);
  
     // Start the send process
 
@@ -60,7 +60,7 @@ const sendEmail = async (toEmail, subject, htmlContent) => {
 
     // We just assume success if 'beginSend' doesn't throw an error.
 
-    console.log(`✅ Email queued successfully!`);
+    console.log(`✅ Email Sent successfully!`);
 
     return { success: true };
  

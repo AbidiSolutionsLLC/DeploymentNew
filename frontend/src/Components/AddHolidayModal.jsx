@@ -1,5 +1,8 @@
 import React, { useState, useRef } from "react";
 import holidayApi from "../api/holidayApi";
+// FIX: Changed from "../ui/" to "./ui/"
+import ModernSelect from "./ui/ModernSelect"; 
+import ModernDatePicker from "./ui/ModernDatePicker"; 
 
 const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
   const initialFormState = {
@@ -30,6 +33,9 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Ensure date is valid before processing
+      if (!formData.date) return;
+      
       const dateObj = new Date(formData.date);
       const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
       
@@ -84,11 +90,10 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
             <input
               list="holidayNames"
               name="holidayName"
-              // UPDATED AUTHENTIC PLACEHOLDER
               placeholder="Enter holiday name"
               value={formData.holidayName}
               onChange={handleChange}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300"
+              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300"
               required
             />
             <datalist id="holidayNames">
@@ -98,44 +103,27 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
             </datalist>
           </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              HOLIDAY TYPE*
-            </label>
-            <div className="relative">
-              <select
-                name="holidayType"
-                value={formData.holidayType}
-                onChange={handleChange}
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-700 font-medium outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-blue-100"
-                required
-              >
-                <option value="">SELECT TYPE</option>
-                {["National", "Regional", "Religious", "Company-Specific"].map(type => (
-                  <option key={type} value={type}>{type.toUpperCase()}</option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
+          <ModernSelect
+            label="Holiday Type"
+            name="holidayType"
+            value={formData.holidayType}
+            onChange={handleChange}
+            required
+            placeholder="SELECT TYPE"
+            options={["National", "Regional", "Religious", "Company-Specific"].map(type => ({
+              value: type,
+              label: type.toUpperCase()
+            }))}
+          />
 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              DATE*
-            </label>
-            <input
-              type="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100"
-              required
-            />
-          </div>
+          <ModernDatePicker
+            label="Date"
+            name="date"
+            value={formData.date}
+            onChange={handleChange}
+            required
+            placeholder="Select Date"
+          />
 
           <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
             <input

@@ -4,6 +4,7 @@ const catchAsync = require("../utils/catchAsync");
 const { BadRequestError, NotFoundError } = require("../utils/ExpressError");
 const { cloudinary } = require("../storageConfig");
 const { getStartOfESTDay, getEndOfESTDay, moment, TIMEZONE } = require("../utils/dateUtils");
+const sendEmail = require('../utils/emailService');
 
 
 // Create Timesheet
@@ -25,12 +26,12 @@ exports.createTimesheet = catchAsync(async (req, res) => {
     throw new BadRequestError("No time logs provided");
   }
 
-  // Determine Timesheet Date - Use the date from the request (could be any date)
+// Determine Timesheet Date
   let timesheetDate;
   if (date) {
-    timesheetDate = new Date(date);
+    const safeDate = new Date(date);
+    timesheetDate = new Date(safeDate.getTime() + safeDate.getTimezoneOffset() * 60000);
   } else {
-    // If no date provided, use today (EST aligned)
     timesheetDate = getStartOfESTDay();
   }
 
@@ -96,15 +97,20 @@ exports.createTimesheet = catchAsync(async (req, res) => {
     );
   }
 
-  // VALIDATION 3: Ensure all time logs match the timesheet date
+  // VALIDATION 3: Ensure all time logs match the timesheet date (Compare YYYY-MM-DD only)
+  const targetDateStr = timesheetDate.toISOString().split('T')[0]; // Extract "2026-01-27"
+
   const mismatchedLogs = logs.filter(log => {
     const logDate = new Date(log.date);
-    return logDate.toDateString() !== timesheetDate.toDateString();
+    // Adjust log date to UTC to match the target style
+    const logDateStr = logDate.toISOString().split('T')[0]; 
+    
+    return logDateStr !== targetDateStr;
   });
 
   if (mismatchedLogs.length > 0) {
     throw new BadRequestError(
-      `All time logs must be for the same date as the timesheet (${timesheetDate.toLocaleDateString()}). Found logs for different dates.`
+      `All time logs must be for the same date as the timesheet (${targetDateStr}). Found logs for different dates.`
     );
   }
 
@@ -227,12 +233,14 @@ exports.getTimesheetById = catchAsync(async (req, res) => {
   res.status(200).json(timesheet);
 });
 
-// Update Timesheet Status
+// Update Timesheet Status (With Email)
 exports.updateTimesheetStatus = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { status, approvedHours } = req.body;
 
-  const timesheet = await Timesheet.findById(id);
+  // IMPORTANT: Populate 'employee' to get the email address!
+  const timesheet = await Timesheet.findById(id).populate('employee', 'name email');
+  
   if (!timesheet) throw new NotFoundError("Timesheet");
 
   timesheet.status = status;
@@ -241,6 +249,38 @@ exports.updateTimesheetStatus = catchAsync(async (req, res) => {
   }
 
   const updatedTimesheet = await timesheet.save();
+
+  // --- EMAIL NOTIFICATION LOGIC ---
+  if (timesheet.employee && timesheet.employee.email) {
+    const statusColor = status === 'Approved' ? '#2e7d32' : '#c62828';
+    const emailSubject = `Timesheet Update: ${status}`;
+    
+    const emailBody = `
+      <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; border: 1px solid #ddd; border-radius: 8px;">
+        <div style="background-color: ${statusColor}; color: white; padding: 20px; text-align: center;">
+          <h2 style="margin:0;">Timesheet ${status}</h2>
+        </div>
+        <div style="padding: 20px;">
+          <p>Hello <strong>${timesheet.employee.name}</strong>,</p>
+          <p>Your timesheet submission for <strong>${new Date(timesheet.date).toDateString()}</strong> has been reviewed.</p>
+          
+          <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid ${statusColor}; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Status:</strong> ${status}</p>
+            ${approvedHours ? `<p style="margin: 5px 0;"><strong>Approved Hours:</strong> ${approvedHours}</p>` : ''}
+          </div>
+
+          <p style="text-align: center;">
+             <a href="${process.env.FRONTEND_URL || '#'}" style="background-color: #497a71; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Timesheets</a>
+          </p>
+        </div>
+      </div>
+    `;
+
+    sendEmail(timesheet.employee.email, emailSubject, emailBody)
+      .catch(err => console.error("❌ Timesheet Email Failed:", err.message));
+  }
+  // -------------------------------
+
   res.status(200).json(updatedTimesheet);
 });
 

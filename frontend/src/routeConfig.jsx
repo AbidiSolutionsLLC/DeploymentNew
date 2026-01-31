@@ -1,80 +1,90 @@
+import {
+  HomeIcon,
+  UserCircleIcon,
+  CalendarDaysIcon,
+  ClockIcon,
+  BriefcaseIcon,
+  TicketIcon,
+  ClipboardDocumentCheckIcon, // <--- Correct Icon
+  UsersIcon,
+  ClipboardDocumentListIcon,
+  ChartBarIcon,
+  ChartPieIcon,
+  ShieldCheckIcon,
+  CheckBadgeIcon,
+  UserGroupIcon
+} from "@heroicons/react/24/solid";
+
+// People Module
+const peopleLinks = [
+  { name: "Home", path: "/people/home", icon: HomeIcon, roles: ["All"] },
+  { name: "Profile", path: "/people/profile", icon: UserCircleIcon, roles: ["All"] },
+  { name: "Attendance", path: "/people/attendance", icon: CalendarDaysIcon, roles: ["All"] },
+  
+  // --- TECHNICIAN ONLY LINK (Correct Icon) ---
+  { 
+    name: "Assigned Tickets", 
+    path: "/people/assigned-tickets", 
+    icon: ClipboardDocumentCheckIcon, // Matches Header
+    technicianOnly: true 
+  },
+  // ------------------------------------------
+
+  { name: "Time Tracker", path: "/people/timetracker", icon: ClockIcon, roles: ["All"] },
+  { name: "Leave Tracker", path: "/leave/summary", icon: BriefcaseIcon, roles: ["All"] },
+  { name: "Raise a Ticket", path: "/people/raise", icon: TicketIcon, roles: ["All"] },
+];
+
+// Admin Module
+const adminLinks = [
+  { name: "Dashboard", path: "/admin/dashboard", icon: ChartBarIcon, roles: ["Super Admin", "Admin", "HR"] },
+  { name: "User Management", path: "/admin/userManagement", icon: UsersIcon, roles: ["Super Admin", "Admin", "HR"] },
+  { name: "Attendance", path: "/admin/attendance", icon: CalendarDaysIcon, roles: ["Super Admin", "Admin", "HR"] },
+  { name: "Leaves", path: "/admin/leaveManagement", icon: BriefcaseIcon, roles: ["Super Admin", "Admin", "HR"] },
+  { name: "Time Sheets", path: "/admin/timesheet", icon: ClockIcon, roles: ["Super Admin", "Admin", "HR"] },
+  
+  // --- HIDE FROM HR ---
+  { 
+    name: "Ticketing", 
+    path: "/admin/assign-ticket", 
+    icon: TicketIcon, 
+    roles: ["Super Admin", "Admin"] // HR Removed
+  },
+];
+
 export const moduleConfigs = {
   people: {
-    basePath: "/people",
-    subNavbarKey: "people",
-    links: [
-      { name: "Home", path: "/people/home" },
-      { name: "Profile", path: "/people/profile" },
-      { name: "Attendance", path: "/people/attendance" },
-      { name: "Time Tracker", path: "/people/history" },
-      { name: "Leave Tracker", path: "/people/summary" },
-      { name: "Ticket", path: "/people/raise" },
-       //from leave  { name: "Leave Summary", path: "/leave/summary" },
-      // { name: "Files", path: "/people/shared" }, //from file    { name: "Shared with me", path: "/file/shared" },
-       // from time   { name: "Time Tracker", path: "/time/history" },
-         // from tickets    { name: "Raise a Ticket", path: "/tickets/raise" },
-      // {name: "FAQ", path: "/people/FAQs"},
-    ],
+    links: peopleLinks,
   },
-  // leave: {
-  //   basePath: "/leave",
-  //   subNavbarKey: "leave",
+  
+  // --- FIX: Add these keys so the sidebar doesn't crash on these paths ---
+  leave: {
+    links: peopleLinks, // Show "People" sidebar when on Leave pages
+  },
+  file: {
+    links: peopleLinks, // Show "People" sidebar when on File pages
+  },
+  faq: {
+    links: peopleLinks, // Show "People" sidebar when on FAQ pages
+  },
+  // -----------------------------------------------------------------------
+
+  // project: {
   //   links: [
-  //     { name: "Leave Summary", path: "/leave/summary" },
-  //     { name: "Leave Request", path: "/leave/request" },
-  //     { name: "Leave Management", path: "/leave/leaveTrackerAdmin" },
+  //     { name: "Project DashBoard", path: "/project/projectDashboard", icon: ChartPieIcon },
+  //     { name: "Projects", path: "/project/projects", icon: RectangleStackIcon },
+  //     { name: "My Tasks", path: "/project/mytasks", icon: ClipboardDocumentListIcon },
   //   ],
   // },
-  file: {
-    basePath: "/file",
-    subNavbarKey: "file",
-    links: [
-      { name: "Shared with me", path: "/file/shared" },
-      { name: "Shared with Role", path: "/file/role" },
-      { name: "Upload Document", path: "/file/upload" }
-    ],
-  },
-  time: {
-    basePath: "/time",
-    subNavbarKey: "time",
-    links: [
-      { name: "Time Tracker", path: "/time/history" },
-      { name: "Approve Timelogs", path: "/time/approve" },
-    ],
-  },
-  tickets: {
-    basePath: "/tickets",
-    subNavbarKey: "tickets",
-    links: [
-      { name: "Raise a Ticket", path: "/tickets/raise" },
-      { name: "Ticket List", path: "/tickets/ticketlist" },
-    ],
-  },
-  project: {
-    basePath: "/project",
-    subNavbarKey: "project",
-    links: [
-      { name: "Project DashBoard", path: "/project/projectDashboard" },
-      { name: "Projects", path: "/project/projects" },
-      { name: "My Tasks", path: "/project/projectDetailed/:id" },
-      // { name: "Tasks ", path: "/project/projectDetailed" },
-      // { name: "My Task", path: "/project/myTask" },
-    ],
-  },
   admin: {
-    basePath: "/admin",
-    subNavbarKey: "admin",
     links: [
-      { name: "Admin DashBoard", path: "/admin/adminDashboard" },
-      { name: "Leave Management", path: "/admin/leaveTrackerAdmin" },
-      { name: "User Management", path: "/admin/userManagement" },
-      // { name: "File Management", path: "/admin/upload" },
-      // { name: "Activity Logs", path: "/admin/logs" },
-      { name: "Approve Time Sheets", path: "/admin/approve" },
-
-      { name: "Assign Ticket", path: "/admin/assign-ticket" },
-      { name: "Organization Chart", path: "/admin/org-chart" },
+      { name: "Admin DashBoard", path: "/admin/adminDashboard", icon: ShieldCheckIcon },
+      { name: "Attendance", path: "/admin/attendance", icon: CalendarDaysIcon },
+      { name: "User Management", path: "/admin/userManagement", icon: UsersIcon },
+      { name: "Leave Management", path: "/admin/leaveTrackerAdmin", icon: BriefcaseIcon },
+      { name: "Approve Time Sheets", path: "/admin/approve", icon: CheckBadgeIcon },
+      { name: "Assign Ticket", path: "/admin/assign-ticket", icon: TicketIcon },
+      { name: "Org Chart", path: "/admin/org-chart", icon: UserGroupIcon },
     ],
   },
-
 };

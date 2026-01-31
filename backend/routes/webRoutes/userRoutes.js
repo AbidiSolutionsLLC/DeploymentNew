@@ -3,53 +3,38 @@ const router = express.Router();
 const multer = require("multer");
 const { userProfileStorage } = require("../../storageConfig");
 const upload = multer({ storage: userProfileStorage });
-const catchAsync = require("../../utils/catchAsync");
 const userController = require("../../controllers/userController");
-const { isLoggedIn } = require("../../middlewares/authMiddleware");
+const { isLoggedIn } = require("../../middlewares/authMiddleware"); // <--- IMPORT THIS
 
 // User Routes
 router
   .route("/")
-  .post(upload.single("profilePhoto"), userController.createUser)
-  .get(userController.getAllUsers);
+  .post(isLoggedIn, upload.single("profilePhoto"), userController.createUser) // Locked
+  .get(isLoggedIn, userController.getAllUsers); // <--- FIXED: Added isLoggedIn (Was missing!)
 
-router.get("/:role/by-role", userController.getUserByRole);
-
-router.get('/birthdays/upcoming', userController.getUpcomingBirthdays);
+// Role & Hierarchy Routes
+router.get("/:role/by-role", isLoggedIn, userController.getUserByRole);
+router.get('/birthdays/upcoming', isLoggedIn, userController.getUpcomingBirthdays);
 router.get("/org-chart", isLoggedIn, userController.getOrgChart);
 
-router
-  .route("/search")
-  .get(userController.getUserById);
+// Actions
+router.post("/:id/resend-invite", isLoggedIn, userController.resendInvitation);
+router.post('/:id/upload-avatar', isLoggedIn, upload.single('avatar'), userController.uploadAvatar);
+router.post('/:id/upload-cover', isLoggedIn, upload.single('coverImage'), userController.uploadCover);
 
+// Search & Specific User
+router.route("/search").get(isLoggedIn, userController.getUserById);
 
 router
   .route("/:id")
-  .get(userController.getUserById)
-  .put(upload.single("profilePhoto"), userController.updateUser)
-  .delete(userController.deleteUser);
+  .get(isLoggedIn, userController.getUserById)
+  .put(isLoggedIn, upload.single("profilePhoto"), userController.updateUser)
+  .delete(isLoggedIn, userController.deleteUser);
 
-router
-  .route('/:id/dashboard-cards')
-  .get(userController.getDashboardCards);
-
-router
-  .route('/:id/dashboard-cards/add')
-  .post(userController.addDashboardCard);
-
-router
-  .route('/:id/dashboard-cards/:cardId')
-  .delete(userController.removeDashboardCard);
-
-  router
-  .route('/:id/leaves')
-  .get(userController.getUserLeaves)
-  .put(userController.updateUserLeaves);
-
-  router.post(
-  '/:id/upload-avatar',
-  upload.single('avatar'),
-  userController.uploadAvatar
-);
+// Dashboard & Extras
+router.route('/:id/dashboard-cards').get(isLoggedIn, userController.getDashboardCards);
+router.route('/:id/dashboard-cards/add').post(isLoggedIn, userController.addDashboardCard);
+router.route('/:id/dashboard-cards/:cardId').delete(isLoggedIn, userController.removeDashboardCard);
+router.route('/:id/leaves').get(isLoggedIn, userController.getUserLeaves).put(isLoggedIn, userController.updateUserLeaves);
 
 module.exports = router;

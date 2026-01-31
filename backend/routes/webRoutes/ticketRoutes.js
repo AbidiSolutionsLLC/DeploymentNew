@@ -1,37 +1,33 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const { ticketsAttachmentsStorage } = require("../../storageConfig");
-const upload = multer({ storage: ticketsAttachmentsStorage });
+const { memoryStorage } = require("../../storageConfig");
+const upload = multer({ storage: memoryStorage });
+const ticketController = require("../../controllers/ticketController");
 const { isLoggedIn } = require("../../middlewares/authMiddleware");
 
-const ticketController = require("../../controllers/ticketController");
+// Base: /api/web/tickets
 
-router
-  .route("/")
+router.route("/")
   .post(isLoggedIn, upload.single("attachment"), ticketController.createTicket)
-  .get(ticketController.getUserTickets);
+  .get(isLoggedIn, ticketController.getAllTickets);
 
-router
-  .route("/all")
-  .get(ticketController.getAllTickets);
+// Specific Ticket Operations
+router.route("/:id")
+  .get(isLoggedIn, ticketController.getTicketById)
+  .put(isLoggedIn, ticketController.updateTicket)
+  .delete(isLoggedIn, ticketController.deleteTicket);
 
-router
-  .route("/:id")
-  .get(ticketController.getTicketById)
-  .put(ticketController.updateTicket)
-  .delete(ticketController.deleteTicket);
+// Status & Priority
+router.patch("/:id/status", isLoggedIn, ticketController.updateTicketStatus);
+router.patch("/:id/priority", isLoggedIn, ticketController.updateTicketPriority);
 
-router.patch("/:id/status", ticketController.updateTicketStatus);
-router.patch("/:id/priority", ticketController.updateTicketPriority);
-router.patch("/:id/assign", ticketController.updateTicketAssignee);
-router.post("/:id/response",isLoggedIn, ticketController.addTicketResponse);
+// Assign & Respond
+router.patch("/:id/assign", isLoggedIn, ticketController.updateTicketAssignee);
+router.post("/:id/response", isLoggedIn, ticketController.addTicketResponse);
 
-// Add this route
-router.get('/:id/attachments/:attachmentId/download', 
-  isLoggedIn, 
-  ticketController.downloadTicketAttachment
-);
-
+// --- DOWNLOAD ROUTE (Fixes 404) ---
+// Note: Matches the frontend call structure
+router.get("/:id/attachment/:attachmentId", ticketController.downloadTicketAttachment);
 
 module.exports = router;

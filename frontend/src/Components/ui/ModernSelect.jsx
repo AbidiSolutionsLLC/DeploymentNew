@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiChevronDown } from "react-icons/fi";
 
-const DropDownPicker = ({
+const ModernSelect = ({
   label,
   name,
   value,
@@ -99,4 +99,4 @@ const DropDownPicker = ({
   );
 };
 
-export default DropDownPicker;
+export default ModernSelect;

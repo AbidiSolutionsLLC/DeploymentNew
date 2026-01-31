@@ -5,7 +5,7 @@ const { UnauthorizedError } = require('../utils/ExpressError');
 
 const client = jwksClient({
   jwksUri: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/discovery/v2.0/keys`,
-  timeout: 30000, // Add timeout
+  timeout: 30000,
   cache: true,
   cacheMaxAge: 86400000
 });
@@ -25,12 +25,6 @@ const isLoggedIn = async (req, res, next) => {
   }
 
   const token = authHeader.split(" ")[1];
-  
-  try {
-    const decoded = jwt.decode(token, { complete: true });
-  } catch (e) {
-    console.error("Failed to decode token:", e.message);
-  }
 
   const verifyOptions = {
     audience: [
@@ -47,41 +41,44 @@ const isLoggedIn = async (req, res, next) => {
   jwt.verify(token, getKey, verifyOptions, async (err, decoded) => {
     if (err) {
       console.error("--- TOKEN VERIFICATION FAILED ---");
-      console.error("Error Name:", err.name);
-      console.error("Error Message:", err.message);
-      console.error("Stack:", err.stack);
       return next(new UnauthorizedError("Invalid or expired token"));
     }
+
     try {
+      // 1. Try to find user by their Azure ID (Best match)
       let user = await User.findOne({ azureId: decoded.oid });
 
+      // 2. If not found, try to find by Email (Invitation match)
       if (!user) {
         const email = decoded.upn || decoded.preferred_username || decoded.email;
 
         if (!email) {
-          console.error("Token missing email/upn:", decoded);
           return next(new UnauthorizedError("Token does not contain an email address"));
         }
 
         user = await User.findOne({ email: email });
 
         if (user) {
+          // Found them via invite! Link their Azure ID
           user.azureId = decoded.oid;
-          await user.save();
           console.log(`Mapped existing user ${user.email} to Azure ID`);
         } else {
-          console.log(`Creating new user for ${email}`);
-          user = await User.create({
-            azureId: decoded.oid,
-            email: email,
-            name: decoded.name || "Azure User",
-            role: "Employee",
-            phoneNumber: `000-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            empID: `EMP-${Date.now()}`,
-          });
+          // --- SECURITY: REJECT UNINVITED USERS ---
+          console.warn(`Blocked login attempt from uninvited email: ${email}`);
+          return next(new UnauthorizedError("Access Denied: You must be invited to the portal by an Admin."));
         }
       }
 
+      // --- AUTO-ACTIVATE USER ON JOIN ---
+      if (user.empStatus === 'Pending') {
+        console.log(`🚀 Activating user ${user.email} on first login!`);
+        user.empStatus = 'Active';
+        if (!user.azureId) user.azureId = decoded.oid;
+        await user.save();
+      }
+      // --------------------------------
+
+      // 3. Attach user to request
       req.user = {
         id: user.id,
         azureId: user.azureId,
@@ -102,47 +99,3 @@ const isLoggedIn = async (req, res, next) => {
 };
 
 module.exports = { isLoggedIn };
-
-
-// const jwt = require('jsonwebtoken');
-// const { UnauthorizedError } = require('../utils/ExpressError');
-// const BlacklistedToken = require('../models/BlacklistedTokenSchema');
-// const User = require('../models/userSchema');
-
-// const isLoggedIn = async (req, res, next) => {
-//   const authHeader = req.headers.authorization;
-
-//   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-//     return next(new UnauthorizedError("Please login first."));
-//   }
-
-//   const token = authHeader.split(" ")[1];
-
-//   const isBlacklisted = await BlacklistedToken.findOne({ token });
-//   if (isBlacklisted) {
-//     return next(new UnauthorizedError("Access token has been revoked"));
-//   }
-
-//   try {
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-//     const user = await User.findById(decoded.id).select("name email role");
-//     if (!user) {
-//       return next(new UnauthorizedError("User not found."));
-//     }
-
-//     req.user = {
-//       id: user._id,
-//       name: user.name,
-//       email: user.email,
-//       role: user.role,
-//     };
-
-//     req.token = token;
-//     next();
-//   } catch (err) {
-//     return next(new UnauthorizedError("Invalid or expired access token"));
-//   }
-// };
-
-// module.exports = { isLoggedIn };

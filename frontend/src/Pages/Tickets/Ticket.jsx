@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from "react";
-import TableWithPagination from "../../Components/TableWithPagination"; // Add this import
+import TableWithPagination from "../../Components/TableWithPagination"; 
 import { FiTrash2, FiPlus } from "react-icons/fi";
-import { FaEye, FaDownload } from "react-icons/fa";
+import { FaEye } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import api from "../../axios";
 import RaiseTicketModal from "../../Pages/Tickets/RaiseTicketModal";
 import ViewTicketDetailsModal from "../../Pages/Tickets/ViewTicketDetailsModal";
 import { toast } from "react-toastify";
-import { Spin } from "antd";
-import AdminTickets from "./AdminTickets";
 
 const Ticket = () => {
   const [tickets, setTickets] = useState([]);
@@ -18,6 +16,7 @@ const Ticket = () => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Get current user from Redux
   const user = useSelector((state) => state.auth.user);
 
   useEffect(() => {
@@ -25,8 +24,19 @@ const Ticket = () => {
       try {
         if (!user?.user?.email) return;
         const res = await api.get(`/tickets`);
-        setTickets(res.data || []);
-        setFilteredTickets(res.data || []);
+        
+        // --- VISIBILITY FIX: Filter ONLY tickets created by ME ---
+        // Even if backend sends assigned tickets (for Technicians), we filter here.
+        const currentUserId = user.user.id || user.user._id;
+        const allTickets = res.data || [];
+        
+        const myCreatedTickets = allTickets.filter(ticket => 
+          ticket.closedBy && (ticket.closedBy._id === currentUserId || ticket.closedBy === currentUserId)
+        );
+        // --------------------------------------------------------
+
+        setTickets(myCreatedTickets);
+        setFilteredTickets(myCreatedTickets);
       } catch (error) {
         console.error("Error fetching tickets:", error);
         toast.error("Failed to load tickets");
@@ -53,6 +63,7 @@ const Ticket = () => {
       await api.delete(`/tickets/${id}`);
       const updated = tickets.filter((ticket) => ticket._id !== id);
       setTickets(updated);
+      setFilteredTickets(prev => prev.filter(t => t._id !== id));
       toast.success("Ticket deleted successfully!");
     } catch (error) {
       console.error("Failed to delete ticket:", error);
@@ -71,9 +82,9 @@ const Ticket = () => {
 
   const StatusBadge = ({ status }) => {
     const statusConfig = {
+      open: { color: "bg-green-100 text-green-800", label: "Open" },
       opened: { color: "bg-green-100 text-green-800", label: "Open" },
       closed: { color: "bg-red-100 text-red-800", label: "Closed" },
-      pending: { color: "bg-yellow-100 text-yellow-800", label: "Pending" },
       "in progress": { color: "bg-blue-100 text-blue-800", label: "In Progress" }
     };
 
@@ -86,7 +97,6 @@ const Ticket = () => {
     );
   };
 
-  // Define columns for the table
   const ticketColumns = [
     {
       key: "ticketID",
@@ -124,11 +134,11 @@ const Ticket = () => {
       sortable: true,
       render: (row) => (
         <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${
-          row.priority === 'High Priority' || row.priority === 'high' ? 'bg-red-100 text-red-800' :
-          row.priority === 'Medium Priority' || row.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+          row.priority?.toLowerCase().includes('high') ? 'bg-red-100 text-red-800' :
+          row.priority?.toLowerCase().includes('medium') ? 'bg-yellow-100 text-yellow-800' :
           'bg-blue-100 text-blue-800'
         }`}>
-          {row.priority || 'Normal'}
+          {row.priority?.replace(' Priority', '') || 'Normal'}
         </span>
       )
     },
@@ -140,7 +150,6 @@ const Ticket = () => {
     },
   ];
 
-  // Define actions for the table
   const ticketActions = [
     {
       icon: <FaEye size={16} />,
@@ -155,8 +164,6 @@ const Ticket = () => {
       onClick: (row) => handleDelete(row._id)
     }
   ];
-
-
 
   return (
     <div className="min-h-screen bg-transparent p-2">
@@ -198,7 +205,6 @@ const Ticket = () => {
         </div>
       </div>
 
-      {/* Tickets Table */}
       <TableWithPagination
         columns={ticketColumns}
         data={filteredTickets}
@@ -214,24 +220,14 @@ const Ticket = () => {
         rowsPerPage={10}
       />
 
-      {/* Modals */}
       {showModal && (
         <RaiseTicketModal
           onClose={() => setShowModal(false)}
           onSubmit={(newTicket) => {
+            // Optimistic update
             setTickets((prev) => [...prev, newTicket]);
+            setFilteredTickets((prev) => [...prev, newTicket]);
             setShowModal(false);
-            // Refresh tickets
-            const fetchTickets = async () => {
-              try {
-                const res = await api.get(`/tickets`);
-                setTickets(res.data || []);
-                setFilteredTickets(res.data || []);
-              } catch (error) {
-                console.error("Error refreshing tickets:", error);
-              }
-            };
-            fetchTickets();
           }}
         />
       )}
