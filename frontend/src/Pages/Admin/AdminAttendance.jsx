@@ -5,7 +5,6 @@ import {
   AlertCircle, XCircle, Download, Edit2, Save, X 
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { useSelector } from "react-redux";
 
 // --- SUB-COMPONENT: LIVE TIMER ---
 const LiveTimer = ({ startTime }) => {
@@ -46,35 +45,40 @@ const AdminAttendance = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
   
+  // Edit State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState(null);
   const [editFormData, setEditFormData] = useState({ checkInTime: "", checkOutTime: "", status: "" });
-
-  // --- PERMISSION LOGIC ---
-  const user = useSelector((state) => state.auth.user);
-  const userRole = user?.user?.role || user?.role; 
-  const roleKey = userRole ? userRole.replace(/\s+/g, '').toLowerCase() : "";
-
-  // Only Super Admin can Edit
-  const canEdit = roleKey === 'superadmin';
+  
+  // Permission State
+  const [currentUserRole, setCurrentUserRole] = useState("");
 
   useEffect(() => {
-    fetchLogs();
+    const initData = async () => {
+      setLoading(true);
+      try {
+        // 1. Fetch User Role directly to ensure accuracy
+        const userRes = await api.get("/auth/me");
+        const role = userRes.data.user.role || "";
+        setCurrentUserRole(role.replace(/\s+/g, '').toLowerCase());
+
+        // 2. Fetch Logs
+        const logRes = await api.get("/timetrackers");
+        const sortedLogs = logRes.data.sort((a, b) => new Date(b.date) - new Date(a.date));
+        setLogs(sortedLogs);
+      } catch (error) {
+        console.error("Init Error:", error);
+        toast.error("Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initData();
   }, []);
 
-  const fetchLogs = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/timetrackers");
-      const sortedLogs = res.data.sort((a, b) => new Date(b.date) - new Date(a.date));
-      setLogs(sortedLogs);
-    } catch (error) {
-      console.error("Fetch error:", error);
-      toast.error("Failed to load attendance records");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // REQUIREMENT: Only Super Admin can Edit
+  const canEdit = currentUserRole === 'superadmin';
 
   // --- DOWNLOAD EXCEL (CSV) ---
   const handleDownload = () => {
@@ -83,10 +87,7 @@ const AdminAttendance = () => {
       return;
     }
 
-    // 1. Define CSV Headers
     const headers = ["Employee Name", "Email", "Date", "Check In", "Check Out", "Total Hours", "Status"];
-    
-    // 2. Map Data to Rows
     const rows = filteredLogs.map(log => [
       `"${log.user?.name || 'Unknown'}"`,
       `"${log.user?.email || 'N/A'}"`,
@@ -97,13 +98,11 @@ const AdminAttendance = () => {
       log.status
     ]);
 
-    // 3. Construct CSV String
     const csvContent = [
       headers.join(","), 
       ...rows.map(row => row.join(","))
     ].join("\n");
 
-    // 4. Trigger Download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -129,6 +128,7 @@ const AdminAttendance = () => {
     try {
       let updates = { ...editFormData };
       
+      // Auto-calc duration if times changed
       if (updates.checkInTime && updates.checkOutTime) {
         const start = new Date(updates.checkInTime);
         const end = new Date(updates.checkOutTime);
@@ -141,9 +141,12 @@ const AdminAttendance = () => {
       
       toast.success("Attendance updated successfully");
       setIsEditModalOpen(false);
-      fetchLogs(); 
+      
+      // Refresh logs
+      const res = await api.get("/timetrackers");
+      setLogs(res.data.sort((a, b) => new Date(b.date) - new Date(a.date)));
     } catch (error) {
-      toast.error("Failed to update record");
+      toast.error(error.response?.data?.message || "Failed to update record");
     }
   };
 
@@ -170,7 +173,6 @@ const AdminAttendance = () => {
     }
   };
 
-  // --- FILTERING ---
   const filteredLogs = logs.filter((log) => {
     const logDate = new Date(log.date).toISOString().split("T")[0];
     const matchesDate = filterDate ? logDate === filterDate : true;
@@ -182,7 +184,6 @@ const AdminAttendance = () => {
   return (
     <div className="min-h-screen bg-slate-50/50 p-6">
       
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Employee Attendance</h1>
@@ -196,10 +197,7 @@ const AdminAttendance = () => {
         </button>
       </div>
 
-      {/* FILTERS & STATS BAR */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        
-        {/* LEFT: Search & Date (Unified Toolbar) */}
         <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-2 h-full">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400"><Search size={18} /></div>
@@ -221,7 +219,6 @@ const AdminAttendance = () => {
           </div>
         </div>
 
-        {/* RIGHT: Stats Cards (Total | Present | Absent | Half Day) */}
         <div className="grid grid-cols-4 gap-0 bg-white border border-slate-100 rounded-xl overflow-hidden divide-x divide-slate-100 shadow-sm">
           <div className="px-2 py-3 flex flex-col justify-center text-center bg-blue-50/30">
             <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">TOTAL</p>
@@ -240,10 +237,8 @@ const AdminAttendance = () => {
             <p className="text-xl font-black text-amber-700">{filteredLogs.filter(l => l.status === 'Half Day' || l.status === 'Late').length}</p>
           </div>
         </div>
-
       </div>
 
-      {/* TABLE */}
       <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -311,7 +306,6 @@ const AdminAttendance = () => {
         </div>
       </div>
 
-      {/* EDIT MODAL */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
@@ -373,7 +367,6 @@ const AdminAttendance = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

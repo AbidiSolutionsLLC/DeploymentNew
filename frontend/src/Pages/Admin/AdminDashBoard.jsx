@@ -15,6 +15,7 @@ import {
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { getAdminDashboardStats } from '../../api/adminDashboardApi';
+import api from '../../axios'; // Added to fetch user role
 import { toast } from 'react-toastify';
 import LogListCard from '../../Components/LogsListcard';
 
@@ -23,12 +24,17 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 const AdminDashBoard = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchAllData = async () => {
       try {
-        const res = await getAdminDashboardStats();
-        setData(res.data);
+        const [statsRes, userRes] = await Promise.all([
+          getAdminDashboardStats(),
+          api.get("/auth/me")
+        ]);
+        setData(statsRes.data);
+        setUser(userRes.data.user);
       } catch (err) {
         console.error(err);
         toast.error("Failed to load dashboard analytics");
@@ -36,7 +42,7 @@ const AdminDashBoard = () => {
         setLoading(false);
       }
     };
-    fetchStats();
+    fetchAllData();
   }, []);
 
   if (loading) return (
@@ -48,7 +54,7 @@ const AdminDashBoard = () => {
     </div>
   );
 
-  if (!data) return (
+  if (!data || !user) return (
     <div className="flex items-center justify-center h-96">
       <div className="text-center">
         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
@@ -58,6 +64,10 @@ const AdminDashBoard = () => {
       </div>
     </div>
   );
+
+  // RBAC UI Flags
+  const isHR = user.role === 'HR';
+  const showTickets = !isHR; // HR has "None" for Ticketing 
 
   // --- Chart Configurations ---
   const attendanceChartData = {
@@ -117,7 +127,9 @@ const AdminDashBoard = () => {
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Admin Overview</h2>
+            <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">
+              {isHR ? "HR Overview" : "Admin Overview"}
+            </h2>
             <p className="text-slate-500 text-xs font-medium uppercase tracking-wide mt-1">Welcome back, here's what's happening today</p>
           </div>
           
@@ -149,14 +161,17 @@ const AdminDashBoard = () => {
           value={data.summary.pendingApprovals} 
           icon={<FaClipboardList size={24} />} 
           color="bg-amber-500"
-          subtext="Leaves & Timesheets"
+          subtext={isHR ? "Leaves Oversight" : "Leaves & Timesheets"}
         />
-        <StatCard 
-          title="Support Tickets" 
-          value={data.summary.openTickets} 
-          icon={<FaTicketAlt size={24} />} 
-          color="bg-rose-500" 
-        />
+        {/* Requirement: Hide Tickets for HR  */}
+        {showTickets && (
+          <StatCard 
+            title="Support Tickets" 
+            value={data.summary.openTickets} 
+            icon={<FaTicketAlt size={24} />} 
+            color="bg-rose-500" 
+          />
+        )}
       </div>
 
       {/* Charts and Action Center */}
@@ -189,11 +204,7 @@ const AdminDashBoard = () => {
             <Doughnut 
               data={attendanceChartData} 
               options={{
-                plugins: { 
-                  legend: { 
-                    display: false 
-                  } 
-                },
+                plugins: { legend: { display: false } },
                 maintainAspectRatio: false,
                 cutout: '70%',
               }} 
@@ -221,21 +232,26 @@ const AdminDashBoard = () => {
               colorClass="bg-amber-100 text-amber-700" 
               icon={<FaCalendarDay size={16} />}
             />
-            <ActionItem 
-              label="Timesheet Approvals" 
-              count={data.actionItems.timesheets} 
-              colorClass="bg-blue-100 text-blue-700" 
-              icon={<FaClipboardList size={16} />}
-            />
-            <ActionItem 
-              label="Open Tickets" 
-              count={data.actionItems.tickets} 
-              colorClass="bg-rose-100 text-rose-700" 
-              icon={<FaTicketAlt size={16} />}
-            />
+            {/* Requirement: Only show Timesheets if not HR (HR is "own" only)  */}
+            {!isHR && (
+              <ActionItem 
+                label="Timesheet Approvals" 
+                count={data.actionItems.timesheets} 
+                colorClass="bg-blue-100 text-blue-700" 
+                icon={<FaClipboardList size={16} />}
+              />
+            )}
+            {/* Requirement: Hide Tickets in Action Center for HR  */}
+            {showTickets && (
+              <ActionItem 
+                label="Open Tickets" 
+                count={data.actionItems.tickets} 
+                colorClass="bg-rose-100 text-rose-700" 
+                icon={<FaTicketAlt size={16} />}
+              />
+            )}
           </div>
           
-          {/* Holiday Widget */}
           {data.holiday && (
             <div className="mt-6 p-4 bg-indigo-50/80 rounded-xl border border-indigo-100">
               <div className="flex items-center gap-3">
@@ -273,34 +289,10 @@ const AdminDashBoard = () => {
             options={{
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { 
-                legend: { display: false } 
-              },
+              plugins: { legend: { display: false } },
               scales: {
-                y: { 
-                  beginAtZero: true, 
-                  grid: { 
-                    color: 'rgba(0,0,0,0.05)',
-                    drawBorder: false
-                  },
-                  ticks: {
-                    font: {
-                      size: 11
-                    },
-                    color: '#64748b'
-                  }
-                },
-                x: { 
-                  grid: { 
-                    display: false 
-                  },
-                  ticks: {
-                    font: {
-                      size: 11
-                    },
-                    color: '#64748b'
-                  }
-                }
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false }, ticks: { font: { size: 11 }, color: '#64748b' } },
+                x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#64748b' } }
               }
             }}
           />
@@ -375,12 +367,15 @@ const AdminDashBoard = () => {
               Projects: <span className="font-bold text-slate-800">{data.summary.activeProjects} active</span>
             </span>
           </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-rose-500 mr-2"></div>
-            <span className="text-xs font-medium text-slate-800 uppercase tracking-wide">
-              Tickets: <span className="font-bold text-slate-800">{data.summary.openTickets} open</span>
-            </span>
-          </div>
+          {/* Requirement: Hide Footer Stat for HR  */}
+          {showTickets && (
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-rose-500 mr-2"></div>
+              <span className="text-xs font-medium text-slate-800 uppercase tracking-wide">
+                Tickets: <span className="font-bold text-slate-800">{data.summary.openTickets} open</span>
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

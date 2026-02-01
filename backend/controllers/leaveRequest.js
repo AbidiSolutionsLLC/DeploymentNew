@@ -5,9 +5,9 @@ const catchAsync = require("../utils/catchAsync");
 const { moment, TIMEZONE } = require("../utils/dateUtils");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
 const sendEmail = require('../utils/emailService');
-const { getSearchScope } = require("../utils/rbac"); // <--- Import RBAC
+const { getSearchScope } = require("../utils/rbac");
 
-// Create Leave Request
+// --- CREATE LEAVE REQUEST ---
 exports.createLeaveRequest = catchAsync(async (req, res) => {
   const { leaveType, startDate, endDate, reason } = req.body;
   const user = await User.findById(req.user.id);
@@ -71,7 +71,7 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
 
   await User.findByIdAndUpdate(user._id, updateObj);
 
-  // Time Tracker Logic
+  // Time Tracker Logic (Mark future dates as Leave)
   const timeTrackerEntries = [];
   const curr = start.clone();
   while (curr.isSameOrBefore(end)) {
@@ -95,39 +95,17 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
   res.status(201).json({ success: true, data: savedLeaveRequest });
 });
 
-// --- FIXED: GET LEAVES (Using RBAC) ---
+// --- GET LEAVES (Using RBAC) ---
 exports.getLeaveRequests = catchAsync(async (req, res) => {
-  // 1. Get RBAC Scope (Handles SuperAdmin, Manager, Admin, Employee)
   const rbacFilter = await getSearchScope(req.user, 'leave');
-  
   const query = { ...rbacFilter };
 
-  // 2. Add Filters
   if (req.query.employeeName) query.employeeName = req.query.employeeName;
   if (req.query.leaveType) query.leaveType = req.query.leaveType;
   if (req.query.status) query.status = req.query.status;
 
   const leaveRequests = await LeaveRequest.find(query).sort({ appliedAt: -1 });
   res.json({ success: true, data: leaveRequests });
-});
-
-exports.getLeaveRequestById = catchAsync(async (req, res) => {
-  const leaveRequest = await LeaveRequest.findById(req.params.id);
-  if (!leaveRequest) throw new NotFoundError("Leave request");
-  res.json({ success: true, data: leaveRequest });
-});
-
-exports.updateLeaveRequest = catchAsync(async (req, res) => {
-  // Only allow if user owns it or has permission (Simplified for now)
-  const leaveRequest = await LeaveRequest.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  if (!leaveRequest) throw new NotFoundError("Leave request");
-  res.json({ success: true, data: leaveRequest });
-});
-
-exports.deleteLeaveRequest = catchAsync(async (req, res) => {
-  const leaveRequest = await LeaveRequest.findByIdAndDelete(req.params.id);
-  if (!leaveRequest) throw new NotFoundError("Leave request");
-  res.json({ success: true, message: "Leave request deleted" });
 });
 
 // --- APPROVE / REJECT LEAVE ---
@@ -140,26 +118,22 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
   const leaveRequest = await LeaveRequest.findById(id);
   if (!leaveRequest) throw new NotFoundError("Leave request not found");
 
-  // --- RBAC: Permission Check ---
   const roleKey = req.user.role.replace(/\s+/g, '').toLowerCase();
   
-  // 1. Employee cannot approve own leave
-  if (leaveRequest.employee.toString() === req.user.id) {
+  // FIX: Allow Super Admin to approve their own leave
+  if (leaveRequest.employee.toString() === req.user.id && roleKey !== 'superadmin') {
      throw new ForbiddenError("You cannot update the status of your own leave request.");
   }
 
-  // 2. Manager/Admin Restriction
+  // Admin/Manager restricted to subordinates. HR/Super Admin allowed globally.
   if (roleKey === 'admin' || roleKey === 'manager') {
      const employee = await User.findById(leaveRequest.employee);
-     // Must be a subordinate
      if (employee.reportsTo?.toString() !== req.user.id) {
-        // Strict check: Only direct subordinates for approval action
         throw new ForbiddenError("You can only approve leaves for your direct subordinates.");
      }
   } else if (roleKey !== 'superadmin' && roleKey !== 'hr') {
      throw new ForbiddenError("Permission denied.");
   }
-  // -----------------------------
 
   const start = moment(leaveRequest.startDate).tz(TIMEZONE).startOf('day');
   const end = moment(leaveRequest.endDate).tz(TIMEZONE).startOf('day');
@@ -167,7 +141,6 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
 
   const updateObj = { $set: { "leaveHistory.$[elem].status": status } };
 
-  // Re-calculate Balances (If Rejected/Re-Approved)
   const oldStatus = leaveRequest.status;
   if (status === "Rejected" && oldStatus !== "Rejected") {
     // Refund leaves
@@ -192,7 +165,6 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
   leaveRequest.status = status;
   await leaveRequest.save();
 
-  // Email Notification
   if (leaveRequest.email) {
     const emailSubject = `Leave Request ${status}`;
     const emailBody = `<p>Your leave request has been <strong>${status}</strong>.</p>`;
@@ -200,4 +172,22 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
   }
 
   res.status(200).json({ success: true, message: `Leave status updated to ${status}`, data: leaveRequest });
+});
+
+exports.getLeaveRequestById = catchAsync(async (req, res) => {
+    const leaveRequest = await LeaveRequest.findById(req.params.id);
+    if (!leaveRequest) throw new NotFoundError("Leave request");
+    res.json({ success: true, data: leaveRequest });
+});
+
+exports.updateLeaveRequest = catchAsync(async (req, res) => {
+    const leaveRequest = await LeaveRequest.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!leaveRequest) throw new NotFoundError("Leave request");
+    res.json({ success: true, data: leaveRequest });
+});
+
+exports.deleteLeaveRequest = catchAsync(async (req, res) => {
+    const leaveRequest = await LeaveRequest.findByIdAndDelete(req.params.id);
+    if (!leaveRequest) throw new NotFoundError("Leave request");
+    res.json({ success: true, message: "Leave request deleted" });
 });

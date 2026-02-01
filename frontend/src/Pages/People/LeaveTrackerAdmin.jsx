@@ -5,8 +5,8 @@ import HolidayTable from "../../Components/HolidayTable";
 import AddHolidayModal from "../../Components/AddHolidayModal";
 import Toast from "../../Components/Toast";
 import ViewLeaveModal from "../../Components/ViewLeaveModal";
-// IMPORT MODERN SELECT
 import ModernSelect from "../../Components/ui/ModernSelect"; 
+import { useSelector } from "react-redux";
 
 const LeaveTrackerAdmin = () => {
   const [departmentLeaveRecord, setDepartmentLeaveRecord] = useState([]);
@@ -27,6 +27,11 @@ const LeaveTrackerAdmin = () => {
     users: true
   });
 
+  // Get current user role to determine if they can see Super Admins
+  const { user: authUser } = useSelector(state => state.auth);
+  const userRole = (authUser?.user?.role || authUser?.role || "").replace(/\s+/g, '').toLowerCase();
+  const isSuperAdmin = userRole === 'superadmin';
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -34,7 +39,8 @@ const LeaveTrackerAdmin = () => {
 
   const fetchLeaves = async () => {
     try {
-      const response = await api.get("/leaves");
+      // FIX: Use /getAllLeaves as defined in allRoutes.js
+      const response = await api.get("/getAllLeaves"); 
       const formatted = response.data.data.map((item) => ({
         id: item._id,
         date: new Date(item.startDate).toLocaleDateString(),
@@ -73,7 +79,11 @@ const LeaveTrackerAdmin = () => {
   const fetchUsers = async () => {
     try {
       const response = await api.get("/users");
-      const filtered = response.data.filter(u => u.role !== 'SuperAdmin');
+      // FIX: Super Admin should see everyone. Normal Admin should not see Super Admins.
+      let filtered = response.data;
+      if (!isSuperAdmin) {
+         filtered = response.data.filter(u => u.role !== 'Super Admin');
+      }
       setUsers(filtered);
     } catch (err) {
       console.error("Failed to fetch users:", err);
@@ -116,6 +126,7 @@ const LeaveTrackerAdmin = () => {
 
   const handleStatusChange = async (leaveId, newStatus) => {
     try {
+      // FIX: Use the update status endpoint
       await api.put(`/leaves/${leaveId}/status`, { status: newStatus });
       showToast(`Leave status updated to ${newStatus}`);
 
@@ -287,7 +298,6 @@ const LeaveTrackerAdmin = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="col-span-1 md:col-span-2">
-            {/* UPDATED: Modern Select */}
             <ModernSelect
               label="Select Employee"
               name="employee"

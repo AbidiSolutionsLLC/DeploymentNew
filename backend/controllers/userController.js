@@ -7,34 +7,34 @@ const { getSearchScope } = require("../utils/rbac");
 
 // --- HELPER: Check Write Permissions ---
 const checkWritePermission = async (actor, targetUserId = null, targetRole = null) => {
-  // 1. Super Admin & HR have Global Write Access
-  if (['Super Admin', 'HR'].includes(actor.role)) return true;
+  // 1. Super Admin has Global Write Access
+  if (actor.role === 'Super Admin') return true;
 
-  // 2. Managers, Technicians, Employees have NO Write Access
-  if (['Manager', 'Technician', 'Employee'].includes(actor.role)) {
+  // 2. HR, Managers, Technicians, Employees have NO Write Access
+  // This ensures HR is Read Only in User Management as they can see all but edit none.
+  if (['HR', 'Manager', 'Technician', 'Employee'].includes(actor.role)) {
     throw new ForbiddenError("You do not have permission to manage users.");
   }
 
   // 3. Admin Logic (Scoped Write Access)
   if (actor.role === 'Admin') {
-    // Cannot create/edit Super Admins
-    if (targetRole === 'Super Admin') {
-      throw new ForbiddenError("Admins cannot manage Super Admin accounts.");
+    // Restricted Roles that an Admin cannot touch or create
+    const restrictedRoles = ['Super Admin', 'Admin'];
+
+    // Cannot create/assign a user to a restricted role
+    if (targetRole && restrictedRoles.includes(targetRole)) {
+      throw new ForbiddenError("Admins cannot create or assign Admin or Super Admin roles.");
     }
 
-    // If Editing/Deleting existing user:
+    // If Editing/Deleting an existing user:
     if (targetUserId) {
       const targetUser = await User.findById(targetUserId);
       if (!targetUser) throw new NotFoundError("User not found");
 
-      // Cannot touch Super Admins
-      if (targetUser.role === 'Super Admin') {
-        throw new ForbiddenError("Admins cannot edit/delete Super Admins.");
-      }
-
-      // Must be a direct subordinate (Target reports to Actor)
-      if (targetUser.reportsTo?.toString() !== actor._id.toString()) {
-        throw new ForbiddenError("Admins can only manage their direct subordinates.");
+      // REQUIREMENT: Admin can only edit/delete (Managers, HR, Technicians & Employees)
+      // Block editing/deleting of other Admins and Super Admins
+      if (restrictedRoles.includes(targetUser.role)) {
+        throw new ForbiddenError("Admins cannot edit or delete other Admins or Super Admins.");
       }
     }
     return true;
@@ -99,7 +99,6 @@ exports.createUser = catchAsync(async (req, res) => {
 
   // 2. Admin Restriction: Must set reportsTo = Themselves if they are an Admin
   if (req.user.role === 'Admin' && (!otherData.reportsTo || otherData.reportsTo !== req.user.id)) {
-     // Optional: Force it or throw error. Let's force it for safety.
      otherData.reportsTo = req.user.id;
   }
 
@@ -135,8 +134,6 @@ exports.createUser = catchAsync(async (req, res) => {
 });
 
 exports.resendInvitation = catchAsync(async (req, res) => {
-  // RBAC: Only HR/Super Admin should resend, or Admin for their team.
-  // Re-using checkWritePermission for simplicity as it covers hierarchy.
   await checkWritePermission(req.user, req.params.id);
 
   const user = await User.findById(req.params.id);
@@ -153,10 +150,7 @@ exports.resendInvitation = catchAsync(async (req, res) => {
 
 exports.getAllUsers = catchAsync(async (req, res) => {
   const { status } = req.query;
-  
-  // 1. Get Security Scope
-  // Uses 'attendance' scope: Managers/Admins see Team, HR/Super see All.
-  const rbacFilter = await getSearchScope(req.user, 'attendance'); 
+  const rbacFilter = await getSearchScope(req.user, 'usermanagement'); 
 
   const query = { ...rbacFilter };
   if (status) query.empStatus = status;
@@ -180,8 +174,6 @@ exports.getUserById = catchAsync(async (req, res) => {
 // --- SECURED UPDATE USER ---
 exports.updateUser = catchAsync(async (req, res) => {
   const { id } = req.params;
-  
-  // 1. RBAC Check
   await checkWritePermission(req.user, id, req.body.role);
 
   const updates = { ...req.body };
@@ -207,8 +199,6 @@ exports.updateUser = catchAsync(async (req, res) => {
 // --- SECURED DELETE USER ---
 exports.deleteUser = catchAsync(async (req, res) => {
   const { id } = req.params;
-  
-  // 1. RBAC Check
   await checkWritePermission(req.user, id);
 
   const user = await User.findById(id);
@@ -265,7 +255,6 @@ exports.getUserLeaves = catchAsync(async (req, res) => {
 exports.updateUserLeaves = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { pto, sick } = req.body;
-  // RBAC: Only HR/Super Admin should manually edit leave balances
   if (!['Super Admin', 'HR'].includes(req.user.role)) throw new ForbiddenError("Permission denied.");
 
   const user = await User.findById(id);

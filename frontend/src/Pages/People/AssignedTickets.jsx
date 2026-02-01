@@ -42,13 +42,17 @@ export default function AssignedTickets() {
 
       const ticketRes = await api.get("/tickets");
 
-      // --- FIX: Robust Filter ---
-      const myAssignments = ticketRes.data.filter(t => {
-        const assignId = t.assignedTo?._id || t.assignedTo;
-        const myId = user._id || user.id;
-        // Compare as strings to prevent Object vs String mismatch
-        return assignId && String(assignId) === String(myId);
-      });
+      // RBAC RULE: Super Admin sees all. Technicians & Tech-Managers see assigned only 
+      let myAssignments;
+      if (user.role === "Super Admin") {
+        myAssignments = ticketRes.data;
+      } else {
+        myAssignments = ticketRes.data.filter(t => {
+          const assignId = t.assignedTo?._id || t.assignedTo;
+          const myId = user._id || user.id;
+          return assignId && String(assignId) === String(myId);
+        });
+      }
       
       setTickets(myAssignments);
       setFilteredTickets(myAssignments);
@@ -78,7 +82,6 @@ export default function AssignedTickets() {
     // Status Filter
     if (statusFilter !== "All") {
       if (statusFilter === "Open") {
-        // "Unattended" = Open tickets that haven't been touched
         result = result.filter(t => t.status.toLowerCase() === "open" || t.status.toLowerCase() === "opened");
       } else {
         result = result.filter(t => t.status.toLowerCase() === statusFilter.toLowerCase());
@@ -118,7 +121,7 @@ export default function AssignedTickets() {
   };
 
   const handleDownload = (ticketId, attachmentId) => {
-    const url = `http://localhost:4000/api/web/tickets/${ticketId}/attachment/${attachmentId}`;
+    const url = `https://abidipro.abidisolutions.com/api/web/tickets/${ticketId}/attachment/${attachmentId}`;
     window.open(url, "_blank");
   };
 
@@ -255,7 +258,6 @@ export default function AssignedTickets() {
                       </span>
                     </td>
                     <td className="px-6 py-4 relative">
-                      {/* Custom Dropdown */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -297,13 +299,12 @@ export default function AssignedTickets() {
         </div>
       </div>
 
-      {/* --- TICKET DETAIL MODAL (With Attachments) --- */}
+      {/* --- TICKET DETAIL MODAL --- */}
       {selectedTicket && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedTicket(null)}></div>
           
           <div className="relative bg-[#F8FAFC] w-full max-w-4xl max-h-[85vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-slideUp">
-            {/* Header */}
             <div className="bg-white px-8 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
               <div>
                 <h2 className="text-xl font-black text-slate-800 flex items-center gap-3">
@@ -319,17 +320,14 @@ export default function AssignedTickets() {
               </button>
             </div>
 
-            {/* Body */}
             <div className="flex-1 overflow-y-auto p-8">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Details Column */}
                 <div className="lg:col-span-2 space-y-6">
                   <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100">
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Description</h3>
                     <p className="text-slate-700 text-sm leading-relaxed font-medium whitespace-pre-wrap">{selectedTicket.description}</p>
                   </div>
 
-                  {/* ATTACHMENTS SECTION */}
                   <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100">
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                       <PaperClipIcon className="w-4 h-4" /> Attachments
@@ -359,7 +357,6 @@ export default function AssignedTickets() {
                     )}
                   </div>
 
-                  {/* Discussion */}
                   <div className="space-y-4">
                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Discussion</h3>
                      {selectedTicket.responses?.map((res, idx) => (
@@ -392,7 +389,6 @@ export default function AssignedTickets() {
                   </div>
                 </div>
 
-                {/* Right: Requester Info */}
                 <div className="space-y-4">
                    <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100">
                       <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Requester</h3>

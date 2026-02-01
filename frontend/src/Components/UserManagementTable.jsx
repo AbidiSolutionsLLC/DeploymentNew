@@ -1,10 +1,9 @@
 import React from "react";
 
-const UserManagementTable = ({ users, }) => {
+const UserManagementTable = ({ users }) => {
   return (
     <>
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 w-full">
-        {/* Users Table */}
         <div className="overflow-x-auto rounded-xl border border-slate-200/60 shadow-sm">
           <table className="min-w-full text-left border-collapse">
             <thead>
@@ -29,21 +28,19 @@ const UserManagementTable = ({ users, }) => {
                     className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors duration-200 group"
                   >
                     <td className="p-4 text-sm font-medium text-slate-500">
-                      #{user.id}
+                      #{user.empID || user.id}
                     </td>
                     <td className="p-4">
-   
                         <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
                           {user.name}
                         </span>
-                    
                     </td>
                     <td className="p-4 text-sm font-medium text-slate-500">
                       {user.email}
                     </td>
                     <td className="p-4">
                       <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
-                        {user.department}
+                        {user.department?.name || user.department || "-"}
                       </span>
                     </td>
                     <td className="p-4">
@@ -58,18 +55,18 @@ const UserManagementTable = ({ users, }) => {
                     </td>
                     <td className="p-4">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${user.status === "Active"
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${user.empStatus === "Active"
                             ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                            : "bg-rose-50 text-rose-600 border-rose-100"
+                            : user.empStatus === "Pending" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-rose-50 text-rose-600 border-rose-100"
                           }`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${user.status === "Active"
+                          className={`w-1.5 h-1.5 rounded-full ${user.empStatus === "Active"
                               ? "bg-emerald-500"
-                              : "bg-rose-500"
+                              : user.empStatus === "Pending" ? "bg-amber-500" : "bg-rose-500"
                             }`}
                         ></span>
-                        {user.status}
+                        {user.empStatus}
                       </span>
                     </td>
                   </tr>
@@ -88,9 +85,8 @@ const UserManagementTable = ({ users, }) => {
             </tbody>
           </table>
         </div>
-
       </div>
-      {/* Summary Footer */}
+
       <div className="mt-4 pt-4 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-6">
@@ -99,7 +95,7 @@ const UserManagementTable = ({ users, }) => {
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
                 Active:{" "}
                 <span className="text-slate-800">
-                  {users.filter((u) => u.status === "Active").length}
+                  {users.filter((u) => u.empStatus === "Active").length}
                 </span>
               </span>
             </div>
@@ -108,7 +104,7 @@ const UserManagementTable = ({ users, }) => {
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
                 Inactive:{" "}
                 <span className="text-slate-800">
-                  {users.filter((u) => u.status === "Inactive").length}
+                  {users.filter((u) => u.empStatus === "Inactive").length}
                 </span>
               </span>
             </div>
@@ -118,7 +114,6 @@ const UserManagementTable = ({ users, }) => {
           </div>
         </div>
       </div>
-
     </>
   );
 };

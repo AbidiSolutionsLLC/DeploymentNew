@@ -81,6 +81,13 @@ const UserDetailModal = ({ user, isOpen, onClose, onUserUpdated, allManagers, al
       Object.keys(formData).forEach(key => {
         let originalValue = user[key];
         let newValue = formData[key];
+        
+        // --- FIX: Normalize Super Admin Role for Enum ---
+        if (key === 'role' && newValue === "Super Admin") {
+           newValue = "SuperAdmin";
+        }
+        // ------------------------------------------------
+
         if (key === 'department') originalValue = user.department?._id || "";
         if (key === 'reportsTo') originalValue = user.reportsTo?._id || "";
         if (key === 'joiningDate') originalValue = user.joiningDate?.split('T')[0] || "";
@@ -150,7 +157,6 @@ const UserDetailModal = ({ user, isOpen, onClose, onUserUpdated, allManagers, al
     }
   };
 
-  // ... (renderField logic same as before, simplified below for space) ...
   const renderField = (label, name, value, type = "text", options = [], isRequired = true) => {
     const error = errors[name];
     const formattedOptions = options.map(opt => ({

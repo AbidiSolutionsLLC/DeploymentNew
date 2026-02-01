@@ -3,7 +3,6 @@ import {
   UserGroupIcon, 
   SquaresPlusIcon, 
   AdjustmentsHorizontalIcon,
-  ClipboardDocumentCheckIcon 
 } from "@heroicons/react/24/solid";
 import { useState, useEffect } from "react";
 import api from "../axios"; 
@@ -25,13 +24,9 @@ const NavBarVertical = () => {
     fetchUser();
   }, []);
 
-  // Safe Role Check Helper
   const hasRole = (allowedRoles) => {
     if (!user || !user.role) return false;
-    // Normalize user role (remove spaces, lowercase)
-    const currentRole = user.role.replace(/\s+/g, '').toLowerCase();
-    
-    return allowedRoles.some(r => r.toLowerCase() === currentRole);
+    return allowedRoles.includes(user.role);
   };
 
   const navLinks = [
@@ -51,8 +46,8 @@ const NavBarVertical = () => {
       name: "Admin", 
       to: "/admin", 
       icon: AdjustmentsHorizontalIcon, 
-      // FIX: Checks for 'superadmin', 'admin', 'hr' (normalized)
-      show: hasRole(["superadmin", "admin", "hr"]) 
+      // Requirement 1: Employee & Tech won't see this.
+      show: hasRole(["Super Admin", "Admin", "HR", "Manager"]) 
     },
   ];
 
@@ -84,10 +79,7 @@ const NavBarVertical = () => {
                 }`
               }
             >
-              <>
-                <item.icon className="w-6 h-6" />
-                {active && <></>}
-              </>
+              <item.icon className="w-6 h-6" />
             </NavLink>
 
             {hoveredItem === item.name && (

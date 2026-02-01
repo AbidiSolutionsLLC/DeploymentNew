@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null); // Added for RBAC
   const [departments, setDepartments] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,12 +22,14 @@ const UserManagement = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [usersRes, deptsRes] = await Promise.all([
+      const [usersRes, deptsRes, meRes] = await Promise.all([
         api.get('/users'),
-        api.get('/departments')
+        api.get('/departments'),
+        api.get('/auth/me') // Fetching current user for role check
       ]);
       setUsers(usersRes.data);
       setDepartments(deptsRes.data);
+      setCurrentUser(meRes.data.user);
       setFilteredUsers(usersRes.data);
       console.log("success")
       toast.success('Data loaded successfully');
@@ -109,6 +112,9 @@ const UserManagement = () => {
   const activeUsers = users.filter(u => u.empStatus === "Active").length;
   const inactiveUsers = users.filter(u => u.empStatus === "Inactive").length;
 
+  // RBAC RULE: Only Super Admin and Admin can add new users 
+  const canAddUser = currentUser && ['Super Admin', 'Admin'].includes(currentUser.role);
+
   return (
     <div className="w-full bg-transparent min-h-screen p-4">
       <style>{`
@@ -155,12 +161,15 @@ const UserManagement = () => {
             </div>
           </div>
 
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <FaPlus className="text-xs" /> Add User
-          </button>
+          {/* Visibility Logic: HR does not see this button  */}
+          {canAddUser && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <FaPlus className="text-xs" /> Add User
+            </button>
+          )}
         </div>
       </div>
 

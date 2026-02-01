@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import api from "../axios";
 import { toast } from "react-toastify";
 import CreateDepartmentModal from "./CreateDepartmentModal";
@@ -9,6 +9,7 @@ import ModernDatePicker from "./ui/ModernDatePicker";
 const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, allManagers }) => {
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const modalRef = useRef(null);
 
   const initialFormState = {
@@ -28,6 +29,19 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
   };
 
   const [formData, setFormData] = useState(initialFormState);
+
+  // Fetch current user to determine which roles they can assign
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await api.get("/auth/me");
+        setCurrentUser(res.data.user);
+      } catch (err) {
+        console.error("Failed to fetch current user info", err);
+      }
+    };
+    if (isOpen) fetchMe();
+  }, [isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,6 +71,21 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
       setIsLoading(false);
     }
   };
+
+  // Define available roles based on matrix
+  const baseRoles = [
+    { value: "Employee", label: "EMPLOYEE" },
+    { value: "Technician", label: "TECHNICIAN" },
+    { value: "Manager", label: "MANAGER" },
+    { value: "HR", label: "HR" },
+    { value: "Admin", label: "ADMIN" },
+    { value: "Super Admin", label: "SUPER ADMIN" },
+  ];
+
+  // Logic: Admins cannot create Super Admins
+  const filteredRoles = currentUser?.role === "Admin" 
+    ? baseRoles.filter(role => role.value !== "Super Admin")
+    : baseRoles;
 
   if (!isOpen) return null;
 
@@ -89,7 +118,7 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
             className="p-6 sm:p-10 space-y-6 overflow-y-auto custom-scrollbar"
           >
             {/* ROW 1: Name & Email */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
                   Full Name <span className="text-red-500">*</span>
@@ -161,7 +190,7 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
               <div className="flex-1 h-px bg-slate-100"></div>
             </div>
 
-            {/* ROW 3: Role, Designation, Type (FIXED ALIGNMENT) */}
+            {/* ROW 3: Role, Designation, Type */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <ModernSelect
                 label="Role"
@@ -169,13 +198,7 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
                 value={formData.role}
                 onChange={handleChange}
                 required
-                options={[
-                  { value: "Employee", label: "EMPLOYEE" },
-                  { value: "Manager", label: "MANAGER" },
-                  { value: "HR", label: "HR" },
-                  { value: "Admin", label: "ADMIN" },
-                  { value: "SuperAdmin", label: "SUPER ADMIN" },
-                ]}
+                options={filteredRoles}
               />
 
               <div>
@@ -193,9 +216,8 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
                 />
               </div>
 
-              {/* TECHNICIAN TOGGLE - ALIGNED */}
+              {/* TECHNICIAN TOGGLE */}
               <div>
-                {/* Invisible label for alignment */}
                 <label className="block text-[10px] font-black text-transparent mb-2 uppercase tracking-widest select-none">
                   Spacer
                 </label>
