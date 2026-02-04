@@ -15,7 +15,7 @@ let msalInitialized = false;
 const api = axios.create({
   baseURL: "/api/web",
   timeout: 30000,
-  withCredentials: true
+  withCredentials: true 
 });
  
 api.interceptors.request.use(
@@ -56,11 +56,7 @@ api.interceptors.response.use(
  
     if (error.response?.status === 401) {
       console.error("401 Unauthorized");
-       localStorage.clear();
-      sessionStorage.clear();
- 
-     
-      window.location.href = "/auth/login";
+      // Optional: window.location.href = '/auth/login';
     }
  
     // Automatically trigger a toast for 403 (Forbidden) and 400 (Bad Request)
