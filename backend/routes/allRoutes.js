@@ -50,12 +50,9 @@ router.delete("/tasks/:id", taskController.deleteTask);
 // --- Ticket Routes (FIXED ORDER) ---
 // IMPORTANT: Specific paths must come BEFORE variable paths like /:id
 router.get("/tickets/all", ticketController.getAllTickets); 
-router.get("/tickets", ticketController.getAllTickets); 
-router.post("/ticket", ticketController.createTicket);
-router.get("/ticket", ticketController.getAllTickets); // Alias
+router.post("/ticket", ticketController.createTicket); // Line 64 - Ensure this is defined!
 router.get("/tickets/:id", ticketController.getTicketById);
 router.put("/tickets/:id", ticketController.updateTicket);
-router.delete("/tickets/:id", ticketController.deleteTicket);
 router.patch("/tickets/:id/status", ticketController.updateTicketStatus);
 router.post("/tickets/:id/response", ticketController.addTicketResponse);
 
