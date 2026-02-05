@@ -42,9 +42,9 @@ exports.getEmployeeTimeLogs = catchAsync(async (req, res) => {
 
   const query = { employee };
   if (date) {
-    // Specifically target the EST window for that specific date string
-    const startDate = moment.tz(date, TIMEZONE).startOf('day').toDate();
-    const endDate = moment.tz(date, TIMEZONE).endOf('day').toDate();
+
+    const startDate = getStartOfESTDay(date);
+    const endDate = getEndOfESTDay(date);
 
     query.date = {
       $gte: startDate,
@@ -52,7 +52,7 @@ exports.getEmployeeTimeLogs = catchAsync(async (req, res) => {
     };
   }
 
-  const timeLogs = await TimeLog.find(query).sort({ date: 1 });
+  const timeLogs = await TimeLog.find(query);
   res.status(200).json(timeLogs);
 });
 
