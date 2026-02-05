@@ -3,19 +3,21 @@ const User = require("../models/userSchema");
 const catchAsync = require("../utils/catchAsync");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { getSearchScope } = require("../utils/rbac"); 
-const { getStartOfESTDay } = require("../utils/dateUtils");
+const { 
+    getStartOfESTDay, 
+    getCurrentESTTime, 
+    isESTWeekend, 
+    TIMEZONE 
+} = require("../utils/dateUtils");
+const moment = require("moment-timezone");
 
 // --- HELPER: GET FULL TEAM IDS (RECURSIVE) ---
-// Improved to handle ID normalization to prevent matching errors
 const getTeamIds = async (managerId) => {
   let teamIds = [managerId.toString()];
-  
   const directReports = await User.find({ reportsTo: managerId }).distinct('_id');
-  
   if (directReports.length > 0) {
     const stringReports = directReports.map(id => id.toString());
     teamIds = [...teamIds, ...stringReports];
-    
     for (const reportId of directReports) {
       const subTeam = await getTeamIds(reportId);
       teamIds = [...new Set([...teamIds, ...subTeam])];
@@ -24,16 +26,10 @@ const getTeamIds = async (managerId) => {
   return teamIds;
 };
 
-const isWeekend = (date) => {
-  const day = date.getDay(); 
-  return day === 0 || day === 6;
-};
-
-// --- 1. GET ALL LOGS (Read Access) ---
+// --- 1. GET ALL LOGS ---
 exports.getAllTimeLogs = catchAsync(async (req, res) => {
   const { id, role } = req.user;
   const roleKey = role ? role.replace(/\s+/g, '').toLowerCase() : "";
-
   let query = {};
 
   if (roleKey === 'manager') {
@@ -53,7 +49,7 @@ exports.getAllTimeLogs = catchAsync(async (req, res) => {
 
 exports.getAllTimeTrackers = exports.getAllTimeLogs;
 
-// --- 2. UPDATE TIME LOG (Write/Edit Access) ---
+// --- 2. UPDATE TIME LOG (ADMIN EDIT) ---
 exports.updateTimeLog = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { role } = req.user;
@@ -65,13 +61,12 @@ exports.updateTimeLog = catchAsync(async (req, res) => {
   let updates = { ...req.body };
 
   if (updates.checkInTime && updates.checkOutTime) {
-    const start = new Date(updates.checkInTime);
-    const end = new Date(updates.checkOutTime);
-    const diffMs = end - start;
+    const start = moment(updates.checkInTime).tz(TIMEZONE);
+    const end = moment(updates.checkOutTime).tz(TIMEZONE);
+    const duration = moment.duration(end.diff(start));
     
     if (updates.totalHours === undefined) {
-        // Ensure decimal precision for DB storage
-        updates.totalHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+        updates.totalHours = parseFloat(duration.asHours().toFixed(2));
     }
 
     if (!updates.status) {
@@ -87,22 +82,19 @@ exports.updateTimeLog = catchAsync(async (req, res) => {
   }).populate('user', 'name email');
 
   if (!log) throw new NotFoundError("Attendance record not found");
-  
   res.status(200).json(log);
 });
 
-// --- 3. GET MONTHLY ATTENDANCE (REFINED TEAM VIEW) ---
+// --- 3. GET MONTHLY ATTENDANCE ---
 exports.getMonthlyAttendance = catchAsync(async (req, res) => {
   const { month, year } = req.params;
   const { id, role } = req.user;
   
-  let query = {
-    date: { 
-      $gte: new Date(year, month - 1, 1), 
-      $lte: new Date(year, month, 0, 23, 59, 59) 
-    }
-  };
+  // Create EST date boundaries
+  const startDate = moment.tz([year, month - 1], TIMEZONE).startOf('month').toDate();
+  const endDate = moment.tz([year, month - 1], TIMEZONE).endOf('month').toDate();
 
+  let query = { date: { $gte: startDate, $lte: endDate } };
   const roleKey = role ? role.replace(/\s+/g, '').toLowerCase() : "";
 
   if (roleKey === 'manager') {
@@ -121,68 +113,84 @@ exports.getMonthlyAttendance = catchAsync(async (req, res) => {
 
 // --- PERSONAL ACTIONS ---
 
-exports.getMyTimeLogs = catchAsync(async (req, res) => {
-  const logs = await TimeTracker.find({ user: req.user.id }).sort({ date: -1 });
-  res.status(200).json(logs);
-});
-
 exports.checkIn = catchAsync(async (req, res) => {
   const userId = req.user.id;
-  const now = new Date();
-  const todayStart = getStartOfESTDay(now);
+  const nowEST = getCurrentESTTime();
+  const todayStartEST = getStartOfESTDay(nowEST.toDate());
 
-  if (isWeekend(now)) {
-    return res.status(403).json({ message: "Check-in is not allowed on weekends." });
+  // 1. Weekend Check in EST
+  if (isESTWeekend(nowEST.toDate())) {
+    return res.status(403).json({ message: "Check-in is not allowed on weekends (EST)." });
   }
 
-  const existingLogForToday = await TimeTracker.findOne({ user: userId, date: todayStart });
-  if (existingLogForToday) {
-    return res.status(400).json({ message: "You have already checked in for today." });
-  }
+  // 2. Auto-Checkout Logic (12-Hour Rule)
+  const abandonedSession = await TimeTracker.findOne({ 
+    user: userId, 
+    checkOutTime: { $exists: false } 
+  });
 
-  const abandonedSession = await TimeTracker.findOne({ user: userId, checkOutTime: { $exists: false } });
   let previousSessionMsg = "";
 
   if (abandonedSession) {
-    abandonedSession.checkOutTime = now;
-    abandonedSession.autoCheckedOut = true;
-    abandonedSession.status = "Absent"; 
-    abandonedSession.notes = (abandonedSession.notes || "") + " | System closed during next check-in";
-    await abandonedSession.save();
-    previousSessionMsg = "Note: Your previous open session was closed and marked Absent. ";
+    const sessionStart = moment(abandonedSession.checkInTime).tz(TIMEZONE);
+    const hoursElapsed = nowEST.diff(sessionStart, 'hours');
+
+    if (hoursElapsed >= 12) {
+      // Close as 'Present' if they forgot
+      abandonedSession.checkOutTime = nowEST.toDate(); 
+      abandonedSession.totalHours = 9; // Default full day shift
+      abandonedSession.status = "Present"; 
+      abandonedSession.notes = (abandonedSession.notes || "") + " | Auto-checked out (12h rule)";
+      await abandonedSession.save();
+      previousSessionMsg = "Your previous open session was auto-closed as 'Present'. ";
+    } else {
+      return res.status(400).json({ message: "You already have an active session." });
+    }
   }
 
-  const newLog = await TimeTracker.create({ user: userId, date: todayStart, checkInTime: now, status: 'Present' });
+  // 3. Today Duplicate Check
+  const existingLogForToday = await TimeTracker.findOne({ user: userId, date: todayStartEST });
+  if (existingLogForToday) {
+    return res.status(400).json({ message: "You have already checked in for today (EST)." });
+  }
+
+  const newLog = await TimeTracker.create({ 
+    user: userId, 
+    date: todayStartEST, 
+    checkInTime: nowEST.toDate(), 
+    status: 'Present' 
+  });
+
   res.status(200).json({ message: `${previousSessionMsg}Checked in successfully.`, log: newLog });
 });
 
-// --- CRITICAL FIX: CHECK OUT NaN DEFENSE ---
 exports.checkOut = catchAsync(async (req, res) => {
   const userId = req.user.id;
-  const currentLog = await TimeTracker.findOne({ user: userId, checkOutTime: { $exists: false } });
+  const nowEST = getCurrentESTTime();
+
+  // Smart Search: Find open session specifically for the current EST day or the most recent open one
+  const currentLog = await TimeTracker.findOne({ 
+    user: userId, 
+    checkOutTime: { $exists: false } 
+  }).sort({ checkInTime: -1 });
 
   if (!currentLog) throw new BadRequestError("No active check-in found.");
 
-  const now = new Date();
-  
-  // FIX 1: Validate checkInTime is a valid date before calculation
-  const checkInDate = new Date(currentLog.checkInTime);
-  if (isNaN(checkInDate.getTime())) {
-    throw new BadRequestError("Check-in data is corrupted. Please contact HR for manual check-out.");
+  // NaN Defense
+  const checkInMoment = moment(currentLog.checkInTime).tz(TIMEZONE);
+  if (!checkInMoment.isValid()) {
+    await TimeTracker.findByIdAndDelete(currentLog._id);
+    throw new BadRequestError("Corrupted check-in data. Session cleared.");
   }
 
-  currentLog.checkOutTime = now;
-  
-  // FIX 2: Safeguard against NaN results
-  const totalMs = now - checkInDate;
-  let totalHours = parseFloat((totalMs / (1000 * 60 * 60)).toFixed(2));
+  currentLog.checkOutTime = nowEST.toDate();
+  const duration = moment.duration(nowEST.diff(checkInMoment));
+  let totalHours = parseFloat(duration.asHours().toFixed(2));
 
-  if (isNaN(totalHours)) {
-    totalHours = 0; // Fallback to 0 to prevent schema cast error
-  }
-
+  if (isNaN(totalHours)) totalHours = 0;
   currentLog.totalHours = totalHours;
 
+  // Status Logic
   if (totalHours >= 8) currentLog.status = "Present";
   else if (totalHours >= 4.5) currentLog.status = "Half Day";
   else currentLog.status = "Absent";
@@ -191,30 +199,20 @@ exports.checkOut = catchAsync(async (req, res) => {
   res.status(200).json({ message: "Checked out successfully", log: currentLog });
 });
 
+exports.getMyTimeLogs = catchAsync(async (req, res) => {
+  const logs = await TimeTracker.find({ user: req.user.id }).sort({ date: -1 });
+  res.status(200).json(logs);
+});
+
 exports.getDailyLog = catchAsync(async (req, res) => {
   const { userId } = req.params;
   const todayStart = getStartOfESTDay();
   const log = await TimeTracker.findOne({ user: userId, date: todayStart });
-
   if (!log) return res.status(200).json({ message: "No log found for today", log: null });
   res.status(200).json({ log });
 });
 
-// --- ADMIN / CRUD ---
-
-exports.createTimeLog = catchAsync(async (req, res) => {
-  const newLog = await TimeTracker.create(req.body);
-  res.status(201).json(newLog);
-});
-
-exports.getTimeLogById = catchAsync(async (req, res) => {
-  const log = await TimeTracker.findById(req.params.id).populate('user');
-  if (!log) throw new NotFoundError("Time log not found");
-  res.status(200).json(log);
-});
-
 exports.deleteTimeLog = catchAsync(async (req, res) => {
-  // Access Control: Maintain Super Admin restriction
   if (req.user.role !== 'Super Admin') {
     throw new ForbiddenError("Access Denied. Only Super Admin can delete records.");
   }
