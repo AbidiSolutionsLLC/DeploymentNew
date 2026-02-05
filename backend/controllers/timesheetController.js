@@ -26,13 +26,12 @@ exports.createTimesheet = catchAsync(async (req, res) => {
   }
 
   let timesheetDate;
-if (date) {
-  // Use moment-timezone to parse the string directly into EST 
-  // to avoid the native Date object's local-to-UTC shift
-  timesheetDate = moment.tz(date, TIMEZONE).startOf('day').toDate();
-} else {
-  timesheetDate = getStartOfESTDay();
-}
+  if (date) {
+    const safeDate = new Date(date);
+    timesheetDate = new Date(safeDate.getTime() + safeDate.getTimezoneOffset() * 60000);
+  } else {
+    timesheetDate = getStartOfESTDay();
+  }
 
   const timesheetDateStart = getStartOfESTDay(timesheetDate);
   const timesheetDateEnd = getEndOfESTDay(timesheetDate);
@@ -78,15 +77,16 @@ if (date) {
     throw new BadRequestError(`Weekly hour limit (40 hours) exceeded.`);
   }
 
-  const targetDateStr = moment(timesheetDate).tz(TIMEZONE).format('YYYY-MM-DD');
-const mismatchedLogs = logs.filter(log => {
-  const logDateStr = moment(log.date).tz(TIMEZONE).format('YYYY-MM-DD');
-  return logDateStr !== targetDateStr;
-});
+  const targetDateStr = timesheetDate.toISOString().split('T')[0];
+  const mismatchedLogs = logs.filter(log => {
+    const logDate = new Date(log.date);
+    const logDateStr = logDate.toISOString().split('T')[0]; 
+    return logDateStr !== targetDateStr;
+  });
 
-if (mismatchedLogs.length > 0) {
-  throw new BadRequestError(`All time logs must be for the same date as the timesheet (${targetDateStr}).`);
-}
+  if (mismatchedLogs.length > 0) {
+    throw new BadRequestError(`All time logs must be for the same date as the timesheet (${targetDateStr}).`);
+  }
 
   const attachmentData = req.files?.map(file => ({
     public_id: file.public_id,
