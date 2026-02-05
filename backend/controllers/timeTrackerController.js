@@ -6,16 +6,16 @@ const { getSearchScope } = require("../utils/rbac");
 const { getStartOfESTDay } = require("../utils/dateUtils");
 
 // --- HELPER: GET FULL TEAM IDS (RECURSIVE) ---
+// Improved to handle ID normalization to prevent matching errors
 const getTeamIds = async (managerId) => {
-  let teamIds = [managerId];
+  let teamIds = [managerId.toString()];
   
-  // Find all direct reports
   const directReports = await User.find({ reportsTo: managerId }).distinct('_id');
   
   if (directReports.length > 0) {
-    teamIds = [...teamIds, ...directReports];
+    const stringReports = directReports.map(id => id.toString());
+    teamIds = [...teamIds, ...stringReports];
     
-    // Recursively find reports of reports
     for (const reportId of directReports) {
       const subTeam = await getTeamIds(reportId);
       teamIds = [...new Set([...teamIds, ...subTeam])];
@@ -36,12 +36,10 @@ exports.getAllTimeLogs = catchAsync(async (req, res) => {
 
   let query = {};
 
-  // STRICT HIERARCHY ENFORCEMENT
   if (roleKey === 'manager') {
     const myFullTeam = await getTeamIds(id);
     query.user = { $in: myFullTeam };
   } else {
-    // Fallback to standard RBAC for SuperAdmin, Admin, HR, and Employee
     const scope = await getSearchScope(req.user, 'attendance');
     Object.assign(query, scope);
   }
@@ -72,6 +70,7 @@ exports.updateTimeLog = catchAsync(async (req, res) => {
     const diffMs = end - start;
     
     if (updates.totalHours === undefined) {
+        // Ensure decimal precision for DB storage
         updates.totalHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
     }
 
@@ -106,12 +105,10 @@ exports.getMonthlyAttendance = catchAsync(async (req, res) => {
 
   const roleKey = role ? role.replace(/\s+/g, '').toLowerCase() : "";
 
-  // Apply strict subordinate filter for Managers
   if (roleKey === 'manager') {
     const myFullTeamIds = await getTeamIds(id);
     query.user = { $in: myFullTeamIds };
   } else if (!['superadmin', 'admin', 'hr'].includes(roleKey)) {
-    // Normal employees only see themselves
     query.user = id;
   }
 
@@ -159,6 +156,7 @@ exports.checkIn = catchAsync(async (req, res) => {
   res.status(200).json({ message: `${previousSessionMsg}Checked in successfully.`, log: newLog });
 });
 
+// --- CRITICAL FIX: CHECK OUT NaN DEFENSE ---
 exports.checkOut = catchAsync(async (req, res) => {
   const userId = req.user.id;
   const currentLog = await TimeTracker.findOne({ user: userId, checkOutTime: { $exists: false } });
@@ -166,9 +164,23 @@ exports.checkOut = catchAsync(async (req, res) => {
   if (!currentLog) throw new BadRequestError("No active check-in found.");
 
   const now = new Date();
+  
+  // FIX 1: Validate checkInTime is a valid date before calculation
+  const checkInDate = new Date(currentLog.checkInTime);
+  if (isNaN(checkInDate.getTime())) {
+    throw new BadRequestError("Check-in data is corrupted. Please contact HR for manual check-out.");
+  }
+
   currentLog.checkOutTime = now;
-  const totalMs = currentLog.checkOutTime - new Date(currentLog.checkInTime);
-  const totalHours = parseFloat((totalMs / (1000 * 60 * 60)).toFixed(2));
+  
+  // FIX 2: Safeguard against NaN results
+  const totalMs = now - checkInDate;
+  let totalHours = parseFloat((totalMs / (1000 * 60 * 60)).toFixed(2));
+
+  if (isNaN(totalHours)) {
+    totalHours = 0; // Fallback to 0 to prevent schema cast error
+  }
+
   currentLog.totalHours = totalHours;
 
   if (totalHours >= 8) currentLog.status = "Present";
@@ -202,6 +214,7 @@ exports.getTimeLogById = catchAsync(async (req, res) => {
 });
 
 exports.deleteTimeLog = catchAsync(async (req, res) => {
+  // Access Control: Maintain Super Admin restriction
   if (req.user.role !== 'Super Admin') {
     throw new ForbiddenError("Access Denied. Only Super Admin can delete records.");
   }
