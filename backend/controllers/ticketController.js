@@ -2,9 +2,8 @@ const Ticket = require("../models/ticketManagementSchema");
 const User = require("../models/userSchema");
 const catchAsync = require("../utils/catchAsync");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
-const { containerClient, containerName } = require("../config/azureConfig");
+const { containerClient } = require("../config/azureConfig");
 const { getSearchScope } = require("../utils/rbac");
-const axios = require("axios");
 const sendEmail = require('../utils/emailService');
  
 // --- 1. CREATE TICKET ---
@@ -21,7 +20,7 @@ exports.createTicket = catchAsync(async (req, res) => {
     description,
     ticketID,
     attachments: [],
-    closedBy: req.user?.id,
+    closedBy: req.user?.id, // Tracks the user who raised the ticket
     assignedTo: null
   };
  
@@ -34,23 +33,21 @@ exports.createTicket = catchAsync(async (req, res) => {
   }
  
   const ticket = new Ticket(newTicket);
- 
   ticket.status = 'Open';
   ticket.priority = 'Medium Priority';
  
   const savedTicket = await ticket.save();
  
-const admins = await User.find({
-  $or: [
-    { role: 'Admin' },
-    { role: 'Super Admin' },
-    {
-      role: 'Manager',
-      isTechnician: true
-    }
-  ]
-});  
-const adminEmails = admins.map(admin => admin.email);
+  // Fetch Admins and Tech-Managers to notify them of a new ticket
+  const admins = await User.find({
+    $or: [
+      { role: 'Admin' },
+      { role: 'Super Admin' },
+      { role: 'Manager', isTechnician: true }
+    ]
+  });  
+
+  const adminEmails = admins.map(admin => admin.email);
   const recipients = [...new Set([emailAddress, ...adminEmails])];
  
   sendTicketCreationEmail(recipients, savedTicket).catch(console.error);
@@ -62,7 +59,6 @@ const adminEmails = admins.map(admin => admin.email);
 exports.getAllTickets = catchAsync(async (req, res) => {
   let query = {};
  
-  // --- REFINED RBAC LOGIC ---
   const isSuperAdmin = req.user.role === 'Super Admin';
   const isAdmin = req.user.role === 'Admin';
   const isManager = req.user.role === 'Manager';
@@ -72,24 +68,17 @@ exports.getAllTickets = catchAsync(async (req, res) => {
   const hasFullAccess = isSuperAdmin || isAdmin || (isManager && isTechnician);
  
   if (!hasFullAccess) {
-    // Falls back to restricted view for standard Managers, Employees, etc.
     const rbacFilter = await getSearchScope(req.user, 'ticket');
    
     if (rbacFilter.user) {
         query.closedBy = rbacFilter.user;
-        const { user, ...rest } = rbacFilter;
-        Object.assign(query, rest);
+    } else if (rbacFilter.$or) {
+        query.$or = rbacFilter.$or.map(condition => {
+          if (condition.user) return { closedBy: condition.user };
+          return condition;
+        });
     } else {
-        if (rbacFilter.$or) {
-           query.$or = rbacFilter.$or.map(condition => {
-             if (condition.user) {
-               return { closedBy: condition.user };
-             }
-             return condition;
-           });
-        } else {
-           Object.assign(query, rbacFilter);
-        }
+        Object.assign(query, rbacFilter);
     }
   }
  
@@ -104,7 +93,7 @@ exports.getAllTickets = catchAsync(async (req, res) => {
 // --- 3. GET TICKETS FOR USER ---
 exports.getUserTickets = catchAsync(async (req, res) => {
   const email = req.query.email;
-  const tickets = await Ticket.find({ email })
+  const tickets = await Ticket.find({ emailAddress: email }) // Uses schema field emailAddress
     .populate('closedBy')
     .populate('assignedTo');
   res.status(200).json(tickets);
@@ -125,13 +114,10 @@ exports.updateTicket = catchAsync(async (req, res) => {
   const { id } = req.params;
   const updates = req.body;
  
-  const ticket = await Ticket.findById(id);
+  const ticket = await Ticket.findByIdAndUpdate(id, updates, { new: true });
   if (!ticket) throw new NotFoundError("Ticket");
  
-  Object.assign(ticket, updates);
-  const updated = await ticket.save();
- 
-  res.status(200).json(updated);
+  res.status(200).json(ticket);
 });
  
 // --- 6. DELETE TICKET ---
@@ -148,60 +134,41 @@ exports.updateTicketStatus = catchAsync(async (req, res) => {
   const { status } = req.body;
  
   const statusMap = {
-    "opened": "Open",
-    "open": "Open",
-    "unattended": "Open",
-    "in progress": "In Progress",
-    "closed": "Closed"
+    "opened": "Open", "open": "Open", "unattended": "Open",
+    "in progress": "In Progress", "closed": "Closed"
   };
  
   const normalizedStatus = statusMap[status.toLowerCase()];
- 
   if (!normalizedStatus) {
-    return res.status(400).json({ message: "Invalid status. Use: Open, In Progress, or Closed" });
+    throw new BadRequestError("Invalid status. Use: Open, In Progress, or Closed");
   }
  
-  const ticket = await Ticket.findByIdAndUpdate(
-    id,
-    { status: normalizedStatus },
-    { new: true }
-  );
- 
-  if (!ticket) {
-    return res.status(404).json({ message: "Ticket not found" });
-  }
+  const ticket = await Ticket.findByIdAndUpdate(id, { status: normalizedStatus }, { new: true });
+  if (!ticket) throw new NotFoundError("Ticket not found");
  
   res.status(200).json(ticket);
 });
  
-// --- 8. UPDATE PRIORITY ---
+// --- 8. UPDATE PRIORITY (Fixed for ticketRouter.js) ---
 exports.updateTicketPriority = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { priority } = req.body;
  
   if (!["High Priority", "Medium Priority", "Low Priority", "High", "Medium", "Low"].includes(priority)) {
-    return res.status(400).json({ message: "Invalid priority" });
+    throw new BadRequestError("Invalid priority value");
   }
  
-  const ticket = await Ticket.findByIdAndUpdate(
-    id,
-    { priority },
-    { new: true }
-  );
- 
-  if (!ticket) {
-    return res.status(404).json({ message: "Ticket not found" });
-  }
+  const ticket = await Ticket.findByIdAndUpdate(id, { priority }, { new: true });
+  if (!ticket) throw new NotFoundError("Ticket not found");
  
   res.status(200).json(ticket);
 });
  
-// --- 9. ASSIGN TICKET (SECURED: Admins & Tech Managers Only) ---
+// --- 9. ASSIGN TICKET (Fixed for ticketRouter.js) ---
 exports.updateTicketAssignee = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { assignedTo } = req.body;
  
-  // 1. Fetch the user to reliably check 'isTechnician' status
   const actor = await User.findById(req.user.id);
   if (!actor) throw new ForbiddenError("User not found.");
  
@@ -209,41 +176,27 @@ exports.updateTicketAssignee = catchAsync(async (req, res) => {
   const isAdmin = actor.role === 'Admin';
   const isManagerTech = actor.role === 'Manager' && actor.isTechnician;
  
-  // RULE: Only Admin, Super Admin, or Technician-Managers can assign
   if (!isSuperAdmin && !isAdmin && !isManagerTech) {
     throw new ForbiddenError("Permission denied. You cannot assign tickets.");
   }
  
-  if (!assignedTo || typeof assignedTo !== 'string') {
-    return res.status(400).json({ message: "Assigned user ID is required" });
-  }
- 
   const userToAssign = await User.findById(assignedTo);
-  if (!userToAssign) {
-    return res.status(404).json({ message: "User not found" });
-  }
+  if (!userToAssign) throw new NotFoundError("Assigned user not found");
  
-  const ticket = await Ticket.findByIdAndUpdate(
-    id,
-    { assignedTo },
-    { new: true }
-  ).populate('assignedTo');
- 
-  if (!ticket) {
-    return res.status(404).json({ message: "Ticket not found" });
-  }
+  const ticket = await Ticket.findByIdAndUpdate(id, { assignedTo }, { new: true }).populate('assignedTo');
+  if (!ticket) throw new NotFoundError("Ticket not found");
  
   sendAssignmentEmail(userToAssign.email, ticket).catch(console.error);
  
   res.status(200).json(ticket);
 });
  
-// --- 10. ADD RESPONSE ---
+// --- 10. ADD RESPONSE (Includes Back-N-Forth Email Logic) ---
 exports.addTicketResponse = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { content, avatar } = req.body;
  
-  const ticket = await Ticket.findById(id);
+  const ticket = await Ticket.findById(id).populate('assignedTo');
   if (!ticket) throw new NotFoundError("Ticket");
  
   const newResponse = {
@@ -255,6 +208,18 @@ exports.addTicketResponse = catchAsync(async (req, res) => {
  
   ticket.responses.push(newResponse);
   await ticket.save();
+
+  // EMAIL LOGIC: Notify the opposite party
+  // If the responder is the person who raised the ticket, email the technician.
+  // Otherwise, email the person who raised the ticket.
+  const isSubmitter = req.user.email === ticket.emailAddress;
+  const recipientEmail = isSubmitter ? ticket.assignedTo?.email : ticket.emailAddress;
+
+  if (recipientEmail) {
+    const subject = `New Update on Ticket #${ticket.ticketID}`;
+    const emailBody = `<strong>${newResponse.author}</strong> added a new response: <br><br> ${content}`;
+    sendEmail(recipientEmail, subject, emailBody).catch(err => console.error("Update email failed:", err.message));
+  }
  
   res.status(200).json(ticket);
 });
@@ -269,32 +234,21 @@ exports.downloadTicketAttachment = catchAsync(async (req, res) => {
   const attachment = ticket.attachments.id(attachmentId);
   if (!attachment) throw new NotFoundError("Attachment");
  
-  try {
-    if (attachment.blobName) {
-      const blockBlobClient = containerClient.getBlockBlobClient(attachment.blobName);
-     
-      const sasUrl = await blockBlobClient.generateSasUrl({
-        permissions: "r",
-        expiresOn: new Date(new Date().valueOf() + 300 * 1000),
-        contentDisposition: `attachment; filename="${attachment.name}"`
-      });
-     
-      return res.redirect(sasUrl);
-    }
-    else if (attachment.url) {
-      return res.redirect(attachment.url);
-    }
-    else {
-      throw new BadRequestError("No valid attachment URL found");
-    }
-  } catch (error) {
-    console.error("Download error:", error);
-    throw new BadRequestError("Failed to generate download link");
+  if (attachment.blobName) {
+    const blockBlobClient = containerClient.getBlockBlobClient(attachment.blobName);
+    const sasUrl = await blockBlobClient.generateSasUrl({
+      permissions: "r",
+      expiresOn: new Date(new Date().valueOf() + 300 * 1000),
+      contentDisposition: `attachment; filename="${attachment.name}"`
+    });
+    return res.redirect(sasUrl);
+  } else {
+    return res.redirect(attachment.url);
   }
 });
  
 // =========================================================
-// EMAIL HELPERS
+// EMAIL HELPERS & TEMPLATE PRESERVATION
 // =========================================================
  
 const sendTicketCreationEmail = async (recipients, ticket) => {
@@ -302,7 +256,7 @@ const sendTicketCreationEmail = async (recipients, ticket) => {
   const htmlContent = generateTicketEmailTemplate(ticket);
   recipients.forEach(email => {
     sendEmail(email, subject, htmlContent)
-      .catch(err => console.error(`❌ Failed to send background email to ${email}:`, err.message));
+      .catch(err => console.error(`❌ Email failed for ${email}:`, err.message));
   });
 };
  
@@ -310,7 +264,7 @@ const sendAssignmentEmail = async (email, ticket) => {
   const subject = `Ticket #${ticket.ticketID} Assigned to You: ${ticket.subject}`;
   const htmlContent = generateAssignmentEmailTemplate(ticket);
   sendEmail(email, subject, htmlContent)
-    .catch(err => console.error(`❌ Failed to send assignment email to ${email}:`, err.message));
+    .catch(err => console.error(`❌ Assignment email failed for ${email}:`, err.message));
 };
  
 const generateTicketEmailTemplate = (ticket) => {
