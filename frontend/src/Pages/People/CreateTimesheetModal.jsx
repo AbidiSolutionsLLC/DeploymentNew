@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import timesheetApi from "../../api/timesheetApi";
 import timeLogApi from "../../api/timeLogApi";
 import { toast } from "react-toastify";
+import { moment, TIMEZONE } from "../../utils/dateUtils"; // Use project's moment util
 
 export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated }) {
   const [timesheetName, setTimesheetName] = useState("");
-  const [selectedDate, setSelectedDate] = useState(""); // Date for the timesheet
+  const [selectedDate, setSelectedDate] = useState(""); 
   const [description, setDescription] = useState("");
   const [attachment, setAttachment] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -13,16 +14,11 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
   const [fetchingLogs, setFetchingLogs] = useState(false);
   const modalRef = useRef(null);
 
-  // Get today's date for default
+  // Get today's date in YYYY-MM-DD format based on EST
   const getTodayString = () => {
-    const d = new Date();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${year}-${month}-${day}`;
+    return moment().tz(TIMEZONE).format('YYYY-MM-DD');
   };
 
-  // Format date for display
   const formatDisplayDate = (dateStr) => {
     if (!dateStr) return "";
     const [year, month, day] = dateStr.split("-");
@@ -36,11 +32,9 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
       setDescription("");
       setAttachment(null);
       setLogs([]);
-      // Timesheet name will be updated in the other useEffect
     }
   }, [open]);
 
-  // Update timesheet name when date changes
   useEffect(() => {
     if (selectedDate) {
       setTimesheetName(`Timesheet (${formatDisplayDate(selectedDate)})`);
@@ -51,8 +45,8 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
   const fetchLogsForDate = async (dateStr) => {
     try {
       setFetchingLogs(true);
-      // Pass the selected specific date to the API
       const response = await timeLogApi.getEmployeeTimeLogs(dateStr);
+      // Filter logs not already in a timesheet
       const availableLogs = response.filter(log => !log.isAddedToTimesheet);
       setLogs(availableLogs);
     } catch (err) {
@@ -78,27 +72,40 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
 
     setLoading(true);
     try {
+      // 1. Check for existing timesheet for this EST date
+      const weekStartStr = moment.tz(selectedDate, TIMEZONE).startOf('isoWeek').format('YYYY-MM-DD');
+      const response = await timesheetApi.getWeeklyTimesheets(weekStartStr);
+
+      const existingForDate = response.timesheets.find(ts => {
+        const tsDateStr = moment(ts.date).tz(TIMEZONE).format('YYYY-MM-DD');
+        return tsDateStr === selectedDate;
+      });
+
+      if (existingForDate) {
+        toast.error(`A timesheet already exists for ${formatDisplayDate(selectedDate)}`);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Submit new timesheet
       const formData = new FormData();
       formData.append('name', timesheetName);
       formData.append('description', description);
-      
-      // FIX: Send the date string exactly as YYYY-MM-DD 
-      // Do not convert it to a Date object here
-      formData.append('date', selectedDate); 
+      formData.append('date', selectedDate); // Send raw string 'YYYY-MM-DD'
 
       if (attachment) formData.append('attachments', attachment);
       logs.forEach(log => formData.append('timeLogs', log._id));
 
       await timesheetApi.createTimesheet(formData);
+      toast.success("Timesheet created successfully");
       if (onTimesheetCreated) onTimesheetCreated();
       onClose();
     } catch (error) {
-      // The toast will now show the correct error from the backend
       toast.error(error.response?.data?.message || "Failed to create timesheet");
     } finally {
       setLoading(false);
     }
-};
+  };
 
   if (!open) return null;
 
@@ -111,7 +118,6 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
         ref={modalRef}
         className="w-full max-w-lg bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
       >
-        {/* Close Cross */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
@@ -129,7 +135,6 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
           className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar"
           onSubmit={handleSubmit}
         >
-          {/* Date Selection for Timesheet */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               TIMESHEET DATE*
@@ -138,19 +143,15 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              max={getTodayString()} // Can't create timesheets for future dates
+              max={getTodayString()}
               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
               required
             />
-            <p className="text-xs text-slate-400 mt-1">
-              Select the date this timesheet is for (you can submit for past dates)
-            </p>
           </div>
 
-          {/* Logs Section */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest">
-              AVAILABLE TIME LOGS FOR {selectedDate ? formatDisplayDate(selectedDate) : '...'}
+              AVAILABLE LOGS FOR {selectedDate ? formatDisplayDate(selectedDate) : '...'}
             </label>
             {fetchingLogs ? (
               <div className="text-center p-4 text-xs font-bold text-slate-400 animate-pulse">
@@ -158,33 +159,27 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
               </div>
             ) : logs.length === 0 ? (
               <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-400">
-                No time logs available for this date. Create time logs first.
+                No logs available for this date.
               </div>
             ) : (
-              <>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                  {logs.map((log) => (
-                    <div key={log._id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-black text-slate-700 uppercase tracking-tighter">
-                          {log.job || log.jobTitle}
-                        </span>
-                        <span className="font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
-                          {log.hours} HRS
-                        </span>
-                      </div>
-                      <p className="text-slate-400 line-clamp-1">{log.description}</p>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                {logs.map((log) => (
+                  <div key={log._id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-black text-slate-700 uppercase tracking-tighter">
+                        {log.job || log.jobTitle}
+                      </span>
+                      <span className="font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
+                        {log.hours} HRS
+                      </span>
                     </div>
-                  ))}
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  Total: {logs.reduce((sum, log) => sum + log.hours, 0).toFixed(1)} hours
-                </p>
-              </>
+                    <p className="text-slate-400 line-clamp-1">{log.description}</p>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Timesheet Name (Auto-generated) */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               TIMESHEET NAME
@@ -194,12 +189,10 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
               value={timesheetName}
               onChange={(e) => setTimesheetName(e.target.value)}
               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
-              placeholder="Timesheet name"
               required
             />
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               SUMMARY DESCRIPTION*
@@ -207,16 +200,15 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300 min-h-[100px]"
-              placeholder="Describe your work for this day..."
+              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 min-h-[100px]"
+              placeholder="Describe your work..."
               required
             />
           </div>
 
-          {/* Attachment */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              ATTACHMENT (Optional)
+              ATTACHMENT
             </label>
             <div className="relative group">
               <input
@@ -225,9 +217,7 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
                 className="w-full opacity-0 absolute inset-0 cursor-pointer z-10"
               />
               <div className="w-full bg-white border border-slate-200 border-dashed rounded-xl px-4 py-3 text-sm text-slate-400 flex items-center justify-between group-hover:bg-slate-50 transition-all">
-                <span className="truncate">
-                  {attachment ? attachment.name : "Choose a file..."}
-                </span>
+                <span className="truncate">{attachment ? attachment.name : "Choose a file..."}</span>
                 <span className="text-[10px] font-black text-slate-300">UPLOAD</span>
               </div>
             </div>
@@ -235,17 +225,13 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
         </form>
 
         <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-3 sm:py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
-          >
+          <button onClick={onClose} className="flex-1 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest">
             CANCEL
           </button>
           <button
             onClick={handleSubmit}
             disabled={!isValid || loading || fetchingLogs}
-            className="flex-[2] py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-[2] py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-50"
           >
             {loading ? "CREATING..." : "CREATE TIMESHEET"}
           </button>
