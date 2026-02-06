@@ -185,20 +185,49 @@ exports.updateTimesheetStatus = catchAsync(async (req, res) => {
   res.status(200).json(updatedTimesheet);
 });
 
-// --- 6. GLOBAL FETCH (Keep for Super Admin Reporting View) ---
+// ... existing imports
+
+// --- 6. GLOBAL FETCH (Super Admin / Reporting View) ---
+// This endpoint is for the ADMIN PANEL. It must NOT be restricted to req.user.id
 exports.getAllTimesheets = catchAsync(async (req, res) => {
   const { month, year } = req.query;
+  const { role } = req.user;
+  
+  // 1. Base Query
   let query = {};
+
+  // 2. Date Filtering (Optional but recommended)
   if (month && year) {
     query.date = { 
       $gte: moment.tz([year, month - 1], TIMEZONE).startOf('month').toDate(),
       $lte: moment.tz([year, month - 1], TIMEZONE).endOf('month').toDate()
     };
   }
+
+  // 3. RBAC: Who sees what in the "All Timesheets" table?
+  // Super Admin / HR: See EVERYTHING (No extra filter)
+  if (role === 'Super Admin' || role === 'HR') {
+     // query remains empty or date-filtered only
+  } 
+  // Manager / Admin: See ONLY their subordinates + themselves
+  else if (role === 'Manager' || role === 'Admin') {
+     // Fetch subordinates
+     const subordinates = await User.find({ reportingManager: req.user._id }).select('_id');
+     const validIds = subordinates.map(u => u._id);
+     validIds.push(req.user._id); // Add self
+     
+     query.employee = { $in: validIds };
+  } 
+  // Standard Employee: See ONLY themselves (Fallback safety)
+  else {
+     query.employee = req.user.id;
+  }
+
   const timesheets = await Timesheet.find(query)
     .populate("timeLogs")
-    .populate("employee", "name email role")
+    .populate("employee", "name email role designation avatar") // Ensure avatar/role are populated for the table
     .sort({ date: -1 });
+
   res.status(200).json(timesheets);
 });
 
