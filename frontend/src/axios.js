@@ -72,37 +72,58 @@ api.interceptors.request.use(
 // --- UPDATED RESPONSE INTERCEPTOR FOR TOASTS ---
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Extract the exact message we set in globalErrorHandler.js
-    const message = error.response?.data?.message || "An unexpected error occurred";
- 
-     if (status === 401) { 
-      console.log('[AXIOS] 401 Unauthorized - Clearing session///////////////////////////////////////');
-       localStorage.clear();
-      sessionStorage.clear();
-       clearIndexedDB().catch(console.error);
+  async (error) => {
+    const status = error.response?.status;
+    const message =
+      error.response?.data?.message || "An unexpected error occurred";
+
+    // =========================
+    // 401 → FORCE LOGOUT
+    // =========================
+    if (status === 401) {
+      console.warn("[AXIOS] 401 Unauthorized — logging out");
+
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
         clearAllCookies();
-          window.location.href = '/auth/login';
 
-
-      // Prevent infinite redirect loop
-      if (!window.location.pathname.includes('/auth/login')) {
-        window.location.href = "/auth/login";
+        // Clear IndexedDB (safe)
+        if (window.indexedDB?.databases) {
+          const databases = await window.indexedDB.databases();
+          databases.forEach((db) => {
+            if (db.name) window.indexedDB.deleteDatabase(db.name);
+          });
+        }
+      } catch (e) {
+        console.error("Cleanup failed:", e);
       }
+
+      // Prevent redirect loop
+      if (!window.location.pathname.startsWith("/auth/login")) {
+        window.location.replace("/auth/login");
+      }
+
+      return Promise.reject(error);
     }
- 
-    // Automatically trigger a toast for 403 (Forbidden) and 400 (Bad Request)
-    if (error.response?.status === 403 || error.response?.status === 400) {
-      toast.error(message); // This will show your "Permission Denied" message!
+
+    // =========================
+    // 403 / 400 → TOAST
+    // =========================
+    if (status === 403 || status === 400) {
+      toast.error(message);
     }
- 
-    // Also trigger for 500 so you know when the server crashes
-    if (error.response?.status === 500) {
+
+    // =========================
+    // 500 → SERVER ERROR
+    // =========================
+    if (status === 500) {
       toast.error("Internal Server Error: Please check backend logs.");
     }
- 
+
     return Promise.reject(error);
   }
 );
+
  
 export default api;
