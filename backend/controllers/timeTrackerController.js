@@ -26,7 +26,7 @@ const getTeamIds = async (managerId) => {
   return teamIds;
 };
 
-// --- 1. GET ALL LOGS ---
+// --- 1. GET ALL LOGS (List View - Keeps Team Logic) ---
 exports.getAllTimeLogs = catchAsync(async (req, res) => {
   const { id, role } = req.user;
   const roleKey = role ? role.replace(/\s+/g, '').toLowerCase() : "";
@@ -83,22 +83,27 @@ exports.updateTimeLog = catchAsync(async (req, res) => {
   res.status(200).json(log);
 });
 
-// --- 3. GET MONTHLY ATTENDANCE ---
+// --- 3. GET MONTHLY ATTENDANCE (FIXED: STRICT PERSONAL) ---
 exports.getMonthlyAttendance = catchAsync(async (req, res) => {
   const { month, year } = req.params;
   const { id, role } = req.user;
-  
+  const { userId } = req.query; // Allow viewing specific user if requested
+
   const startDate = moment.tz([year, month - 1], TIMEZONE).startOf('month').toDate();
   const endDate = moment.tz([year, month - 1], TIMEZONE).endOf('month').toDate();
 
   let query = { date: { $gte: startDate, $lte: endDate } };
   const roleKey = role ? role.replace(/\s+/g, '').toLowerCase() : "";
 
-  if (roleKey === 'manager') {
-    const myFullTeamIds = await getTeamIds(id);
-    query.user = { $in: myFullTeamIds };
-  } else if (!['superadmin', 'admin', 'hr'].includes(roleKey)) {
-    query.user = id;
+  // LOGIC FIX:
+  // If a specific userId is requested AND requester is Admin/Manager, show that user.
+  // Otherwise, ALWAYS default to the logged-in user's personal attendance.
+  // This prevents Admins/Managers from receiving the whole team's data on their personal calendar.
+  
+  if (userId && ['superadmin', 'admin', 'manager', 'hr'].includes(roleKey)) {
+     query.user = userId;
+  } else {
+     query.user = id; // Strict Personal Scope
   }
 
   const attendance = await TimeTracker.find(query)
