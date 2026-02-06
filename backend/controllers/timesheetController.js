@@ -26,13 +26,12 @@ exports.createTimesheet = catchAsync(async (req, res) => {
   }
 
   let timesheetDate;
-if (date) {
-  // Use moment-timezone to parse the string directly into EST 
-  // to avoid the native Date object's local-to-UTC shift
-  timesheetDate = moment.tz(date, TIMEZONE).startOf('day').toDate();
-} else {
-  timesheetDate = getStartOfESTDay();
-}
+  if (date) {
+    // FIX: Parse the string directly into EST Midnight to prevent day-shifting
+    timesheetDate = moment.tz(date, TIMEZONE).startOf('day').toDate();
+  } else {
+    timesheetDate = getStartOfESTDay();
+  }
 
   const timesheetDateStart = getStartOfESTDay(timesheetDate);
   const timesheetDateEnd = getEndOfESTDay(timesheetDate);
@@ -46,7 +45,7 @@ if (date) {
   });
 
   if (existingTimesheet) {
-    throw new BadRequestError(`You have already submitted a timesheet for ${timesheetDate.toLocaleDateString()}.`);
+    throw new BadRequestError(`You have already submitted a timesheet for ${new Date(timesheetDate).toLocaleDateString()}.`);
   }
 
   const logs = await TimeLog.find({
@@ -78,15 +77,17 @@ if (date) {
     throw new BadRequestError(`Weekly hour limit (40 hours) exceeded.`);
   }
 
+  // FIX: Compare dates using formatted EST strings instead of UTC objects
   const targetDateStr = moment(timesheetDate).tz(TIMEZONE).format('YYYY-MM-DD');
-const mismatchedLogs = logs.filter(log => {
-  const logDateStr = moment(log.date).tz(TIMEZONE).format('YYYY-MM-DD');
-  return logDateStr !== targetDateStr;
-});
+  const mismatchedLogs = logs.filter(log => {
+    const logDateStr = moment(log.date).tz(TIMEZONE).format('YYYY-MM-DD');
+    return logDateStr !== targetDateStr;
+  });
 
-if (mismatchedLogs.length > 0) {
-  throw new BadRequestError(`All time logs must be for the same date as the timesheet (${targetDateStr}).`);
-}
+  if (mismatchedLogs.length > 0) {
+    throw new BadRequestError(`All time logs must be for the same date as the timesheet (${targetDateStr}).`);
+  }
+
   const attachmentData = req.files?.map(file => ({
     public_id: file.public_id,
     url: file.path,
@@ -116,7 +117,7 @@ if (mismatchedLogs.length > 0) {
   res.status(201).json(savedTimesheet);
 });
 
-// --- FIX: Logic to see Subordinates for Admin/Manager ---
+// --- FIX: RBAC Logic to see Subordinates for Admin/Manager ---
 exports.getWeeklyTimesheets = catchAsync(async (req, res) => {
   const { weekStart } = req.query; 
 
@@ -124,7 +125,7 @@ exports.getWeeklyTimesheets = catchAsync(async (req, res) => {
     throw new BadRequestError("Week start date is required");
   }
 
-  const startDate = moment(weekStart).tz(TIMEZONE).startOf('day').toDate();
+  const startDate = moment.tz(weekStart, TIMEZONE).startOf('day').toDate();
   const endDate = moment(startDate).tz(TIMEZONE).add(6, 'days').endOf('day').toDate();
 
   let query = {
@@ -134,28 +135,18 @@ exports.getWeeklyTimesheets = catchAsync(async (req, res) => {
     }
   };
 
-  // --- LOGIC START ---
   if (req.user.role === 'Super Admin') {
-    // 1. Super Admin sees EVERYTHING. No filter needed.
+    // Super Admin sees everything
   } 
   else if (req.user.role === 'Admin' || req.user.role === 'Manager') {
-    // 2. Admin/Manager sees: Themselves + Their Subordinates
-    
-    // Find all users who report to this Admin
     const subordinates = await User.find({ reportingManager: req.user._id }).select('_id');
     const subordinateIds = subordinates.map(user => user._id);
-    
-    // Add Admin's own ID to the list (so they see their own sheets too)
     subordinateIds.push(req.user._id);
-
-    // Filter timesheets where employee is in this list
     query.employee = { $in: subordinateIds };
   } 
   else {
-    // 3. Regular Employee sees only their own
     query.employee = req.user.id;
   }
-  // --- LOGIC END ---
 
   const timesheets = await Timesheet.find(query)
     .populate("timeLogs")
@@ -174,18 +165,14 @@ exports.getWeeklyTimesheets = catchAsync(async (req, res) => {
     weekEnd: endDate.toISOString(),
     timesheets: processedTimesheets,
     weeklyTotal,
-    // Note: This remainingHours calc is only accurate if viewing a single user. 
-    // For admin view, it might be misleading, but we keep it to prevent frontend crash.
     remainingHours: Math.max(0, 40 - weeklyTotal) 
   });
 });
 
 exports.getEmployeeTimesheets = catchAsync(async (req, res) => {
   const { month, year, startDate, endDate } = req.query;
-
   let query = {};
 
-  // --- Same Logic applied here for Month View ---
   if (req.user.role === 'Super Admin') {
       // No filter
   } else if (req.user.role === 'Admin' || req.user.role === 'Manager') {
@@ -196,21 +183,17 @@ exports.getEmployeeTimesheets = catchAsync(async (req, res) => {
   } else {
       query.employee = req.user.id;
   }
-  // ---------------------------------------------
 
   if (startDate && endDate) {
     query.date = {
-      $gte: new Date(startDate),
-      $lte: new Date(endDate)
+      $gte: moment.tz(startDate, TIMEZONE).startOf('day').toDate(),
+      $lte: moment.tz(endDate, TIMEZONE).endOf('day').toDate()
     };
   }
   else if (month && year) {
-    const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-    const end = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
-    query.date = {
-      $gte: start,
-      $lte: end
-    };
+    const start = moment.tz([year, month - 1], TIMEZONE).startOf('month').toDate();
+    const end = moment.tz([year, month - 1], TIMEZONE).endOf('month').toDate();
+    query.date = { $gte: start, $lte: end };
   }
 
   const timesheets = await Timesheet.find(query)
@@ -233,13 +216,7 @@ exports.updateTimesheetStatus = catchAsync(async (req, res) => {
   const { status, approvedHours } = req.body;
 
   const timesheet = await Timesheet.findById(id).populate('employee', 'name email');
-  
   if (!timesheet) throw new NotFoundError("Timesheet");
-
-  // Optional: Prevent Admins from approving their own timesheets
-  // if (timesheet.employee._id.toString() === req.user.id && req.user.role !== 'Super Admin') {
-  //   throw new ForbiddenError("You cannot approve your own timesheet.");
-  // }
 
   timesheet.status = status;
   if (approvedHours !== undefined) {
@@ -251,7 +228,6 @@ exports.updateTimesheetStatus = catchAsync(async (req, res) => {
   if (timesheet.employee && timesheet.employee.email) {
     const statusColor = status === 'Approved' ? '#2e7d32' : '#c62828';
     const emailSubject = `Timesheet Update: ${status}`;
-    
     const emailBody = `
       <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; border: 1px solid #ddd; border-radius: 8px;">
         <div style="background-color: ${statusColor}; color: white; padding: 20px; text-align: center;">
@@ -265,78 +241,39 @@ exports.updateTimesheetStatus = catchAsync(async (req, res) => {
             ${approvedHours ? `<p style="margin: 5px 0;"><strong>Approved Hours:</strong> ${approvedHours}</p>` : ''}
           </div>
         </div>
-      </div>
-    `;
-    sendEmail(timesheet.employee.email, emailSubject, emailBody)
-      .catch(err => console.error("❌ Timesheet Email Failed:", err.message));
+      </div>`;
+    sendEmail(timesheet.employee.email, emailSubject, emailBody).catch(err => console.error(err.message));
   }
-
   res.status(200).json(updatedTimesheet);
 });
 
 exports.getAllTimesheets = catchAsync(async (req, res) => {
   const { month, year } = req.query;
-
   let query = {};
-  
-  // Apply the same Subordinate filter here if needed, 
-  // currently, 'getAllTimesheets' implies an unrestricted view (Super Admin style).
-  // If regular Admins use this endpoint, apply the same filter as above.
-  
   if (month && year) {
-    const startDate = new Date(Date.UTC(year, month - 1, 1));
-    const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59));
-
-    query.date = {
-      $gte: startDate,
-      $lte: endDate
-    };
+    const start = moment.tz([year, month - 1], TIMEZONE).startOf('month').toDate();
+    const end = moment.tz([year, month - 1], TIMEZONE).endOf('month').toDate();
+    query.date = { $gte: start, $lte: end };
   }
-
-  const timesheets = await Timesheet.find(query)
-    .populate("timeLogs")
-    .populate("employee", "name email role") 
-    .sort({ date: -1 });
-
+  const timesheets = await Timesheet.find(query).populate("timeLogs").populate("employee", "name email role").sort({ date: -1 });
   res.status(200).json(timesheets);
 });
 
 exports.downloadAttachment = catchAsync(async (req, res) => {
   const { id, attachmentId } = req.params;
-
   const timesheet = await Timesheet.findById(id);
   if (!timesheet) throw new NotFoundError("Timesheet");
-
   const attachment = timesheet.attachments.id(attachmentId);
-  if (!attachment) {
-    throw new NotFoundError("Attachment");
-  }
+  if (!attachment) throw new NotFoundError("Attachment");
 
   try {
     if (attachment.public_id) {
-      const downloadUrl = cloudinary.url(attachment.public_id, {
-        secure: true,
-        resource_type: 'raw',
-        flags: 'attachment',
-        attachment: attachment.originalname,
-        sign_url: true
-      });
+      const downloadUrl = cloudinary.url(attachment.public_id, { secure: true, resource_type: 'raw', flags: 'attachment', attachment: attachment.originalname, sign_url: true });
       return res.redirect(downloadUrl);
-    } else if (attachment.url) {
-      const response = await fetch(attachment.url);
-      const buffer = await response.buffer();
-      res.set({
-        'Content-Type': response.headers.get('content-type') || 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${attachment.originalname}"`,
-        'Content-Length': buffer.length
-      });
-      return res.send(buffer);
     } else {
-      throw new BadRequestError("No valid attachment URL found");
+      return res.redirect(attachment.url);
     }
   } catch (error) {
-    console.error("Download error:", error);
-    if (attachment.url) return res.redirect(attachment.url);
     throw new BadRequestError("Failed to generate download link");
   }
 });
