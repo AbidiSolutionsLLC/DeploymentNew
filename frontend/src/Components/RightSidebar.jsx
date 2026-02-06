@@ -10,24 +10,26 @@ import { useDispatch, useSelector } from "react-redux";
 import { checkInNow, checkOutNow, fetchCurrentStatus } from "../slices/attendanceTimer";
 import { toast } from "react-toastify";
 import { refreshUserData } from "../slices/userSlice";
+import api from "../axios"; // Import API for direct status checks
 
 const RightSidebar = ({ isOpen, toggleSidebar }) => {
     const dispatch = useDispatch();
     const [elapsedTime, setElapsedTime] = useState({ hours: 0, minutes: 0, seconds: 0 });
     const [timerInterval, setTimerInterval] = useState(null);
+    
+    // NEW: Local state to prevent "button flash" by holding data immediately
+    const [localLog, setLocalLog] = useState(null);
 
     // Redux state
     const { checkInn, loading } = useSelector((state) => state.attendanceTimer);
-
-    const {user} = useSelector((state) => state.auth);
-
-    const {userInfo} = useSelector((state) => state.user);
+    const { user } = useSelector((state) => state.auth);
+    const { userInfo } = useSelector((state) => state.user);
 
     useEffect(() => {
-        if(user?.user?._id){
+        if (user?.user?._id) {
             dispatch(refreshUserData(user?.user?._id));
         }
-    }, []);
+    }, [user, dispatch]);
 
     const currentUser = userInfo;
     const profileImage = currentUser?.avatar || "";
@@ -42,10 +44,34 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
             .slice(0, 5);
     }, [currentUser]);
 
+    // 1. Initial Redux Fetch
     useEffect(() => {
         dispatch(fetchCurrentStatus());
     }, [dispatch]);
-    
+
+    // 2. CRITICAL FIX: Direct API Verification on Mount
+    // This double-checks the backend to ensure the button state is 100% accurate
+    useEffect(() => {
+        const verifySessionStatus = async () => {
+            if (currentUser?._id) {
+                try {
+                    // Call the route we fixed earlier to get the Daily Log
+                    const { data } = await api.get(`/timetrackers/my/daily/${currentUser._id}`);
+                    if (data?.log) {
+                        setLocalLog(data.log);
+                    }
+                } catch (error) {
+                    console.error("Session verification failed:", error);
+                }
+            }
+        };
+        verifySessionStatus();
+    }, [currentUser]);
+
+    // MERGE: Use Local Log (Immediate) or Redux Log (Global)
+    // Local log takes priority to prevent the "flash" bug
+    const activeLog = localLog || checkInn?.log;
+
     // Avatar component
     const Avatar = ({ url, name, size = "sm" }) => {
         const sizeClasses =
@@ -79,9 +105,10 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
         return { hours, minutes, seconds };
     };
 
+    // Updated Timer Logic to use 'activeLog' instead of just 'checkInn'
     useEffect(() => {
-        if (checkInn?.log?.checkInTime && !checkInn?.log?.checkOutTime) {
-            const startTime = new Date(checkInn.log.checkInTime).getTime();
+        if (activeLog?.checkInTime && !activeLog?.checkOutTime) {
+            const startTime = new Date(activeLog.checkInTime).getTime();
 
             const updateElapsed = () => {
                 const now = Date.now();
@@ -98,26 +125,46 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
             if (timerInterval) clearInterval(timerInterval);
             setElapsedTime({ hours: 0, minutes: 0, seconds: 0 });
         }
-    }, [checkInn]);
+    }, [activeLog]); // Dependent on the merged log
 
     const handleCheckIn = () => {
-        dispatch(checkInNow()).unwrap().catch(err =>
-            toast.error(err?.message || "Failed to check in")
-        );
+        dispatch(checkInNow())
+            .unwrap()
+            .then((res) => {
+                // SUCCESS: Update local state immediately so button turns RED
+                setLocalLog(res.log); 
+                toast.success("Checked in successfully");
+            })
+            .catch(async (err) => {
+                toast.error(err?.message || "Failed to check in");
+                
+                // SELF-HEALING: If error says "Active Session", verify with backend and force update
+                if (err?.message && (err.message.includes("active session") || err.message.includes("checked in"))) {
+                     try {
+                        const { data } = await api.get(`/timetrackers/my/daily/${currentUser?._id}`);
+                        if (data?.log) setLocalLog(data.log);
+                     } catch (e) { console.error("Self-heal failed", e); }
+                }
+            });
     };
 
     const handleCheckOut = () => {
         dispatch(checkOutNow())
             .unwrap()
-            .then(() => toast.success("Checked out successfully!"))
+            .then((res) => {
+                // SUCCESS: Update local state so button turns GREEN
+                setLocalLog(res.log);
+                toast.success("Checked out successfully!");
+            })
             .catch(err => toast.error(err?.message || "Failed to check out"));
     };
 
     const getButtonState = () => {
-        if (!checkInn?.log) {
+        // Use activeLog for decision making
+        if (!activeLog) {
             return { text: "Check In", onClick: handleCheckIn, bgColor: "bg-emerald-500 hover:bg-emerald-600", disabled: false };
         }
-        if (checkInn?.log?.checkInTime && !checkInn?.log?.checkOutTime) {
+        if (activeLog.checkInTime && !activeLog.checkOutTime) {
             return { text: "Check Out", onClick: handleCheckOut, bgColor: "bg-red-500 hover:bg-red-600", disabled: false };
         }
         return { text: "Already Checked Out", bgColor: "bg-slate-400", disabled: true };
@@ -171,8 +218,8 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
                         {loading ? "Processing..." : buttonState.text}
                     </button>
 
-                    {/* Timer Display - Only show when checked in */}
-                    {(checkInn?.log?.checkInTime && !checkInn?.log?.checkOutTime) && (
+                    {/* Timer Display - Only show when checked in (using activeLog) */}
+                    {(activeLog?.checkInTime && !activeLog?.checkOutTime) && (
                         <div className="flex flex-col items-center mb-5">
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2">
                                 Current Session
