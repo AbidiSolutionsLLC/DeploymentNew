@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import {
-  FaCalendarAlt,
-  FaUser,
-  FaEnvelope,
-  FaClock,
+import { 
+  FaCalendarAlt, 
+  FaUser, 
+  FaEnvelope, 
+  FaClock, 
   FaFileAlt,
   FaPaperclip,
   FaTrash,
@@ -12,9 +12,9 @@ import {
   FaTimes,
   FaComment
 } from "react-icons/fa";
-import {
-  Send,
-  ChevronDown,
+import { 
+  Send, 
+  ChevronDown, 
   User,
   Clock,
   Paperclip,
@@ -25,8 +25,17 @@ import ModernSelect from "./ui/ModernSelect";
 import api from "../axios";
 import Toast from "../Components/Toast";
 import { toast } from "react-toastify"; // Import toast
- 
-const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLeaveRequests }) => {
+import { useSelector } from "react-redux";
+
+const ViewLeaveModal = ({ 
+  isOpen, 
+  setIsOpen, 
+  leaveData, 
+  onStatusChange, 
+  fetchLeaveRequests,
+}) => {
+    const { user } = useSelector((state) => state.auth);
+  
   const [selectedStatus, setSelectedStatus] = useState(leaveData?.status || "Pending");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [responses, setResponses] = useState([]);
@@ -36,19 +45,41 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
   const [editingResponseId, setEditingResponseId] = useState(null);
   const [editContent, setEditContent] = useState("");
   const [attachment, setAttachment] = useState(null);
- 
+console.log(user)
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
- 
+
   useEffect(() => {
-    if (isOpen && leaveData?.id) {
-      console.log('gettign responses')
+    let intervalId;
+
+    const startPolling = () => {
+      // Call immediately on mount
       fetchResponses();
+
+      // Set up the 5-second timer
+      intervalId = setInterval(() => {
+        console.log('Fetching responses every 5 seconds...');
+        fetchResponses();
+      }, 5000);
+    };
+
+    if (isOpen && leaveData?.id) {
+      startPolling();
     }
+
+    // Cleanup function: This stops the timer when:
+    // 1. The component unmounts
+    // 2. isOpen or leaveData.id changes
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        console.log('Polling stopped');
+      }
+    };
   }, [isOpen, leaveData?.id]);
- 
+
   const fetchResponses = async () => {
     try {
       setLoadingResponses(true);
@@ -62,14 +93,14 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
       setLoadingResponses(false);
     }
   };
- 
+
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget && !isSubmitting) {
       setIsOpen(false);
       resetState();
     }
   };
- 
+
   const resetState = () => {
     setResponses([]);
     setNewResponse("");
@@ -78,10 +109,10 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
     setAttachment(null);
     setToast(null);
   };
- 
+
   const handleStatusChange = async () => {
     if (selectedStatus === leaveData.status || selectedStatus === "Pending") return;
-   
+    
     setIsSubmitting(true);
     try {
       await onStatusChange(leaveData.id, selectedStatus);
@@ -95,44 +126,44 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
       setIsSubmitting(false);
     }
   };
- 
+
   const handleSubmitResponse = async () => {
     if (!newResponse.trim() && !attachment) return;
- 
+
     try {
       const response = await api.post(`/leaves/${leaveData.id}/responses`, {
         content: newResponse.trim()
       });
       console.log(response.data.data,"response")
       console.log(responses,"local")
- 
+
       setResponses(prev => [...prev, response.data.data]);
       setNewResponse("");
       setAttachment(null);
-     
+      
       showToast("Response submitted successfully");
     } catch (error) {
       console.error("Failed to submit response:", error);
       showToast(error.response?.data?.message || "Failed to submit response", "error");
     }
   };
- 
+
   const handleUpdateResponse = async (responseId) => {
     if (!editContent.trim()) return;
- 
+
     try {
       const response = await api.patch(`/leaves/${leaveData.id}/responses/${responseId}`, {
         content: editContent.trim()
       });
-     
-      setResponses(prev =>
-        prev.map(res =>
-          res._id === responseId
+      
+      setResponses(prev => 
+        prev.map(res => 
+          res._id === responseId 
             ? { ...res, ...response.data.data, isEdited: true, editedAt: new Date() }
             : res
         )
       );
-     
+      
       setEditingResponseId(null);
       setEditContent("");
       showToast("Response updated successfully");
@@ -141,10 +172,10 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
       showToast(error.response?.data?.message || "Failed to update response", "error");
     }
   };
- 
+
   const handleDeleteResponse = async (responseId) => {
     if (!window.confirm("Are you sure you want to delete this response?")) return;
- 
+
     try {
       await api.delete(`/leaves/${leaveData.id}/responses/${responseId}`);
       setResponses(prev => prev.filter(res => res._id !== responseId));
@@ -154,7 +185,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
       showToast(error.response?.data?.message || "Failed to delete response", "error");
     }
   };
- 
+
   const handleAttachmentChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -166,14 +197,14 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
       setNewResponse(prev => prev + `\n[Attached: ${file.name}]`);
     }
   };
- 
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmitResponse();
     }
   };
- 
+
   const getStatusColor = (status) => {
     switch(status) {
       case "Approved": return "bg-green-100 text-green-800";
@@ -181,14 +212,14 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
       default: return "bg-yellow-100 text-yellow-800";
     }
   };
- 
+
   const getAvatarContent = (response) => {
     if (response.author?.avatar) {
       return <img src={response.author.avatar} alt="avatar" className="w-full h-full rounded-full object-cover" />;
     }
     return response.author?.name?.charAt(0) || response.role?.charAt(0) || "?";
   };
- 
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString('en-US', {
       month: 'short',
@@ -197,9 +228,29 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
       minute: '2-digit'
     });
   };
- 
+
+  // Helper function to check if response belongs to current user
+  const isUserResponse = (response) => {
+    // Check if response has author object with _id that matches currentUser.id
+    if (response.author?._id === user.user?._id) {
+      return true;
+    }
+    
+    // Check if response has author field that directly matches currentUser.id (string comparison)
+    if (response.author === user?.user?._id) {
+      return true;
+    }
+    
+    // Additional check for email if needed
+    if (response.author?.email === user?.user?.email) {
+      return true;
+    }
+    
+    return false;
+  };
+
   if (!isOpen || !leaveData) return null;
- 
+
   return (
     <>
       {toast && (
@@ -209,21 +260,21 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
           onClose={() => setToast(null)}
         />
       )}
- 
-      <div
+
+      <div 
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex justify-center items-center p-4 sm:p-6"
         onClick={handleBackdropClick}
       >
         <div className="w-full max-w-6xl bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden">
           {/* CLOSE BUTTON */}
-          <button
+          <button 
             onClick={() => !isSubmitting && (setIsOpen(false), resetState())}
             disabled={isSubmitting}
             className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10 disabled:opacity-50"
           >
             &times;
           </button>
- 
+
           {/* HEADER */}
           <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
             <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
@@ -235,7 +286,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
               </span>
             </div>
           </div>
- 
+
           {/* MAIN CONTENT */}
           <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
             {/* LEFT COLUMN - LEAVE DETAILS */}
@@ -255,7 +306,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                         {leaveData.employee?.department || "Department not specified"}
                       </p>
                     </div>
-                   
+                    
                     <div className="bg-slate-50 p-4 rounded-xl">
                       <div className="flex items-center gap-3 mb-2">
                         <FaEnvelope className="text-slate-400" />
@@ -264,7 +315,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                       <p className="text-sm text-slate-700 truncate">{leaveData.email}</p>
                     </div>
                   </div>
- 
+
                   {/* Dates */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-slate-50 p-4 rounded-xl">
@@ -276,7 +327,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                         {new Date(leaveData.startDate).toLocaleDateString()}
                       </p>
                     </div>
-                   
+                    
                     <div className="bg-slate-50 p-4 rounded-xl">
                       <div className="flex items-center gap-3 mb-2">
                         <FaCalendarAlt className="text-slate-400" />
@@ -287,7 +338,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                       </p>
                     </div>
                   </div>
- 
+
                   {/* Duration & Type */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-slate-50 p-4 rounded-xl">
@@ -296,11 +347,11 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Duration</span>
                       </div>
                       <p className="text-sm font-medium text-slate-800">
-                        {leaveData.duration ||
+                        {leaveData.duration || 
                           `${Math.ceil((new Date(leaveData.endDate) - new Date(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1} days`}
                       </p>
                     </div>
-                   
+                    
                     <div className="bg-slate-50 p-4 rounded-xl">
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Leave Type</span>
@@ -310,7 +361,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                       </span>
                     </div>
                   </div>
- 
+
                   {/* Reason */}
                   {leaveData.reason && leaveData.reason !== "-" && (
                     <div className="bg-slate-50 p-4 rounded-xl">
@@ -321,7 +372,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                       <p className="text-sm text-slate-700 whitespace-pre-line">{leaveData.reason}</p>
                     </div>
                   )}
- 
+
                   {/* Applied At */}
                   <div className="bg-slate-50 p-4 rounded-xl">
                     <div className="flex items-center gap-3 mb-2">
@@ -333,14 +384,14 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                     </p>
                   </div>
                 </div>
- 
+
                 {/* STATUS UPDATE SECTION - Only show if leave is Pending */}
                 {leaveData.status === "Pending" && (
                   <div className="border-t border-slate-200 pt-6">
                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
                       Update Status
                     </h3>
-                   
+                    
                     <div className="space-y-4">
                       <ModernSelect
                         label="Select New Status"
@@ -357,7 +408,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                         className="w-full"
                         disabled={isSubmitting}
                       />
- 
+
                       <div className="flex gap-3">
                         <button
                           type="button"
@@ -394,7 +445,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                 )}
               </div>
             </div>
- 
+
             {/* RIGHT COLUMN - DISCUSSION SECTION */}
             <div className="lg:w-1/2 overflow-y-auto custom-scrollbar">
               <div className="p-6 sm:p-8 h-full flex flex-col">
@@ -402,14 +453,16 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                   <FaComment className="text-slate-400" />
                   DISCUSSION
                 </h3>
- 
+
                 {/* Responses List */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 space-y-3">
-                  {loadingResponses ? (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
-                    </div>
-                  ) : responses.length > 0 ? (
+                  {
+                  // loadingResponses ? (
+                  //   <div className="flex items-center justify-center h-32">
+                  //     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
+                  //   </div>
+                  // ) : 
+                  responses.length > 0 ? (
                     responses.map((response) => (
                       <div key={response._id} className="bg-slate-50/80 rounded-xl p-3 border border-slate-100">
                         <div className="flex items-start gap-3">
@@ -417,7 +470,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                           <div className="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-800 rounded-full text-sm font-bold shrink-0">
                             {getAvatarContent(response)}
                           </div>
-                         
+                          
                           {/* Content */}
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-1">
@@ -437,7 +490,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                                   {formatDate(response.time || response.createdAt)}
                                 </span>
                                 {/* Action buttons - Only show for user's own responses */}
-                                {!response.isSystemNote && (
+                                {!response.isSystemNote && isUserResponse(response) && (
                                   <div className="flex gap-1">
                                     <button
                                       onClick={() => {
@@ -460,7 +513,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                                 )}
                               </div>
                             </div>
-                           
+                            
                             {/* Edit Mode */}
                             {editingResponseId === response._id ? (
                               <div className="space-y-2">
@@ -506,7 +559,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                     </div>
                   )}
                 </div>
- 
+
                 {/* New Response Input */}
                 <div className="border-t border-slate-200 pt-4">
                   <div className="relative">
@@ -518,7 +571,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                       placeholder="Type your response here..."
                       rows="3"
                     />
-                   
+                    
                     {/* Attachment Button */}
                     <label className="absolute left-3 bottom-3 p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition cursor-pointer">
                       <input
@@ -529,7 +582,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                       />
                       <Paperclip size={16} />
                     </label>
-                   
+                    
                     {/* Attachment Preview */}
                     {attachment && (
                       <div className="absolute left-12 bottom-3 flex items-center gap-2 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-xs">
@@ -546,7 +599,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                         </button>
                       </div>
                     )}
-                   
+                    
                     {/* Send Button */}
                     <button
                       onClick={handleSubmitResponse}
@@ -557,7 +610,7 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
                       <Send size={16} />
                     </button>
                   </div>
-                 
+                  
                   <p className="text-xs text-slate-500 mt-2 px-1">
                     Press <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-xs">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-xs">Shift+Enter</kbd> for new line
                   </p>
@@ -570,5 +623,5 @@ const ViewLeaveModal = ({ isOpen, setIsOpen, leaveData, onStatusChange, fetchLea
     </>
   );
 };
- 
+
 export default ViewLeaveModal;
