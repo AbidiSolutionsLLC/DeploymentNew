@@ -47,8 +47,6 @@ exports.getAllTimeLogs = catchAsync(async (req, res) => {
   res.status(200).json(logs);
 });
 
-exports.getAllTimeTrackers = exports.getAllTimeLogs;
-
 // --- 2. UPDATE TIME LOG (ADMIN EDIT) ---
 exports.updateTimeLog = catchAsync(async (req, res) => {
   const { id } = req.params;
@@ -90,7 +88,6 @@ exports.getMonthlyAttendance = catchAsync(async (req, res) => {
   const { month, year } = req.params;
   const { id, role } = req.user;
   
-  // Create EST date boundaries
   const startDate = moment.tz([year, month - 1], TIMEZONE).startOf('month').toDate();
   const endDate = moment.tz([year, month - 1], TIMEZONE).endOf('month').toDate();
 
@@ -118,12 +115,11 @@ exports.checkIn = catchAsync(async (req, res) => {
   const nowEST = getCurrentESTTime();
   const todayStartEST = getStartOfESTDay(nowEST.toDate());
 
-  // 1. Weekend Check in EST
   if (isESTWeekend(nowEST.toDate())) {
     return res.status(403).json({ message: "Check-in is not allowed on weekends (EST)." });
   }
 
-  // 2. Auto-Checkout Logic (12-Hour Rule)
+  // Auto-Checkout Logic (12-Hour Rule)
   const abandonedSession = await TimeTracker.findOne({ 
     user: userId, 
     checkOutTime: { $exists: false } 
@@ -136,9 +132,8 @@ exports.checkIn = catchAsync(async (req, res) => {
     const hoursElapsed = nowEST.diff(sessionStart, 'hours');
 
     if (hoursElapsed >= 12) {
-      // Close as 'Present' if they forgot
       abandonedSession.checkOutTime = nowEST.toDate(); 
-      abandonedSession.totalHours = 9; // Default full day shift
+      abandonedSession.totalHours = 9; 
       abandonedSession.status = "Present"; 
       abandonedSession.notes = (abandonedSession.notes || "") + " | Auto-checked out (12h rule)";
       await abandonedSession.save();
@@ -148,7 +143,6 @@ exports.checkIn = catchAsync(async (req, res) => {
     }
   }
 
-  // 3. Today Duplicate Check
   const existingLogForToday = await TimeTracker.findOne({ user: userId, date: todayStartEST });
   if (existingLogForToday) {
     return res.status(400).json({ message: "You have already checked in for today (EST)." });
@@ -168,7 +162,6 @@ exports.checkOut = catchAsync(async (req, res) => {
   const userId = req.user.id;
   const nowEST = getCurrentESTTime();
 
-  // Smart Search: Find open session specifically for the current EST day or the most recent open one
   const currentLog = await TimeTracker.findOne({ 
     user: userId, 
     checkOutTime: { $exists: false } 
@@ -176,7 +169,6 @@ exports.checkOut = catchAsync(async (req, res) => {
 
   if (!currentLog) throw new BadRequestError("No active check-in found.");
 
-  // NaN Defense
   const checkInMoment = moment(currentLog.checkInTime).tz(TIMEZONE);
   if (!checkInMoment.isValid()) {
     await TimeTracker.findByIdAndDelete(currentLog._id);
@@ -190,7 +182,6 @@ exports.checkOut = catchAsync(async (req, res) => {
   if (isNaN(totalHours)) totalHours = 0;
   currentLog.totalHours = totalHours;
 
-  // Status Logic
   if (totalHours >= 8) currentLog.status = "Present";
   else if (totalHours >= 4.5) currentLog.status = "Half Day";
   else currentLog.status = "Absent";
@@ -220,3 +211,21 @@ exports.deleteTimeLog = catchAsync(async (req, res) => {
   if (!log) throw new NotFoundError("Time log not found");
   res.status(200).json({ message: "Deleted successfully" });
 });
+
+exports.createTimeLog = catchAsync(async (req, res) => {
+  const newLog = await TimeTracker.create(req.body);
+  res.status(201).json(newLog);
+});
+
+exports.getTimeLogById = catchAsync(async (req, res) => {
+  const log = await TimeTracker.findById(req.params.id).populate('user');
+  if (!log) throw new NotFoundError("Time log not found");
+  res.status(200).json(log);
+});
+
+// --- CRITICAL ALIASES TO FIX "UNDEFINED" ROUTE ERRORS ---
+exports.getAllTimeTrackers = exports.getAllTimeLogs;
+exports.createTimeTracker = exports.createTimeLog;
+exports.updateTimeTracker = exports.updateTimeLog;
+exports.checkin = exports.checkIn; // Lowercase alias
+exports.checkout = exports.checkOut; // Lowercase alias
