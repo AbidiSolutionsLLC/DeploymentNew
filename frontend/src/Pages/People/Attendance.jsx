@@ -62,6 +62,7 @@ const Attendance = () => {
       const month = startDate.getMonth() + 1;
       const year = startDate.getFullYear();
 
+      // FIXED: Matches the API route for month/year fetching
       const response = await api.get(`/timetrackers/attendance/${month}/${year}`);
       setAttendanceData(response.data);
     } catch (error) {
@@ -78,8 +79,8 @@ const Attendance = () => {
 
   const generateWeeklyData = (startOfWeek) => {
     const days = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 7; i++) {
       const day = new Date(startOfWeek);
@@ -88,7 +89,7 @@ const Attendance = () => {
 
       const dayData = attendanceData.find(d => {
         const recordDate = new Date(d.date);
-
+        // CRITICAL FIX: Use UTC methods to match the backend's EST Midnight storage
         return (
           recordDate.getUTCFullYear() === day.getFullYear() &&
           recordDate.getUTCMonth() === day.getMonth() &&
@@ -107,7 +108,7 @@ const Attendance = () => {
           totalHours: dayData.totalHours || 0,
           notes: dayData.notes,
         });
-      } else if (day > today) {
+      } else if (day > now) {
         days.push({
           date: day.getDate(),
           dayName: day.toLocaleDateString("en-US", { weekday: "short" }),
@@ -226,8 +227,6 @@ const Attendance = () => {
         </div>
       </div>
 
-      {/* FIX: Added 'relative z-0' to keep it below the header dropdowns 
-      */}
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-2 w-full overflow-x-auto relative z-0">
         {loading ? (
           <div className="text-center p-6">
@@ -236,7 +235,6 @@ const Attendance = () => {
           </div>
         ) : (
           <div className="relative">
-            {/* ... rest of the timeline code remains exactly the same ... */}
             <div className="absolute left-20 top-0 h-full w-0.5 bg-slate-200 transform translate-x-1/2"></div>
             <div className="space-y-4">
               {weeklyData.map((day, index) => (
@@ -244,30 +242,28 @@ const Attendance = () => {
                   key={index}
                   className="relative flex items-start group transition-all duration-150"
                 >
-                  <div className={`absolute left-[66px] top-6 h-4 w-4 rounded-full transform translate-x-1/2 z-10 border-2 border-white ${day.status === "Present" ? "bg-green-500" :
-                      day.status === "Absent" ? "bg-red-500" :
-                        day.status === "Half Day" ? "bg-yellow-500" :
-                          day.status === "Leave" ? "bg-blue-500" : "bg-purple-500"
-                    } ${new Date(day.fullDate).toDateString() === today.toDateString() ? "animate-pulse shadow-lg" : ""}`}></div>
+                  <div className={`absolute left-[66px] top-6 h-4 w-4 rounded-full transform translate-x-1/2 z-10 border-2 border-white ${
+                    day.status === "Present" ? "bg-green-500" :
+                    day.status === "Absent" ? "bg-red-500" :
+                    day.status === "Half Day" ? "bg-yellow-500" :
+                    day.status === "Leave" ? "bg-blue-500" : "bg-purple-500"
+                  } ${new Date(day.fullDate).toDateString() === today.toDateString() ? "animate-pulse shadow-lg" : ""}`}></div>
 
                   <div className="flex-shrink-0 w-20 text-center pt-1">
-                    <div className={`text-xs text-slate-600 font-medium uppercase tracking-wide ${day.dayName === 'Sat' || day.dayName === 'Sun' ? 'text-blue-600' : ''
-                      }`}>
+                    <div className={`text-xs text-slate-600 font-medium uppercase tracking-wide ${day.dayName === 'Sat' || day.dayName === 'Sun' ? 'text-blue-600' : ''}`}>
                       {day.dayName}
                     </div>
-                    <div className={`text-xl font-bold mt-1 ${day.dayName === 'Sat' || day.dayName === 'Sun' ? 'text-blue-800' : 'text-slate-800'
-                      } ${new Date(day.fullDate).toDateString() === today.toDateString() ?
-                        "text-blue-600" : ""
-                      }`}>
+                    <div className={`text-xl font-bold mt-1 ${day.dayName === 'Sat' || day.dayName === 'Sun' ? 'text-blue-800' : 'text-slate-800'} ${
+                      new Date(day.fullDate).toDateString() === today.toDateString() ? "text-blue-600" : ""
+                    }`}>
                       {day.date}
                     </div>
                   </div>
 
                   <div
-                    className={`flex-grow ml-8 p-4 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${selectedDay === index ?
-                        "border-blue-300 shadow-md bg-blue-50/80" :
-                        "border-slate-100 hover:border-slate-200"
-                      } border`}
+                    className={`flex-grow ml-8 p-4 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
+                      selectedDay === index ? "border-blue-300 shadow-md bg-blue-50/80" : "border-slate-100 hover:border-slate-200"
+                    } border`}
                     onClick={() => toggleDayDetails(index)}
                   >
                     <div className="flex justify-between items-start">
@@ -314,12 +310,6 @@ const Attendance = () => {
                         )}
                       </div>
                     )}
-
-                    {selectedDay === index && !expandedView && day.notes && (
-                      <div className="mt-3 p-3 bg-slate-50/80 rounded text-sm text-slate-700 border-t border-slate-200">
-                        {day.notes}
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
@@ -328,38 +318,36 @@ const Attendance = () => {
         )}
       </div>
 
-      {/* Summary Card */}
       <div className="mt-6 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
-        {/* ... summary content remains same ... */}
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
             <span className="text-xs font-medium text-slate-800 uppercase tracking-wide">
-              Present: <span className="font-bold text-slate-800">{weeklyData.filter(d => d.status === "Present").length} days</span>
+              Present: <span className="font-bold">{weeklyData.filter(d => d.status === "Present").length} days</span>
             </span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
             <span className="text-xs font-medium text-slate-800 uppercase tracking-wide">
-              Half Day: <span className="font-bold text-slate-800">{weeklyData.filter(d => d.status === "Half Day").length} days</span>
+              Half Day: <span className="font-bold">{weeklyData.filter(d => d.status === "Half Day").length} days</span>
             </span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
             <span className="text-xs font-medium text-slate-800 uppercase tracking-wide">
-              Leave: <span className="font-bold text-slate-800">{weeklyData.filter(d => d.status === "Leave").length} days</span>
+              Leave: <span className="font-bold">{weeklyData.filter(d => d.status === "Leave").length} days</span>
             </span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
             <span className="text-xs font-medium text-slate-800 uppercase tracking-wide">
-              Absent: <span className="font-bold text-slate-800">{weeklyData.filter(d => d.status === "Absent").length} days</span>
+              Absent: <span className="font-bold">{weeklyData.filter(d => d.status === "Absent").length} days</span>
             </span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
             <span className="text-xs font-medium text-slate-800 uppercase tracking-wide">
-              Holiday: <span className="font-bold text-slate-800">{weeklyData.filter(d => d.status === "Holiday").length} days</span>
+              Holiday: <span className="font-bold">{weeklyData.filter(d => d.status === "Holiday").length} days</span>
             </span>
           </div>
         </div>
