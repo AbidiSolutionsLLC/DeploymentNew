@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux"; // FIX: Import useSelector
 import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
 import { IoCalendarNumberOutline } from "react-icons/io5";
 import DatePicker from "react-datepicker";
@@ -40,6 +41,10 @@ const formatTime = (dateString) => {
 };
 
 const Attendance = () => {
+  // FIX: Get current user ID to filter data correctly
+  const { user } = useSelector((state) => state.auth);
+  const currentUserId = user?.id || user?._id;
+
   const today = new Date();
   const [weekStart, setWeekStart] = useState(() => {
     const start = new Date(today);
@@ -89,8 +94,14 @@ const Attendance = () => {
 
       const dayData = attendanceData.find(d => {
         const recordDate = new Date(d.date);
-        // CRITICAL FIX: Use UTC methods to match the backend's EST Midnight storage
+        
+        // FIX: Ensure record belongs to current user (handles populated user object or ID string)
+        const recordUserId = d.user?._id || d.user; 
+        const isOwner = recordUserId === currentUserId;
+
+        // CRITICAL FIX: Match Date AND User ID
         return (
+          isOwner &&
           recordDate.getUTCFullYear() === day.getFullYear() &&
           recordDate.getUTCMonth() === day.getMonth() &&
           recordDate.getUTCDate() === day.getDate()
