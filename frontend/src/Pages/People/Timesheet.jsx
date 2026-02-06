@@ -7,9 +7,29 @@ import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
 import TableWithPagination from "../../Components/TableWithPagination";
+import { moment, TIMEZONE } from "../../utils/dateUtils"; // Integrated project utils
 
 const Timesheet = () => {
   const [showCalendar, setShowCalendar] = useState(false);
+  
+  // Helper functions for week calculations
+  function getMonday(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  }
+
+  function getSunday(date) {
+    const monday = getMonday(date);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    return sunday;
+  }
+
   const [selectedWeekStart, setSelectedWeekStart] = useState(getMonday(new Date()));
   const [weeklyData, setWeeklyData] = useState({
     weekStart: getMonday(new Date()).toISOString(),
@@ -23,27 +43,19 @@ const Timesheet = () => {
 
   const calendarRef = useRef(null);
 
-  // Helper functions for week calculations
-  function getMonday(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
-  }
-
-  function getSunday(date) {
-    const monday = getMonday(date);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    return sunday;
-  }
+  // Ensure date is a valid Date object
+  const ensureDate = (date) => {
+    if (date instanceof Date) return date;
+    if (typeof date === 'string' || typeof date === 'number') {
+      const d = new Date(date);
+      return isNaN(d.getTime()) ? new Date() : d;
+    }
+    return new Date();
+  };
 
   function formatDate(date) {
-    // Handle both Date objects and string dates
-    const dateObj = date instanceof Date ? date : new Date(date);
-    if (isNaN(dateObj.getTime())) {
-      return "Invalid Date";
-    }
+    const dateObj = ensureDate(date);
+    if (isNaN(dateObj.getTime())) return "Invalid Date";
     return dateObj.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -52,7 +64,6 @@ const Timesheet = () => {
   }
 
   function formatWeekRange(start, end) {
-    // Convert strings to Date objects if needed
     const startDate = start instanceof Date ? start : new Date(start);
     const endDate = end instanceof Date ? end : new Date(end);
 
@@ -62,16 +73,6 @@ const Timesheet = () => {
 
     return `${formatDate(startDate)} - ${formatDate(endDate)}`;
   }
-
-  // Function to ensure date is a Date object
-  const ensureDate = (date) => {
-    if (date instanceof Date) return date;
-    if (typeof date === 'string' || typeof date === 'number') {
-      const d = new Date(date);
-      return isNaN(d.getTime()) ? new Date() : d;
-    }
-    return new Date();
-  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -97,13 +98,13 @@ const Timesheet = () => {
     setLoading(true);
     setError(null);
     try {
-      // Ensure selectedWeekStart is a Date object and format it
+      // FIX: Send raw YYYY-MM-DD string to the API to prevent UTC shifting
       const weekStartDate = ensureDate(selectedWeekStart);
-      const weekStartStr = weekStartDate.toISOString().split('T')[0];
+      const weekStartStr = moment(weekStartDate).format('YYYY-MM-DD');
 
       const response = await timesheetApi.getWeeklyTimesheets(weekStartStr);
 
-      // Process the response to ensure dates are properly handled
+      // Process the response to ensure dates are properly handled as objects
       const processedResponse = {
         ...response,
         weekStart: response.weekStart ? new Date(response.weekStart) : getMonday(new Date()),
@@ -146,12 +147,10 @@ const Timesheet = () => {
 
   const downloadAttachment = async (timesheetId, attachmentId, filename) => {
     try {
-      // First, get the timesheet to get the attachment URL
       const timesheet = await timesheetApi.getTimesheetById(timesheetId);
       const attachment = timesheet.attachments?.find(att => att._id === attachmentId);
 
       if (attachment?.url) {
-        // Create a temporary link to trigger download
         const link = document.createElement('a');
         link.href = attachment.url;
         link.download = filename || attachment.originalname;
@@ -170,7 +169,7 @@ const Timesheet = () => {
     }
   };
 
-  // Safely format timesheet date for display
+  // FIX: Format date correctly using UTC methods to match backend EST midnight
   const formatTimesheetDate = (date) => {
     const dateObj = ensureDate(date);
     if (isNaN(dateObj.getTime())) return "Invalid Date";
@@ -178,11 +177,12 @@ const Timesheet = () => {
     return dateObj.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'UTC' // Force UTC display to keep the "wall clock" date identical to backend
     });
   };
 
-   const timesheetColumns = [
+  const timesheetColumns = [
     {
       key: "date",
       label: "Date",
@@ -271,18 +271,6 @@ const Timesheet = () => {
     }
   ];
 
-  // In the component return, replace the table with:
-  {!loading && !error && (
-    <TableWithPagination
-      columns={timesheetColumns}
-      data={weeklyData.timesheets || []}
-      loading={loading}
-      error={error}
-      emptyMessage={`No timesheets for ${formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}`}
-      rowsPerPage={5}
-    />
-  )}
-
   return (
     <>
       {/* Header Card */}
@@ -342,8 +330,6 @@ const Timesheet = () => {
             >
               <FaAngleRight size={18} />
             </button>
-
-
           </div>
 
           {/* Weekly Hours Summary */}
@@ -364,7 +350,7 @@ const Timesheet = () => {
         </div>
       </div>
 
-      {/* Weekly Timesheet Table */}
+      {/* Weekly Timesheet Table Wrapper */}
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 overflow-x-auto">
         <AnimatePresence mode="wait">
           <motion.div
@@ -390,107 +376,50 @@ const Timesheet = () => {
             )}
 
             {!loading && !error && (
-              <>
-                <table className="min-w-full text-sm border-separate border-spacing-0">
-                  <thead>
-                    <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                      {[
-                        "Date",
-                        "Timesheet Name",
-                        "Submitted Hours",
-                        "Approved Hours",
-                        "Status",
-                        "Attachments",
-                      ].map((heading) => (
-                        <th
-                          key={heading}
-                          className="p-4 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left"
-                        >
-                          {heading}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {weeklyData.timesheets?.length ? (
-                      weeklyData.timesheets.map((item) => (
-                        <tr
-                          key={item._id}
-                          className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors"
-                        >
-                          <td className="p-4 text-slate-700 font-medium">
-                            {formatTimesheetDate(item.date)}
-                          </td>
-                          <td className="p-4 text-slate-700 font-medium">{item.name || "Unnamed"}</td>
-                          <td className="p-4 text-slate-700 font-medium">
-                            {(item.submittedHours || 0).toFixed(1)}
-                          </td>
-                          <td className="p-4 text-slate-700 font-medium">
-                            {(item.approvedHours || 0).toFixed(1)}
-                          </td>
-                          <td className="p-4">
-                            <span
-                              className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${item.status === "Approved"
-                                  ? "bg-green-100 text-green-800"
-                                  : item.status === "Rejected"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                                }`}
-                            >
-                              {item.status || "Pending"}
-                            </span>
-                          </td>
-                          <td className="p-4">
-                            {item.attachments?.length > 0 ? (
-                              <div className="flex flex-wrap gap-2">
-                                {item.attachments.map((attachment, idx) => (
-                                  <button
-                                    key={attachment._id || idx}
-                                    onClick={() => downloadAttachment(
-                                      item._id,
-                                      attachment._id,
-                                      attachment.originalname
-                                    )}
-                                    className="flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg text-xs text-slate-600 hover:bg-slate-200 transition-colors"
-                                    title={`Download ${attachment.originalname}`}
-                                    disabled={loading}
-                                  >
-                                    <IoDownloadOutline size={12} />
-                                    <span className="truncate max-w-[100px]">
-                                      {attachment.originalname?.split('.').pop().toUpperCase() || "FILE"}
-                                    </span>
-                                  </button>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 text-xs">No attachments</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="p-8 text-center text-slate-500 text-sm"
-                        >
-                          <div className="flex flex-col items-center gap-2">
-                            <svg className="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-                            </svg>
-                            <p className="text-sm font-medium text-slate-500">
-                              No timesheets for this week
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              {formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}
-                            </p>
-                          </div>
-                        </td>
+              <TableWithPagination
+                columns={timesheetColumns}
+                data={weeklyData.timesheets || []}
+                loading={loading}
+                error={error}
+                emptyMessage={`No timesheets for ${formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}`}
+                rowsPerPage={5}
+                // Custom table content rendering
+                renderTable={(data) => (
+                  <table className="min-w-full text-sm border-separate border-spacing-0">
+                    <thead>
+                      <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
+                        {timesheetColumns.map((col) => (
+                          <th key={col.key} className="p-4 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left">
+                            {col.label}
+                          </th>
+                        ))}
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </>
+                    </thead>
+                    <tbody>
+                      {data.map((item) => (
+                        <tr key={item._id} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
+                          {timesheetColumns.map((col) => (
+                            <td key={col.key} className="p-4">
+                              {col.render ? col.render(item) : item[col.key]}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              />
+            )}
+            
+            {/* Fallback for no data empty state SVG */}
+            {!loading && !error && (!weeklyData.timesheets || weeklyData.timesheets.length === 0) && (
+              <div className="flex flex-col items-center gap-2 py-8">
+                <svg className="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+                <p className="text-sm font-medium text-slate-500">No timesheets for this week</p>
+                <p className="text-xs text-slate-400">{formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}</p>
+              </div>
             )}
           </motion.div>
         </AnimatePresence>
