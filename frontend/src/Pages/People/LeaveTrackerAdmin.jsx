@@ -5,9 +5,9 @@ import HolidayTable from "../../Components/HolidayTable";
 import AddHolidayModal from "../../Components/AddHolidayModal";
 import Toast from "../../Components/Toast";
 import ViewLeaveModal from "../../Components/ViewLeaveModal";
-import ModernSelect from "../../Components/ui/ModernSelect"; 
+import ModernSelect from "../../Components/ui/ModernSelect";
 import { useSelector } from "react-redux";
-
+ 
 const LeaveTrackerAdmin = () => {
   const [departmentLeaveRecord, setDepartmentLeaveRecord] = useState([]);
   const [holidays, setHolidays] = useState([]);
@@ -15,32 +15,32 @@ const LeaveTrackerAdmin = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState(null);
   const [toast, setToast] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0); 
-
+  const [refreshKey, setRefreshKey] = useState(0);
+ 
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState("");
   const [leaveBalances, setLeaveBalances] = useState({ pto: 0, sick: 0 });
-
+ 
   const [loading, setLoading] = useState({
     leaves: true,
     holidays: true,
     users: true
   });
-
+ 
   // Get current user role to determine if they can see Super Admins
   const { user: authUser } = useSelector(state => state.auth);
   const userRole = (authUser?.user?.role || authUser?.role || "").replace(/\s+/g, '').toLowerCase();
   const isSuperAdmin = userRole === 'superadmin';
-
+ 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
-
+ 
   const fetchLeaves = async () => {
     try {
       // FIX: Use /getAllLeaves as defined in allRoutes.js
-      const response = await api.get("/getAllLeaves"); 
+      const response = await api.get("/getAllLeaves");
       const formatted = response.data.data.map((item) => ({
         id: item._id,
         date: new Date(item.startDate).toLocaleDateString(),
@@ -63,7 +63,7 @@ const LeaveTrackerAdmin = () => {
       setLoading(prev => ({ ...prev, leaves: false }));
     }
   };
-
+ 
   const fetchHolidays = async () => {
     try {
       const response = await api.get("/holidays");
@@ -75,7 +75,7 @@ const LeaveTrackerAdmin = () => {
       setLoading(prev => ({ ...prev, holidays: false }));
     }
   };
-
+ 
   const fetchUsers = async () => {
     try {
       const response = await api.get("/users");
@@ -92,7 +92,7 @@ const LeaveTrackerAdmin = () => {
       setLoading(prev => ({ ...prev, users: false }));
     }
   };
-
+ 
   const handleUserSelect = async (e) => {
     const userId = e.target.value;
     setSelectedUser(userId);
@@ -100,7 +100,7 @@ const LeaveTrackerAdmin = () => {
       setLeaveBalances({ pto: 0, sick: 0 });
       return;
     }
-
+ 
     try {
       const response = await api.get(`/users/${userId}/leaves`);
       setLeaveBalances({
@@ -112,7 +112,7 @@ const LeaveTrackerAdmin = () => {
       showToast("Failed to fetch user leave balance", "error");
     }
   };
-
+ 
   const handleUpdateLeaves = async () => {
     if (!selectedUser) return;
     try {
@@ -123,13 +123,13 @@ const LeaveTrackerAdmin = () => {
       showToast("Failed to update leaves", "error");
     }
   };
-
+ 
   const handleStatusChange = async (leaveId, newStatus) => {
     try {
       // FIX: Use the update status endpoint
       await api.put(`/leaves/${leaveId}/status`, { status: newStatus });
       showToast(`Leave status updated to ${newStatus}`);
-
+ 
       setDepartmentLeaveRecord(prev =>
         prev.map(leave =>
           leave.id === leaveId
@@ -137,32 +137,32 @@ const LeaveTrackerAdmin = () => {
             : leave
         )
       );
-
-      await fetchLeaves(); 
+ 
+      await fetchLeaves();
     } catch (error) {
       console.error("Failed to update status:", error.response?.data || error.message);
-      showToast("Failed to update status", "error");
+      // showToast("Failed to update status", "error");
     }
   };
-
+ 
   const handleHolidayAdded = () => {
     showToast("Holiday added successfully");
-    fetchHolidays(); 
+    fetchHolidays();
     setRefreshKey(prev => prev + 1);
     setIsOpen(false);
   };
-
+ 
   const handleViewLeave = (leave) => {
     setSelectedLeave(leave);
     setViewModalOpen(true);
   };
-
+ 
   useEffect(() => {
     fetchLeaves();
     fetchHolidays();
     fetchUsers();
   }, []);
-
+ 
   const getStatusColor = (status) => {
     switch (status) {
       case "Approved": return "bg-green-100 text-green-800";
@@ -170,7 +170,7 @@ const LeaveTrackerAdmin = () => {
       default: return "bg-yellow-100 text-yellow-800";
     }
   };
-
+ 
   return (
     <div className="min-h-screen bg-transparent p-2">
       {toast && (
@@ -180,7 +180,7 @@ const LeaveTrackerAdmin = () => {
           onClose={() => setToast(null)}
         />
       )}
-
+ 
       {selectedLeave && (
         <ViewLeaveModal
           isOpen={viewModalOpen}
@@ -189,7 +189,7 @@ const LeaveTrackerAdmin = () => {
           onStatusChange={handleStatusChange}
         />
       )}
-
+ 
       <div className="space-y-4">
         {/* Applied Leave Section */}
         <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
@@ -197,7 +197,7 @@ const LeaveTrackerAdmin = () => {
             <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Applied Leave</h2>
             <p className="text-[10px] font-medium text-slate-500 mt-1">Leave requests awaiting approval</p>
           </div>
-
+ 
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border-separate border-spacing-0">
               <thead>
@@ -261,7 +261,7 @@ const LeaveTrackerAdmin = () => {
             </table>
           </div>
         </div>
-
+ 
         {/* Holidays Section */}
         <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
@@ -277,7 +277,7 @@ const LeaveTrackerAdmin = () => {
               Add Holidays
             </button>
           </div>
-
+ 
           {loading.holidays ? (
             <div className="text-center p-6">
               <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
@@ -288,14 +288,14 @@ const LeaveTrackerAdmin = () => {
           )}
         </div>
       </div>
-
+ 
       {/* Manage User Leaves Section */}
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 mt-4">
         <div className="mb-4">
           <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Manage User Leaves</h2>
           <p className="text-[10px] font-medium text-slate-500 mt-1">Adjust leave balances for employees</p>
         </div>
-
+ 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="col-span-1 md:col-span-2">
             <ModernSelect
@@ -310,7 +310,7 @@ const LeaveTrackerAdmin = () => {
               }))}
             />
           </div>
-
+ 
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">PTO Balance</label>
             <input
@@ -321,7 +321,7 @@ const LeaveTrackerAdmin = () => {
               disabled={!selectedUser}
             />
           </div>
-
+ 
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Sick Leaves</label>
             <input
@@ -333,7 +333,7 @@ const LeaveTrackerAdmin = () => {
             />
           </div>
         </div>
-
+ 
         <div className="mt-6 flex justify-end">
           <button
             onClick={handleUpdateLeaves}
@@ -344,7 +344,7 @@ const LeaveTrackerAdmin = () => {
           </button>
         </div>
       </div>
-
+ 
       <AddHolidayModal
         isOpen={isOpen}
         setIsOpen={setIsOpen}
@@ -353,5 +353,5 @@ const LeaveTrackerAdmin = () => {
     </div>
   );
 };
-
+ 
 export default LeaveTrackerAdmin;
