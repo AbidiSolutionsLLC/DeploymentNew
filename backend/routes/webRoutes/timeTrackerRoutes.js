@@ -3,30 +3,28 @@ const router = express.Router();
 const timeTrackerController = require("../../controllers/timeTrackerController");
 const { isLoggedIn } = require("../../middlewares/authMiddleware");
 
-router.use(isLoggedIn);
+// Helper function to handle common aliases/mistakes in naming
+const getLogs = timeTrackerController.getAllTimeLogs || timeTrackerController.getAllTimeTrackers;
+const createLog = timeTrackerController.createTimeLog || timeTrackerController.createTimeTracker;
 
-// Main Check In/Out
-router.post('/check-in', timeTrackerController.checkIn);
-router.post('/check-out', timeTrackerController.checkOut);
+// --- Base Routes ---
+router.get("/", isLoggedIn, getLogs);
+router.post("/", isLoggedIn, createLog); // This is likely line 19 causing your error
 
-// Data Retrieval
-router.get('/daily-log/:userId', timeTrackerController.getDailyLog);
-router.get('/attendance/:month/:year', timeTrackerController.getMonthlyAttendance); // Assuming this controller exists in your file
-// router.get('/open-sessions', ...); // Optional based on your needs
+// --- Operations ---
+router.post("/check-in", isLoggedIn, timeTrackerController.checkIn);
+router.post("/check-out", isLoggedIn, timeTrackerController.checkOut);
 
-// CRUD (Admin or specific use cases)
-router.route("/")
-  .post(timeTrackerController.createTimeLog) // Manual create
-  .get(timeTrackerController.getAllTimeLogs); // Admin get all
+// --- Individual Records ---
+router.get("/:id", isLoggedIn, timeTrackerController.getTimeLogById);
+router.put("/:id", isLoggedIn, timeTrackerController.updateTimeLog);
+router.delete("/:id", isLoggedIn, timeTrackerController.deleteTimeLog);
 
-router.route("/:id")
-  .get(timeTrackerController.getTimeLogById)
-  // .put(timeTrackerController.updateTimeLog) // Be careful exposing update without validation
-  // .delete(timeTrackerController.deleteTimeLog);
+// --- Monthly View ---
+router.get("/monthly/:year/:month", isLoggedIn, timeTrackerController.getMonthlyAttendance);
 
-router.route("/:id")
-  .get(timeTrackerController.getTimeLogById)
-  .put(timeTrackerController.updateTimeLog) 
-  .delete(timeTrackerController.deleteTimeLog);
+// --- Personal ---
+router.get("/my/logs", isLoggedIn, timeTrackerController.getMyTimeLogs);
+router.get("/my/daily/:userId", isLoggedIn, timeTrackerController.getDailyLog);
 
 module.exports = router;
