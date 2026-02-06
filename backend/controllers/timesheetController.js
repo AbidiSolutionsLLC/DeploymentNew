@@ -188,47 +188,47 @@ exports.updateTimesheetStatus = catchAsync(async (req, res) => {
 // ... existing imports
 
 // --- 6. GLOBAL FETCH (Super Admin / Reporting View) ---
-// This endpoint is for the ADMIN PANEL. It must NOT be restricted to req.user.id
 exports.getAllTimesheets = catchAsync(async (req, res) => {
-  const { month, year } = req.query;
+  const { month, year, startDate, endDate } = req.query;
   const { role } = req.user;
   
-  // 1. Base Query
   let query = {};
 
-  // 2. Date Filtering (Optional but recommended)
-  if (month && year) {
+  // 1. Date Filtering: Support Range (Weekly) OR Month/Year
+  if (startDate && endDate) {
+    query.date = { 
+      $gte: moment.tz(startDate, TIMEZONE).startOf('day').toDate(), 
+      $lte: moment.tz(endDate, TIMEZONE).endOf('day').toDate() 
+    };
+  } else if (month && year) {
     query.date = { 
       $gte: moment.tz([year, month - 1], TIMEZONE).startOf('month').toDate(),
       $lte: moment.tz([year, month - 1], TIMEZONE).endOf('month').toDate()
     };
   }
 
-  // 3. RBAC: Who sees what in the "All Timesheets" table?
-  // Super Admin / HR: See EVERYTHING (No extra filter)
+  // 2. RBAC: Who sees what?
   if (role === 'Super Admin' || role === 'HR') {
-     // query remains empty or date-filtered only
+     // See ALL
   } 
-  // Manager / Admin: See ONLY their subordinates + themselves
   else if (role === 'Manager' || role === 'Admin') {
-     // Fetch subordinates
+     // See Subordinates + Self
      const subordinates = await User.find({ reportingManager: req.user._id }).select('_id');
      const validIds = subordinates.map(u => u._id);
-     validIds.push(req.user._id); // Add self
-     
+     validIds.push(req.user._id);
      query.employee = { $in: validIds };
   } 
-  // Standard Employee: See ONLY themselves (Fallback safety)
   else {
+     // Fallback: See Self
      query.employee = req.user.id;
   }
 
   const timesheets = await Timesheet.find(query)
     .populate("timeLogs")
-    .populate("employee", "name email role designation avatar") // Ensure avatar/role are populated for the table
+    .populate("employee", "name email role designation avatar")
     .sort({ date: -1 });
 
-  res.status(200).json(timesheets);
+  res.status(200).json(timesheets); // Returns an Array []
 });
 
 exports.downloadAttachment = catchAsync(async (req, res) => {
