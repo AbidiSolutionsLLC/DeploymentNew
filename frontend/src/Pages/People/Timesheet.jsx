@@ -7,12 +7,11 @@ import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
 import TableWithPagination from "../../Components/TableWithPagination";
-import { moment, TIMEZONE } from "../../utils/dateUtils"; // Integrated project utils
+import { moment, TIMEZONE } from "../../utils/dateUtils";
 
 const Timesheet = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   
-  // Helper functions for week calculations
   function getMonday(date) {
     const d = new Date(date);
     const day = d.getDay();
@@ -43,7 +42,6 @@ const Timesheet = () => {
 
   const calendarRef = useRef(null);
 
-  // Ensure date is a valid Date object
   const ensureDate = (date) => {
     if (date instanceof Date) return date;
     if (typeof date === 'string' || typeof date === 'number') {
@@ -66,11 +64,7 @@ const Timesheet = () => {
   function formatWeekRange(start, end) {
     const startDate = start instanceof Date ? start : new Date(start);
     const endDate = end instanceof Date ? end : new Date(end);
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return "Invalid Date Range";
-    }
-
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return "Invalid Date Range";
     return `${formatDate(startDate)} - ${formatDate(endDate)}`;
   }
 
@@ -80,14 +74,8 @@ const Timesheet = () => {
         setShowCalendar(false);
       }
     };
-
-    if (showCalendar) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    if (showCalendar) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showCalendar]);
 
   useEffect(() => {
@@ -98,13 +86,13 @@ const Timesheet = () => {
     setLoading(true);
     setError(null);
     try {
-      // FIX: Send raw YYYY-MM-DD string to the API to prevent UTC shifting
+      // Send correct EST string
       const weekStartDate = ensureDate(selectedWeekStart);
       const weekStartStr = moment(weekStartDate).format('YYYY-MM-DD');
 
+      // Backend now returns strictly personal scope by default
       const response = await timesheetApi.getWeeklyTimesheets(weekStartStr);
 
-      // Process the response to ensure dates are properly handled as objects
       const processedResponse = {
         ...response,
         weekStart: response.weekStart ? new Date(response.weekStart) : getMonday(new Date()),
@@ -158,7 +146,6 @@ const Timesheet = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
         toast.success(`Downloading ${filename || attachment.originalname}`);
       } else {
         toast.error("Attachment not found");
@@ -169,16 +156,15 @@ const Timesheet = () => {
     }
   };
 
-  // FIX: Format date correctly using UTC methods to match backend EST midnight
+  // FIX: Display date as UTC to match backend storage
   const formatTimesheetDate = (date) => {
     const dateObj = ensureDate(date);
     if (isNaN(dateObj.getTime())) return "Invalid Date";
-
     return dateObj.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
-      timeZone: 'UTC' // Force UTC display to keep the "wall clock" date identical to backend
+      timeZone: 'UTC'
     });
   };
 
@@ -246,7 +232,6 @@ const Timesheet = () => {
         if (!row.attachments?.length) {
           return <span className="text-slate-400 text-xs">No attachments</span>;
         }
-        
         return (
           <div className="flex flex-wrap gap-1">
             {row.attachments.map((attachment, idx) => (
@@ -273,7 +258,6 @@ const Timesheet = () => {
 
   return (
     <>
-      {/* Header Card */}
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-2 relative z-20">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">
@@ -332,7 +316,6 @@ const Timesheet = () => {
             </button>
           </div>
 
-          {/* Weekly Hours Summary */}
           <div className="flex flex-col sm:flex-row gap-2 items-center">
             <div className="bg-blue-50 px-3 py-2 rounded-lg shadow-sm">
               <span className="text-xs font-medium text-slate-800">
@@ -350,7 +333,6 @@ const Timesheet = () => {
         </div>
       </div>
 
-      {/* Weekly Timesheet Table Wrapper */}
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 overflow-x-auto">
         <AnimatePresence mode="wait">
           <motion.div
@@ -383,7 +365,6 @@ const Timesheet = () => {
                 error={error}
                 emptyMessage={`No timesheets for ${formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}`}
                 rowsPerPage={5}
-                // Custom table content rendering
                 renderTable={(data) => (
                   <table className="min-w-full text-sm border-separate border-spacing-0">
                     <thead>
@@ -411,7 +392,6 @@ const Timesheet = () => {
               />
             )}
             
-            {/* Fallback for no data empty state SVG */}
             {!loading && !error && (!weeklyData.timesheets || weeklyData.timesheets.length === 0) && (
               <div className="flex flex-col items-center gap-2 py-8">
                 <svg className="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
