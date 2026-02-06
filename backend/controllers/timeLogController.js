@@ -2,47 +2,45 @@ const TimeLog = require("../models/timeLogsSchema");
 const Timesheet = require("../models/timesheetSchema");
 const catchAsync = require("../utils/catchAsync");
 const { BadRequestError, NotFoundError } = require("../utils/ExpressError");
-const { cloudinary } = require("../storageConfig");
-const { containerClient } = require("../config/azureConfig");
-const { getStartOfESTDay, getEndOfESTDay } = require("../utils/dateUtils");
+const { moment, TIMEZONE } = require("../utils/dateUtils"); // Using your project's moment/timezone utils
 
-
-// Create Time Log
+// --- CREATE TIME LOG ---
 exports.createTimeLog = catchAsync(async (req, res) => {
   const { job, date, description, hours } = req.body;
   const employee = req.user.id;
 
+  // FIX: Force incoming date string into EST Midnight to prevent day-shifting
+  const estDate = moment.tz(date, TIMEZONE).startOf('day').toDate();
+
   const attachments = req.files?.map(file => ({
-    blobName: file.blobName, // Store blobName instead of public_id
+    blobName: file.blobName,
     url: file.url || file.path,
     originalname: file.originalname,
     format: file.mimetype,
     size: file.size
   })) || [];
 
-  console.log("Attachments:", attachments);
-
   const timeLog = new TimeLog({
     employee,
     job,
-    date: getStartOfESTDay(date), // Align to EST start of day
+    date: estDate, 
     description,
     hours,
-    attachments // This matches your schema
+    attachments
   });
 
   const savedTimeLog = await timeLog.save();
   res.status(201).json(savedTimeLog);
 });
 
-// Get Time Logs for Employee
+// --- GET EMPLOYEE TIME LOGS ---
 exports.getEmployeeTimeLogs = catchAsync(async (req, res) => {
   const employee = req.user.id;
-  const { date } = req.query;
+  const { date } = req.query; // Raw YYYY-MM-DD string from frontend
 
   const query = { employee };
   if (date) {
-    // Specifically target the EST window for that specific date string
+    // FIX: Define a strict 24-hour window in EST for the search
     const startDate = moment.tz(date, TIMEZONE).startOf('day').toDate();
     const endDate = moment.tz(date, TIMEZONE).endOf('day').toDate();
 
@@ -56,7 +54,7 @@ exports.getEmployeeTimeLogs = catchAsync(async (req, res) => {
   res.status(200).json(timeLogs);
 });
 
-// Update Time Log
+// --- UPDATE TIME LOG ---
 exports.updateTimeLog = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { job, date, description, hours } = req.body;
@@ -67,6 +65,7 @@ exports.updateTimeLog = catchAsync(async (req, res) => {
   if (timeLog.isAddedToTimesheet) {
     throw new BadRequestError("Cannot update time log already added to a timesheet");
   }
+
   if (req.files && req.files.length > 0) {
     timeLog.attachments = req.files.map(file => ({
       blobName: file.blobName,
@@ -77,9 +76,9 @@ exports.updateTimeLog = catchAsync(async (req, res) => {
     }));
   }
 
-  // Update other fields
   timeLog.job = job;
-  timeLog.date = getStartOfESTDay(date); // Align to EST
+  // FIX: Align updated date back to EST
+  timeLog.date = moment.tz(date, TIMEZONE).startOf('day').toDate();
   timeLog.description = description;
   timeLog.hours = hours;
 
@@ -87,34 +86,27 @@ exports.updateTimeLog = catchAsync(async (req, res) => {
   res.status(200).json(updatedTimeLog);
 });
 
-// Delete Time Log
+// --- DELETE TIME LOG ---
 exports.deleteTimeLog = catchAsync(async (req, res) => {
   const { id } = req.params;
-
   const timeLog = await TimeLog.findById(id);
   if (!timeLog) throw new NotFoundError("TimeLog");
-
-  if (timeLog.isAddedToTimesheet) {
-    throw new BadRequestError("Cannot delete time log already added to a timesheet");
-  }
-
+  if (timeLog.isAddedToTimesheet) throw new BadRequestError("Cannot delete log already in timesheet");
   await timeLog.deleteOne();
   res.status(200).json({ message: "Time log deleted successfully" });
 });
 
-
+// --- DOWNLOAD ATTACHMENT ---
 exports.downloadTimeLogAttachment = catchAsync(async (req, res) => {
   const { id, attachmentId } = req.params;
-
   const timeLog = await TimeLog.findById(id);
   if (!timeLog) throw new NotFoundError("TimeLog");
-
   const attachment = timeLog.attachments.id(attachmentId);
   if (!attachment) throw new NotFoundError("Attachment");
 
   try {
     if (attachment.blobName) {
-      const blockBlobClient = containerClient.getBlockBlobClient(attachment.blobName);
+      const blockBlobClient = require("../config/azureConfig").containerClient.getBlockBlobClient(attachment.blobName);
       const sasUrl = await blockBlobClient.generateSasUrl({
         permissions: "r",
         expiresOn: new Date(new Date().valueOf() + 300 * 1000),
