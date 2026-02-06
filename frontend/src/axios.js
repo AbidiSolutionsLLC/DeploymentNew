@@ -4,7 +4,29 @@ import { msalConfig, loginRequest } from "./authConfig";
 import { toast } from "react-toastify"; // Import toast
  
 let store;
- 
+ function clearAllCookies() {
+  const cookies = document.cookie.split(";");
+  
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i];
+    const eqPos = cookie.indexOf("=");
+    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+    
+    // Set expiration date to past to delete the cookie
+    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+    
+    // Also clear with domain if needed
+    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+    
+    // Clear for all subdomains
+    const domainParts = window.location.hostname.split('.');
+    while (domainParts.length > 1) {
+      const domain = domainParts.join('.');
+      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + domain;
+      domainParts.shift();
+    }
+  }
+}
 export const injectStore = (_store) => {
   store = _store;
 };
@@ -54,10 +76,19 @@ api.interceptors.response.use(
     // Extract the exact message we set in globalErrorHandler.js
     const message = error.response?.data?.message || "An unexpected error occurred";
  
-    if (error.response?.status === 401) {
-      console.error("401 Unauthorized");
-      localStorage.clear();      sessionStorage.clear();// Redirect to login      window.location.href = '/auth/login';
-      // Optional: window.location.href = '/auth/login';
+     if (status === 401) { 
+      console.log('[AXIOS] 401 Unauthorized - Clearing session///////////////////////////////////////');
+       localStorage.clear();
+      sessionStorage.clear();
+       clearIndexedDB().catch(console.error);
+        clearAllCookies();
+          window.location.href = '/auth/login';
+
+
+      // Prevent infinite redirect loop
+      if (!window.location.pathname.includes('/auth/login')) {
+        window.location.href = "/auth/login";
+      }
     }
  
     // Automatically trigger a toast for 403 (Forbidden) and 400 (Bad Request)
