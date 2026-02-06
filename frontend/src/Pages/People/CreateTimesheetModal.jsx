@@ -76,64 +76,29 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
     e.preventDefault();
     if (!isValid) return;
 
-    // Frontend validation: Check if timesheet already exists for this date
-    try {
-      // Get existing timesheets for this week to check
-      const today = new Date(selectedDate);
-      const monday = new Date(today);
-      monday.setDate(today.getDate() - today.getDay() + 1);
-      monday.setHours(0, 0, 0, 0);
-
-      const response = await timesheetApi.getWeeklyTimesheets(
-        monday.toISOString().split('T')[0]
-      );
-
-      // Check if a timesheet already exists for this exact date
-      const existingForDate = response.timesheets.find(ts => {
-        const tsDate = new Date(ts.date);
-        const selectedDateObj = new Date(selectedDate);
-        return tsDate.toDateString() === selectedDateObj.toDateString();
-      });
-
-      if (existingForDate) {
-        toast.error(`You already have a timesheet for ${formatDisplayDate(selectedDate)}`);
-        return;
-      }
-
-      // Calculate total hours for this timesheet
-      const logsHours = logs.reduce((total, log) => total + log.hours, 0);
-
-      // Check weekly limit
-      if (response.weeklyTotal + logsHours > 40) {
-        toast.error(`Weekly limit (40 hours) would be exceeded. You have ${response.weeklyTotal} hours already.`);
-        return;
-      }
-    } catch (error) {
-      console.error("Validation error:", error);
-      // Continue anyway - backend will do final validation
-    }
-
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append('name', timesheetName);
       formData.append('description', description);
-      formData.append('date', selectedDate); // Send the specific date
+      
+      // FIX: Send the date string exactly as YYYY-MM-DD 
+      // Do not convert it to a Date object here
+      formData.append('date', selectedDate); 
 
       if (attachment) formData.append('attachments', attachment);
       logs.forEach(log => formData.append('timeLogs', log._id));
 
       await timesheetApi.createTimesheet(formData);
-      if (onTimesheetCreated) {
-        onTimesheetCreated();
-      }
+      if (onTimesheetCreated) onTimesheetCreated();
       onClose();
     } catch (error) {
+      // The toast will now show the correct error from the backend
       toast.error(error.response?.data?.message || "Failed to create timesheet");
     } finally {
       setLoading(false);
     }
-  };
+};
 
   if (!open) return null;
 
