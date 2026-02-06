@@ -56,6 +56,7 @@ api.interceptors.response.use(
  
     if (error.response?.status === 401) {
       console.error("401 Unauthorized");
+      localStorage.clear();      sessionStorage.clear();// Redirect to login      window.location.href = '/auth/login';
       // Optional: window.location.href = '/auth/login';
     }
  
