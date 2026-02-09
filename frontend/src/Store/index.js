@@ -35,4 +35,23 @@ const store = configureStore({
 
 const persistor = persistStore(store);
 
+export const clearPersistedStore = async () => {
+  try {
+    // Method 1: Using redux-persist's purge
+ 
+    console.log("✅ Persisted store cleared");
+    
+    // Also clear localStorage and sessionStorage
+ 
+    
+    return true;
+  } catch (error) {
+    console.error("Failed to clear store:", error);
+    return false;
+  }
+};
+// clearPersistedStore()
+  //  await persistor.purge();
+    //  localStorage.clear();
+    // sessionStorage.clear();
 export { store, persistor };

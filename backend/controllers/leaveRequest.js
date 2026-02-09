@@ -60,6 +60,8 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
     reason,
     // Initialize empty responses array
     responses: []
+    // Initialize empty responses array
+    responses: []
   });
  
   const savedLeaveRequest = await leaveRequest.save();
@@ -410,6 +412,7 @@ exports.deleteLeaveResponse = catchAsync(async (req, res) => {
 // --- APPROVE / REJECT LEAVE (RESTRICTED TO HR/ADMIN) ---
 exports.updateLeaveStatus = catchAsync(async (req, res) => {
   const { status, responseNote } = req.body;
+  const { status, responseNote } = req.body;
   const { id } = req.params;
  
   if (!["Pending", "Approved", "Rejected"].includes(status)) throw new BadRequestError("Invalid status");
@@ -482,6 +485,7 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
   // Send status update email
   if (leaveRequest.email) {
     const emailSubject = `Leave Request ${status}`;
+    const emailBody = generateLeaveStatusEmailTemplate(leaveRequest, status, responseNote);
     const emailBody = generateLeaveStatusEmailTemplate(leaveRequest, status, responseNote);
     sendEmail(leaveRequest.email, emailSubject, emailBody).catch(console.error);
   }

@@ -399,7 +399,8 @@ const handleTimesheetCreated = async () => {
                     <FaAngleLeft size={18} />
                   </button>
 
-                  <div className="relative" ref={calendarRef}>                    <button
+                  <div className="relative" ref={calendarRef}>                   
+                  <button
                     className="px-3 py-2 text-blue-800 bg-blue-100 rounded-lg flex items-center gap-2 hover:bg-blue-200 transition shadow-sm text-sm font-medium"
                     onClick={() => setShowCalendar(!showCalendar)}
                   >
@@ -415,7 +416,7 @@ const handleTimesheetCreated = async () => {
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute z-50 mt-2 bg-white/95 backdrop-blur-sm shadow-lg rounded-xl border border-white/50"
+                          className="absolute z-50 mt-2    rounded-xl"
                         >
                           <DatePicker
                             selected={selectedDate}

@@ -4,6 +4,7 @@ import { applyForLeave, refreshUserData } from "../slices/userSlice";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import ModernSelect from "./ui/ModernSelect";
 
 const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
   const dispatch = useDispatch();
@@ -32,6 +33,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
   };
 
   const getLeaveBalanceKey = (leaveType) => {
+    if (!leaveType || leaveType === "") return "";
     const mapping = { "PTO": "pto", "Sick": "sick" };
     return mapping[leaveType] || leaveType.toLowerCase();
   };
@@ -153,26 +155,23 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
           onSubmit={handleSubmit}
         >
           <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              LEAVE TYPE*
-            </label>
+           
             <div className="relative">
-              <select
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              <ModernSelect
+                label="Leave Type"
+                name="leaveType"
                 value={leaveType}
                 onChange={(e) => setLeaveType(e.target.value)}
                 required
+                placeholder="SELECT TYPE"
+                options={[
+                  { value: '', label: 'SELECT TYPE' },
+                  { value: 'PTO', label: 'PTO (PAID TIME OFF)' },
+                  { value: 'Sick', label: 'SICK LEAVE' }
+                ]}
+                className="w-full"
                 disabled={isSubmitting}
-              >
-                <option value="">SELECT TYPE</option>
-                <option value="PTO">PTO (PAID TIME OFF)</option>
-                <option value="Sick">SICK LEAVE</option>
-              </select>
-              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
+              />
             </div>
             {availableBalance !== null && (
               <p className="mt-2 text-[10px] font-bold text-emerald-500 uppercase tracking-tight">
