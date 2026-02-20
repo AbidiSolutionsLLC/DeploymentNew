@@ -5,43 +5,28 @@ const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/Exp
 const sendEmail = require('../utils/emailService');
 const { getSearchScope } = require("../utils/rbac");
 
-// --- HELPER: Check Write Permissions (FIXED 500 ERROR) ---
+// --- HELPER: Check Write Permissions ---
 const checkWritePermission = async (actor, targetUserId = null, targetRole = null) => {
-  // Safety Check: Ensure actor exists
   if (!actor) return false;
-
-  // Normalize Actor ID (Handle both _id and id to prevent crashes)
   const actorId = actor._id || actor.id;
 
-  // 1. Super Admin has Global Write Access
   if (actor.role === 'Super Admin') return true;
 
-  // 2. SELF-EDIT CHECK (FIXED)
-  // Using String() is safer than .toString() because it handles null/undefined without crashing
   if (targetUserId && String(actorId) === String(targetUserId)) {
     return "SELF_EDIT";
   }
 
-  // 3. Manager + Technician Logic
-  // Allows Managers who are Technicians to manage users
   const isManagerTech = actor.role === 'Manager' && actor.isTechnician === true;
 
-  // 4. Admin Logic (Scoped Write Access)
   if (actor.role === 'Admin' || isManagerTech) {
-    // Restricted Roles that an Admin/ManagerTech cannot touch or create
     const restrictedRoles = ['Super Admin', 'Admin'];
-
-    // Cannot create/assign a user to a restricted role
     if (targetRole && restrictedRoles.includes(targetRole)) {
       throw new ForbiddenError("You cannot assign or manage Admin or Super Admin roles.");
     }
 
-    // If Editing/Deleting an existing user:
     if (targetUserId) {
       const targetUser = await User.findById(targetUserId);
       if (!targetUser) throw new NotFoundError("User not found");
-
-      // Block editing/deleting of Admins and Super Admins
       if (restrictedRoles.includes(targetUser.role)) {
         throw new ForbiddenError("Permission Denied: You cannot modify Admins or Super Admins.");
       }
@@ -49,7 +34,6 @@ const checkWritePermission = async (actor, targetUserId = null, targetRole = nul
     return true;
   }
 
-  // 5. Standard HR, Managers, Technicians, Employees have NO Write Access (to others)
   if (['HR', 'Manager', 'Technician', 'Employee'].includes(actor.role)) {
     throw new ForbiddenError("You do not have permission to manage users.");
   }
@@ -104,7 +88,8 @@ const sendInviteEmail = async (user) => {
 
 // --- SECURED CREATE USER ---
 exports.createUser = catchAsync(async (req, res) => {
-  let { email, ...otherData } = req.body;
+  // Extract hourlyWage from body
+  let { email, hourlyWage, ...otherData } = req.body;
   
   await checkWritePermission(req.user, null, otherData.role);
 
@@ -127,6 +112,7 @@ exports.createUser = catchAsync(async (req, res) => {
   const newUser = new User({
     email,
     ...otherData,
+    hourlyWage: Number(hourlyWage) || 0, // Ensure numeric format
     empID: newEmpID,
     dashboardCards: defaultCards,
     empStatus: "Pending",
@@ -183,11 +169,10 @@ exports.getUserById = catchAsync(async (req, res) => {
   res.status(200).json(user);
 });
 
-// --- SECURED UPDATE USER (FIXED SELF-EDIT) ---
+// --- SECURED UPDATE USER (With Wage Protection) ---
 exports.updateUser = catchAsync(async (req, res) => {
   const { id } = req.params;
   
-  // 1. Check Permission (Returns "SELF_EDIT" or true/false)
   const permission = await checkWritePermission(req.user, id, req.body.role);
 
   const user = await User.findById(id);
@@ -196,20 +181,16 @@ exports.updateUser = catchAsync(async (req, res) => {
   const updates = { ...req.body };
   let allowedFields = [];
 
-  // 2. Handle Self-Edit vs Admin Edit
   if (permission === "SELF_EDIT") {
-      // --- RESTRICTED FIELDS FOR SELF-EDIT ---
-      // User CANNOT change these fields
+      // --- RESTRICTED FIELDS FOR SELF-EDIT (Wage protected) ---
       const sensitiveFields = [
-          "role", "salary", "department", "reportsTo", 
+          "role", "salary", "hourlyWage", "department", "reportsTo", 
           "designation", "email", "empID", "empStatus", 
           "joiningDate", "empType", "avalaibleLeaves", "bookedLeaves", "isTechnician"
       ];
       
-      // Remove sensitive fields from the update object
       sensitiveFields.forEach(field => delete updates[field]);
 
-      // Allow these specific fields
       allowedFields = [
           "name", "phoneNumber", "about", "education", 
           "address", "experience", "DOB", "maritalStatus", 
@@ -217,7 +198,6 @@ exports.updateUser = catchAsync(async (req, res) => {
       ];
   } else {
       // --- ADMIN / MANAGER_TECH EDIT ---
-      // Logic for Department Changes
       if (updates.department && updates.department !== user.department?.toString()) {
         const oldDeptId = user.department;
         const newDeptId = updates.department;
@@ -227,19 +207,20 @@ exports.updateUser = catchAsync(async (req, res) => {
       
       if (updates.reportsTo === "" || updates.reportsTo === "NO MANAGER") updates.reportsTo = null;
 
-      // Admins/Managers can edit all profile fields
+      // Admins/Managers can edit all profile fields including hourlyWage
       allowedFields = [
           "name", "email", "timeZone", "reportsTo", "empID", "role", "phoneNumber", 
           "designation", "department", "branch", "empType", "joiningDate", "about", 
-          "salary", "education", "address", "experience", "DOB", "maritalStatus", 
+          "salary", "hourlyWage", "education", "address", "experience", "DOB", "maritalStatus", 
           "emergencyContact", "addedby", "empStatus", "avalaibleLeaves", "isTechnician"
       ];
   }
 
-  // 3. Apply Updates
+  // Apply Updates
   Object.keys(updates).forEach(field => { 
       if (allowedFields.includes(field) && updates[field] !== undefined) {
-          user[field] = updates[field]; 
+          // Explicitly cast hourlyWage to number
+          user[field] = field === 'hourlyWage' ? Number(updates[field]) : updates[field]; 
       }
   });
 
@@ -251,10 +232,8 @@ exports.updateUser = catchAsync(async (req, res) => {
 exports.deleteUser = catchAsync(async (req, res) => {
   const { id } = req.params;
   
-  // Check permission
   const permission = await checkWritePermission(req.user, id);
 
-  // Safety: Prevent users from deleting themselves (even if Self-Edit is allowed)
   if (permission === "SELF_EDIT") {
       throw new ForbiddenError("You cannot delete your own account.");
   }
@@ -361,7 +340,6 @@ exports.getUpcomingBirthdays = catchAsync(async (req, res) => {
 exports.uploadAvatar = catchAsync(async (req, res) => {
   const { id } = req.params;
   
-  // Security Check: Ensure user is editing their own avatar OR is an Admin/ManagerTech
   const permission = await checkWritePermission(req.user, id);
   if (!permission) throw new ForbiddenError("Permission denied");
 
@@ -384,7 +362,6 @@ exports.getOrgChart = catchAsync(async (req, res) => {
 exports.uploadCover = catchAsync(async (req, res) => {
   const { id } = req.params;
   
-  // Security Check
   const permission = await checkWritePermission(req.user, id);
   if (!permission) throw new ForbiddenError("Permission denied");
 

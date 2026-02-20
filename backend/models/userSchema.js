@@ -31,8 +31,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-    // ------------------------------------
-    department: {
+    hourlyWage: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+        department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
       default: null,
