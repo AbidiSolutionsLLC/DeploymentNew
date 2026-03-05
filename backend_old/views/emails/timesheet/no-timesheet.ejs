@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<%- include('../layouts/head') %>
+
+    <body>
+        <div class="wrapper">
+            <div class="container">
+                <%- include('../layouts/header') %>
+
+                    <div class="content">
+                        <h1>Weekly Timesheet Reminder</h1>
+                        <p>Hello <%= name %>,</p>
+                        <p>This is a reminder to submit your timesheet for the week ending <strong>
+                                <%= weekEndingDate %>
+                            </strong>.</p>
+
+                        <p>Timely submission ensures accurate processing of your payroll and project tracking.</p>
+
+                        <div style="text-align: center; margin-top: 32px;">
+                            <a href="<%= process.env.FRONTEND_URL %>/timesheets" class="btn">Submit Timesheet</a>
+                        </div>
+                    </div>
+
+                    <%- include('../layouts/footer') %>
+            </div>
+        </div>
+    </body>
+
+</html>

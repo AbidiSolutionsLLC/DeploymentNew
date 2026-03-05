@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<%- include('../layouts/head') %>
+
+    <body>
+        <div class="wrapper">
+            <div class="container">
+                <%- include('../layouts/header') %>
+
+                    <div class="content">
+                        <h1>Please Check In</h1>
+                        <p>Hello <%= name %>,</p>
+                        <p>This is a gentle reminder that we haven't received your check-in for today, <strong>
+                                <%= date %>
+                            </strong>.</p>
+
+                        <p>If you are working today, please log in to the portal and mark your attendance.</p>
+
+                        <div class="info-box">
+                            <p style="margin:0;"><strong>Shift Start:</strong> 09:00 AM</p>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 32px;">
+                            <a href="<%= process.env.FRONTEND_URL %>/dashboard" class="btn">Check In Now</a>
+                        </div>
+
+                        <p style="font-size: 14px; color: #64748b; margin-top: 24px;">
+                            If you are on leave or this is a mistake, please ignore this email or contact HR.
+                        </p>
+                    </div>
+
+                    <%- include('../layouts/footer') %>
+            </div>
+        </div>
+    </body>
+
+</html>

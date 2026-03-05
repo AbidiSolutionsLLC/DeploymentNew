@@ -114,7 +114,6 @@ exports.getMonthlyAttendance = catchAsync(async (req, res) => {
 });
 
 // --- PERSONAL ACTIONS ---
-
 exports.checkIn = catchAsync(async (req, res) => {
   const userId = req.user.id;
   const nowEST = getCurrentESTTime();
@@ -124,7 +123,7 @@ exports.checkIn = catchAsync(async (req, res) => {
     return res.status(403).json({ message: "Check-in is not allowed on weekends (EST)." });
   }
 
-  // Auto-Checkout Logic (12-Hour Rule)
+  // 1. Check if user already has an OPEN session (forgot to check out)
   const abandonedSession = await TimeTracker.findOne({ 
     user: userId, 
     checkOutTime: { $exists: false } 
@@ -133,26 +132,33 @@ exports.checkIn = catchAsync(async (req, res) => {
   let previousSessionMsg = "";
 
   if (abandonedSession) {
-    const sessionStart = moment(abandonedSession.checkInTime).tz(TIMEZONE);
-    const hoursElapsed = nowEST.diff(sessionStart, 'hours');
+    // Check if the open session belongs to TODAY
+    const isSameDay = abandonedSession.date.getTime() === todayStartEST.getTime();
 
-    if (hoursElapsed >= 12) {
-      abandonedSession.checkOutTime = nowEST.toDate(); 
-      abandonedSession.totalHours = 9; 
-      abandonedSession.status = "Present"; 
-      abandonedSession.notes = (abandonedSession.notes || "") + " | Auto-checked out (12h rule)";
-      await abandonedSession.save();
-      previousSessionMsg = "Your previous open session was auto-closed as 'Present'. ";
+    if (isSameDay) {
+      // It's the same day. They are genuinely checked in already.
+      return res.status(400).json({ message: "You already have an active session for today. Please check out instead." });
     } else {
-      return res.status(400).json({ message: "You already have an active session." });
+      // It's a lingering session from a PREVIOUS day. Force close it.
+      // We mark them 'Absent' to match the penalty rule in your cronjob.
+      abandonedSession.checkOutTime = nowEST.toDate();
+      abandonedSession.autoCheckedOut = true;
+      abandonedSession.totalHours = 12; 
+      abandonedSession.status = "Absent"; 
+      abandonedSession.notes = (abandonedSession.notes || "") + " | Auto-closed (Forgot to checkout previous day)";
+      
+      await abandonedSession.save();
+      previousSessionMsg = "Your previous open session was auto-closed as 'Absent'. ";
     }
   }
 
+  // 2. Check if they already completed a FULL session today
   const existingLogForToday = await TimeTracker.findOne({ user: userId, date: todayStartEST });
   if (existingLogForToday) {
-    return res.status(400).json({ message: "You have already checked in for today (EST)." });
+    return res.status(400).json({ message: "You have already completed your check-in for today (EST)." });
   }
 
+  // 3. Create the new Check-In
   const newLog = await TimeTracker.create({ 
     user: userId, 
     date: todayStartEST, 
