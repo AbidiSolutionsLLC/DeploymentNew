@@ -1,31 +1,31 @@
 import { useState, useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { useDispatch } from "react-redux"; 
-import { useMsal } from "@azure/msal-react"; 
-import { logout } from "../slices/authSlice"; 
+import { useDispatch } from "react-redux";
+import { useMsal } from "@azure/msal-react";
+import { logout } from "../slices/authSlice";
 
 import NavBarVertical from "../Components/NavBarVertical";
 import SubNavbarVertical from "../Components/SubNavbarVertical";
-import RightSidebar from "../Components/RightSidebar"; 
-import { 
-  Bars3Icon, 
-  XMarkIcon  
+import RightSidebar from "../Components/RightSidebar";
+import {
+  Bars3Icon,
+  XMarkIcon
 } from "@heroicons/react/24/solid";
 
 const AppLayout = () => {
   const [isRightBarOpen, setRightBarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
-  const settingsRef = useRef(null); 
+
+  const settingsRef = useRef(null);
   const location = useLocation();
 
   // --- THE FIX IS HERE ---
   // We treat 'people', 'leave', 'file', and 'faq' as part of the same portal
-  const isPeoplePortal = ["/people", "/leave", "/file", "/faq"].some(path => 
+  const isPeoplePortal = ["/people", "/leave", "/file", "/faq"].some(path =>
     location.pathname.startsWith(path)
   );
   // -----------------------
-  
+
   const dispatch = useDispatch();
   const { instance } = useMsal();
 
@@ -54,7 +54,7 @@ const AppLayout = () => {
 
   return (
     <div className="flex flex-col h-screen w-full bg-[#CDD9EA] font-sans overflow-hidden">
-      
+
       {/* --- MOBILE HEADER --- */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-[#CDD9EA] z-50 shrink-0">
         <div className="flex items-center gap-2">
@@ -65,7 +65,7 @@ const AppLayout = () => {
             Abidi Pro
           </span>
         </div>
-        <button 
+        <button
           onClick={() => setIsMobileMenuOpen(true)}
           className="p-2 bg-white/60 rounded-lg text-slate-700 shadow-sm"
         >
@@ -75,10 +75,10 @@ const AppLayout = () => {
 
       {/* --- MAIN LAYOUT CONTAINER --- */}
       <div className="flex flex-1 w-full h-full relative overflow-hidden">
-        
+
         {/* --- MOBILE OVERLAY --- */}
         {isMobileMenuOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 z-[60] md:hidden backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           />
@@ -90,9 +90,9 @@ const AppLayout = () => {
           ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
           md:relative md:translate-x-0 md:flex md:h-full md:py-4 md:pl-4
         `}>
-          <div className="flex items-stretch h-full gap-2 relative">
-            
-            <button 
+          <div className="flex items-stretch h-full gap-0 relative">
+
+            <button
               onClick={() => setIsMobileMenuOpen(false)}
               className="md:hidden absolute -right-10 top-2 p-2 bg-white text-slate-800 rounded-full shadow-lg"
             >
@@ -111,7 +111,7 @@ const AppLayout = () => {
         </aside>
 
         {/* --- MAIN CONTENT AREA --- */}
-        <main className="flex-1 m-2 md:m-4 md:ml-2 rounded-[1.5rem] md:rounded-[2rem] bg-[#ECF0F3] shadow-lg text-slate-800 relative transition-all duration-500 ease-in-out overflow-hidden flex flex-col">
+        <main className="flex-1 m-2 md:m-4 md:ml-2 md:mr-2 rounded-[1.5rem] md:rounded-[2rem] bg-[#ECF0F3] shadow-lg text-slate-800 relative transition-all duration-500 ease-in-out overflow-hidden flex flex-col">
           <div className="flex-1 p-4 md:p-6 overflow-y-auto no-scrollbar">
             <Outlet />
           </div>
@@ -119,8 +119,8 @@ const AppLayout = () => {
 
         {/* --- RIGHT SIDEBAR --- */}
         {isPeoplePortal && (
-          <div className="hidden md:block h-full py-4 pr-4">
-             <RightSidebar 
+          <div className="hidden md:flex flex-col h-full py-2 md:py-4 pr-2 md:pr-3">
+            <RightSidebar
               isOpen={isRightBarOpen}
               toggleSidebar={() => setRightBarOpen(!isRightBarOpen)}
             />

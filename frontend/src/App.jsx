@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import "react-datepicker/dist/react-datepicker.css";
-import "./index.css"; 
+import "./index.css";
 
 // Layouts
 import AppLayout from "./layout/AppLayout";
@@ -43,12 +43,12 @@ import ProjectDetail from "./Pages/Projects/ProjectDetail";
 import ComingSoon from "./Pages/Projects/ComingSoon";
 import OrgChartPage from "./Pages/Admin/OrgChart";
 import AssignedTickets from "./Pages/People/AssignedTickets";
-import AdminAttendance from "./Pages/Admin/AdminAttendance"; 
+import AdminAttendance from "./Pages/Admin/AdminAttendance";
 
 
 function App() {
   useAutoLogin();
-  
+
   return (
     <>
       <ToastContainer
@@ -61,7 +61,7 @@ function App() {
         draggable
         theme="light"
         limit={1}
-        style={{ zIndex: 9999999 }} 
+        style={{ zIndex: 9999999 }}
       />
       <Routes>
         <Route path="/" element={<Navigate to="/auth/login" />} />
@@ -79,68 +79,63 @@ function App() {
 
         <Route path="/theme-selector" element={<ThemeSelector />} />
 
-        {/* --- PEOPLE PORTAL --- */}
-        <Route
-          path="/people/*"
-          element={
-            <PrivateRoute>
-              <AppLayout />
-            </PrivateRoute>
-          }
-        >
-          <Route index element={<Navigate to="/people/home" />} />
-          <Route path='home' element={<Home />} />
-          <Route path="timetracker" element={<TimeTracker />} />
-          <Route index path="summary" element={<LeaveTracker />} />
-          <Route index path="shared" element={<Files />} />
-          <Route index path="raise" element={<Ticket />} />
-          <Route path="assigned-tickets" element={<AssignedTickets />} />
-          <Route index path="history" element={<TimeTracker />} />
-          <Route path="attendance" element={<Attendance />} />
-          <Route path="edit-profile" element={<EditProfile />} />
-          <Route path="FAQs" element={<FAQs />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="profile/:id" element={<Profile />} />
-          <Route path="org-chart" element={<OrgChartPage />} />
-        </Route>
+        {/* --- GLOBAL PORTAL LAYOUT --- */}
+        <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
 
-        <Route path="/leave/*" element={<AppLayout />}>
-          <Route index element={<Navigate to="/leave/summary" />} />
-          <Route index path="summary" element={<LeaveTracker />} />
-          <Route path="request" element={<LeaveRequest />} />
-          <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
-        </Route>
+          {/* --- PEOPLE PORTAL --- */}
+          <Route path="/people/*">
+            <Route index element={<Navigate to="/people/home" />} />
+            <Route path='home' element={<Home />} />
+            <Route path="timetracker" element={<TimeTracker />} />
+            <Route index path="summary" element={<LeaveTracker />} />
+            <Route index path="shared" element={<Files />} />
+            <Route index path="raise" element={<Ticket />} />
+            <Route path="assigned-tickets" element={<AssignedTickets />} />
+            <Route index path="history" element={<TimeTracker />} />
+            <Route path="attendance" element={<Attendance />} />
+            <Route path="edit-profile" element={<EditProfile />} />
+            <Route path="FAQs" element={<FAQs />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="profile/:id" element={<Profile />} />
+            <Route path="org-chart" element={<OrgChartPage />} />
+          </Route>
 
-        <Route path="/file/*" element={<AppLayout />}>
-          <Route index element={<Navigate to="/file/shared" />} />
-          <Route index path="shared" element={<Files />} />
-          <Route path="role" element={<Role />} />
-          <Route path="upload" element={<UploadDocument />} />
-        </Route>
-        
-       <Route path="/project/*" element={<AppLayout />}>
-          <Route index element={<ComingSoon />} />
-          <Route path="projectDashboard" element={<ComingSoon />} />
-          <Route path="projects" element={<ComingSoon />} />
-          <Route path="projectDetailed/:id" element={<ComingSoon />} />
-        </Route>
+          <Route path="/leave/*">
+            <Route index element={<Navigate to="/leave/summary" />} />
+            <Route index path="summary" element={<LeaveTracker />} />
+            <Route path="request" element={<LeaveRequest />} />
+            <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
+          </Route>
 
-        <Route path="/faq/*" element={<AppLayout />}>
-          <Route index element={<FAQs />} />
-        </Route>
+          <Route path="/file/*">
+            <Route index element={<Navigate to="/file/shared" />} />
+            <Route index path="shared" element={<Files />} />
+            <Route path="role" element={<Role />} />
+            <Route path="upload" element={<UploadDocument />} />
+          </Route>
 
-        <Route path="/admin/*" element={<AppLayout />}>
-          <Route index element={<Navigate to="adminDashboard" replace />} />
-          <Route index path="adminDashboard" element={<AdminDashBoard />} />
-          <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
-          <Route path="upload" element={<UploadDocument />} />
-          <Route path="userManagement" element={<UserManagement />} />
-          <Route path="approve" element={<ApproveTimesheets />} />
-          <Route path="assign-ticket" element={<AdminTickets />} />
-          <Route path="assign-ticket/:ticketId" element={<AssignTicket />} />
-          <Route path="attendance" element={<AdminAttendance />} />
-          
-          {/* Org Chart Route REMOVED from here */}
+          <Route path="/project/*">
+            <Route index element={<ComingSoon />} />
+            <Route path="projectDashboard" element={<ComingSoon />} />
+            <Route path="projects" element={<ComingSoon />} />
+            <Route path="projectDetailed/:id" element={<ComingSoon />} />
+          </Route>
+
+          <Route path="/faq/*">
+            <Route index element={<FAQs />} />
+          </Route>
+
+          <Route path="/admin/*">
+            <Route index element={<Navigate to="adminDashboard" replace />} />
+            <Route index path="adminDashboard" element={<AdminDashBoard />} />
+            <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
+            <Route path="upload" element={<UploadDocument />} />
+            <Route path="userManagement" element={<UserManagement />} />
+            <Route path="approve" element={<ApproveTimesheets />} />
+            <Route path="assign-ticket" element={<AdminTickets />} />
+            <Route path="assign-ticket/:ticketId" element={<AssignTicket />} />
+            <Route path="attendance" element={<AdminAttendance />} />
+          </Route>
         </Route>
       </Routes>
     </>

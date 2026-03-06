@@ -26,15 +26,15 @@ function format(sec) {
 
 const Home = () => {
   const dispatch = useDispatch();
-  const {user} = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
 
-useEffect(() => {
+  useEffect(() => {
     if (user?.user?._id) {
-        dispatch(refreshUserData(user.user._id));
+      dispatch(refreshUserData(user.user._id));
     }
   }, [dispatch, user]);
 
-  const {userInfo} = useSelector((state) => state.user);
+  const { userInfo } = useSelector((state) => state.user);
 
   const { checkInn } = useSelector((state) => state.attendanceTimer);
   const profileImage = userInfo?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e";
@@ -210,9 +210,9 @@ useEffect(() => {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-slate-600 mx-auto"></div>
+      <div className="flex h-[80vh] w-full items-center justify-center">
+        <div className="text-center p-6 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mx-auto"></div>
           <p className="mt-3 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading your dashboard...</p>
         </div>
       </div>

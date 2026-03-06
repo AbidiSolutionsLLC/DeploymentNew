@@ -5,7 +5,7 @@ import {
   ClockIcon,
   BriefcaseIcon,
   TicketIcon,
-  ClipboardDocumentCheckIcon, 
+  ClipboardDocumentCheckIcon,
   UsersIcon,
   ClipboardDocumentListIcon,
   ChartBarIcon,
@@ -23,24 +23,24 @@ const peopleLinks = [
   { name: "Time Tracker", path: "/people/timetracker", icon: ClockIcon, roles: ["All"] },
   { name: "Leave Tracker", path: "/leave/summary", icon: BriefcaseIcon, roles: ["All"] },
   { name: "Raise a Ticket", path: "/people/raise", icon: TicketIcon, roles: ["All"] },
-  
-  { 
-    name: "Assigned Tickets", 
-    path: "/people/assigned-tickets", 
-    icon: ClipboardDocumentCheckIcon, 
-    technicianOnly: true 
+
+  {
+    name: "Assigned Tickets",
+    path: "/people/assigned-tickets",
+    icon: ClipboardDocumentCheckIcon,
+    technicianOnly: true
   },
 
 
-  { 
-    name: "Org Chart", 
-    path: "/people/org-chart", 
-    icon: UserGroupIcon, 
-    roles: ["All"] 
+  {
+    name: "Org Chart",
+    path: "/people/org-chart",
+    icon: UserGroupIcon,
+    roles: ["All"]
   },
 
   // --- MOVED TO LAST POSITION ---
-  
+
 ];
 
 // Admin Module
@@ -50,13 +50,13 @@ const adminLinks = [
   { name: "Attendance", path: "/admin/attendance", icon: CalendarDaysIcon, roles: ["Super Admin", "Admin", "HR"] },
   { name: "Leaves", path: "/admin/leaveManagement", icon: BriefcaseIcon, roles: ["Super Admin", "Admin", "HR"] },
   { name: "Time Sheets", path: "/admin/timesheet", icon: ClockIcon, roles: ["Super Admin", "Admin", "HR"] },
-  
+
   // Assign Ticket remains Admin/Super Admin (and Tech Managers) only
-  { 
-    name: "Assign Ticket", 
-    path: "/admin/assign-ticket", 
-    icon: TicketIcon, 
-    roles: ["Super Admin", "Admin"] 
+  {
+    name: "Assign Ticket",
+    path: "/admin/assign-ticket",
+    icon: TicketIcon,
+    roles: ["Super Admin", "Admin"]
   },
 ];
 
@@ -64,15 +64,21 @@ export const moduleConfigs = {
   people: {
     links: peopleLinks,
   },
-  
+
   leave: {
-    links: peopleLinks, 
+    links: peopleLinks,
   },
   file: {
-    links: peopleLinks, 
+    links: peopleLinks,
   },
   faq: {
-    links: peopleLinks, 
+    links: peopleLinks,
+  },
+  project: {
+    links: [
+      { name: "Project DashBoard", path: "/project/projectDashboard", roles: ["All"] },
+      { name: "Projects", path: "/project/projects", roles: ["All"] },
+    ],
   },
 
   admin: {

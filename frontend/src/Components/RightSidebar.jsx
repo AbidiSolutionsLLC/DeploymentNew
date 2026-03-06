@@ -16,7 +16,7 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
     const dispatch = useDispatch();
     const [elapsedTime, setElapsedTime] = useState({ hours: 0, minutes: 0, seconds: 0 });
     const [timerInterval, setTimerInterval] = useState(null);
-    
+
     // NEW: Local state to prevent "button flash" by holding data immediately
     const [localLog, setLocalLog] = useState(null);
 
@@ -76,8 +76,8 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
     const Avatar = ({ url, name, size = "sm" }) => {
         const sizeClasses =
             size === "lg" ? "w-14 h-14" :
-            size === "md" ? "w-10 h-10" :
-            "w-8 h-8";
+                size === "md" ? "w-10 h-10" :
+                    "w-8 h-8";
 
         if (url) {
             return (
@@ -132,18 +132,18 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
             .unwrap()
             .then((res) => {
                 // SUCCESS: Update local state immediately so button turns RED
-                setLocalLog(res.log); 
+                setLocalLog(res.log);
                 toast.success("Checked in successfully");
             })
             .catch(async (err) => {
                 toast.error(err?.message || "Failed to check in");
-                
+
                 // SELF-HEALING: If error says "Active Session", verify with backend and force update
                 if (err?.message && (err.message.includes("active session") || err.message.includes("checked in"))) {
-                     try {
+                    try {
                         const { data } = await api.get(`/timetrackers/my/daily/${currentUser?._id}`);
                         if (data?.log) setLocalLog(data.log);
-                     } catch (e) { console.error("Self-heal failed", e); }
+                    } catch (e) { console.error("Self-heal failed", e); }
                 }
             });
     };
@@ -173,7 +173,7 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
     const buttonState = getButtonState();
 
     return (
-        <aside className={`sticky mt-2 z-50 h-[calc(100vh-2rem)] transition-all duration-500 ease-in-out flex-shrink-0 flex items-center  pr-3 overflow-auto ${isOpen ? "w-52" : "w-8"
+        <aside className={`relative z-50 h-full transition-all duration-500 ease-in-out flex-shrink-0 flex items-center pr-0overflow-auto ${isOpen ? "w-[14.5rem]" : "w-10"
             }`}>
 
             {/* Toggle Button */}

@@ -76,10 +76,10 @@ const SubNavbarVertical = () => {
 
     // 4. FIX: Hide "Approve Time Sheets" specifically for HR
     if (link.name === "Approve Time Sheets") {
-      return user.role !== "HR"; 
+      return user.role !== "HR";
     }
 
-    return true; 
+    return true;
   });
 
   const iconMap = {
@@ -99,7 +99,7 @@ const SubNavbarVertical = () => {
 
   return (
     <aside className="w-[5.5rem] h-full bg-white/90 backdrop-blur-sm rounded-[2rem] flex flex-col items-center pb-6 z-[70] shadow-sm border border-white/50 relative">
-      <div className="w-full py-4 flex items-center justify-center bg-slate-200 mb-2 rounded-t-[2rem]">
+      <div className="w-full py-4 flex items-center justify-center bg-slate-200 mb-0 rounded-t-[2rem]">
         <div className="w-6 h-6 bg-slate-800 flex items-center justify-center text-white text-lg font-bold shadow-md rounded-[6px]">
           A
         </div>

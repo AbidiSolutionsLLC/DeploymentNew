@@ -6,7 +6,7 @@ import {
   FiMoreVertical,
   FiCheckSquare,
 } from "react-icons/fi";
- 
+
 const defaultTasks = [
   {
     id: 1,
@@ -30,7 +30,7 @@ const defaultTasks = [
     completed: false,
   },
 ];
- 
+
 const ToDoCard = ({ onDelete }) => {
   const [tasks, setTasks] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -40,11 +40,11 @@ const ToDoCard = ({ onDelete }) => {
   const [editing, setEditing] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
- 
+
   useEffect(() => {
     setTasks(defaultTasks);
   }, []);
- 
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -54,7 +54,7 @@ const ToDoCard = ({ onDelete }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
- 
+
   const addTask = () => {
     if (newTitle.trim()) {
       setTasks([
@@ -73,21 +73,21 @@ const ToDoCard = ({ onDelete }) => {
       setShowAddForm(false);
     }
   };
- 
+
   const toggleComplete = (id) => {
     setTasks(tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
   };
- 
+
   const removeTask = (id) => {
     setTasks(tasks.filter((t) => t.id !== id));
   };
- 
+
   const handleFieldChange = (id, field, value) => {
     setTasks(tasks.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
   };
- 
+
   const handleBlur = () => setEditing(null);
- 
+
   return (
     <>
       {/* Inline style for a custom slim scrollbar */}
@@ -106,8 +106,8 @@ const ToDoCard = ({ onDelete }) => {
           background: #94a3b8;
         }
       `}</style>
- 
-      <div className="relative bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 w-full flex flex-col max-h-[500px]">
+
+      <div className="relative bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-3 w-full h-full flex flex-col">
         {/* Header - Marked as shrink-0 so it stays fixed at top */}
         <div className="flex justify-between items-start mb-3 shrink-0">
           <div>
@@ -119,7 +119,7 @@ const ToDoCard = ({ onDelete }) => {
               Enter Your to do list here
             </p>
           </div>
- 
+
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
@@ -127,7 +127,7 @@ const ToDoCard = ({ onDelete }) => {
             >
               <FiMoreVertical className="h-4 w-4 text-slate-600" />
             </button>
- 
+
             {menuOpen && (
               <div className="absolute right-0 mt-1 w-32 bg-white shadow-lg border border-slate-200 rounded-xl z-50">
                 <button
@@ -144,7 +144,7 @@ const ToDoCard = ({ onDelete }) => {
             )}
           </div>
         </div>
- 
+
         {/* Add Task Form Section - shrink-0 ensures it doesn't scroll away */}
         <div className="shrink-0">
           {!showAddForm ? (
@@ -179,8 +179,8 @@ const ToDoCard = ({ onDelete }) => {
               />
               <div className="flex justify-end gap-2">
                 <button
-                   onClick={() => setShowAddForm(false)}
-                   className="text-[10px] text-slate-500 font-medium"
+                  onClick={() => setShowAddForm(false)}
+                  className="text-[10px] text-slate-500 font-medium"
                 >
                   Cancel
                 </button>
@@ -194,16 +194,15 @@ const ToDoCard = ({ onDelete }) => {
             </div>
           )}
         </div>
- 
+
         {/* Scrollable Task List Section */}
         <div className="overflow-y-auto flex-1 pr-1 max-h-[200px] custom-scrollbar">
           <ul className="space-y-2 text-[10px]">
             {tasks.map((task) => (
               <li
                 key={task.id}
-                className={`rounded-lg p-3 flex justify-between items-start gap-2 transition-all ${
-                  task.completed ? "bg-emerald-50 border border-emerald-100" : "bg-[#E0E5EA]/30 border border-transparent"
-                }`}
+                className={`rounded-lg p-3 flex justify-between items-start gap-2 transition-all ${task.completed ? "bg-emerald-50 border border-emerald-100" : "bg-[#E0E5EA]/30 border border-transparent"
+                  }`}
               >
                 <div className="flex items-start gap-2.5 flex-1 min-w-0">
                   <input
@@ -232,9 +231,8 @@ const ToDoCard = ({ onDelete }) => {
                     ) : (
                       <>
                         <div
-                          className={`font-semibold cursor-pointer truncate ${
-                            task.completed ? "line-through text-slate-400" : "text-slate-700"
-                          }`}
+                          className={`font-semibold cursor-pointer truncate ${task.completed ? "line-through text-slate-400" : "text-slate-700"
+                            }`}
                           onClick={() => setEditing(task.id)}
                         >
                           {task.title}
@@ -254,7 +252,7 @@ const ToDoCard = ({ onDelete }) => {
                     )}
                   </div>
                 </div>
- 
+
                 <div className="flex flex-col gap-1.5 items-end shrink-0">
                   {!task.completed && (
                     <button
@@ -279,6 +277,5 @@ const ToDoCard = ({ onDelete }) => {
     </>
   );
 };
- 
+
 export default ToDoCard;
- 
