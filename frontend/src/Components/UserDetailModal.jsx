@@ -6,7 +6,7 @@ import CreateDepartmentModal from "./CreateDepartmentModal";
 import ModernSelect from "./ui/ModernSelect";
 import ModernDatePicker from "./ui/ModernDatePicker";
 
-const UserDetailModal = ({ user, isOpen, onClose, onUserUpdated, allManagers, allDepartments }) => {
+const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, allManagers, allDepartments }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +73,14 @@ const UserDetailModal = ({ user, isOpen, onClose, onUserUpdated, allManagers, al
   // ================== SUBMIT ==================
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Prevent editing oneself
+    if (user && currentUser && user._id === currentUser._id) {
+      toast.error("You cannot edit yourself", { toastId: "self-edit-error" });
+      setIsEditing(false);
+      return;
+    }
+
     if (!validateForm()) return toast.error("Fix validation errors");
 
     setIsLoading(true);
@@ -93,10 +101,10 @@ const UserDetailModal = ({ user, isOpen, onClose, onUserUpdated, allManagers, al
 
         if (key === "isTechnician") {
           if (current !== original) changedFields[key] = current;
-        } 
+        }
         else if (key === "hourlyWage") {
           if (parseFloat(current) !== parseFloat(original)) changedFields[key] = parseFloat(current);
-        } 
+        }
         else {
           if (String(current) !== String(original)) changedFields[key] = current;
         }
@@ -197,10 +205,10 @@ const UserDetailModal = ({ user, isOpen, onClose, onUserUpdated, allManagers, al
         <label className="text-xs font-bold text-slate-400 uppercase">{label}</label>
         <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm">
           {name === "department" ? allDepartments.find(d => d._id === value)?.name :
-           name === "reportsTo" ? allManagers.find(m => m._id === value)?.name :
-           name === "joiningDate" ? (value ? new Date(value).toLocaleDateString() : "-") :
-           name === "hourlyWage" ? `$${value}/hr` :
-           value || "-"}
+            name === "reportsTo" ? allManagers.find(m => m._id === value)?.name :
+              name === "joiningDate" ? (value ? new Date(value).toLocaleDateString() : "-") :
+                name === "hourlyWage" ? `$${value}/hr` :
+                  value || "-"}
         </div>
       </div>
     );
@@ -239,11 +247,11 @@ const UserDetailModal = ({ user, isOpen, onClose, onUserUpdated, allManagers, al
             <div>
               <h3 className="font-bold text-slate-400 text-xs uppercase">Employment</h3>
               <div className="grid grid-cols-3 gap-4">
-                {renderField("Status", "empStatus", formData.empStatus, "select", ["Active","Inactive","Pending"].map(v=>({value:v,label:v})))}
-                {renderField("Role", "role", formData.role, "select", ["Employee","Manager","HR","Admin","Super Admin"].map(v=>({value:v,label:v})))}
+                {renderField("Status", "empStatus", formData.empStatus, "select", ["Active", "Inactive", "Pending"].map(v => ({ value: v, label: v })))}
+                {renderField("Role", "role", formData.role, "select", ["Employee", "Manager", "HR", "Admin", "Super Admin"].map(v => ({ value: v, label: v })))}
                 {renderField("Designation", "designation", formData.designation)}
                 {renderField("Hourly Wage", "hourlyWage", formData.hourlyWage, "number")}
-                {renderField("Type", "empType", formData.empType, "select", ["Permanent","Contractor","Intern","Part Time"].map(v=>({value:v,label:v})))}
+                {renderField("Type", "empType", formData.empType, "select", ["Permanent", "Contractor", "Intern", "Part Time"].map(v => ({ value: v, label: v })))}
                 {renderField("Department", "department", formData.department, "select", allDepartments)}
                 {renderField("Reports To", "reportsTo", formData.reportsTo, "select", allManagers)}
               </div>
@@ -254,7 +262,7 @@ const UserDetailModal = ({ user, isOpen, onClose, onUserUpdated, allManagers, al
               <div className="grid grid-cols-3 gap-4">
                 {renderField("Joining Date", "joiningDate", formData.joiningDate, "date")}
                 {renderField("Branch", "branch", formData.branch)}
-                {renderField("Timezone", "timeZone", formData.timeZone, "select", ["Asia/Karachi","America/New_York","Europe/London","Asia/Dubai"].map(v=>({value:v,label:v})))}
+                {renderField("Timezone", "timeZone", formData.timeZone, "select", ["Asia/Karachi", "America/New_York", "Europe/London", "Asia/Dubai"].map(v => ({ value: v, label: v })))}
               </div>
             </div>
 

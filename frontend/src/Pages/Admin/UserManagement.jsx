@@ -31,7 +31,6 @@ const UserManagement = () => {
       setDepartments(deptsRes.data);
       setCurrentUser(meRes.data.user);
       setFilteredUsers(usersRes.data);
-      toast.success("Data loaded successfully");
     } catch (error) {
       console.error("Failed to fetch data:", error);
       toast.error("Failed to load data");
@@ -174,11 +173,10 @@ const UserManagement = () => {
               <button
                 key={key}
                 onClick={() => handleSort(key)}
-                className={`px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                  sortConfig.key === key
+                className={`px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${sortConfig.key === key
                     ? "bg-blue-100 text-blue-700"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100"
-                }`}
+                  }`}
               >
                 {key === "empStatus" ? "Status" : key === "hourlyWage" ? "Wage" : key}
                 {sortConfig.key === key && (
@@ -237,11 +235,10 @@ const UserManagement = () => {
                     </td>
                     <td className="p-4">
                       <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
-                          user.empStatus === "Active"
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold border ${user.empStatus === "Active"
                             ? "bg-emerald-50 text-emerald-600 border-emerald-100"
                             : "bg-rose-50 text-rose-600 border-rose-100"
-                        }`}
+                          }`}
                       >
                         {user.empStatus}
                       </span>
@@ -273,6 +270,7 @@ const UserManagement = () => {
 
       <UserDetailModal
         user={selectedUser}
+        currentUser={currentUser}
         isOpen={isUserDetailOpen}
         onClose={() => {
           setIsUserDetailOpen(false);
