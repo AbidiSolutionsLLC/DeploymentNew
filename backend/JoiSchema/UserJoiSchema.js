@@ -13,10 +13,8 @@ const userSchema = Joi.object({
   // empID removed from validation since backend generates it
   // empID: Joi.string().required(), 
   
-  department: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required().messages({
-    "string.pattern.base": "Department must be a valid ID"
-  }),
-  reportsTo: Joi.string().regex(/^[0-9a-fA-F]{24}$/).allow(null, ""), 
+  department: Joi.string().allow(null, ""),
+  reportsTo: Joi.string().allow(null, ""), 
   designation: Joi.string().required(),
   
   joiningDate: Joi.date().required(),

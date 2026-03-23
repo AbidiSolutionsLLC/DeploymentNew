@@ -37,12 +37,8 @@ const persistor = persistStore(store);
 
 export const clearPersistedStore = async () => {
   try {
-    // Method 1: Using redux-persist's purge
  
-    console.log("✅ Persisted store cleared");
-    
-    // Also clear localStorage and sessionStorage
- 
+    console.log("✅ Persisted store cleared"); 
     
     return true;
   } catch (error) {

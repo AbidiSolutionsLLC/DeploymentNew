@@ -35,7 +35,7 @@ const msalInstance = new PublicClientApplication(msalConfig);
 let msalInitialized = false;
 
 const api = axios.create({
-    baseURL: "/api/web",
+    baseURL: "http://localhost:4000/api/web",
     timeout: 30000,
     withCredentials: true
 });
