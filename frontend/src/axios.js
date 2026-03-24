@@ -34,8 +34,15 @@ export const injectStore = (_store) => {
 const msalInstance = new PublicClientApplication(msalConfig);
 let msalInitialized = false;
 
+// Vite exposes environment variables via import.meta.env.* at build time.
+// Fallback to the previous default if env var is missing.
+const apiBaseUrl =
+    import.meta.env?.VITE_API_BASE_URL ||
+    import.meta.env?.VITE_API_URL ||
+    "/api/web";
+
 const api = axios.create({
-    baseURL: "/api/web",
+    baseURL: apiBaseUrl,
     timeout: 30000,
     withCredentials: true
 });
