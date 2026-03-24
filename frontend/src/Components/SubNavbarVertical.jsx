@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, NavLink } from "react-router-dom";
 import { moduleConfigs } from "../routeConfig";
 import { useDispatch } from "react-redux";
@@ -20,7 +21,8 @@ const SubNavbarVertical = () => {
   const mainModule = pathname.split("/")[1] || "Menu";
   const rawLinks = moduleConfigs[mainModule]?.links || [];
 
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const[isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const[isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const settingsRef = useRef(null);
   const dispatch = useDispatch();
   const { instance } = useMsal();
@@ -35,7 +37,7 @@ const SubNavbarVertical = () => {
       }
     };
     fetchUser();
-  }, []);
+  },[]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -45,7 +47,7 @@ const SubNavbarVertical = () => {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  },[]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -71,7 +73,7 @@ const SubNavbarVertical = () => {
 
     // 3. User Management: Standard Admin/HR access
     if (link.name === "User Management") {
-      return ["Super Admin", "Admin", "HR"].includes(user.role);
+      return["Super Admin", "Admin", "HR"].includes(user.role);
     }
 
     // 4. FIX: Hide "Approve Time Sheets" specifically for HR
@@ -98,68 +100,110 @@ const SubNavbarVertical = () => {
   if (!filteredLinks.length) return null;
 
   return (
-    <aside className="w-[5.5rem] h-full bg-white/90 backdrop-blur-sm rounded-[2rem] flex flex-col items-center pb-6 z-[70] shadow-sm border border-white/50 relative">
-      <div className="w-full py-4 flex items-center justify-center bg-slate-200 mb-0 rounded-t-[2rem]">
-        <div className="w-6 h-6 bg-slate-800 flex items-center justify-center text-white text-lg font-bold shadow-md rounded-[6px]">
-          A
-        </div>
-      </div>
-      <div className="flex flex-col items-center mb-2">
-        <div className="text-center">
-          <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest block">
-            {mainModule}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex-1 w-full px-1 overflow-y-auto no-scrollbar flex flex-col gap-2">
-        {filteredLinks.map((link) => {
-          const Icon = iconMap[link.name] || iconMap["default"];
-          return (
-            <NavLink
-              key={link.name}
-              to={link.path}
-              className={({ isActive }) =>
-                `w-full py-3 flex flex-col items-center justify-center rounded-[1.2rem] transition-all duration-300 ${isActive
-                  ? "bg-[#E0E5EA] text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`
-              }
-            >
-              <Icon className="w-5 h-5 mb-1.5" />
-              <span className="text-[9px] font-bold uppercase tracking-tight text-center px-1 leading-tight max-w-[70px]">
-                {link.name}
-              </span>
-            </NavLink>
-          );
-        })}
-      </div>
-
-      <div className=" pt-1 border-t border-slate-100 w-full px-2 flex flex-col items-center flex-shrink-0 relative" ref={settingsRef}>
-        <button
-          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-          className={`w-full py-2 flex flex-col items-center justify-center rounded-[1.2rem] transition-colors ${isSettingsOpen ? 'bg-slate-100 shadow-inner text-slate-900' : 'text-slate-600 hover:bg-slate-50'}`}
-        >
-          <Cog6ToothIcon className="h-5 w-5" />
-          <span className="text-[9px] font-bold uppercase mt-1">Settings</span>
-        </button>
-
-        {isSettingsOpen && (
-          <div className="absolute left-full bottom-0 ml-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1 z-[80] origin-bottom-left animate-in fade-in slide-in-from-left-2 duration-200">
-            <div className="px-4 py-2 border-b border-slate-100">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Settings</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
-            >
-              <ArrowRightOnRectangleIcon className="h-4 w-4" />
-              Sign out
-            </button>
+    <>
+      <aside className="w-[5.5rem] h-full bg-white/90 backdrop-blur-sm rounded-[2rem] flex flex-col items-center pb-6 z-[70] shadow-sm border border-white/50 relative">
+        <div className="w-full py-4 flex items-center justify-center bg-slate-200 mb-2 rounded-t-[2rem]">
+          <div className="w-6 h-6 bg-slate-800 flex items-center justify-center text-white text-lg font-bold shadow-md rounded-[6px]">
+            A
           </div>
-        )}
-      </div>
-    </aside>
+        </div>
+        <div className="flex flex-col items-center mb-2">
+          <div className="text-center">
+            <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest block">
+              {mainModule}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex-1 w-full px-1 overflow-y-auto no-scrollbar flex flex-col gap-2">
+          {filteredLinks.map((link) => {
+            const Icon = iconMap[link.name] || iconMap["default"];
+            return (
+              <NavLink
+                key={link.name}
+                to={link.path}
+                className={({ isActive }) =>
+                  `w-full py-3 flex flex-col items-center justify-center rounded-[1.2rem] transition-all duration-300 ${isActive
+                    ? "bg-[#E0E5EA] text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`
+                }
+              >
+                <Icon className="w-5 h-5 mb-1.5" />
+                <span className="text-[9px] font-bold uppercase tracking-tight text-center px-1 leading-tight max-w-[70px]">
+                  {link.name}
+                </span>
+              </NavLink>
+            );
+          })}
+        </div>
+
+        <div className=" pt-1 border-t border-slate-100 w-full px-2 flex flex-col items-center flex-shrink-0 relative" ref={settingsRef}>
+          <button
+            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+            className={`w-full py-2 flex flex-col items-center justify-center rounded-[1.2rem] transition-colors ${isSettingsOpen ? 'bg-slate-100 shadow-inner text-slate-900' : 'text-slate-600 hover:bg-slate-50'}`}
+          >
+            <Cog6ToothIcon className="h-5 w-5" />
+            <span className="text-[9px] font-bold uppercase mt-1">Settings</span>
+          </button>
+
+          {isSettingsOpen && (
+            <div className="absolute left-full bottom-0 ml-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1 z-[80] origin-bottom-left animate-in fade-in slide-in-from-left-2 duration-200">
+              <div className="px-4 py-2 border-b border-slate-100">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Settings</p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsSettingsOpen(false);
+                  setIsLogoutModalOpen(true);
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+              >
+                <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Confirmation Modal Rendered via Portal */}
+      {isLogoutModalOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity">
+          <div className="bg-white p-6 rounded-[2rem] shadow-2xl w-[90%] max-w-sm border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
+                <ArrowRightOnRectangleIcon className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">Confirm Sign Out</h3>
+            </div>
+            
+            <p className="text-sm text-slate-600 mb-6 pl-1 leading-relaxed">
+              Are you sure you want to sign out? You will need to log back in to access your dashboard.
+            </p>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsLogoutModalOpen(false)}
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setIsLogoutModalOpen(false);
+                  handleLogout();
+                }}
+                className="px-5 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-sm shadow-red-500/20 rounded-xl transition-colors flex items-center gap-2"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
 
