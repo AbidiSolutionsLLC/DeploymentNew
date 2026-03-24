@@ -75,9 +75,6 @@ api.interceptors.response.use(
     async (error) => {
         const status = error.response?.status;
 
-        // =========================
-        // 401 → FORCE LOGOUT
-        // =========================
         if (status === 401) {
             console.warn("[AXIOS] 401 Unauthorized — logging out");
 
