@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import api from "../../axios";
-import { 
-  Search, Calendar, Clock, User, CheckCircle, 
-  AlertCircle, XCircle, Download, Edit2, Save, X 
+import {
+  Search, Calendar, Clock, User, CheckCircle,
+  AlertCircle, XCircle, Download, Edit2, Save, X
 } from "lucide-react";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
@@ -31,8 +31,8 @@ const LiveTimer = ({ startTime }) => {
       );
     };
 
-    updateTimer(); 
-    const interval = setInterval(updateTimer, 1000); 
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
   }, [startTime]);
@@ -46,15 +46,14 @@ const AdminAttendance = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDate, setFilterDate] = useState(new Date());
-  
+
   // Edit State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState(null);
   const [editFormData, setEditFormData] = useState({ checkInTime: null, checkOutTime: null, status: "" });
-  
+
   // Permission State
   const [currentUserRole, setCurrentUserRole] = useState("");
-  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     const initData = async () => {
@@ -64,14 +63,9 @@ const AdminAttendance = () => {
         const role = userRes.data.user.role || "";
         setCurrentUserRole(role.replace(/\s+/g, '').toLowerCase());
 
-        const [logRes, usersRes] = await Promise.all([
-          api.get("/timetrackers"),
-          api.get("/users?status=Active")
-        ]);
-        
+        const logRes = await api.get("/timetrackers");
         const sortedLogs = logRes.data.sort((a, b) => new Date(b.date) - new Date(a.date));
         setLogs(sortedLogs);
-        setUsers(usersRes.data);
       } catch (error) {
         console.error("Init Error:", error);
         toast.error("Failed to load data");
@@ -104,7 +98,7 @@ const AdminAttendance = () => {
     ]);
 
     const csvContent = [
-      headers.join(","), 
+      headers.join(","),
       ...rows.map(row => row.join(","))
     ].join("\n");
 
@@ -132,7 +126,7 @@ const AdminAttendance = () => {
   const handleSaveChanges = async () => {
     try {
       let updates = { ...editFormData };
-      
+
       // Auto-calc duration if times changed
       if (updates.checkInTime && updates.checkOutTime) {
         const start = new Date(updates.checkInTime);
@@ -143,10 +137,10 @@ const AdminAttendance = () => {
       }
 
       await api.put(`/timetrackers/${editingLog._id}`, updates);
-      
+
       toast.success("Attendance updated successfully");
       setIsEditModalOpen(false);
-      
+
       const res = await api.get("/timetrackers");
       setLogs(res.data.sort((a, b) => new Date(b.date) - new Date(a.date)));
     } catch (error) {
@@ -177,55 +171,25 @@ const AdminAttendance = () => {
     }
   };
 
-  const getCombinedLogs = () => {
-    // 1. Filter original logs
-    let resultingLogs = logs.filter((log) => {
-      const logDate = new Date(log.date).toISOString().split("T")[0];
-      const targetDate = filterDate ? filterDate.toISOString().split("T")[0] : null;
-      const matchesDate = targetDate ? logDate === targetDate : true;
-      const employeeName = log.user?.name || "Unknown";
-      const matchesSearch = employeeName.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesDate && matchesSearch;
-    });
-
-    // 2. Add synthetic "Absent" records for missing users on the selected date
-    if (filterDate) {
-      const usersWithLogs = new Set(resultingLogs.filter(log => log.user).map(log => String(log.user._id)));
-      
-      users.forEach(user => {
-        if (!usersWithLogs.has(String(user._id))) {
-          const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase());
-          if (matchesSearch) {
-            resultingLogs.push({
-              _id: `synthetic-${user._id}`,
-              user: user,
-              date: filterDate,
-              checkInTime: null,
-              checkOutTime: null,
-              totalHours: 0,
-              status: "Absent",
-              isSynthetic: true
-            });
-          }
-        }
-      });
-    }
-
-    return resultingLogs;
-  };
-
-  const filteredLogs = getCombinedLogs();
+  const filteredLogs = logs.filter((log) => {
+    const logDate = new Date(log.date).toISOString().split("T")[0];
+    const targetDate = filterDate ? filterDate.toISOString().split("T")[0] : null;
+    const matchesDate = targetDate ? logDate === targetDate : true;
+    const employeeName = log.user?.name || "Unknown";
+    const matchesSearch = employeeName.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesDate && matchesSearch;
+  });
 
   return (
     <div className="min-h-screen">
-      
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Employee Attendance</h1>
           <p className="text-sm text-slate-500 font-medium mt-1">Monitor daily check-ins, check-outs, and working hours.</p>
         </div>
-        <button 
-          onClick={handleDownload} 
+        <button
+          onClick={handleDownload}
           className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200 text-xs font-bold uppercase tracking-wide"
         >
           <Download size={16} /> Export CSV
@@ -233,7 +197,7 @@ const AdminAttendance = () => {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-2 h-auto sm:h-16"> 
+        <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-2 h-auto sm:h-16">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
               <Search size={18} />
@@ -289,15 +253,16 @@ const AdminAttendance = () => {
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Check Out</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan="6" className="px-6 py-12 text-center text-slate-400">Loading...</td></tr>
-              ) : filteredLogs.filter(l => l.status !== 'Absent').length === 0 ? (
-                <tr><td colSpan="6" className="px-6 py-12 text-center text-slate-400">No records found.</td></tr>
+                <tr><td colSpan="7" className="px-6 py-12 text-center text-slate-400">Loading...</td></tr>
+              ) : filteredLogs.length === 0 ? (
+                <tr><td colSpan="7" className="px-6 py-12 text-center text-slate-400">No records found.</td></tr>
               ) : (
-                filteredLogs.filter(l => l.status !== 'Absent').map((log) => (
+                filteredLogs.map((log) => (
                   <tr key={log._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -329,6 +294,13 @@ const AdminAttendance = () => {
                       )}
                     </td>
                     <td className="px-6 py-4">{getStatusBadge(log.status)}</td>
+                    <td className="px-6 py-4 text-right">
+                      {canEdit && (
+                        <button onClick={() => handleEditClick(log)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Record">
+                          <Edit2 size={16} />
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
@@ -344,25 +316,25 @@ const AdminAttendance = () => {
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Edit Attendance</h3>
               <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-red-500"><X size={20} /></button>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Check In Time</label>
                 <DatePicker
                   selected={editFormData.checkInTime}
-                  onChange={(date) => setEditFormData({...editFormData, checkInTime: date})}
+                  onChange={(date) => setEditFormData({ ...editFormData, checkInTime: date })}
                   showTimeSelect
                   dateFormat="Pp"
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none"
                   popperProps={{ strategy: "fixed" }}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Check Out Time</label>
                 <DatePicker
                   selected={editFormData.checkOutTime}
-                  onChange={(date) => setEditFormData({...editFormData, checkOutTime: date})}
+                  onChange={(date) => setEditFormData({ ...editFormData, checkOutTime: date })}
                   showTimeSelect
                   dateFormat="Pp"
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none"
@@ -372,10 +344,10 @@ const AdminAttendance = () => {
 
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Status</label>
-                <select 
+                <select
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none bg-white"
                   value={editFormData.status}
-                  onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+                  onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
                 >
                   <option value="Present">Present</option>
                   <option value="Half Day">Half Day</option>
@@ -386,13 +358,13 @@ const AdminAttendance = () => {
             </div>
 
             <div className="px-6 py-4 border-t border-slate-100 flex gap-3 bg-slate-50/50">
-              <button 
+              <button
                 onClick={() => setIsEditModalOpen(false)}
                 className="flex-1 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 uppercase tracking-wider"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleSaveChanges}
                 className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-700 shadow-md shadow-blue-200 flex justify-center items-center gap-2"
               >

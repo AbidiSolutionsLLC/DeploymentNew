@@ -114,7 +114,7 @@ const HolidaysCard = ({ onDelete }) => {
 
       {/* Holiday list */}
       <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
-        {holidays.slice(0, 3).map((holiday, index) => (
+        {upcomingHolidays.map((holiday, index) => (
           <li
             key={index}
             className="flex items-center bg-[#E0E5EA]/30 rounded-lg p-2 gap-2.5"
