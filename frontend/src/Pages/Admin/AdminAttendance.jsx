@@ -289,16 +289,15 @@ const AdminAttendance = () => {
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Check Out</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan="7" className="px-6 py-12 text-center text-slate-400">Loading...</td></tr>
-              ) : filteredLogs.length === 0 ? (
-                <tr><td colSpan="7" className="px-6 py-12 text-center text-slate-400">No records found.</td></tr>
+                <tr><td colSpan="6" className="px-6 py-12 text-center text-slate-400">Loading...</td></tr>
+              ) : filteredLogs.filter(l => l.status !== 'Absent').length === 0 ? (
+                <tr><td colSpan="6" className="px-6 py-12 text-center text-slate-400">No records found.</td></tr>
               ) : (
-                filteredLogs.map((log) => (
+                filteredLogs.filter(l => l.status !== 'Absent').map((log) => (
                   <tr key={log._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -330,13 +329,6 @@ const AdminAttendance = () => {
                       )}
                     </td>
                     <td className="px-6 py-4">{getStatusBadge(log.status)}</td>
-                    <td className="px-6 py-4 text-right">
-                      {canEdit && !log.isSynthetic && (
-                        <button onClick={() => handleEditClick(log)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Record">
-                          <Edit2 size={16} />
-                        </button>
-                      )}
-                    </td>
                   </tr>
                 ))
               )}
