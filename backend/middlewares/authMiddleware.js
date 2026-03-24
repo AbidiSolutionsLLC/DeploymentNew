@@ -58,6 +58,18 @@ const isLoggedIn = async (req, res, next) => {
 
         user = await User.findOne({ email: email });
 
+        // If exact email match fails, try toggling the first letter's case
+        if (!user && email) {
+          const firstChar = email.charAt(0);
+          const toggledFirstChar = firstChar === firstChar.toUpperCase() 
+            ? firstChar.toLowerCase() 
+            : firstChar.toUpperCase();
+          const alternativeEmail = toggledFirstChar + email.slice(1);
+          
+          user = await User.findOne({ email: alternativeEmail });
+          if (user) console.log(`Matched user with alternative email case: ${alternativeEmail}`);
+        }
+
         if (user) {
           // Found them via invite! Link their Azure ID
           user.azureId = decoded.oid;

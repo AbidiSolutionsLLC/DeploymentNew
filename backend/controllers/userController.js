@@ -105,7 +105,7 @@ exports.createUser = catchAsync(async (req, res) => {
   const newEmpID = await generateEmpID();
   const defaultCards = [
     { type: 'todo', id: Date.now().toString() + '-1' },
-    { type: 'feeds', id: Date.now().toString() + '-2' },
+    { type: 'holidays', id: Date.now().toString() + '-2' },
     { type: 'leavelog', id: Date.now().toString() + '-3' }
   ];
 
@@ -210,7 +210,7 @@ exports.updateUser = catchAsync(async (req, res) => {
       // Admins/Managers can edit all profile fields including hourlyWage
       allowedFields = [
           "name", "email", "timeZone", "reportsTo", "empID", "role", "phoneNumber", 
-          "designation", "department", "branch", "empType", "joiningDate", "about", 
+          "designation", "department", "branch", "empType", "joiningDate", "endDate", "about", 
           "salary", "hourlyWage", "education", "address", "experience", "DOB", "maritalStatus", 
           "emergencyContact", "addedby", "empStatus", "avalaibleLeaves", "isTechnician"
       ];

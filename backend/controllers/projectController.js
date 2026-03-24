@@ -7,7 +7,7 @@ const { NotFoundError, BadRequestError } = require("../utils/ExpressError");
 // Create Project
 exports.createProject = catchAsync(async (req, res) => {
   const { title, description, team, strict, isPublic, startDate, dueDate } = req.body;
-  const owner = req.user._id;
+  const owner = req.user.id || req.user._id;
 
   const project = new Project({
     title,
@@ -81,7 +81,7 @@ exports.deleteProject = catchAsync(async (req, res) => {
 
 // Get Projects for User
 exports.getUserProjects = catchAsync(async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.user.id || req.user._id;
 
   const projects = await Project.find({
     $or: [{ owner: userId }, { team: userId }],

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { GoGraph } from "react-icons/go";
-import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
+import { FiMoreVertical, FiTrash2 } from "react-icons/fi";
 import api from "../../axios";
 import { toast } from "react-toastify";
 
@@ -115,12 +115,25 @@ const AttendanceCard = ({ onDelete }) => {
           <p className="text-[10px] font-medium text-slate-500">{totalHours} total hours</p>
         </div>
 
-        <button
-          onClick={onDelete}
-          className="text-[10px] text-slate-500 hover:text-red-500 font-medium px-2 py-1 rounded-lg hover:bg-red-50 transition"
-        >
-          Remove
-        </button>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-1 rounded-lg hover:bg-slate-100 transition"
+          >
+            <FiMoreVertical className="h-4 w-4 text-slate-500" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 mt-1 w-32 bg-white shadow-lg border border-slate-200 rounded-xl z-50">
+              <button
+                onClick={() => { onDelete(); setMenuOpen(false); }}
+                className="flex items-center w-full px-3 py-2 text-[10px] text-red-500 hover:bg-red-50 font-medium"
+              >
+                <FiTrash2 className="w-3 h-3 mr-2" />
+                Delete Card
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Bar Chart */}

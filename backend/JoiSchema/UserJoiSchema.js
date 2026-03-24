@@ -8,6 +8,7 @@ const userSchema = Joi.object({
   
   role: Joi.string().valid("SuperAdmin", "Admin", "HR", "Manager", "Employee").default("Employee"),
   empType: Joi.string().valid("Permanent", "Contractor", "Intern", "Part Time").required(),
+  endDate: Joi.date().allow(null, ""),
   empStatus: Joi.string().valid("Active", "Inactive"),
   
   // empID removed from validation since backend generates it
@@ -34,7 +35,7 @@ const userSchema = Joi.object({
 });
 
 const userUpdateSchema = userSchema.fork(
-  ["email", "password", "role", "empType", "joiningDate", "phoneNumber"],
+  ["email", "password", "role", "empType", "endDate", "joiningDate", "phoneNumber"],
   (schema) => schema.optional()
 );
 

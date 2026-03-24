@@ -27,6 +27,7 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
         reportsTo: user.reportsTo?._id || "",
         role: user.role || "Employee",
         empType: user.empType || "Permanent",
+        endDate: user.endDate?.split("T")[0] || "",
         joiningDate: user.joiningDate?.split("T")[0] || "",
         phoneNumber: user.phoneNumber || "",
         branch: user.branch || "Karachi",
@@ -48,6 +49,11 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
       case "designation": return value.trim() ? "" : "Designation is required";
       case "department": return value ? "" : "Department is required";
       case "joiningDate": return value ? "" : "Joining date is required";
+      case "endDate": 
+        if (formData.empType === "Contractor" || formData.empType === "Intern") {
+          return value ? "" : "End date is required";
+        }
+        return "";
       case "branch": return value.trim() ? "" : "Branch is required";
       case "hourlyWage": return value !== "" && value >= 0 ? "" : "Valid hourly wage is required";
       default: return "";
@@ -56,13 +62,19 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === "empType" && value !== "Contractor" && value !== "Intern") {
+        updated.endDate = "";
+      }
+      return updated;
+    });
     setErrors(prev => ({ ...prev, [name]: validateField(name, value) }));
   };
 
   const validateForm = () => {
     const newErrors = {};
-    ["name", "email", "phoneNumber", "designation", "department", "joiningDate", "branch", "hourlyWage"].forEach(field => {
+    ["name", "email", "phoneNumber", "designation", "department", "joiningDate", "endDate", "branch", "hourlyWage"].forEach(field => {
       const error = validateField(field, formData[field]);
       if (error) newErrors[field] = error;
     });
@@ -94,6 +106,7 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
         if (key === "department") original = user.department?._id || "";
         if (key === "reportsTo") original = user.reportsTo?._id || "";
         if (key === "joiningDate") original = user.joiningDate?.split("T")[0] || "";
+        if (key === "endDate") original = user.endDate?.split("T")[0] || "";
         if (key === "hourlyWage") original = user.hourlyWage || "";
 
         if (original == null) original = "";
@@ -206,7 +219,7 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
         <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm">
           {name === "department" ? allDepartments.find(d => d._id === value)?.name :
             name === "reportsTo" ? allManagers.find(m => m._id === value)?.name :
-              name === "joiningDate" ? (value ? new Date(value).toLocaleDateString() : "-") :
+              (name === "joiningDate" || name === "endDate") ? (value ? new Date(value).toLocaleDateString() : "-") :
                 name === "hourlyWage" ? `$${value}/hr` :
                   value || "-"}
         </div>
@@ -261,6 +274,7 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
               <h3 className="font-bold text-slate-400 text-xs uppercase">Company</h3>
               <div className="grid grid-cols-3 gap-4">
                 {renderField("Joining Date", "joiningDate", formData.joiningDate, "date")}
+                {(formData.empType === "Contractor" || formData.empType === "Intern") && renderField("End Date", "endDate", formData.endDate, "date")}
                 {renderField("Branch", "branch", formData.branch)}
                 {renderField("Timezone", "timeZone", formData.timeZone, "select", ["Asia/Karachi", "America/New_York", "Europe/London", "Asia/Dubai"].map(v => ({ value: v, label: v })))}
               </div>

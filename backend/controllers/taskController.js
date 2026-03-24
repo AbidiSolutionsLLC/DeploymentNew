@@ -88,7 +88,7 @@ exports.deleteTask = catchAsync(async (req, res) => {
 // Add Comment to Task
 exports.addComment = catchAsync(async (req, res) => {
   const { text } = req.body;
-  const userId = req.user._id;
+  const userId = req.user.id || req.user._id;
 
   const task = await Task.findById(req.params.id);
   if (!task) throw new NotFoundError("Task");
@@ -113,7 +113,7 @@ exports.getProjectTasks = catchAsync(async (req, res) => {
 
 // Get Tasks for User
 exports.getUserTasks = catchAsync(async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.user.id || req.user._id;
 
   const tasks = await Task.find({ team: userId })
     .populate("team", "name email")

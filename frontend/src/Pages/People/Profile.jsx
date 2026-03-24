@@ -18,7 +18,6 @@ export default function Profile({ userId: propUserId }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [uploadingCover, setUploadingCover] = useState(false);
 
   const targetUserId = propUserId || paramUserId;
 
@@ -66,39 +65,6 @@ export default function Profile({ userId: propUserId }) {
     }
   };
 
-  // --- HANDLER: Upload Cover Photo (Frontend Logic) ---
-  const handleCoverUpload = async (e) => {
-    if (targetUserId) return;
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Basic validation
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.warning("File size too large (Max 5MB)");
-        return;
-    }
-
-    const formData = new FormData();
-    // Make sure backend expects 'coverImage'
-    formData.append('coverImage', file); 
-
-    try {
-      setUploadingCover(true);
-      // NOTE: This endpoint must exist on backend
-      const response = await api.post(`/users/${user._id}/upload-cover`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setUser(prev => ({ ...prev, coverImage: response.data.coverUrl }));
-      toast.success("Cover photo updated!");
-    } catch (err) {
-      console.error(err);
-      // The 404 error will trigger this toast
-      toast.error(err.response?.data?.message || "Failed to update cover photo");
-    } finally {
-      setUploadingCover(false);
-    }
-  };
-
   if (loading) return (
     <div className="text-center p-6 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 m-4">
       <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
@@ -128,7 +94,7 @@ export default function Profile({ userId: propUserId }) {
             <img
             src={user.coverImage || `https://picsum.photos/1200/300?random=${user._id}`}
             alt="Banner"
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-700"
             onError={(e) => {e.target.src = 'https://via.placeholder.com/1200x300?text=No+Cover+Image'}} // Fallback
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
@@ -136,23 +102,6 @@ export default function Profile({ userId: propUserId }) {
             {/* Top Right Actions */}
             {!targetUserId && (
             <div className="absolute top-4 right-4 flex gap-2 z-30">
-                {/* Upload Cover Button */}
-                <label 
-                htmlFor="cover-upload"
-                className="bg-black/30 backdrop-blur-md text-white p-2 rounded-xl cursor-pointer hover:bg-black/40 transition-all border border-white/20 shadow-sm flex items-center justify-center"
-                title="Change Cover Photo"
-                >
-                {uploadingCover ? <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"/> : <FiCamera size={18} />}
-                </label>
-                <input 
-                id="cover-upload" 
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                onChange={handleCoverUpload}
-                disabled={uploadingCover} 
-                />
-
                 {/* Edit Profile Button */}
                 <button
                 onClick={() => navigate("/people/edit-profile")}
