@@ -9,7 +9,7 @@ import { toast } from "react-toastify";
 import TableWithPagination from "../../Components/TableWithPagination";
 import { moment, TIMEZONE } from "../../utils/dateUtils";
 
-const Timesheet = () => {
+const Timesheet = ({ refreshTrigger }) => {
   const [showCalendar, setShowCalendar] = useState(false);
   
   function getMonday(date) {
@@ -80,7 +80,7 @@ const Timesheet = () => {
 
   useEffect(() => {
     fetchWeeklyTimesheets();
-  }, [selectedWeekStart]);
+  }, [selectedWeekStart, refreshTrigger]);
 
   const fetchWeeklyTimesheets = async () => {
     setLoading(true);
@@ -333,7 +333,7 @@ const Timesheet = () => {
         </div>
       </div>
 
-      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 overflow-x-auto">
+      <div>
         <AnimatePresence mode="wait">
           <motion.div
             key={selectedWeekStart?.getTime?.() || 'default'}

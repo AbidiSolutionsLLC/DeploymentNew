@@ -34,12 +34,22 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
+  const extractDate = (dateString) => {
+    if (!dateString) return new Date();
+    const datePart = dateString.split('T')[0];
+    if (datePart.includes('-')) {
+      const [year, month, day] = datePart.split('-');
+      return new Date(year, month - 1, day);
+    }
+    return new Date(dateString);
+  };
+  
   const isMatch = (holiday) => {
     const s = searchTerm.toLowerCase();
     return (
       holiday.holidayName.toLowerCase().includes(s) ||
       holiday.day.toLowerCase().includes(s) ||
-      new Date(holiday.date).toLocaleDateString('en-US', {
+      extractDate(holiday.date).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
@@ -49,14 +59,14 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
   };
 
   const upcomingHolidays = holidays
-    .filter(h => new Date(h.date) >= today)
+    .filter(h => extractDate(h.date) >= today)
     .filter(isMatch)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    .sort((a, b) => extractDate(a.date) - extractDate(b.date));
 
   const pastHolidays = holidays
-    .filter(h => new Date(h.date) < today)
+    .filter(h => extractDate(h.date) < today)
     .filter(isMatch)
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .sort((a, b) => extractDate(b.date) - extractDate(a.date))
     .slice(0, 5);
 
   const renderTable = (title, data, isUpcoming = true) => {
@@ -109,8 +119,7 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
             </thead>
             <tbody>
               {data.map((holiday, index) => {
-                const holidayDate = new Date(holiday.date);
-                holidayDate.setHours(0, 0, 0, 0);
+                const holidayDate = extractDate(holiday.date);
                 
                 let daysCount;
                 let statusClass;

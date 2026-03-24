@@ -36,6 +36,7 @@ const TimeTracker = () => {
   const [error, setError] = useState(null);
   const [isCreateTimesheetModalOpen, setIsCreateTimesheetModalOpen] = useState(false);
   const [timesheets, setTimesheets] = useState([]);
+  const [refreshTimesheetTrigger, setRefreshTimesheetTrigger] = useState(0);
 
   const tabs = [
     { title: "Time Logs" },
@@ -101,9 +102,8 @@ const TimeTracker = () => {
   }, [activeTab]);
 
 const handleTimesheetCreated = async () => {
-  
   if (activeTab === 1) {
-  await fetchTimesheets();
+    setRefreshTimesheetTrigger(prev => prev + 1);
   }
   setIsCreateTimesheetModalOpen(false);
 };
@@ -574,7 +574,7 @@ const handleTimesheetCreated = async () => {
             )}
           </>
         )}
-        {activeTab === 1 && <Timesheet timesheets={timesheets} fetchTimesheets={fetchTimesheets} />}
+        {activeTab === 1 && <Timesheet refreshTrigger={refreshTimesheetTrigger} />}
       </div>
 
       <AddTimeLogModal

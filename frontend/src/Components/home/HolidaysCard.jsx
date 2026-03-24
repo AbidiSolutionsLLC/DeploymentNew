@@ -36,9 +36,21 @@ const HolidaysCard = ({ onDelete }) => {
   }, []);
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const extractDate = (dateString) => {
+    if (!dateString) return new Date();
+    const datePart = dateString.split('T')[0];
+    if (datePart.includes('-')) {
+      const [year, month, day] = datePart.split('-');
+      return new Date(year, month - 1, day);
+    }
+    return new Date(dateString);
+  };
+
   const upcomingHolidays = holidays
-    .filter(h => new Date(h.date) >= today)
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .filter(h => extractDate(h.date) >= today)
+    .sort((a, b) => extractDate(a.date) - extractDate(b.date))
     .slice(0, 3);
 
   const getHolidayIcon = (holidayType) => {
@@ -125,7 +137,7 @@ const HolidaysCard = ({ onDelete }) => {
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-slate-700 truncate text-[10px]">{holiday.holidayName}</div>
               <div className="text-[9px] text-slate-500 truncate">
-                {new Date(holiday.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {extractDate(holiday.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </div>
             </div>
           </li>
