@@ -1,6 +1,6 @@
 // src/Components/home/FeedsCard.jsx
-import React from "react";
-import { FiActivity } from "react-icons/fi";
+import React, { useState, useRef } from "react";
+import { FiActivity, FiMoreVertical, FiTrash2 } from "react-icons/fi";
 
 const feedsData = [
   { message: "Your request was approved from admin", actionType: "status" },
@@ -10,6 +10,20 @@ const feedsData = [
 ];
 
 const FeedsCard = ({ onDelete }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef();
+
+  // Close menu when clicking outside
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   return (
     // CHANGED: p-4 -> p-3 for tighter spacing
     <div className="relative bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-3 h-full flex flex-col">
@@ -23,12 +37,25 @@ const FeedsCard = ({ onDelete }) => {
           <p className="text-[9px] font-medium text-slate-500">4+ unread messages</p>
         </div>
 
-        <button
-          onClick={onDelete}
-          className="text-[9px] text-slate-400 hover:text-red-500 font-medium px-2 py-1 rounded-lg hover:bg-red-50 transition"
-        >
-          Remove
-        </button>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-1 rounded-lg hover:bg-slate-100 transition"
+          >
+            <FiMoreVertical className="h-4 w-4 text-slate-500" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 mt-1 w-32 bg-white shadow-lg border border-slate-200 rounded-xl z-50">
+              <button
+                onClick={() => { onDelete(); setMenuOpen(false); }}
+                className="flex items-center w-full px-3 py-2 text-[10px] text-red-500 hover:bg-red-50 font-medium"
+              >
+                <FiTrash2 className="w-3 h-3 mr-2" />
+                Delete Card
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Feed list */}

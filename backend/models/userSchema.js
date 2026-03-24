@@ -63,6 +63,10 @@ const userSchema = new mongoose.Schema(
       enum: ["Permanent", "Contractor", "Intern", "Part Time"],
       default: "Permanent",
     },
+    endDate: {
+      type: Date,
+      default: null,
+    },
     empID: {
       type: String,
       default: "TBD",

@@ -21,6 +21,7 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
     reportsTo: "",
     role: "Employee",
     empType: "Permanent",
+    endDate: "",
     joiningDate: "",
     phoneNumber: "",
     branch: "Karachi",
@@ -43,7 +44,13 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((p) => ({ ...p, [name]: value }));
+    setFormData((p) => {
+      const updated = { ...p, [name]: value };
+      if (name === 'empType' && value !== 'Contractor' && value !== 'Intern') {
+        updated.endDate = "";
+      }
+      return updated;
+    });
   };
 
   const handleBackdropClick = (e) => {
@@ -187,7 +194,12 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
                 ]}
               />
 
-              <ModernDatePicker label="Joining Date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <ModernDatePicker label="Joining Date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} />
+                {(formData.empType === "Contractor" || formData.empType === "Intern") && (
+                  <ModernDatePicker label="End Date" name="endDate" value={formData.endDate} onChange={handleChange} />
+                )}
+              </div>
 
               <Input label="Branch" name="branch" value={formData.branch} onChange={handleChange} placeholder="New York Office" />
 

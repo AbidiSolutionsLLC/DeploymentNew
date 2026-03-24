@@ -54,6 +54,7 @@ const AdminAttendance = () => {
   
   // Permission State
   const [currentUserRole, setCurrentUserRole] = useState("");
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     const initData = async () => {
@@ -63,9 +64,14 @@ const AdminAttendance = () => {
         const role = userRes.data.user.role || "";
         setCurrentUserRole(role.replace(/\s+/g, '').toLowerCase());
 
-        const logRes = await api.get("/timetrackers");
+        const [logRes, usersRes] = await Promise.all([
+          api.get("/timetrackers"),
+          api.get("/users?status=Active")
+        ]);
+        
         const sortedLogs = logRes.data.sort((a, b) => new Date(b.date) - new Date(a.date));
         setLogs(sortedLogs);
+        setUsers(usersRes.data);
       } catch (error) {
         console.error("Init Error:", error);
         toast.error("Failed to load data");
@@ -171,17 +177,47 @@ const AdminAttendance = () => {
     }
   };
 
-  const filteredLogs = logs.filter((log) => {
-    const logDate = new Date(log.date).toISOString().split("T")[0];
-    const targetDate = filterDate ? filterDate.toISOString().split("T")[0] : null;
-    const matchesDate = targetDate ? logDate === targetDate : true;
-    const employeeName = log.user?.name || "Unknown";
-    const matchesSearch = employeeName.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesDate && matchesSearch;
-  });
+  const getCombinedLogs = () => {
+    // 1. Filter original logs
+    let resultingLogs = logs.filter((log) => {
+      const logDate = new Date(log.date).toISOString().split("T")[0];
+      const targetDate = filterDate ? filterDate.toISOString().split("T")[0] : null;
+      const matchesDate = targetDate ? logDate === targetDate : true;
+      const employeeName = log.user?.name || "Unknown";
+      const matchesSearch = employeeName.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesDate && matchesSearch;
+    });
+
+    // 2. Add synthetic "Absent" records for missing users on the selected date
+    if (filterDate) {
+      const usersWithLogs = new Set(resultingLogs.filter(log => log.user).map(log => String(log.user._id)));
+      
+      users.forEach(user => {
+        if (!usersWithLogs.has(String(user._id))) {
+          const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase());
+          if (matchesSearch) {
+            resultingLogs.push({
+              _id: `synthetic-${user._id}`,
+              user: user,
+              date: filterDate,
+              checkInTime: null,
+              checkOutTime: null,
+              totalHours: 0,
+              status: "Absent",
+              isSynthetic: true
+            });
+          }
+        }
+      });
+    }
+
+    return resultingLogs;
+  };
+
+  const filteredLogs = getCombinedLogs();
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-6">
+    <div className="min-h-screen">
       
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
@@ -295,7 +331,7 @@ const AdminAttendance = () => {
                     </td>
                     <td className="px-6 py-4">{getStatusBadge(log.status)}</td>
                     <td className="px-6 py-4 text-right">
-                      {canEdit && (
+                      {canEdit && !log.isSynthetic && (
                         <button onClick={() => handleEditClick(log)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Record">
                           <Edit2 size={16} />
                         </button>

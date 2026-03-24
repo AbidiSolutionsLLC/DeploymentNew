@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiMoreVertical, FiTrash2 } from "react-icons/fi";
 import { FaUmbrellaBeach as BeachIcon } from "react-icons/fa";
+import { useSelector } from "react-redux";
 import api from "../../axios";
 
 const LeaveLogCard = ({ onDelete }) => {
@@ -9,12 +10,18 @@ const LeaveLogCard = ({ onDelete }) => {
   const [leaveLogs, setLeaveLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const menuRef = useRef();
+  const { user } = useSelector((state) => state.auth);
+  const userId = user?.user?._id;
 
   useEffect(() => {
     const fetchLeaveLogs = async () => {
       try {
         const response = await api.get("/leaves");
-        const formattedData = response.data.data
+        const allLeaves = response.data.data || [];
+
+        // Filter to show only the current user's leaves
+        const userLeaves = allLeaves
+          .filter(item => item.employee && item.employee.toString() === userId)
           .map((item) => ({
             name: item.employeeName,
             date: new Date(item.startDate).toLocaleDateString(),
@@ -22,7 +29,8 @@ const LeaveLogCard = ({ onDelete }) => {
             status: item.status || "Pending",
           }))
           .slice(0, 3);
-        setLeaveLogs(formattedData);
+
+        setLeaveLogs(userLeaves);
       } catch (error) {
         console.error("Failed to fetch leave logs:", error);
       } finally {
@@ -30,7 +38,7 @@ const LeaveLogCard = ({ onDelete }) => {
       }
     };
     fetchLeaveLogs();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const handler = (e) => {

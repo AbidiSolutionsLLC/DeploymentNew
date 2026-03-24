@@ -19,9 +19,6 @@ export default function EditProfile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
-  // New States for Uploads
-  const [uploadingCover, setUploadingCover] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -76,33 +73,6 @@ export default function EditProfile() {
 
     fetchUser();
   }, []);
-
-  // --- HANDLER: Upload Cover Photo ---
-  const handleCoverUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size should be less than 5MB");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('coverImage', file);
-
-    try {
-      setUploadingCover(true);
-      const response = await api.post(`/users/${userId}/upload-cover`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setUser(prev => ({ ...prev, coverImage: response.data.coverUrl }));
-      toast.success("Cover photo updated!");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update cover photo");
-    } finally {
-      setUploadingCover(false);
-    }
-  };
 
   // Client-side validation
   const validateForm = () => {
@@ -304,9 +274,16 @@ export default function EditProfile() {
   const updateExperience = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      experience: prev.experience.map((exp, i) => 
-        i === index ? { ...exp, [field]: value } : exp
-      )
+      experience: prev.experience.map((exp, i) => {
+        if (i === index) {
+          const updatedExp = { ...exp, [field]: value };
+          if (field === 'jobType' && value !== 'Contract' && value !== 'Internship') {
+            updatedExp.endDate = "";
+          }
+          return updatedExp;
+        }
+        return exp;
+      })
     }));
   };
 
@@ -360,32 +337,15 @@ export default function EditProfile() {
         Back
       </button>
 
-      {/* --- BANNER (EDITABLE) --- */}
-      <div className="relative h-28 md:h-40 rounded-[1.5rem] overflow-hidden shadow-md group bg-slate-200">
+      {/* --- BANNER (READONLY in edit mode) --- */}
+      <div className="relative h-28 md:h-40 rounded-[1.5rem] overflow-hidden shadow-md bg-slate-200">
         <img
           src={user.coverImage || `https://picsum.photos/1200/200?random=${user._id}`}
           alt="Banner"
-          className="w-full h-full object-cover transition-transform duration-700"
+          className="w-full h-full object-cover"
           onError={(e) => {e.target.src = 'https://via.placeholder.com/1200x300?text=No+Cover+Image'}}
         />
-        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
-        
-        {/* Upload Cover Button (New) */}
-        <label 
-          htmlFor="cover-upload-edit"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-md text-white p-3 rounded-full cursor-pointer hover:bg-black/60 transition-all border border-white/30 shadow-lg opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
-          title="Change Cover Photo"
-        >
-          {uploadingCover ? <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"/> : <FiCamera size={20} />}
-        </label>
-        <input 
-          id="cover-upload-edit" 
-          type="file" 
-          accept="image/*" 
-          className="hidden" 
-          onChange={handleCoverUpload}
-          disabled={uploadingCover} 
-        />
+        <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
       {/* --- PROFILE PIC SECTION --- */}
@@ -711,18 +671,20 @@ export default function EditProfile() {
               </div>
 
               {/* UPDATED: Modern Date Pickers for Start/End Date */}
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className={`grid ${exp.jobType === 'Contract' || exp.jobType === 'Internship' ? 'grid-cols-2' : 'grid-cols-1'} gap-3 mb-3`}>
                 <ModernDatePicker
                   placeholder="Start Date"
                   value={exp.startDate ? format(new Date(exp.startDate), "yyyy-MM-dd") : ""}
                   onChange={(e) => updateExperience(idx, 'startDate', e.target.value)}
                 />
                 
-                <ModernDatePicker
-                  placeholder="End Date"
-                  value={exp.endDate ? format(new Date(exp.endDate), "yyyy-MM-dd") : ""}
-                  onChange={(e) => updateExperience(idx, 'endDate', e.target.value)}
-                />
+                {(exp.jobType === "Contract" || exp.jobType === "Internship") && (
+                  <ModernDatePicker
+                    placeholder="End Date"
+                    value={exp.endDate ? format(new Date(exp.endDate), "yyyy-MM-dd") : ""}
+                    onChange={(e) => updateExperience(idx, 'endDate', e.target.value)}
+                  />
+                )}
               </div>
 
               <textarea
