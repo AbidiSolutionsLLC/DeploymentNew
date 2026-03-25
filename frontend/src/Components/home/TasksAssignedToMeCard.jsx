@@ -1,20 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiMoreVertical, FiTrash2, FiClipboard } from "react-icons/fi";
 
-const assignedTasks = [
-  {
-    title: "Prepare project update deck",
-    status: "In Progress",
-  },
-  {
-    title: "Finalize team onboarding",
-    status: "Pending",
-  },
-  {
-    title: "Submit time log for April",
-    status: "Completed",
-  },
-];
+import EmptyCardState from "./EmptyCardState";
+
+const assignedTasks = [];
 
 const TasksAssignedToMeCard = ({ onDelete }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -71,19 +60,25 @@ const TasksAssignedToMeCard = ({ onDelete }) => {
       </div>
 
       {/* Task list */}
-      <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
-        {assignedTasks.map((item, index) => (
-          <li
-            key={index}
-            className="bg-[#E0E5EA]/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2"
-          >
-            <div className="min-w-0 flex-1">
-              <span className="font-medium text-slate-700 truncate block">{item.title}</span>
-              <div className="text-[9px] text-slate-500">Status: {item.status}</div>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="max-h-[200px] overflow-y-auto w-full">
+        {assignedTasks.length > 0 ? (
+          <ul className="space-y-2 text-[10px]">
+            {assignedTasks.map((item, index) => (
+              <li
+                key={index}
+                className="bg-[#E0E5EA]/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium text-slate-700 truncate block">{item.title}</span>
+                  <div className="text-[9px] text-slate-500">Status: {item.status}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyCardState message="You haven't added anything yet" />
+        )}
+      </div>
     </div>
   );
 };

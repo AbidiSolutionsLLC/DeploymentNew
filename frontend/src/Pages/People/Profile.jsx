@@ -18,6 +18,7 @@ export default function Profile({ userId: propUserId }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const targetUserId = propUserId || paramUserId;
 
@@ -65,6 +66,29 @@ export default function Profile({ userId: propUserId }) {
     }
   };
 
+  // --- HANDLER: Upload Cover Banner ---
+  const handleCoverUpload = async (e) => {
+    if (targetUserId) return;
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('coverImage', file);
+
+    try {
+      setUploadingCover(true);
+      const response = await api.post(`/users/${user._id}/upload-cover`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setUser(prev => ({ ...prev, coverImage: response.data.coverUrl }));
+      toast.success("Cover image updated!");
+    } catch (err) {
+      toast.error("Failed to update cover image");
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
   if (loading) return (
     <div className="text-center p-6 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 m-4">
       <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
@@ -102,6 +126,29 @@ export default function Profile({ userId: propUserId }) {
             {/* Top Right Actions */}
             {!targetUserId && (
             <div className="absolute top-4 right-4 flex gap-2 z-30">
+                {/* Upload Banner Button */}
+                <>
+                  <label
+                      htmlFor="cover-upload"
+                      className="bg-white/90 backdrop-blur-md text-slate-800 font-bold px-3 py-2 rounded-xl shadow-sm hover:bg-white transition-all text-xs flex items-center justify-center cursor-pointer"
+                      title="Change Cover Image"
+                  >
+                      {uploadingCover ? (
+                        <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                      ) : (
+                        <FiCamera size={16} />
+                      )}
+                  </label>
+                  <input
+                      id="cover-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleCoverUpload}
+                      disabled={uploadingCover}
+                  />
+                </>
+
                 {/* Edit Profile Button */}
                 <button
                 onClick={() => navigate("/people/edit-profile")}

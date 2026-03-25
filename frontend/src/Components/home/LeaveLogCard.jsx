@@ -4,6 +4,7 @@ import { FiMoreVertical, FiTrash2 } from "react-icons/fi";
 import { FaUmbrellaBeach as BeachIcon } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import api from "../../axios";
+import EmptyCardState from "./EmptyCardState";
 
 const LeaveLogCard = ({ onDelete }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -96,35 +97,35 @@ const LeaveLogCard = ({ onDelete }) => {
         </div>
       </div>
 
-      <ul className="space-y-2 flex-1 overflow-y-auto pr-1">
+      <div className="flex-1 overflow-y-auto pr-1">
         {leaveLogs.length > 0 ? (
-          leaveLogs.map((log, index) => (
-            <li
-              key={index}
-              className="bg-[#E0E5EA]/30 rounded-lg p-2.5 flex justify-between items-center"
-            >
-              <div className="flex flex-col">
-                <span className="font-semibold text-[10px] text-slate-700">{log.name}</span>
-                <span className="text-[9px] text-slate-500">{log.date}</span>
-              </div>
-              <div className="flex flex-col text-right text-[9px]">
-                <span className="font-medium text-slate-700">{log.type}</span>
-                <span className={`font-medium ${
-                    log.status === "Approved" ? "text-green-600" : 
-                    log.status === "Rejected" ? "text-red-600" : "text-amber-600"
-                  }`}
-                >
-                  {log.status}
-                </span>
-              </div>
-            </li>
-          ))
+          <ul className="space-y-2">
+            {leaveLogs.map((log, index) => (
+              <li
+                key={index}
+                className="bg-[#E0E5EA]/30 rounded-lg p-2.5 flex justify-between items-center"
+              >
+                <div className="flex flex-col">
+                  <span className="font-semibold text-[10px] text-slate-700">{log.name}</span>
+                  <span className="text-[9px] text-slate-500">{log.date}</span>
+                </div>
+                <div className="flex flex-col text-right text-[9px]">
+                  <span className="font-medium text-slate-700">{log.type}</span>
+                  <span className={`font-medium ${
+                      log.status === "Approved" ? "text-green-600" : 
+                      log.status === "Rejected" ? "text-red-600" : "text-amber-600"
+                    }`}
+                  >
+                    {log.status}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <li className="p-3 text-center text-[10px] text-slate-500">
-            No leave records found
-          </li>
+          <EmptyCardState message="You haven't added anything yet" />
         )}
-      </ul>
+      </div>
     </div>
   );
 };

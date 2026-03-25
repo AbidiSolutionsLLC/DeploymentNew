@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiMoreVertical, FiTrash2, FiClock } from "react-icons/fi";
+import EmptyCardState from "./EmptyCardState";
 
 const upcomingDeadlines = [
   {
@@ -68,19 +69,25 @@ const UpcomingDeadlinesCard = ({ onDelete }) => {
         </div>
       </div>
 
-      <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
-        {upcomingDeadlines.map((item, index) => (
-          <li
-            key={index}
-            className="bg-[#E0E5EA]/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2"
-          >
-            <div className="min-w-0 flex-1">
-              <span className="font-medium text-slate-700 truncate block">{item.task}</span>
-              <div className="text-[9px] text-slate-500">{item.dueDate}</div>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="max-h-[200px] overflow-y-auto w-full">
+        {upcomingDeadlines.length > 0 ? (
+          <ul className="space-y-2 text-[10px]">
+            {upcomingDeadlines.map((item, index) => (
+              <li
+                key={index}
+                className="bg-[#E0E5EA]/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium text-slate-700 truncate block">{item.task}</span>
+                  <div className="text-[9px] text-slate-500">{item.dueDate}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyCardState message="You haven't added anything yet" />
+        )}
+      </div>
     </div>
   );
 };

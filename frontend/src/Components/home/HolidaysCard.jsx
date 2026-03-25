@@ -4,6 +4,7 @@ import { LuMoonStar } from "react-icons/lu";
 import { BsStars } from "react-icons/bs";
 import { FaTree } from "react-icons/fa";
 import holidayApi from '../../api/holidayApi';
+import EmptyCardState from "./EmptyCardState";
 
 const HolidaysCard = ({ onDelete }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -125,24 +126,30 @@ const HolidaysCard = ({ onDelete }) => {
       </div>
 
       {/* Holiday list */}
-      <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
-        {upcomingHolidays.map((holiday, index) => (
-          <li
-            key={index}
-            className="flex items-center bg-[#E0E5EA]/30 rounded-lg p-2 gap-2.5"
-          >
-            <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${getHolidayColor(holiday.holidayType)}`}>
-              {getHolidayIcon(holiday.holidayType)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-slate-700 truncate text-[10px]">{holiday.holidayName}</div>
-              <div className="text-[9px] text-slate-500 truncate">
-                {extractDate(holiday.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="max-h-[200px] overflow-y-auto w-full">
+        {upcomingHolidays.length > 0 ? (
+          <ul className="space-y-2 text-[10px]">
+            {upcomingHolidays.map((holiday, index) => (
+              <li
+                key={index}
+                className="flex items-center bg-[#E0E5EA]/30 rounded-lg p-2 gap-2.5"
+              >
+                <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${getHolidayColor(holiday.holidayType)}`}>
+                  {getHolidayIcon(holiday.holidayType)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-slate-700 truncate text-[10px]">{holiday.holidayName}</div>
+                  <div className="text-[9px] text-slate-500 truncate">
+                    {extractDate(holiday.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyCardState message="You haven't added anything yet" />
+        )}
+      </div>
     </div>
   );
 };

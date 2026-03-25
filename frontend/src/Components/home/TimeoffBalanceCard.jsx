@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiMoreVertical, FiTrash2, FiCalendar } from "react-icons/fi";
 import axios from "axios";
+import EmptyCardState from "./EmptyCardState";
 
 const TimeoffBalanceCard = ({ onDelete, userId }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,20 +34,7 @@ const TimeoffBalanceCard = ({ onDelete, userId }) => {
         setTimeOffData(leaveTypes);
       } catch (error) {
         console.error("Error fetching leaves:", error);
-        setTimeOffData([
-          {
-            type: "Paid Leave",
-            remaining: "3 days",
-          },
-          {
-            type: "Sick Leave",
-            remaining: "4 days",
-          },
-          {
-            type: "Majlis Leave",
-            remaining: "5 days",
-          },
-        ]);
+        setTimeOffData([]);
       } finally {
         setLoading(false);
       }
@@ -118,19 +106,25 @@ const TimeoffBalanceCard = ({ onDelete, userId }) => {
       </div>
 
       {/* Leave types list */}
-      <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
-        {timeOffData.map((item, index) => (
-          <li
-            key={index}
-            className="bg-[#E0E5EA]/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2"
-          >
-            <div className="min-w-0 flex-1">
-              <span className="font-medium text-slate-700">{item.type}</span>
-              <div className="text-[9px] text-slate-500">{item.remaining}</div>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="max-h-[200px] overflow-y-auto w-full">
+        {timeOffData.length > 0 ? (
+          <ul className="space-y-2 text-[10px]">
+            {timeOffData.map((item, index) => (
+              <li
+                key={index}
+                className="bg-[#E0E5EA]/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium text-slate-700">{item.type}</span>
+                  <div className="text-[9px] text-slate-500">{item.remaining}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyCardState message="You haven't added anything yet" />
+        )}
+      </div>
     </div>
   );
 };

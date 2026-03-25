@@ -1,6 +1,7 @@
 // ========== RecentActivitiesCard.jsx ==========
 import React, { useState, useRef, useEffect } from "react";
 import { FiMoreVertical, FiTrash2, FiClock } from "react-icons/fi";
+import EmptyCardState from "./EmptyCardState";
 
 const recentActivities = [
   {
@@ -78,24 +79,30 @@ const RecentActivitiesCard = ({ onDelete }) => {
         </div>
       </div>
 
-      <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
-        {recentActivities.map((item) => (
-          <li
-            key={item.id}
-            className={`${item.color} px-3 py-2 rounded-lg flex items-start gap-2.5`}
-          >
-            <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full font-bold bg-white border border-slate-300 text-xs">
-              {item.user[0]}
-            </div>
-            <div>
-              <p className="font-medium text-slate-800">
-                <span className="font-semibold">{item.user}</span> {item.action}
-              </p>
-              <span className="text-[9px] text-slate-600">{item.time}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="max-h-[200px] overflow-y-auto w-full">
+        {recentActivities.length > 0 ? (
+          <ul className="space-y-2 text-[10px]">
+            {recentActivities.map((item) => (
+              <li
+                key={item.id}
+                className={`${item.color} px-3 py-2 rounded-lg flex items-start gap-2.5`}
+              >
+                <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full font-bold bg-white border border-slate-300 text-xs">
+                  {item.user[0]}
+                </div>
+                <div>
+                  <p className="font-medium text-slate-800">
+                    <span className="font-semibold">{item.user}</span> {item.action}
+                  </p>
+                  <span className="text-[9px] text-slate-600">{item.time}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyCardState message="You haven't added anything yet" />
+        )}
+      </div>
     </div>
   );
 };

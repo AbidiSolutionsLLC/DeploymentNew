@@ -3,6 +3,7 @@ import { GoGraph } from "react-icons/go";
 import { FiMoreVertical, FiTrash2 } from "react-icons/fi";
 import api from "../../axios";
 import { toast } from "react-toastify";
+import EmptyCardState from "./EmptyCardState";
 
 const AttendanceCard = ({ onDelete }) => {
   const [weeklyData, setWeeklyData] = useState([]);
@@ -138,35 +139,39 @@ const AttendanceCard = ({ onDelete }) => {
 
       {/* Bar Chart */}
       <div className="bg-[#E0E5EA]/30 rounded-xl p-3 overflow-auto">
-        <div className="flex items-end justify-between h-20 gap-1.5">
-          {weeklyData.map(({ day, hours, status }, i) => {
-            let color = "bg-slate-300";
-            if (status === 'Absent') color = "bg-red-500";
-            else if (status === 'Present' && hours >= 7) color = "bg-green-500";
-            else if (status === 'Half Day') color = "bg-yellow-500";
-            else if (status === 'Present') color = "bg-blue-400";
-            else if (status === 'Upcoming') color = "bg-slate-300";
+        {totalHours > 0 || loading ? (
+          <div className="flex items-end justify-between h-20 gap-1.5">
+            {weeklyData.map(({ day, hours, status }, i) => {
+              let color = "bg-slate-300";
+              if (status === 'Absent') color = "bg-red-500";
+              else if (status === 'Present' && hours >= 7) color = "bg-green-500";
+              else if (status === 'Half Day') color = "bg-yellow-500";
+              else if (status === 'Present') color = "bg-blue-400";
+              else if (status === 'Upcoming') color = "bg-slate-300";
 
-            const barHeight = Math.min((hours / 10) * maxBarHeight, maxBarHeight);
+              const barHeight = Math.min((hours / 10) * maxBarHeight, maxBarHeight);
 
-            return (
-              <div key={i} className="flex flex-col items-center justify-end flex-1">
-                <div
-                  className={`w-2 ${color} rounded transition-all duration-300`}
-                  style={{ height: `${barHeight}px` }}
-                ></div>
-                <div className="mt-1 text-center leading-tight">
-                  <span className="block text-[9px] font-semibold text-slate-700">
-                    {day}
-                  </span>
-                  <span className="block text-[8px] text-slate-600">
-                    {status === 'Upcoming' ? '-' : `${hours}h`}
-                  </span>
+              return (
+                <div key={i} className="flex flex-col items-center justify-end flex-1">
+                  <div
+                    className={`w-2 ${color} rounded transition-all duration-300`}
+                    style={{ height: `${barHeight}px` }}
+                  ></div>
+                  <div className="mt-1 text-center leading-tight">
+                    <span className="block text-[9px] font-semibold text-slate-700">
+                      {day}
+                    </span>
+                    <span className="block text-[8px] text-slate-600">
+                      {status === 'Upcoming' ? '-' : `${hours}h`}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyCardState message="You haven't added anything yet" />
+        )}
       </div>
     </div>
   );

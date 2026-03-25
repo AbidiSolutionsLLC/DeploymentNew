@@ -84,6 +84,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    coverImage: {
+      type: String,
+      default: "",
+    },
     joiningDate: { type: Date, default: Date.now },
     phoneNumber: {
       type: String,

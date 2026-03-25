@@ -1,6 +1,7 @@
 // src/Components/home/FeedsCard.jsx
 import React, { useState, useRef } from "react";
 import { FiActivity, FiMoreVertical, FiTrash2 } from "react-icons/fi";
+import EmptyCardState from "./EmptyCardState";
 
 const feedsData = [
   { message: "Your request was approved from admin", actionType: "status" },
@@ -59,29 +60,35 @@ const FeedsCard = ({ onDelete }) => {
       </div>
 
       {/* Feed list */}
-      <ul className="space-y-1.5 flex-1 overflow-y-auto pr-1">
-        {feedsData.map((item, index) => (
-          <li
-            key={index}
-            className="bg-[#E0E5EA]/30 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2"
-          >
-            <div className="min-w-0 flex-1">
-              <span className="font-medium text-slate-700 truncate block text-[10px]">{item.message}</span>
-              {item.description && (
-                <div className="text-[9px] text-slate-500 truncate mt-0.5">{item.description}</div>
-              )}
-            </div>
-
-            {item.actionType && (
-              <button
-                className={`text-[9px] px-2 py-0.5 rounded-md font-medium shrink-0 ${item.actionType === "status" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
+      <div className="flex-1 overflow-y-auto pr-1">
+        {feedsData.length > 0 ? (
+          <ul className="space-y-1.5">
+            {feedsData.map((item, index) => (
+              <li
+                key={index}
+                className="bg-[#E0E5EA]/30 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2"
               >
-                {item.actionType === "status" ? "View" : "Check-in"}
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium text-slate-700 truncate block text-[10px]">{item.message}</span>
+                  {item.description && (
+                    <div className="text-[9px] text-slate-500 truncate mt-0.5">{item.description}</div>
+                  )}
+                </div>
+
+                {item.actionType && (
+                  <button
+                    className={`text-[9px] px-2 py-0.5 rounded-md font-medium shrink-0 ${item.actionType === "status" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
+                  >
+                    {item.actionType === "status" ? "View" : "Check-in"}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyCardState message="You haven't added anything yet" />
+        )}
+      </div>
     </div>
   );
 };

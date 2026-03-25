@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { FiMoreVertical, FiTrash2, FiGift } from "react-icons/fi";
 import api from "../../axios";
 import { toast } from "react-toastify";
+import EmptyCardState from "./EmptyCardState";
 
 const UpcomingBirthdaysCard = ({ onDelete }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -83,30 +84,30 @@ const UpcomingBirthdaysCard = ({ onDelete }) => {
         </div>
       </div>
 
-      {birthdays.length > 0 ? (
-        <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
-          {birthdays.slice(0, 3).map((b, index) => (
-            <li
-              key={index}
-              className="bg-pink-50 rounded-lg p-3 flex items-center gap-2.5"
-            >
-              <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
-                {b.name?.[0] || "?"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-slate-800 truncate">{b.name || "Unknown"}</div>
-                <div className="text-[9px] text-slate-600 truncate">
-                  {b.date || "Date unknown"}
+      <div className="max-h-[200px] overflow-y-auto w-full">
+        {birthdays.length > 0 ? (
+          <ul className="space-y-2 text-[10px]">
+            {birthdays.slice(0, 3).map((b, index) => (
+              <li
+                key={index}
+                className="bg-pink-50 rounded-lg p-3 flex items-center gap-2.5"
+              >
+                <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
+                  {b.name?.[0] || "?"}
                 </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="text-center py-4 text-[10px] text-slate-500">
-          No upcoming birthdays
-        </div>
-      )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-slate-800 truncate">{b.name || "Unknown"}</div>
+                  <div className="text-[9px] text-slate-600 truncate">
+                    {b.date || "Date unknown"}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyCardState message="You haven't added anything yet" />
+        )}
+      </div>
     </div>
   );
 };

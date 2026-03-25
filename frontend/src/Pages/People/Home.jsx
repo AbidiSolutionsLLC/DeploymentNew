@@ -145,20 +145,8 @@ const Home = () => {
       case "feeds":
         return <FeedsCard key={id} onDelete={onDelete} />;
 
-      case "attendance": {
-        const sampleData = [
-          { day: "Mon", hours: 6 },
-          { day: "Tue", hours: 8 },
-          { day: "Wed", hours: 4 },
-          { day: "Thu", hours: 2 },
-          { day: "Fri", hours: 7 },
-          { day: "Sat", hours: 0 },
-          { day: "Sun", hours: 5 },
-        ];
-        return (
-          <AttendanceCard key={id} weeklyData={sampleData} onDelete={onDelete} />
-        );
-      }
+      case "attendance":
+        return <AttendanceCard key={id} onDelete={onDelete} />;
 
       case "holidays":
         return <HolidaysCard key={id} onDelete={onDelete} />;

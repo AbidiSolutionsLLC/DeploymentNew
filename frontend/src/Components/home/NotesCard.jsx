@@ -8,11 +8,10 @@ import {
   FiPlus,
 } from "react-icons/fi";
 
+import EmptyCardState from "./EmptyCardState";
+
 const NotesCard = ({ onDelete }) => {
-  const [notes, setNotes] = useState([
-    { id: 1, text: "Buy milk and snacks." },
-    { id: 2, text: "Schedule 1:1 with manager." },
-  ]);
+  const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState("");
@@ -111,62 +110,68 @@ const NotesCard = ({ onDelete }) => {
       </div>
 
       {/* Notes List */}
-      <ul className="space-y-2 text-[10px] max-h-[100px] overflow-y-auto">
-        {notes.map((note) => (
-          <li
-            key={note.id}
-            className="bg-[#E0E5EA]/30 p-3 rounded-lg flex justify-between items-start gap-2"
-          >
-            <div className="flex-1">
-              {editingId === note.id ? (
-                <input
-                  type="text"
-                  className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs bg-white"
-                  value={editingText}
-                  autoFocus
-                  onChange={(e) => setEditingText(e.target.value)}
-                  onBlur={() => saveEdit(note.id)}
-                  onKeyDown={(e) => e.key === "Enter" && saveEdit(note.id)}
-                />
-              ) : (
-                <p
-                  className="text-slate-700 cursor-pointer"
-                  onClick={() => startEditing(note)}
-                >
-                  {note.text}
-                </p>
-              )}
-            </div>
-
-            <div className="flex gap-1.5 items-end">
-              {editingId !== note.id ? (
-                <button
-                  onClick={() => startEditing(note)}
-                  className="bg-green-100 text-green-700 p-1.5 rounded-md hover:bg-green-200"
-                  title="Edit"
-                >
-                  <FiEdit2 className="h-3 w-3" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => saveEdit(note.id)}
-                  className="text-blue-600 hover:text-blue-800 p-1.5"
-                  title="Save"
-                >
-                  <FiCheck className="h-3 w-3" />
-                </button>
-              )}
-              <button
-                onClick={() => removeNote(note.id)}
-                className="bg-red-100 text-red-600 p-1.5 rounded-md hover:bg-red-200"
-                title="Delete"
+      <div className="max-h-[100px] overflow-y-auto w-full">
+        {notes.length > 0 ? (
+          <ul className="space-y-2 text-[10px]">
+            {notes.map((note) => (
+              <li
+                key={note.id}
+                className="bg-[#E0E5EA]/30 p-3 rounded-lg flex justify-between items-start gap-2"
               >
-                <FiTrash2 className="h-3 w-3" />
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+                <div className="flex-1">
+                  {editingId === note.id ? (
+                    <input
+                      type="text"
+                      className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs bg-white"
+                      value={editingText}
+                      autoFocus
+                      onChange={(e) => setEditingText(e.target.value)}
+                      onBlur={() => saveEdit(note.id)}
+                      onKeyDown={(e) => e.key === "Enter" && saveEdit(note.id)}
+                    />
+                  ) : (
+                    <p
+                      className="text-slate-700 cursor-pointer"
+                      onClick={() => startEditing(note)}
+                    >
+                      {note.text}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex gap-1.5 items-end">
+                  {editingId !== note.id ? (
+                    <button
+                      onClick={() => startEditing(note)}
+                      className="bg-green-100 text-green-700 p-1.5 rounded-md hover:bg-green-200"
+                      title="Edit"
+                    >
+                      <FiEdit2 className="h-3 w-3" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => saveEdit(note.id)}
+                      className="text-blue-600 hover:text-blue-800 p-1.5"
+                      title="Save"
+                    >
+                      <FiCheck className="h-3 w-3" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => removeNote(note.id)}
+                    className="bg-red-100 text-red-600 p-1.5 rounded-md hover:bg-red-200"
+                    title="Delete"
+                  >
+                    <FiTrash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyCardState message="You haven't added anything yet" />
+        )}
+      </div>
     </div>
   );
 };

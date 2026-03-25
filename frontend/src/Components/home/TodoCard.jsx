@@ -7,29 +7,9 @@ import {
   FiCheckSquare,
 } from "react-icons/fi";
 
-const defaultTasks = [
-  {
-    id: 1,
-    title: "UI Designs",
-    description: "Explore the designs for UI",
-    dueDate: "2024-05-15",
-    completed: true,
-  },
-  {
-    id: 2,
-    title: "Build a component",
-    description: "Create input field and interactions",
-    dueDate: "2024-05-20",
-    completed: false,
-  },
-  {
-    id: 3,
-    title: "Testing",
-    description: "Run unit tests on the new logic",
-    dueDate: "2024-05-22",
-    completed: false,
-  },
-];
+import EmptyCardState from "./EmptyCardState";
+
+const defaultTasks = [];
 
 const ToDoCard = ({ onDelete }) => {
   const [tasks, setTasks] = useState([]);
@@ -197,81 +177,85 @@ const ToDoCard = ({ onDelete }) => {
 
         {/* Scrollable Task List Section */}
         <div className="overflow-y-auto flex-1 pr-1 max-h-[200px] custom-scrollbar">
-          <ul className="space-y-2 text-[10px]">
-            {tasks.map((task) => (
-              <li
-                key={task.id}
-                className={`rounded-lg p-3 flex justify-between items-start gap-2 transition-all ${task.completed ? "bg-emerald-50 border border-emerald-100" : "bg-[#E0E5EA]/30 border border-transparent"
-                  }`}
-              >
-                <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    onChange={() => toggleComplete(task.id)}
-                    className="mt-0.5 shrink-0 w-4 h-4 cursor-pointer accent-green-600"
-                  />
-                  <div className="min-w-0 flex-1">
-                    {editing === task.id ? (
-                      <div className="space-y-1">
-                        <input
-                          autoFocus
-                          className="font-semibold bg-white px-2 py-1 rounded border border-slate-300 w-full text-xs"
-                          value={task.title}
-                          onChange={(e) => handleFieldChange(task.id, "title", e.target.value)}
-                          onBlur={handleBlur}
-                        />
-                        <input
-                          className="text-[10px] text-slate-600 bg-white px-2 py-1 rounded border border-slate-300 w-full"
-                          value={task.description}
-                          onChange={(e) => handleFieldChange(task.id, "description", e.target.value)}
-                          onBlur={handleBlur}
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <div
-                          className={`font-semibold cursor-pointer truncate ${task.completed ? "line-through text-slate-400" : "text-slate-700"
-                            }`}
-                          onClick={() => setEditing(task.id)}
-                        >
-                          {task.title}
+          {tasks.length > 0 ? (
+            <ul className="space-y-2 text-[10px]">
+              {tasks.map((task) => (
+                <li
+                  key={task.id}
+                  className={`rounded-lg p-3 flex justify-between items-start gap-2 transition-all ${task.completed ? "bg-emerald-50 border border-emerald-100" : "bg-[#E0E5EA]/30 border border-transparent"
+                    }`}
+                >
+                  <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={() => toggleComplete(task.id)}
+                      className="mt-0.5 shrink-0 w-4 h-4 cursor-pointer accent-green-600"
+                    />
+                    <div className="min-w-0 flex-1">
+                      {editing === task.id ? (
+                        <div className="space-y-1">
+                          <input
+                            autoFocus
+                            className="font-semibold bg-white px-2 py-1 rounded border border-slate-300 w-full text-xs"
+                            value={task.title}
+                            onChange={(e) => handleFieldChange(task.id, "title", e.target.value)}
+                            onBlur={handleBlur}
+                          />
+                          <input
+                            className="text-[10px] text-slate-600 bg-white px-2 py-1 rounded border border-slate-300 w-full"
+                            value={task.description}
+                            onChange={(e) => handleFieldChange(task.id, "description", e.target.value)}
+                            onBlur={handleBlur}
+                          />
                         </div>
-                        <div
-                          className="text-[9px] text-slate-500 cursor-pointer line-clamp-2"
-                          onClick={() => setEditing(task.id)}
-                        >
-                          {task.description}
-                        </div>
-                        {task.dueDate && (
-                          <div className="text-[9px] text-slate-400 mt-1 italic">
-                            Due: {task.dueDate}
+                      ) : (
+                        <>
+                          <div
+                            className={`font-semibold cursor-pointer truncate ${task.completed ? "line-through text-slate-400" : "text-slate-700"
+                              }`}
+                            onClick={() => setEditing(task.id)}
+                          >
+                            {task.title}
                           </div>
-                        )}
-                      </>
-                    )}
+                          <div
+                            className="text-[9px] text-slate-500 cursor-pointer line-clamp-2"
+                            onClick={() => setEditing(task.id)}
+                          >
+                            {task.description}
+                          </div>
+                          {task.dueDate && (
+                            <div className="text-[9px] text-slate-400 mt-1 italic">
+                              Due: {task.dueDate}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex flex-col gap-1.5 items-end shrink-0">
-                  {!task.completed && (
+                  <div className="flex flex-col gap-1.5 items-end shrink-0">
+                    {!task.completed && (
+                      <button
+                        onClick={() => setEditing(task.id)}
+                        className="bg-green-100 text-green-700 p-1.5 rounded-md hover:bg-green-200"
+                      >
+                        <FiEdit2 className="h-3 w-3" />
+                      </button>
+                    )}
                     <button
-                      onClick={() => setEditing(task.id)}
-                      className="bg-green-100 text-green-700 p-1.5 rounded-md hover:bg-green-200"
+                      onClick={() => removeTask(task.id)}
+                      className="bg-red-100 text-red-600 p-1.5 rounded-md hover:bg-red-200"
                     >
-                      <FiEdit2 className="h-3 w-3" />
+                      <FiTrash2 className="h-3 w-3" />
                     </button>
-                  )}
-                  <button
-                    onClick={() => removeTask(task.id)}
-                    className="bg-red-100 text-red-600 p-1.5 rounded-md hover:bg-red-200"
-                  >
-                    <FiTrash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyCardState message="You haven't added anything yet" />
+          )}
         </div>
       </div>
     </>
