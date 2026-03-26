@@ -278,23 +278,6 @@ const TimeTracker = () => {
       render: (row) => (
         <span className="font-medium text-slate-700">{row.hours}</span>
       )
-    },
-    {
-      key: "attachments",
-      label: "Attachment",
-      sortable: false,
-      render: (row) => {
-        if (!row.attachments?.[0]?.originalname) return "-";
-
-        return (
-          <div className="flex items-center gap-1">
-            <IoDownloadOutline size={14} className="text-blue-500" />
-            <span className="text-blue-600 text-xs truncate max-w-[120px]">
-              {row.attachments[0].originalname.split('.').pop().toUpperCase()}
-            </span>
-          </div>
-        );
-      }
     }
   ];
 
@@ -485,7 +468,6 @@ const TimeTracker = () => {
                               "Date",
                               "Description",
                               "Hours",
-                              "Attachment",
                               "Actions",
                             ].map((heading) => (
                               <th
@@ -505,22 +487,6 @@ const TimeTracker = () => {
                                 <td className="p-4 text-slate-600 cursor-pointer" onClick={() => handleViewLog(item)}>{formatBackendDate(item.date)}</td>
                                 <td className="p-4 text-slate-600 cursor-pointer" onClick={() => handleViewLog(item)}>{item.description}</td>
                                 <td className="p-4 text-slate-700 font-medium cursor-pointer" onClick={() => handleViewLog(item)}>{item.hours}</td>
-                                <td className="p-4 text-slate-600">
-                                  {item.attachments?.[0]?.originalname ? (
-                                    <a
-                                      href={item.attachments[0].url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                                      onClick={(e) => e.stopPropagation()} // Prevent row click
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                      </svg>
-                                      {item.attachments[0].originalname}
-                                    </a>
-                                  ) : "-"}
-                                </td>
                                 <td className="p-4">
                                   <div className="flex gap-2">
                                     <button
@@ -554,7 +520,7 @@ const TimeTracker = () => {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan={7} className="p-8 text-center text-slate-500 text-sm">
+                              <td colSpan={6} className="p-8 text-center text-slate-500 text-sm">
                                 <div className="flex flex-col items-center gap-2">
                                   <svg className="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

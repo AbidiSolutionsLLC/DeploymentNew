@@ -249,36 +249,6 @@ const Timesheet = ({ refreshTrigger }) => {
       )
     },
     {
-      key: "attachments",
-      label: "Attachments",
-      sortable: false,
-      render: (row) => {
-        if (!row.attachments?.length) {
-          return <span className="text-slate-400 text-xs">No attachments</span>;
-        }
-        return (
-          <div className="flex flex-wrap gap-1">
-            {row.attachments.map((attachment, idx) => (
-              <button
-                key={attachment._id || idx}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  downloadAttachment(row._id, attachment._id, attachment.originalname);
-                }}
-                className="flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg text-xs text-slate-600 hover:bg-slate-200 transition-colors"
-                title={`Download ${attachment.originalname}`}
-              >
-                <IoDownloadOutline size={12} />
-                <span className="truncate max-w-[80px]">
-                  {attachment.originalname?.split('.').pop().toUpperCase() || "FILE"}
-                </span>
-              </button>
-            ))}
-          </div>
-        );
-      }
-    },
-    {
       key: "comments",
       label: "Comments",
       sortable: false,
@@ -288,9 +258,9 @@ const Timesheet = ({ refreshTrigger }) => {
           return <span className="text-slate-400 text-xs">No comments</span>;
         }
         return (
-          <div className="flex items-center gap-1 text-blue-600">
+          <div className="flex items-center justify-center text gap-1 text-blue-600">
             <FaCommentDots size={14} />
-            <span className="text-xs font-medium">{commentCount} comment{commentCount !== 1 ? 's' : ''}</span>
+            <span className="text-xs font-medium">{commentCount} {commentCount !== 1 ? 's' : ''}</span>
           </div>
         );
       }
