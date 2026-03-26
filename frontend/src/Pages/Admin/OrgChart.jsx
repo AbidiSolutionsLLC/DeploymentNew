@@ -4,6 +4,29 @@ import { FaUserTie, FaNetworkWired, FaIdBadge } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 const OrgNode = ({ node, onNodeClick }) => {
+  const getRoleColor = (role) => {
+    if (!role) return "from-gray-400 to-gray-500";
+  
+    const r = role.toLowerCase();
+  
+    if (r.includes("ceo") || r.includes("chief") || r.includes("executive")) {
+      return "from-amber-400 via-yellow-500 to-amber-600"; // Premium gold
+    }
+    if (r.includes("director") || r.includes("vp")) {
+      return "from-purple-500 to-indigo-600"; // Leadership purple
+    }
+    if (r.includes("manager") || r.includes("lead")) {
+      return "from-blue-500 to-cyan-500"; // Mid-level modern blue
+    }
+    if (r.includes("engineer") || r.includes("developer")) {
+      return "from-emerald-400 to-teal-500"; // Tech green
+    }
+    if (r.includes("hr") || r.includes("admin")) {
+      return "from-pink-400 to-rose-500"; // Soft admin tone
+    }
+  
+    return "from-gray-400 to-gray-500"; // Default fallback
+  };
   return (
     <div className="flex flex-col items-center">
 
@@ -15,8 +38,7 @@ const OrgNode = ({ node, onNodeClick }) => {
           className="relative flex flex-col items-center w-full bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
         >
           {/* Decorative Top Bar */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-
+          <div className={`h-1.5 w-full bg-gradient-to-r ${getRoleColor(node.designation || node.role)}`}></div>
           <div className="p-5 flex flex-col items-center w-full">
             {/* View Profile Badge (Visible on Hover) */}
             <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
