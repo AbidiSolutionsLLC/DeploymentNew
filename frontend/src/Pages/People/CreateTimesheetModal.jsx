@@ -4,7 +4,7 @@ import timeLogApi from "../../api/timeLogApi";
 import { toast } from "react-toastify";
 import { moment, TIMEZONE } from "../../utils/dateUtils"; // Use project's moment util
 
-export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated }) {
+export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated, selectedDate: propSelectedDate }) {
   const [timesheetName, setTimesheetName] = useState("");
   const [selectedDate, setSelectedDate] = useState(""); 
   const [description, setDescription] = useState("");
@@ -27,13 +27,20 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
 
   useEffect(() => {
     if (open) {
-      const todayStr = getTodayString();
-      setSelectedDate(todayStr);
+      let initialDate = getTodayString();
+      
+      // If a selectedDate was passed from parent (like a Date object or string)
+      if (propSelectedDate) {
+        // Ensure it's in YYYY-MM-DD format for the input[type=date]
+        initialDate = moment(propSelectedDate).format('YYYY-MM-DD');
+      }
+
+      setSelectedDate(initialDate);
       setDescription("");
       setAttachment(null);
       setLogs([]);
     }
-  }, [open]);
+  }, [open, propSelectedDate]);
 
   useEffect(() => {
     if (selectedDate) {

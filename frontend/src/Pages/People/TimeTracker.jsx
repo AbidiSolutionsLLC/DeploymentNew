@@ -101,12 +101,12 @@ const TimeTracker = () => {
     }
   }, [activeTab]);
 
-const handleTimesheetCreated = async () => {
-  if (activeTab === 1) {
-    setRefreshTimesheetTrigger(prev => prev + 1);
-  }
-  setIsCreateTimesheetModalOpen(false);
-};
+  const handleTimesheetCreated = async () => {
+    if (activeTab === 1) {
+      setRefreshTimesheetTrigger(prev => prev + 1);
+    }
+    setIsCreateTimesheetModalOpen(false);
+  };
 
 
   // Helper to safely parse backend date without timezone shift
@@ -246,7 +246,7 @@ const handleTimesheetCreated = async () => {
   };
 
 
-    const timeLogColumns = [
+  const timeLogColumns = [
     {
       key: "job",
       label: "Job Title",
@@ -285,7 +285,7 @@ const handleTimesheetCreated = async () => {
       sortable: false,
       render: (row) => {
         if (!row.attachments?.[0]?.originalname) return "-";
-        
+
         return (
           <div className="flex items-center gap-1">
             <IoDownloadOutline size={14} className="text-blue-500" />
@@ -325,20 +325,22 @@ const handleTimesheetCreated = async () => {
   ];
 
   // In the Time Logs section, replace the table with:
-  {!loading && !error && (
-    <TableWithPagination
-      columns={timeLogColumns}
-      data={filteredData}
-      loading={loading}
-      error={error}
-      emptyMessage={selectedDate
-        ? `No time logs found for ${formatDate(selectedDate)}`
-        : "No time logs found. Try selecting a different date or add a new time log."}
-      onRowClick={handleViewLog}
-      actions={timeLogActions}
-      rowsPerPage={5}
-    />
-  )}
+  {
+    !loading && !error && (
+      <TableWithPagination
+        columns={timeLogColumns}
+        data={filteredData}
+        loading={loading}
+        error={error}
+        emptyMessage={selectedDate
+          ? `No time logs found for ${formatDate(selectedDate)}`
+          : "No time logs found. Try selecting a different date or add a new time log."}
+        onRowClick={handleViewLog}
+        actions={timeLogActions}
+        rowsPerPage={5}
+      />
+    )
+  }
 
   return (
     <>
@@ -399,16 +401,16 @@ const handleTimesheetCreated = async () => {
                     <FaAngleLeft size={18} />
                   </button>
 
-                  <div className="relative" ref={calendarRef}>                   
-                  <button
-                    className="px-3 py-2 text-blue-800 bg-blue-100 rounded-lg flex items-center gap-2 hover:bg-blue-200 transition shadow-sm text-sm font-medium"
-                    onClick={() => setShowCalendar(!showCalendar)}
-                  >
-                    <IoCalendarNumberOutline size={18} />
-                    {selectedDate && (
-                      <span className="text-sm font-medium">{formatDate(selectedDate)}</span>
-                    )}
-                  </button>
+                  <div className="relative" ref={calendarRef}>
+                    <button
+                      className="px-3 py-2 text-blue-800 bg-blue-100 rounded-lg flex items-center gap-2 hover:bg-blue-200 transition shadow-sm text-sm font-medium"
+                      onClick={() => setShowCalendar(!showCalendar)}
+                    >
+                      <IoCalendarNumberOutline size={18} />
+                      {selectedDate && (
+                        <span className="text-sm font-medium">{formatDate(selectedDate)}</span>
+                      )}
+                    </button>
 
                     <AnimatePresence>
                       {showCalendar && (
@@ -465,111 +467,126 @@ const handleTimesheetCreated = async () => {
 
             {/* Time Logs Table */}
             {!loading && !error && (
-              <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 overflow-x-auto">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={selectedDate ? selectedDate.getTime() : 'all'}
-                    initial={{ x: 300, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: -300, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <table className="min-w-full text-sm border-separate border-spacing-0">
-                      <thead>
-                        <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                          {[
-                            "Job Title",
-                            "Date",
-                            "Description",
-                            "Hours",
-                            "Attachment",
-                            "Actions",
-                          ].map((heading) => (
-                            <th
-                              key={heading}
-                              className="p-4 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left"
-                            >
-                              {heading}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paginatedData.length ? (
-                          paginatedData.map((item, index) => (
-                            <tr key={item._id} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                              <td className="p-4 text-slate-700 font-medium cursor-pointer" onClick={() => handleViewLog(item)}>{item.job || "-"}</td>
-                              <td className="p-4 text-slate-600 cursor-pointer" onClick={() => handleViewLog(item)}>{formatBackendDate(item.date)}</td>
-                              <td className="p-4 text-slate-600 cursor-pointer" onClick={() => handleViewLog(item)}>{item.description}</td>
-                              <td className="p-4 text-slate-700 font-medium cursor-pointer" onClick={() => handleViewLog(item)}>{item.hours}</td>
-                              <td className="p-4 text-slate-600">
-                                {item.attachments?.[0]?.originalname ? (
-                                  <a
-                                    href={item.attachments[0].url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                                    onClick={(e) => e.stopPropagation()} // Prevent row click
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                    </svg>
-                                    {item.attachments[0].originalname}
-                                  </a>
-                                ) : "-"}
-                              </td>
-                              <td className="p-4">
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleViewLog(item)}
-                                    className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
-                                    title="View"
-                                  >
-                                    <IoEye size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setEditingLogId(item._id);
-                                      setModalMode("edit");
-                                      setIsAddTimeLogModalOpen(true);
-                                    }}
-                                    className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition"
-                                    title="Edit"
-                                  >
-                                    <IoPencil size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(item._id)}
-                                    className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
-                                    title="Delete"
-                                  >
-                                    <IoTrash size={16} />
-                                  </button>
+              <div>
+                <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 overflow-x-auto">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={selectedDate ? selectedDate.getTime() : 'all'}
+                      initial={{ x: 300, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: -300, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <table className="min-w-full text-sm border-separate border-spacing-0">
+                        <thead>
+                          <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
+                            {[
+                              "Job Title",
+                              "Date",
+                              "Description",
+                              "Hours",
+                              "Attachment",
+                              "Actions",
+                            ].map((heading) => (
+                              <th
+                                key={heading}
+                                className="p-4 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left"
+                              >
+                                {heading}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedData.length ? (
+                            paginatedData.map((item, index) => (
+                              <tr key={item._id} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
+                                <td className="p-4 text-slate-700 font-medium cursor-pointer" onClick={() => handleViewLog(item)}>{item.job || "-"}</td>
+                                <td className="p-4 text-slate-600 cursor-pointer" onClick={() => handleViewLog(item)}>{formatBackendDate(item.date)}</td>
+                                <td className="p-4 text-slate-600 cursor-pointer" onClick={() => handleViewLog(item)}>{item.description}</td>
+                                <td className="p-4 text-slate-700 font-medium cursor-pointer" onClick={() => handleViewLog(item)}>{item.hours}</td>
+                                <td className="p-4 text-slate-600">
+                                  {item.attachments?.[0]?.originalname ? (
+                                    <a
+                                      href={item.attachments[0].url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                      onClick={(e) => e.stopPropagation()} // Prevent row click
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                      </svg>
+                                      {item.attachments[0].originalname}
+                                    </a>
+                                  ) : "-"}
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleViewLog(item)}
+                                      className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                                      title="View"
+                                    >
+                                      <IoEye size={16} />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditingLogId(item._id);
+                                        setModalMode("edit");
+                                        setIsAddTimeLogModalOpen(true);
+                                      }}
+                                      className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition"
+                                      title="Edit"
+                                    >
+                                      <IoPencil size={16} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(item._id)}
+                                      className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
+                                      title="Delete"
+                                    >
+                                      <IoTrash size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={7} className="p-8 text-center text-slate-500 text-sm">
+                                <div className="flex flex-col items-center gap-2">
+                                  <svg className="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <p className="text-sm font-medium text-slate-500">
+                                    {selectedDate
+                                      ? `No time logs found for ${formatDate(selectedDate)}`
+                                      : "No time logs found"}
+                                  </p>
+                                  <p className="text-xs text-slate-400">Try selecting a different date or add a new time log</p>
                                 </div>
                               </td>
                             </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={7} className="p-8 text-center text-slate-500 text-sm">
-                              <div className="flex flex-col items-center gap-2">
-                                <svg className="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <p className="text-sm font-medium text-slate-500">
-                                  {selectedDate
-                                    ? `No time logs found for ${formatDate(selectedDate)}`
-                                    : "No time logs found"}
-                                </p>
-                                <p className="text-xs text-slate-400">Try selecting a different date or add a new time log</p>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </motion.div>
-                </AnimatePresence>
+                          )}
+                        </tbody>
+                      </table>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>    
+              <div className="mt-6 flex justify-center sm:justify-end pb-8">
+                 <button
+                  onClick={() => setIsCreateTimesheetModalOpen(true)}
+                  className="group relative flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.15em] shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-300/60 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <svg className="w-5 h-5 text-blue-300 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Create Timesheet for this date</span>
+                </button>
+              </div>
+            
               </div>
             )}
           </>
