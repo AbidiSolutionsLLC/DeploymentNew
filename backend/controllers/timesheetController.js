@@ -164,21 +164,36 @@ exports.getTimesheetById = catchAsync(async (req, res) => {
 // --- 5. UPDATE STATUS ---
 exports.updateTimesheetStatus = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const { status, approvedHours } = req.body;
+  const { status, approvedHours, comment } = req.body;
   const timesheet = await Timesheet.findById(id).populate('employee', 'name email');
   if (!timesheet) throw new NotFoundError("Timesheet");
 
   timesheet.status = status;
   if (approvedHours !== undefined) timesheet.approvedHours = approvedHours;
+  
+  // Add comment if provided
+  if (comment && comment.trim()) {
+    const newComment = {
+      author: req.user?.name || "Unknown",
+      authorId: req.user?.id || req.user?._id,
+      content: comment.trim(),
+      time: new Date(),
+      avatar: req.user?.avatar || ""
+    };
+    timesheet.comments.push(newComment);
+  }
+  
   const updatedTimesheet = await timesheet.save();
 
   if (timesheet.employee?.email) {
     const statusColor = status === 'Approved' ? '#2e7d32' : '#c62828';
+    const commentSection = comment ? `<p><strong>Comment:</strong> ${comment}</p>` : '';
     const emailBody = `
       <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
         <h2 style="color: ${statusColor};">Timesheet ${status}</h2>
         <p>Hello <strong>${timesheet.employee.name}</strong>, your timesheet for ${new Date(timesheet.date).toDateString()} was reviewed.</p>
         <p><strong>Status:</strong> ${status}</p>
+        ${commentSection}
       </div>`;
     sendEmail(timesheet.employee.email, `Timesheet Update: ${status}`, emailBody).catch(console.error);
   }
@@ -243,4 +258,30 @@ exports.downloadAttachment = catchAsync(async (req, res) => {
     return res.redirect(downloadUrl);
   }
   return res.redirect(attachment.url);
+});
+
+// --- 7. ADD COMMENT TO TIMESHEET ---
+exports.addTimesheetComment = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { content } = req.body;
+
+  if (!content || !content.trim()) {
+    throw new BadRequestError("Comment content is required");
+  }
+
+  const timesheet = await Timesheet.findById(id);
+  if (!timesheet) throw new NotFoundError("Timesheet");
+
+  const newComment = {
+    author: req.user?.name || "Unknown",
+    authorId: req.user?.id || req.user?._id,
+    content: content.trim(),
+    time: new Date(),
+    avatar: req.user?.avatar || ""
+  };
+
+  timesheet.comments.push(newComment);
+  await timesheet.save();
+
+  res.status(200).json(timesheet);
 });

@@ -53,6 +53,27 @@ const timesheetSchema = new mongoose.Schema(
         blobName: String
       },
     ],
+    comments: [
+      {
+        author: {
+          type: String,
+          required: true,
+        },
+        authorId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        content: {
+          type: String,
+          required: true,
+        },
+        time: {
+          type: Date,
+          default: Date.now,
+        },
+        avatar: String,
+      },
+    ],
   },
   {
     timestamps: true,

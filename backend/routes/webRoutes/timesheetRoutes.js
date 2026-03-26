@@ -24,6 +24,8 @@ router
 
 router.put("/:id/status", isLoggedIn, timesheetController.updateTimesheetStatus);
 
+router.post("/:id/comment", isLoggedIn, timesheetController.addTimesheetComment);
+
 router.get('/:id/attachments/:attachmentId/download', 
   isLoggedIn, 
   timesheetController.downloadAttachment

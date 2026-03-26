@@ -1,28 +1,33 @@
 import React, { useState } from "react";
-import { FaTimes } from "react-icons/fa";
+import { FaPaperPlane } from "react-icons/fa";
+import { toast } from "react-toastify";
+import { format } from "date-fns";
+import api from "../axios";
 
-const ApproveTimesheetViewModal = ({ 
-  timesheet, 
-  onClose, 
-  onApprove, 
-  onReject,
-  loading,
-  isApprovedTab = false 
-}) => {
-  const [approvedHours, setApprovedHours] = useState(timesheet?.submittedHours || 0);
-  const [comment, setComment] = useState("");
-  
+const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdded }) => {
+  const [timesheet, setTimesheet] = useState(initialTimesheet);
+  const [commentText, setCommentText] = useState("");
+  const [sending, setSending] = useState(false);
+
   if (!timesheet) return null;
 
-  const handleApprove = () => {
-    if (onApprove) {
-      onApprove(timesheet._id, approvedHours, comment);
-    }
-  };
-
-  const handleReject = () => {
-    if (onReject) {
-      onReject(timesheet._id, comment);
+  const handleSendComment = async () => {
+    if (!commentText.trim()) return;
+    setSending(true);
+    try {
+      const { data: updatedTimesheet } = await api.post(`/timesheets/${timesheet._id}/comment`, {
+        content: commentText
+      });
+      
+      setTimesheet(updatedTimesheet);
+      setCommentText("");
+      toast.success("Comment sent!");
+      if (onCommentAdded) onCommentAdded(updatedTimesheet);
+    } catch (error) {
+      console.error("Failed to send comment:", error);
+      toast.error("Failed to send comment");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -48,7 +53,7 @@ const ApproveTimesheetViewModal = ({
         {/* HEADER */}
         <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
           <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
-            {isApprovedTab ? "APPROVED TIMESHEET DETAILS" : "TIMESHEET APPROVAL"}
+            TIMESHEET DETAILS
           </h2>
           <div className="flex items-center justify-center gap-3 mt-2">
             <p className="text-sm text-slate-500">{timesheet.name}</p>
@@ -59,7 +64,7 @@ const ApproveTimesheetViewModal = ({
         </div>
 
         {/* CONTENT */}
-        <div className="p-6 sm:p-10 space-y-6 overflow-y-auto custom-scrollbar">
+        <div className="p-6 sm:p-10 space-y-6 overflow-y-auto custom-scrollbar flex-1">
           {/* BASIC INFO */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -88,54 +93,13 @@ const ApproveTimesheetViewModal = ({
             </div>
             <div>
               <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-                {isApprovedTab ? "APPROVED HOURS" : "CURRENT APPROVED HOURS"}
+                APPROVED HOURS
               </label>
               <p className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium">
                 {timesheet.approvedHours || 0}
               </p>
             </div>
           </div>
-
-          {/* APPROVE HOURS INPUT (Only for pending timesheets in pending tab) */}
-          {!isApprovedTab && timesheet.status === "Pending" && (
-            <>
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-                  APPROVE HOURS*
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  max={timesheet.submittedHours}
-                  value={approvedHours}
-                  onChange={(e) => setApprovedHours(parseFloat(e.target.value))}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
-                  placeholder="Enter approved hours"
-                />
-                <p className="text-xs text-slate-400 mt-1">
-                  Adjust hours if needed (max: {timesheet.submittedHours}h)
-                </p>
-              </div>
-
-              {/* COMMENT FIELD */}
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-                  COMMENT (OPTIONAL)
-                </label>
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium resize-none"
-                  placeholder="Add a comment about this approval/rejection..."
-                  rows="3"
-                />
-                <p className="text-xs text-slate-400 mt-1">
-                  This comment will be sent to the employee
-                </p>
-              </div>
-            </>
-          )}
 
           {/* DESCRIPTION */}
           <div>
@@ -192,48 +156,72 @@ const ApproveTimesheetViewModal = ({
               </div>
             </div>
           )}
+
+          {/* DISCUSSION SECTION */}
+          <div className="border-t border-slate-200 pt-6">
+            <label className="block text-[10px] font-black text-slate-400 mb-4 uppercase tracking-widest">
+              DISCUSSION
+            </label>
+            
+            {/* Message List */}
+            <div className="space-y-4 mb-4">
+              {timesheet.comments?.length > 0 ? (
+                timesheet.comments.map((comment, i) => (
+                  <div key={i} className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                          {comment.author.charAt(0)}
+                        </div>
+                        <span className="text-xs font-bold text-slate-800">{comment.author}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {format(new Date(comment.time), "MMM dd, HH:mm")}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600 pl-8">{comment.content}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-xs text-slate-400 italic py-4">No comments yet.</p>
+              )}
+            </div>
+
+            {/* Input Section */}
+            <div className="relative">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Type your reply..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none h-14"
+              />
+              <button
+                onClick={handleSendComment}
+                disabled={sending || !commentText.trim()}
+                className="absolute right-2 top-2 p-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-all"
+              >
+                {sending ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <FaPaperPlane />
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* FOOTER */}
         <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
-          {!isApprovedTab && timesheet.status === "Pending" ? (
-            <>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-3 sm:py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
-              >
-                CANCEL
-              </button>
-              <button
-                onClick={handleReject}
-                disabled={loading}
-                className="flex-1 py-3 sm:py-4 bg-red-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-red-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
-              >
-                {loading ? "PROCESSING..." : "REJECT"}
-              </button>
-              <button
-                onClick={handleApprove}
-                disabled={loading || approvedHours <= 0}
-                className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
-              >
-                {loading ? "PROCESSING..." : "APPROVE"}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={onClose}
-                className="w-full py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all"
-              >
-                CLOSE
-              </button>
-            </>
-          )}
+          <button
+            onClick={onClose}
+            className="w-full py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all"
+          >
+            CLOSE
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default ApproveTimesheetViewModal;
+export default ViewTimesheetModal;

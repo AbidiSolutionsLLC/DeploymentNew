@@ -573,20 +573,20 @@ const TimeTracker = () => {
                       </table>
                     </motion.div>
                   </AnimatePresence>
-                </div>    
-              <div className="mt-6 flex justify-center sm:justify-end pb-8">
-                 <button
-                  onClick={() => setIsCreateTimesheetModalOpen(true)}
-                  className="group relative flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.15em] shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-300/60 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <svg className="w-5 h-5 text-blue-300 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Create Timesheet for this date</span>
-                </button>
-              </div>
-            
+                </div>
+                <div className="mt-6 flex justify-center sm:justify-end pb-8">
+                  <button
+                    onClick={() => setIsCreateTimesheetModalOpen(true)}
+                    className="group relative flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.15em] shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-300/60 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <svg className="w-5 h-5 text-blue-300 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Create Timesheet for this date</span>
+                  </button>
+                </div>
+
               </div>
             )}
           </>

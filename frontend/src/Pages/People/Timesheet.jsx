@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { IoCalendarNumberOutline, IoDownloadOutline } from "react-icons/io5";
-import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
+import { FaAngleLeft, FaAngleRight, FaEye, FaCommentDots } from "react-icons/fa";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
 import TableWithPagination from "../../Components/TableWithPagination";
+import ViewTimesheetModal from "../../Components/ViewTimesheetModal";
 import { moment, TIMEZONE } from "../../utils/dateUtils";
 
 const Timesheet = ({ refreshTrigger }) => {
   const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedTimesheet, setSelectedTimesheet] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
   
   function getMonday(date) {
     const d = new Date(date);
@@ -156,6 +159,27 @@ const Timesheet = ({ refreshTrigger }) => {
     }
   };
 
+  const handleViewDetails = async (timesheet) => {
+    try {
+      const detailedTimesheet = await timesheetApi.getTimesheetById(timesheet._id);
+      setSelectedTimesheet(detailedTimesheet);
+      setShowViewModal(true);
+    } catch (error) {
+      console.error("Failed to fetch timesheet details:", error);
+      toast.error("Failed to load details");
+    }
+  };
+
+  const handleCommentAdded = (updatedTimesheet) => {
+    // Update the timesheet in the list
+    setWeeklyData(prev => ({
+      ...prev,
+      timesheets: prev.timesheets.map(ts => 
+        ts._id === updatedTimesheet._id ? updatedTimesheet : ts
+      )
+    }));
+  };
+
   // FIX: Display date as UTC to match backend storage
   const formatTimesheetDate = (date) => {
     const dateObj = ensureDate(date);
@@ -253,6 +277,32 @@ const Timesheet = ({ refreshTrigger }) => {
           </div>
         );
       }
+    },
+    {
+      key: "comments",
+      label: "Comments",
+      sortable: false,
+      render: (row) => {
+        const commentCount = row.comments?.length || 0;
+        if (commentCount === 0) {
+          return <span className="text-slate-400 text-xs">No comments</span>;
+        }
+        return (
+          <div className="flex items-center gap-1 text-blue-600">
+            <FaCommentDots size={14} />
+            <span className="text-xs font-medium">{commentCount} comment{commentCount !== 1 ? 's' : ''}</span>
+          </div>
+        );
+      }
+    }
+  ];
+
+  const tableActions = [
+    {
+      icon: <FaEye size={14} />,
+      title: "View Details",
+      className: "bg-blue-50 text-blue-600 hover:bg-blue-100",
+      onClick: (row) => handleViewDetails(row)
     }
   ];
 
@@ -365,6 +415,8 @@ const Timesheet = ({ refreshTrigger }) => {
                 error={error}
                 emptyMessage={`No timesheets for ${formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}`}
                 rowsPerPage={5}
+                actions={tableActions}
+                onRowClick={(row) => handleViewDetails(row)}
                 renderTable={(data) => (
                   <table className="min-w-full text-sm border-separate border-spacing-0">
                     <thead>
@@ -396,6 +448,18 @@ const Timesheet = ({ refreshTrigger }) => {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* View Details Modal */}
+      {showViewModal && selectedTimesheet && (
+        <ViewTimesheetModal
+          timesheet={selectedTimesheet}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedTimesheet(null);
+          }}
+          onCommentAdded={handleCommentAdded}
+        />
+      )}
     </>
   );
 };

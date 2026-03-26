@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { IoCalendarNumberOutline } from "react-icons/io5";
-import { FaAngleLeft, FaAngleRight, FaEye } from "react-icons/fa";
+import { FaAngleLeft, FaAngleRight, FaEye, FaCommentDots } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -162,11 +162,12 @@ const ApproveTimesheets = () => {
     }
   };
 
-  const handleStatusChange = async (timesheetId, status, approvedHours = null) => {
+  const handleStatusChange = async (timesheetId, status, approvedHours = null, comment = "") => {
     setUpdating(true);
     try {
       const updateData = { status };
       if (approvedHours !== null) updateData.approvedHours = approvedHours;
+      if (comment && comment.trim()) updateData.comment = comment.trim();
 
       await timesheetApi.updateTimesheetStatus(timesheetId, updateData);
       
@@ -184,8 +185,8 @@ const ApproveTimesheets = () => {
     }
   };
 
-  const handleApprove = (timesheetId, approvedHours) => handleStatusChange(timesheetId, "Approved", approvedHours);
-  const handleReject = (timesheetId) => handleStatusChange(timesheetId, "Rejected", 0);
+  const handleApprove = (timesheetId, approvedHours, comment) => handleStatusChange(timesheetId, "Approved", approvedHours, comment);
+  const handleReject = (timesheetId, comment) => handleStatusChange(timesheetId, "Rejected", 0, comment);
 
   // Update tabs counts dynamically based on fetched data
   tabs[0].count = weeklyData.timesheets?.length || 0;
@@ -287,6 +288,23 @@ const ApproveTimesheets = () => {
           {row.status || "Pending"}
         </span>
       )
+    },
+    {
+      key: "comments",
+      label: "Comments",
+      sortable: false,
+      render: (row) => {
+        const commentCount = row.comments?.length || 0;
+        if (commentCount === 0) {
+          return <span className="text-slate-400 text-xs">No comments</span>;
+        }
+        return (
+          <div className="flex items-center gap-1 text-blue-600">
+            <FaCommentDots size={14} />
+            <span className="text-xs font-medium">{commentCount} comment{commentCount !== 1 ? 's' : ''}</span>
+          </div>
+        );
+      }
     }
   ];
 
