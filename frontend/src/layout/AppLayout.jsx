@@ -11,16 +11,16 @@ import {
   Bars3Icon,
   XMarkIcon
 } from "@heroicons/react/24/solid";
+import NotificationModal from "../Components/Notification";
 
 const AppLayout = () => {
   const [isRightBarOpen, setRightBarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const settingsRef = useRef(null);
   const location = useLocation();
 
   // --- THE FIX IS HERE ---
-  // We treat 'people', 'leave', 'file', and 'faq' as part of the same portal
   const isPeoplePortal = ["/people", "/leave", "/file", "/faq"].some(path =>
     location.pathname.startsWith(path)
   );
@@ -54,7 +54,7 @@ const AppLayout = () => {
 
   return (
     <div className="flex flex-col h-screen w-full bg-[#CDD9EA] font-sans overflow-hidden">
-
+      <NotificationModal isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} />
       {/* --- MOBILE HEADER --- */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-[#CDD9EA] z-50 shrink-0">
         <div className="flex items-center gap-2">
@@ -101,8 +101,9 @@ const AppLayout = () => {
 
             {/* NavBarVertical */}
             <div className="flex items-center h-full">
-              <NavBarVertical />
+              <NavBarVertical onNotificationClick={() => setIsNotificationOpen(true)} />
             </div>
+
             {/* SubNavbarVertical */}
             <div className="flex items-center h-full">
               <SubNavbarVertical />
@@ -131,4 +132,4 @@ const AppLayout = () => {
   );
 };
 
-export default AppLayout;
+export default AppLayout; 

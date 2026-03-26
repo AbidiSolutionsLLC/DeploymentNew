@@ -1,15 +1,16 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { 
-  UserGroupIcon, 
-  SquaresPlusIcon, 
+import {
+  UserGroupIcon,
+  SquaresPlusIcon,
   AdjustmentsHorizontalIcon,
+  BellIcon
 } from "@heroicons/react/24/solid";
 import { useState, useEffect } from "react";
-import api from "../axios"; 
+import api from "../axios";
 
-const NavBarVertical = () => {
+const NavBarVertical = ({ onNotificationClick }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
-  const [user, setUser] = useState(null); 
+  const [user, setUser] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -30,30 +31,19 @@ const NavBarVertical = () => {
   };
 
   const navLinks = [
-    { 
-      name: "People", 
-      to: "/people", 
-      icon: UserGroupIcon, 
-      show: true 
-    },
-    { 
-      name: "Project", 
-      to: "/project", 
-      icon: SquaresPlusIcon, 
-      show: true 
-    },
-    { 
-      name: "Admin", 
-      to: "/admin", 
-      icon: AdjustmentsHorizontalIcon, 
-      // Requirement 1: Employee & Tech won't see this.
-      show: hasRole(["Super Admin", "Admin", "HR", "Manager"]) 
-    },
+    { name: "People", to: "/people", icon: UserGroupIcon, show: true },
+    { name: "Project", to: "/project", icon: SquaresPlusIcon, show: true },
+    {
+      name: "Admin",
+      to: "/admin",
+      icon: AdjustmentsHorizontalIcon,
+      show: hasRole(["Super Admin", "Admin", "HR", "Manager"])
+    }
   ];
 
   const isLinkActive = (item) => {
     if (item.name === "People") {
-      return ["/people", "/leave", "/file", "/faq"].some(path => 
+      return ["/people", "/leave", "/file", "/faq"].some(path =>
         location.pathname.startsWith(path)
       );
     }
@@ -61,7 +51,22 @@ const NavBarVertical = () => {
   };
 
   return (
-    <nav className="w-[2.75rem] flex flex-col items-end gap-2 mt-8 bg-transparent z-20">
+    <>
+    <div className="absolute top-4 left-0">
+        <button
+          onClick={onNotificationClick}
+          className="w-10 h-10 flex items-center justify-center 
+          bg-white shadow-md rounded-xl 
+          hover:bg-slate-100 transition"
+        >
+          <BellIcon className="w-5 h-5 text-slate-700" />
+        </button>
+      </div>
+    <nav className="w-[2.75rem] flex flex-col items-end gap-2 mt-8 bg-transparent z-20 relative">
+
+      {/* 🔔 NOTIFICATION ICON */}
+      
+
       {navLinks.filter(item => item.show).map((item) => {
         const active = isLinkActive(item);
 
@@ -87,16 +92,13 @@ const NavBarVertical = () => {
               bg-slate-800 text-white text-xs font-medium rounded-lg shadow-lg 
               whitespace-nowrap z-[9999] animate-fadeIn pointer-events-none">
                 {item.name}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full 
-                w-0 h-0 border-l-4 border-r-4 border-b-4 
-                border-transparent border-b-slate-800">
-                </div>
               </div>
             )}
           </div>
         );
       })}
     </nav>
+    </>
   );
 };
 

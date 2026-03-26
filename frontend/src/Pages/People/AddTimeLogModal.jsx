@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import timeLogApi from "../../api/timeLogApi";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
@@ -14,7 +14,19 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
   const [isLoading, setIsLoading] = useState(false);
   
   const modalRef = useRef(null);
-
+  const resetForm = () => {
+    setJobTitle("");
+    setDate(null);
+    setHours("");
+    setDescription("");
+    setAttachment(null);
+    setLogs([]);
+  };
+  useEffect(() => {
+    if (!isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
   // Validation
   const isJobTitleValid = jobTitle.trim().length >= 3;
   const isDateValid = Boolean(date);

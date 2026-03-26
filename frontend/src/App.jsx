@@ -44,6 +44,7 @@ import ComingSoon from "./Pages/Projects/ComingSoon";
 import OrgChartPage from "./Pages/Admin/OrgChart";
 import AssignedTickets from "./Pages/People/AssignedTickets";
 import AdminAttendance from "./Pages/Admin/AdminAttendance";
+import ExpenseManagement from "./Pages/Admin/ExpenseManagement";
 
 
 function App() {
@@ -135,6 +136,7 @@ function App() {
             <Route path="assign-ticket" element={<AdminTickets />} />
             <Route path="assign-ticket/:ticketId" element={<AssignTicket />} />
             <Route path="attendance" element={<AdminAttendance />} />
+            <Route path="ExpenseManagement" element={<ExpenseManagement />} />
           </Route>
         </Route>
       </Routes>
