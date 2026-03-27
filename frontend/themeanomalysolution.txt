@@ -1,1 +1,0 @@
-change this bg-card-surface/90 to bg-card-surface and on some cards to differ from its background apply bg-app

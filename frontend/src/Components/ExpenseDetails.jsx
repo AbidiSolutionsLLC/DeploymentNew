@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Download, CheckCircle, XCircle, Edit2, Trash2, Calendar, User, DollarSign, Tag } from "lucide-react";
+import { X, Download, CheckCircle, XCircle, Edit2, Trash2, Calendar, User, DollarSign, Tag, AlertCircle } from "lucide-react";
 import { toast } from "react-toastify";
 
 const ExpenseDetail = ({

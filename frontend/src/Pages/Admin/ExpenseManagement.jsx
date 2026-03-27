@@ -84,7 +84,7 @@ const ExpenseManagement = () => {
   const fetchExpenses = async () => {
     try {
       const res = await api.get("/expenses/");
-      const sortedExpenses = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const sortedExpenses = res.data.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setExpenses(sortedExpenses);
     } catch (error) {
         console.error("get expenses Error//////////////////////////////////////:", error.response?.data);
@@ -104,7 +104,7 @@ const ExpenseManagement = () => {
       toast.success("Expense approved successfully");
       await fetchExpenses();
       if (selectedExpense?._id === expenseId) {
-        setSelectedExpense(res.data);
+        setSelectedExpense(res.data.data);
       }
     } catch (error) {
       toast.error(error.response?.data?.msg || "Failed to approve expense");
@@ -122,7 +122,7 @@ const ExpenseManagement = () => {
       toast.success("Expense rejected");
       await fetchExpenses();
       if (selectedExpense?._id === expenseId) {
-        setSelectedExpense(res.data);
+        setSelectedExpense(res.data.data);
       }
       setIsEditModalOpen(false);
     } catch (error) {
@@ -175,7 +175,7 @@ const ExpenseManagement = () => {
       await fetchExpenses();
       
       if (selectedExpense?._id === editingExpense._id) {
-        setSelectedExpense(res.data);
+        setSelectedExpense(res.data.data);
       }
     } catch (error) {
       toast.error(error.response?.data?.msg || "Failed to update expense");
@@ -280,7 +280,6 @@ const ExpenseManagement = () => {
         </div>
         
         <div className="flex items-center gap-3">
-  {!isManager && (
     <button
       onClick={() => setIsSubmitModalOpen(true)}
       className="flex items-center gap-2 px-4 py-2.5 
@@ -291,7 +290,6 @@ const ExpenseManagement = () => {
     >
       <Upload size={16} /> Submit Expense
     </button>
-  )}
   
   <button
     onClick={handleDownload}

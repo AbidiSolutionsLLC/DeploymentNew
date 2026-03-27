@@ -1,52 +1,10 @@
 const Expense = require("../models/Expense");
 const User = require("../models/userSchema");
 const catchAsync = require("../utils/catchAsync");
-const { BadRequestError, NotFoundError, UnauthorizedError } = require("../utils/ExpressError");
+const { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } = require("../utils/ExpressError");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-
-// ============================================
-// FILE UPLOAD CONFIGURATION
-// ============================================
-
-// Ensure upload directory exists
-const uploadDir = "./uploads/receipts";
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `receipt-${uniqueSuffix}${ext}`);
-  },
-});
-
-// File filter
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|pdf/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (mimetype && extname) {
-    return cb(null, true);
-  } else {
-    cb(new AppError("Only images and PDF files are allowed", 400));
-  }
-};
-
-// Multer upload middleware
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: fileFilter,
-}).single("receipt");
 
 // ============================================
 // EXPENSE CONTROLLERS
@@ -56,56 +14,41 @@ const upload = multer({
 // @route   POST /api/web/expenses
 // @access  Private (Manager only)
 exports.createExpense = catchAsync(async (req, res, next) => {
-  // Handle file upload with multer
-  upload(req, res, async (err) => {
-    if (err) {
-      return next(new AppError(err.message, 400));
-    }
+  if (!req.file) {
+    throw new BadRequestError("Receipt is required");
+  }
 
-    if (!req.file) {
-      return next(new AppError("Receipt is required", 400));
-    }
+  const { title, description, amount, category } = req.body;
 
-    try {
-      const { title, description, amount, category } = req.body;
+  // Validation
+  if (!title || !amount || !category) {
+    // Delete uploaded file if validation fails
+    if (req.file) fs.unlinkSync(req.file.path);
+    throw new BadRequestError("Please provide all required fields");
+  }
 
-      // Validation
-      if (!title || !amount || !category) {
-        // Delete uploaded file if validation fails
-        fs.unlinkSync(req.file.path);
-        return next(new AppError("Please provide all required fields", 400));
-      }
+  // Get user name
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    throw new NotFoundError("User");
+  }
 
-      // Get user name
-      const user = await User.findById(req.user._id);
-      if (!user) {
-        fs.unlinkSync(req.file.path);
-        return next(new AppError("User not found", 404));
-      }
+  // Create expense
+  const expense = await Expense.create({
+    title,
+    description: description || "",
+    amount: parseFloat(amount),
+    category,
+    receiptUrl: `/uploads/receipts/${req.file.filename}`,
+    receiptPublicId: req.file.filename,
+    submittedBy: req.user._id,
+    submittedByName: user.name,
+  });
 
-      // Create expense
-      const expense = await Expense.create({
-        title,
-        description: description || "",
-        amount: parseFloat(amount),
-        category,
-        receiptUrl: `/uploads/receipts/${req.file.filename}`,
-        receiptPublicId: req.file.filename,
-        submittedBy: req.user._id,
-        submittedByName: user.name,
-      });
-
-      res.status(201).json({
-        success: true,
-        data: expense,
-      });
-    } catch (error) {
-      // Delete uploaded file if expense creation fails
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
-      }
-      return next(error);
-    }
+  res.status(201).json({
+    success: true,
+    data: expense,
   });
 });
 
@@ -113,36 +56,22 @@ exports.createExpense = catchAsync(async (req, res, next) => {
 // @route   GET /api/web/expenses
 // @access  Private
 exports.getAllExpenses = catchAsync(async (req, res, next) => {
-    try{
   let query;
-  console.log(req.user, "req.user");
-  // Check user role
+  
   if (req.user.role === "manager") {
-    // Managers see only their own expenses
     query = Expense.find({ submittedBy: req.user.id });
   } else {
-    // Admins and Superadmins see all
     query = Expense.find();
   }
-console.log(query, "hammad//////////////////////")
-  // Sort by newest first
-  query = query.sort("-createdAt");
 
+  query = query.sort("-createdAt");
   const expenses = await query;
-console.log(expenses, "expenses");
-console.log(query, "query");
-return res.status(200).json({
+
+  res.status(200).json({
     success: true,
     count: expenses.length,
     data: expenses,
   });
-}catch(error){
-  console.error("getAllExpenses Error//////////////////////////////////////:", error);
-  return res.status(500).json({
-    success: false,
-    message: "Internal Server Error",
-  });
-}
 });
 
 // @desc    Get pending expenses (for admin approval)
@@ -151,7 +80,7 @@ return res.status(200).json({
 exports.getPendingExpenses = catchAsync(async (req, res, next) => {
   // Check if user has admin privileges
   if (req.user.role === "manager") {
-    return next(new AppError("You do not have permission to access this resource", 403));
+    throw new ForbiddenError("You do not have permission to access this resource");
   }
 
   const expenses = await Expense.find({ status: "pending" }).sort("-createdAt");
@@ -183,12 +112,12 @@ exports.getExpenseById = catchAsync(async (req, res, next) => {
   const expense = await Expense.findById(req.params.id);
 
   if (!expense) {
-    return next(new AppError("Expense not found", 404));
+    throw new NotFoundError("Expense");
   }
 
   // Check if manager owns this expense
   if (req.user.role === "manager" && expense.submittedBy._id.toString() !== req.user._id.toString()) {
-    return next(new AppError("You do not have permission to view this expense", 403));
+    throw new ForbiddenError("You do not have permission to view this expense");
   }
 
   res.status(200).json({
@@ -204,7 +133,7 @@ exports.updateExpense = catchAsync(async (req, res, next) => {
   const expense = await Expense.findById(req.params.id);
 
   if (!expense) {
-    return next(new AppError("Expense not found", 404));
+    throw new NotFoundError("Expense");
   }
 
   // Check permissions
@@ -213,7 +142,7 @@ exports.updateExpense = catchAsync(async (req, res, next) => {
   const isPending = expense.status === "pending";
 
   if (!isSuperAdmin && !(isOwner && isPending)) {
-    return next(new AppError("You do not have permission to update this expense", 403));
+    throw new ForbiddenError("You do not have permission to update this expense");
   }
 
   // Fields that can be updated
@@ -259,17 +188,17 @@ exports.updateExpense = catchAsync(async (req, res, next) => {
 exports.approveExpense = catchAsync(async (req, res, next) => {
   // Check if user has admin privileges
   if (req.user.role === "manager") {
-    return next(new AppError("You do not have permission to approve expenses", 403));
+    throw new ForbiddenError("You do not have permission to approve expenses");
   }
 
   const expense = await Expense.findById(req.params.id);
 
   if (!expense) {
-    return next(new AppError("Expense not found", 404));
+    throw new NotFoundError("Expense");
   }
 
   if (expense.status !== "pending") {
-    return next(new AppError("This expense has already been processed", 400));
+    throw new BadRequestError("This expense has already been processed");
   }
 
   expense.status = "approved";
@@ -291,23 +220,23 @@ exports.approveExpense = catchAsync(async (req, res, next) => {
 exports.rejectExpense = catchAsync(async (req, res, next) => {
   // Check if user has admin privileges
   if (req.user.role === "manager") {
-    return next(new AppError("You do not have permission to reject expenses", 403));
+    throw new ForbiddenError("You do not have permission to reject expenses");
   }
 
   const { reason } = req.body;
 
   if (!reason) {
-    return next(new AppError("Rejection reason is required", 400));
+    throw new BadRequestError("Rejection reason is required");
   }
 
   const expense = await Expense.findById(req.params.id);
 
   if (!expense) {
-    return next(new AppError("Expense not found", 404));
+    throw new NotFoundError("Expense");
   }
 
   if (expense.status !== "pending") {
-    return next(new AppError("This expense has already been processed", 400));
+    throw new BadRequestError("This expense has already been processed");
   }
 
   expense.status = "rejected";
@@ -328,7 +257,7 @@ exports.deleteExpense = catchAsync(async (req, res, next) => {
   const expense = await Expense.findById(req.params.id);
 
   if (!expense) {
-    return next(new AppError("Expense not found", 404));
+    throw new NotFoundError("Expense");
   }
 
   // Check permissions
@@ -337,7 +266,7 @@ exports.deleteExpense = catchAsync(async (req, res, next) => {
   const isPending = expense.status === "pending";
 
   if (!isSuperAdmin && !(isOwner && isPending)) {
-    return next(new AppError("You do not have permission to delete this expense", 403));
+    throw new ForbiddenError("You do not have permission to delete this expense");
   }
 
   // Delete receipt file
@@ -362,7 +291,7 @@ exports.deleteExpense = catchAsync(async (req, res, next) => {
 exports.getExpenseStats = catchAsync(async (req, res, next) => {
   // Check if user has admin privileges
   if (req.user.role === "manager") {
-    return next(new AppError("You do not have permission to view statistics", 403));
+    throw new ForbiddenError("You do not have permission to view statistics");
   }
 
   const stats = await Expense.aggregate([
