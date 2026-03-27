@@ -70,39 +70,13 @@ router.delete("/leaves/:id", catchAsync(leaveController.deleteLeaveRequest));
 router.put("/leaves/:id/status", catchAsync(leaveController.updateLeaveStatus));
 router.patch("/updateLeaveStatus/:id", catchAsync(leaveController.updateLeaveStatus));
 
-// --- Notification Routes ---
-// IMPORTANT: /mark-all-read and /unread-count must be declared BEFORE /:id routes
-router.get("/notifications/stream", isLoggedIn, (req, res) => {
-  const userId = (req.user._id || req.user.id).toString();
-
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-  res.flushHeaders();
-
-  sseClients.set(userId, res);
-  console.log(`[SSE] Client connected: ${userId} (total: ${sseClients.size})`);
-
-  // Send connection confirmation
-  res.write(`data: ${JSON.stringify({ type: "CONNECTED" })}\n\n`);
-
-  // Heartbeat every 30s
-  const heartbeat = setInterval(() => {
-    try { res.write(": heartbeat\n\n"); } catch (e) { clearInterval(heartbeat); }
-  }, 30000);
-
-  req.on("close", () => {
-    clearInterval(heartbeat);
-    sseClients.delete(userId);
-    console.log(`[SSE] Client disconnected: ${userId} (total: ${sseClients.size})`);
-  });
-});
-
-router.get("/notifications/unread-count", isLoggedIn, catchAsync(notifController.getUnreadCount));
-router.patch("/notifications/mark-all-read", isLoggedIn, catchAsync(notifController.markAllAsRead));
-router.get("/notifications", isLoggedIn, catchAsync(notifController.getNotifications));
-router.patch("/notifications/:id/read", isLoggedIn, catchAsync(notifController.markAsRead));
-router.delete("/notifications/:id", isLoggedIn, catchAsync(notifController.deleteNotification));
+// --- Leave Routes ---
+router.post("/leaves", catchAsync(leaveController.createLeaveRequest));
+router.get("/leaves", catchAsync(leaveController.getLeaveRequests));
+router.get("/leaves/:id", catchAsync(leaveController.getLeaveRequestById));
+router.put("/leaves/:id", catchAsync(leaveController.updateLeaveRequest));
+router.delete("/leaves/:id", catchAsync(leaveController.deleteLeaveRequest));
+router.put("/leaves/:id/status", catchAsync(leaveController.updateLeaveStatus));
+router.patch("/updateLeaveStatus/:id", catchAsync(leaveController.updateLeaveStatus));
 
 module.exports = router;

@@ -21,6 +21,7 @@ const timeLogRoutes = require("./webRoutes/timeLogRoutes");
 const timesheetRoutes = require("./webRoutes/timesheetRoutes");
 const departmentRoutes = require("./webRoutes/departmentRoutes");
 const adminDashboardRoutes = require("./webRoutes/adminDashboardRoutes");
+const notificationRoutes = require("./webRoutes/notificationRoutes");
 
 // --- STEP 3: THE FIX (Bridge Routes) ---
 // These catch the direct frontend requests that were causing 404 errors
@@ -47,5 +48,6 @@ router.use("/time-logs", timeLogRoutes);
 router.use("/timesheets", timesheetRoutes);
 router.use("/departments", departmentRoutes);
 router.use("/admin-dashboard", adminDashboardRoutes);
+router.use("/notifications", notificationRoutes);
 
 module.exports = router;

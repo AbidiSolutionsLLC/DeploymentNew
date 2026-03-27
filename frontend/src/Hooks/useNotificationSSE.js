@@ -3,8 +3,8 @@ import { useDispatch } from 'react-redux';
 import { addRealtimeNotification, fetchUnreadCount } from '../slices/notificationSlice';
 import { PublicClientApplication } from '@azure/msal-browser';
 import { msalConfig, loginRequest } from '../authConfig';
+import axios from '../axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/web';
 
 // Shared MSAL instance (same config as axios.js uses)
 const msalInstance = new PublicClientApplication(msalConfig);
@@ -46,7 +46,7 @@ export const useNotificationSSE = (isAuthenticated) => {
         sourceRef.current.close();
       }
 
-      const url = `${API_BASE}/notifications/stream?token=${encodeURIComponent(token)}`;
+      const url = `${axios.defaults.baseURL}/notifications/stream?token=${encodeURIComponent(token)}`;
       const source = new EventSource(url);
       sourceRef.current = source;
 
