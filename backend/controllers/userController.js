@@ -4,6 +4,7 @@ const catchAsync = require("../utils/catchAsync");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
 const sendEmail = require('../utils/emailService');
 const { getSearchScope } = require("../utils/rbac");
+const { createNotification } = require('../utils/notificationService');
 
 // --- HELPER: Check Write Permissions ---
 const checkWritePermission = async (actor, targetUserId = null, targetRole = null) => {
@@ -177,6 +178,25 @@ exports.createUser = catchAsync(async (req, res) => {
     console.error("❌ Failed to send invite email:", err.message);
   }
 
+  // In-app notification: notify all admins / super admins
+  try {
+    const admins = await User.find({
+      $or: [{ role: 'Super Admin' }, { role: 'Admin' }]
+    }).select('_id');
+    const notifPromises = admins.map(admin =>
+      createNotification({
+        recipient: admin._id,
+        type: 'USER_CREATED',
+        title: 'New User Added',
+        message: `A new user "${savedUser.name}" (${savedUser.email}) has been added to the system.`,
+        relatedEntity: { entityType: 'user', entityId: savedUser._id },
+      })
+    );
+    await Promise.all(notifPromises);
+  } catch (notifErr) {
+    console.error('[Notification] User created:', notifErr.message);
+  }
+
   res.status(201).json({ status: "success", message: "User invited successfully.", data: savedUser });
 });
 
@@ -274,6 +294,29 @@ exports.updateUser = catchAsync(async (req, res) => {
   });
 
   const updatedUser = await user.save();
+
+  // In-app notification: notify admins if a user was deactivated
+  if (updates.empStatus === 'Inactive' && user.empStatus !== 'Inactive') {
+    try {
+      const admins = await User.find({
+        $or: [{ role: 'Super Admin' }, { role: 'Admin' }],
+        _id: { $ne: updatedUser._id }
+      }).select('_id');
+      const notifPromises = admins.map(admin =>
+        createNotification({
+          recipient: admin._id,
+          type: 'USER_DEACTIVATED',
+          title: 'User Deactivated',
+          message: `User "${updatedUser.name}" has been deactivated.`,
+          relatedEntity: { entityType: 'user', entityId: updatedUser._id },
+        })
+      );
+      await Promise.all(notifPromises);
+    } catch (notifErr) {
+      console.error('[Notification] User deactivated:', notifErr.message);
+    }
+  }
+
   res.status(200).json(updatedUser);
 });
 

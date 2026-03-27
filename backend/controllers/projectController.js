@@ -3,6 +3,7 @@ const Project = require("../models/projectSchema");
 const Task = require("../models/taskSchema");
 const catchAsync = require("../utils/catchAsync");
 const { NotFoundError, BadRequestError } = require("../utils/ExpressError");
+const { createNotification } = require('../utils/notificationService');
 
 // Create Project
 exports.createProject = catchAsync(async (req, res) => {
@@ -21,6 +22,25 @@ exports.createProject = catchAsync(async (req, res) => {
   });
 
   const savedProject = await project.save();
+
+  // Notify all initial team members they've been added
+  if (savedProject.team && savedProject.team.length > 0) {
+    try {
+      const notifPromises = savedProject.team.map(memberId =>
+        createNotification({
+          recipient: memberId,
+          type: 'PROJECT_MEMBER_ADDED',
+          title: 'Added to Project',
+          message: `You have been added to the project "${savedProject.title}".`,
+          relatedEntity: { entityType: 'project', entityId: savedProject._id },
+        })
+      );
+      await Promise.all(notifPromises);
+    } catch (notifErr) {
+      console.error('[Notification] Project created:', notifErr.message);
+    }
+  }
+
   res.status(201).json(savedProject);
 });
 
@@ -50,6 +70,8 @@ exports.updateProject = catchAsync(async (req, res) => {
   const project = await Project.findById(req.params.id);
   if (!project) throw new NotFoundError("Project");
 
+  const previousTeam = project.team.map(id => id.toString());
+
   // Update fields
   project.title = title || project.title;
   project.description = description || project.description;
@@ -61,6 +83,28 @@ exports.updateProject = catchAsync(async (req, res) => {
   project.dueDate = dueDate || project.dueDate;
 
   const updatedProject = await project.save();
+
+  // Notify newly added team members
+  if (team && team.length > 0) {
+    const newMembers = team.filter(id => !previousTeam.includes(id.toString()));
+    if (newMembers.length > 0) {
+      try {
+        const notifPromises = newMembers.map(memberId =>
+          createNotification({
+            recipient: memberId,
+            type: 'PROJECT_MEMBER_ADDED',
+            title: 'Added to Project',
+            message: `You have been added to the project "${updatedProject.title}".`,
+            relatedEntity: { entityType: 'project', entityId: updatedProject._id },
+          })
+        );
+        await Promise.all(notifPromises);
+      } catch (notifErr) {
+        console.error('[Notification] Project update:', notifErr.message);
+      }
+    }
+  }
+
   res.status(200).json(updatedProject);
 });
 

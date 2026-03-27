@@ -6,6 +6,7 @@ const { containerClient, containerName } = require("../config/azureConfig");
 const { getSearchScope } = require("../utils/rbac");
 const axios = require("axios");
 const sendEmail = require('../utils/emailService');
+const { createNotification } = require('../utils/notificationService');
  
 // --- 1. CREATE TICKET ---
 exports.createTicket = catchAsync(async (req, res) => {
@@ -165,10 +166,25 @@ exports.updateTicketStatus = catchAsync(async (req, res) => {
     id,
     { status: normalizedStatus },
     { new: true }
-  );
+  ).populate('closedBy', '_id');
  
   if (!ticket) {
     return res.status(404).json({ message: "Ticket not found" });
+  }
+ 
+  // Notify the ticket creator about status change
+  try {
+    if (ticket.closedBy && ticket.closedBy._id) {
+      await createNotification({
+        recipient: ticket.closedBy._id,
+        type: 'TICKET_STATUS_CHANGED',
+        title: 'Ticket Status Updated',
+        message: `Your support ticket "${ticket.subject}" is now "${normalizedStatus}".`,
+        relatedEntity: { entityType: 'ticket', entityId: ticket._id },
+      });
+    }
+  } catch (notifErr) {
+    console.error('[Notification] Ticket status change:', notifErr.message);
   }
  
   res.status(200).json(ticket);
@@ -235,6 +251,19 @@ exports.updateTicketAssignee = catchAsync(async (req, res) => {
  
   sendAssignmentEmail(userToAssign.email, ticket).catch(console.error);
  
+  // In-app notification: notify the assignee
+  try {
+    await createNotification({
+      recipient: userToAssign._id,
+      type: 'TICKET_ASSIGNED',
+      title: 'Ticket Assigned to You',
+      message: `A support ticket "${ticket.subject}" (Priority: ${ticket.priority}) has been assigned to you.`,
+      relatedEntity: { entityType: 'ticket', entityId: ticket._id },
+    });
+  } catch (notifErr) {
+    console.error('[Notification] Ticket assigned:', notifErr.message);
+  }
+ 
   res.status(200).json(ticket);
 });
  
@@ -255,6 +284,22 @@ exports.addTicketResponse = catchAsync(async (req, res) => {
  
   ticket.responses.push(newResponse);
   await ticket.save();
+ 
+  // Notify the ticket creator about the new response
+  try {
+    if (ticket.closedBy) {
+      const authorName = req.user?.name || 'A technician';
+      await createNotification({
+        recipient: ticket.closedBy,
+        type: 'TICKET_RESPONSE_ADDED',
+        title: 'New Response on Your Ticket',
+        message: `${authorName} added a response to your ticket: "${ticket.subject}".`,
+        relatedEntity: { entityType: 'ticket', entityId: ticket._id },
+      });
+    }
+  } catch (notifErr) {
+    console.error('[Notification] Ticket response:', notifErr.message);
+  }
  
   res.status(200).json(ticket);
 });
