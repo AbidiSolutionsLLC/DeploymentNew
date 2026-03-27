@@ -57,7 +57,7 @@ const ModernDatePicker = ({
       {/* Label */}
       {label && (
         <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-          {label}sdf {required && <span className="text-red-500">*</span>}
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
 

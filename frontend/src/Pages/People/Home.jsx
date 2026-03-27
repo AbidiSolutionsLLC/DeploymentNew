@@ -230,7 +230,7 @@ const Home = () => {
               <h2 className="text-base font-bold text-slate-800 truncate uppercase tracking-tight">
                 Hey, {firstName}!
               </h2>
-              <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">Have a great day</p>
+              <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">Have a great daasdfy</p>
             </div>
           </div>
 
