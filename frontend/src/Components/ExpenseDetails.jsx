@@ -62,84 +62,80 @@ const ExpenseDetail = ({
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4 overflow-y-auto">
-      <div className="bg-card-surface rounded-2xl shadow-2xl w-full max-w-2xl my-8 overflow-hidden animate-fadeIn border border-default">
+      <div className="bg-white rounded-[1.2rem] shadow-2xl w-full max-w-2xl my-8 overflow-hidden animate-fadeIn border border-white/50">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-default flex justify-between items-center bg-hover-surface/50 sticky top-0">
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0">
           <div className="flex items-center gap-3">
-            <h3 className="text-sm font-black text-heading-color uppercase tracking-widest">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest">
               Expense Details
             </h3>
-            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-black ${statusConfig.bg} text-${statusConfig.color} border border-${statusConfig.color}/20 uppercase`}>
-              <StatusIcon size={12} />
-              {statusConfig.text}
+            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${expense.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : expense.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100'} uppercase tracking-wide`}>
+              {expense.status}
             </span>
           </div>
           <button 
             onClick={onClose} 
-            className="text-primary-color/40 hover:text-error transition-colors"
+            className="text-slate-400 hover:text-rose-500 transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+        <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
           {/* Title & Amount */}
-          <div className="flex justify-between items-start mb-6">
+          <div className="flex justify-between items-start mb-8">
             <div>
-              <h2 className="text-xl font-black text-heading-color mb-1">{expense.title}</h2>
-              <p className="text-sm text-primary-color/60">{expense.description || "No description provided"}</p>
+              <h2 className="text-2xl font-bold text-slate-800 mb-1">{expense.title}</h2>
+              <p className="text-sm font-medium text-slate-500">{expense.description || "No description provided"}</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-black text-primary-color">${expense.amount?.toFixed(2)}</p>
-              <p className="text-[10px] font-black text-primary-color/40 uppercase tracking-wider">
+              <p className="text-3xl font-bold text-slate-800">${expense.amount?.toFixed(2)}</p>
+              <span className="text-[10px] font-bold bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 uppercase tracking-tight text-slate-600">
                 {expense.category}
-              </p>
+              </span>
             </div>
           </div>
 
           {/* Info Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-hover-surface/50 rounded-xl p-4 border border-default">
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100">
               <div className="flex items-center gap-2 mb-2">
-                <User size={14} className="text-primary-color/40" />
-                <p className="text-[10px] font-black text-primary-color/40 uppercase tracking-wider">
+                <User size={14} className="text-slate-400" />
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Submitted By
                 </p>
               </div>
-              <p className="text-sm font-bold text-primary-color">
+              <p className="text-sm font-bold text-slate-700">
                 {expense.submittedByName || expense.submittedBy?.name || "Unknown"}
-              </p>
-              <p className="text-[10px] text-primary-color/40">
-                ID: {expense.submittedBy?._id || expense.submittedBy}
               </p>
             </div>
 
-            <div className="bg-hover-surface/50 rounded-xl p-4 border border-default">
+            <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100">
               <div className="flex items-center gap-2 mb-2">
-                <Calendar size={14} className="text-primary-color/40" />
-                <p className="text-[10px] font-black text-primary-color/40 uppercase tracking-wider">
+                <Calendar size={14} className="text-slate-400" />
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Submitted On
                 </p>
               </div>
-              <p className="text-sm font-bold text-primary-color">
+              <p className="text-sm font-bold text-slate-700">
                 {formatDate(expense.createdAt)}
               </p>
             </div>
 
             {expense.approvedBy && (
-              <div className="bg-hover-surface/50 rounded-xl p-4 border border-default">
+              <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100">
                 <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle size={14} className="text-success" />
-                  <p className="text-[10px] font-black text-primary-color/40 uppercase tracking-wider">
+                  <CheckCircle size={14} className="text-emerald-500" />
+                  <p className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-wider">
                     Approved By
                   </p>
                 </div>
-                <p className="text-sm font-bold text-primary-color">
+                <p className="text-sm font-bold text-emerald-700">
                   {expense.approvedByName || expense.approvedBy?.name || "Unknown"}
                 </p>
                 {expense.approvedAt && (
-                  <p className="text-[10px] text-primary-color/40">
+                  <p className="text-[10px] text-emerald-600/50 font-medium">
                     {formatDate(expense.approvedAt)}
                   </p>
                 )}
@@ -147,14 +143,14 @@ const ExpenseDetail = ({
             )}
 
             {expense.rejectionReason && (
-              <div className="col-span-2 bg-error-light/30 rounded-xl p-4 border border-error/20">
+              <div className="col-span-2 bg-rose-50/50 rounded-xl p-4 border border-rose-100">
                 <div className="flex items-center gap-2 mb-2">
-                  <XCircle size={14} className="text-error" />
-                  <p className="text-[10px] font-black text-error uppercase tracking-wider">
+                  <XCircle size={14} className="text-rose-500" />
+                  <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
                     Rejection Reason
                   </p>
                 </div>
-                <p className="text-sm text-error">{expense.rejectionReason}</p>
+                <p className="text-sm font-bold text-rose-700">{expense.rejectionReason}</p>
               </div>
             )}
           </div>
@@ -162,41 +158,43 @@ const ExpenseDetail = ({
           {/* Receipt */}
           {expense.receiptUrl && (
             <div className="mb-6">
-              <p className="text-[10px] font-black text-primary-color/40 uppercase tracking-wider mb-3">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
                 Receipt
               </p>
               <div 
                 onClick={handleViewReceipt}
-                className="bg-hover-surface/50 rounded-xl p-4 border border-default flex items-center justify-between cursor-pointer hover:border-primary-brand transition-colors"
+                className="bg-white rounded-xl p-4 border border-slate-200 flex items-center justify-between cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center">
-                    <Download size={20} className="text-primary-brand" />
+                  <div className="w-10 h-10 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center">
+                    <Download size={20} className="text-slate-500" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-primary-color">View Receipt</p>
-                    <p className="text-[10px] text-primary-color/40">Click to open</p>
+                    <p className="text-sm font-bold text-slate-700">View Attachment</p>
+                    <p className="text-[10px] text-slate-400 font-medium">Click to open receipt in new tab</p>
                   </div>
                 </div>
-                <Download size={16} className="text-primary-color/40" />
+                <div className="px-3 py-1 bg-slate-50 text-slate-400 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-slate-100 group-hover:bg-slate-100 transition-colors">
+                  Open
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 border-t border-default flex gap-3 bg-hover-surface/50">
+        <div className="px-6 py-4 border-t border-slate-100 flex gap-3 bg-slate-50/50 mt-auto">
           {expense.status === 'pending' && canApprove && (
             <>
               <button
                 onClick={() => onApprove(expense._id)}
-                className="flex-1 py-2 bg-success text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-success/80 shadow-md shadow-success/10 flex justify-center items-center gap-2 transition-all"
+                className="flex-1 px-4 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex justify-center items-center gap-2"
               >
                 <CheckCircle size={14} /> Approve
               </button>
               <button
                 onClick={() => onReject(expense)}
-                className="flex-1 py-2 bg-error text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-error/80 shadow-md shadow-error/10 flex justify-center items-center gap-2 transition-all"
+                className="flex-1 px-4 py-3 bg-white text-rose-600 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-md border border-rose-100 hover:bg-rose-50 active:scale-95 transition-all flex justify-center items-center gap-2"
               >
                 <XCircle size={14} /> Reject
               </button>
@@ -209,7 +207,7 @@ const ExpenseDetail = ({
                 onClose();
                 onEdit(expense);
               }}
-              className="flex-1 py-2 bg-primary-color text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-primary-color/80 shadow-md shadow-primary-color/10 flex justify-center items-center gap-2 transition-all"
+              className="flex-1 px-4 py-3 bg-white text-slate-700 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-md border border-slate-200 hover:bg-slate-50 active:scale-95 transition-all flex justify-center items-center gap-2"
             >
               <Edit2 size={14} /> Edit
             </button>
@@ -223,7 +221,7 @@ const ExpenseDetail = ({
                   onClose();
                 }
               }}
-              className="flex-1 py-2 bg-error/10 text-error rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-error/20 flex justify-center items-center gap-2 transition-all"
+              className="flex-1 px-4 py-3 bg-white text-rose-500 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-sm border border-rose-100 hover:bg-rose-50 active:scale-95 transition-all flex justify-center items-center gap-2"
             >
               <Trash2 size={14} /> Delete
             </button>

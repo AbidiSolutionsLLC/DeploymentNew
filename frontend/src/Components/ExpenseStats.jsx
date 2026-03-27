@@ -53,28 +53,22 @@ const ExpenseStats = ({ stats }) => {
         return (
           <div
             key={index}
-            className="bg-white/90 rounded-xl p-4 border border-slate-200 shadow-sm"
+            className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] p-4 border border-white/50 shadow-md"
           >
-            <div className="flex items-center justify-between mb-3">
-              
-              {/* TITLE */}
-              <p className={`text-[10px] font-black uppercase tracking-widest ${stat.textColor}`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${stat.textColor} opacity-60`}>
                 {stat.title}
               </p>
-
-              {/* ICON WITH BACKGROUND */}
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${stat.iconBg}`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${stat.iconBg}`}>
                 <Icon size={16} className={stat.iconColor} />
               </div>
             </div>
 
-            {/* VALUE */}
-            <p className={`text-2xl font-black ${stat.textColor}`}>
+            <p className={`text-xl font-bold ${stat.textColor}`}>
               {stat.value}
             </p>
 
-            {/* SUB VALUE */}
-            <p className={`text-xs font-bold mt-1 opacity-60 ${stat.textColor}`}>
+            <p className={`text-[10px] font-bold mt-0.5 opacity-50 ${stat.textColor} uppercase tracking-tight`}>
               {stat.subValue}
             </p>
           </div>

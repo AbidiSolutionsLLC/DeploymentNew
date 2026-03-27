@@ -267,41 +267,65 @@ const ExpenseManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-app/50 p-4 md:p-6">
+    <div className="w-full bg-transparent min-h-screen p-4">
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes slideIn {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+        .animate-slideIn {
+          animation: slideIn 0.3s ease-out;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-black text-heading-color uppercase tracking-tight">
-            Expense Management
-          </h1>
-          <p className="text-sm text-primary-color/50 font-medium mt-1">
-            Track, approve, and manage employee expenses
-          </p>
+      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">
+              Expense Management
+            </h2>
+            <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">
+              Track, approve, and manage employee expenses
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsSubmitModalOpen(true)}
+              className="px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+            >
+              <Upload size={14} /> Submit Expense
+            </button>
+            <button
+              onClick={handleDownload}
+              className="px-6 py-3 bg-white text-slate-700 rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-md border border-slate-200 hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-2"
+            >
+              <Download size={14} /> Export CSV
+            </button>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-    <button
-      onClick={() => setIsSubmitModalOpen(true)}
-      className="flex items-center gap-2 px-4 py-2.5 
-      bg-[#64748b] text-white 
-      rounded-xl hover:bg-[#475569] 
-      transition shadow-lg shadow-slate-400/20 
-      text-xs font-bold uppercase tracking-wide"
-    >
-      <Upload size={16} /> Submit Expense
-    </button>
-  
-  <button
-    onClick={handleDownload}
-    className="flex items-center gap-2 px-4 py-2.5 
-    bg-[#ECF0F3] text-slate-700 
-    rounded-xl hover:bg-slate-200 
-    transition shadow-sm border border-slate-200
-    text-xs font-bold uppercase tracking-wide"
-  >
-    <Download size={16} /> Export CSV
-  </button>
-</div>
       </div>
 
       {/* Stats Cards */}
@@ -322,34 +346,36 @@ const ExpenseManagement = () => {
         selectedUser={selectedUser}
         onUserChange={setSelectedUser}
         users={users}
-        showUserFilter={canApprove}
+        showUserFilter={currentUser?.role === "Admin" || currentUser?.role === "Super Admin"}
       />
 
       {/* Expenses Table */}
-      <ExpenseTable
-        expenses={filteredExpenses}
-        loading={loading}
-        onView={(expense) => {
-          setSelectedExpense(expense);
-          setIsDetailModalOpen(true);
-        }}
-        onEdit={handleEditClick}
-        onApprove={handleApprove}
-        onReject={(expense) => {
-          setEditingExpense(expense);
-          setEditFormData({ ...editFormData, status: expense.status });
-          setIsEditModalOpen(true);
-        }}
-        canApprove={canApprove}
-        canEdit={canEdit}
-      />
+      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 mb-4">
+        <ExpenseTable
+          expenses={filteredExpenses}
+          loading={loading}
+          onView={(expense) => {
+            setSelectedExpense(expense);
+            setIsDetailModalOpen(true);
+          }}
+          onEdit={handleEditClick}
+          onApprove={handleApprove}
+          onReject={(expense) => {
+            setEditingExpense(expense);
+            setEditFormData({ ...editFormData, status: expense.status });
+            setIsEditModalOpen(true);
+          }}
+          canApprove={canApprove}
+          canEdit={canEdit}
+        />
+      </div>
 
       {/* Submit Expense Modal */}
       {isSubmitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4 overflow-y-auto">
-          <div className="bg-white/90 rounded-2xl shadow-2xl w-full max-w-2xl my-8 overflow-hidden animate-fadeIn border border-default">
-            <div className="px-6 py-4 border-b border-default flex justify-between items-center bg-hover-surface/50 sticky top-0">
-              <h3 className="text-sm font-black text-heading-color uppercase tracking-widest">
+          <div className="bg-white rounded-[1.2rem] shadow-2xl w-full max-w-2xl my-8 overflow-hidden animate-fadeIn border border-white/50">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0">
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest">
                 Submit New Expense
               </h3>
               <button 
