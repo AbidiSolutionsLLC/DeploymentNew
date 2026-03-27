@@ -86,6 +86,55 @@ const sendInviteEmail = async (user) => {
   await sendEmail(user.email, emailSubject, emailBody);
 };
 
+// --- INITIAL SUPER ADMIN SETUP ---
+exports.createInitialSuperAdmin = catchAsync(async (req, res) => {
+  // Check if any Super Admin already exists
+  const superAdminExists = await User.findOne({ role: 'Super Admin' });
+  if (superAdminExists) {
+    throw new ForbiddenError("A Super Admin already exists. This setup route is disabled.");
+  }
+
+  let { email, name, ...otherData } = req.body;
+
+  if (!email || !name) {
+    throw new BadRequestError("Email and Name are required for setup.");
+  }
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) throw new BadRequestError("User with this email already exists.");
+
+  const newEmpID = await generateEmpID();
+  const defaultCards = [
+    { type: 'todo', id: Date.now().toString() + '-1' },
+    { type: 'holidays', id: Date.now().toString() + '-2' },
+    { type: 'leavelog', id: Date.now().toString() + '-3' }
+  ];
+
+  const newUser = new User({
+    email,
+    name,
+    ...otherData,
+    role: "Super Admin", // Force Super Admin role
+    empID: newEmpID,
+    dashboardCards: defaultCards,
+    empStatus: "Active", // Auto-activate the first admin
+    isTechnician: false
+  });
+
+  const savedUser = await newUser.save();
+
+  res.status(201).json({ 
+    status: "success", 
+    message: "Initial Super Admin created successfully.", 
+    data: {
+      id: savedUser._id,
+      email: savedUser.email,
+      name: savedUser.name,
+      role: savedUser.role
+    } 
+  });
+});
+
 // --- SECURED CREATE USER ---
 exports.createUser = catchAsync(async (req, res) => {
   // Extract hourlyWage from body
@@ -95,7 +144,7 @@ exports.createUser = catchAsync(async (req, res) => {
 
   if (otherData.reportsTo === "NO MANAGER (TOP LEVEL)" || otherData.reportsTo === "") otherData.reportsTo = null;
 
-  if (req.user.role === 'Admin' && (!otherData.reportsTo || otherData.reportsTo !== req.user.id)) {
+  if (req.user?.role === 'Admin' && (!otherData.reportsTo || otherData.reportsTo !== req.user.id)) {
      otherData.reportsTo = req.user.id;
   }
 
@@ -197,7 +246,7 @@ exports.updateUser = catchAsync(async (req, res) => {
           "emergencyContact", "timeZone"
       ];
   } else {
-      // --- ADMIN / MANAGER_TECH EDIT ---
+      // --- SUPER_ADMIN / ADMIN / MANAGER_TECH EDIT ---
       if (updates.department && updates.department !== user.department?.toString()) {
         const oldDeptId = user.department;
         const newDeptId = updates.department;
