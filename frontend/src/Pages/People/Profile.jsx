@@ -116,7 +116,7 @@ export default function Profile({ userId: propUserId }) {
         {/* Banner Image */}
         <div className="relative h-36 md:h-48 rounded-[1.5rem] overflow-hidden shadow-md group bg-slate-200">
             <img
-            src={user.coverImage || `https://picsum.photos/1200/300?random=${user._id}`}
+            src={user.coverImage || "https://data3262.blob.core.windows.net/hr-portal/abidiPro/users/profile_photos/Abidi-Solutions-Banner%201_1774560002057.jpg"}
             alt="Banner"
             className="w-full h-full object-cover transition-transform duration-700"
             onError={(e) => {e.target.src = 'https://via.placeholder.com/1200x300?text=No+Cover+Image'}} // Fallback

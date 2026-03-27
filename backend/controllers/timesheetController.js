@@ -213,7 +213,7 @@ exports.getAllTimesheets = catchAsync(async (req, res) => {
   } 
   else if (role === 'Manager' || role === 'Admin') {
      // See Subordinates + Self
-     const subordinates = await User.find({ reportingManager: req.user.id || req.user._id }).select('_id');
+     const subordinates = await User.find({ reportsTo: req.user.id || req.user._id }).select('_id');
      const validIds = subordinates.map(u => u._id);
      validIds.push(req.user.id || req.user._id);
      query.employee = { $in: validIds };

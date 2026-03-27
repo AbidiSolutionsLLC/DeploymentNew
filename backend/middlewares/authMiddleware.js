@@ -93,6 +93,7 @@ const isLoggedIn = async (req, res, next) => {
       // 3. Attach user to request
       req.user = {
         id: user.id,
+        _id: user._id,
         azureId: user.azureId,
         name: user.name,
         email: user.email,
