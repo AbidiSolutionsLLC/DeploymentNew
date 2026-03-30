@@ -6,10 +6,6 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// ============================================
-// EXPENSE CONTROLLERS
-// ============================================
-
 // @desc    Create new expense
 // @route   POST /api/web/expenses
 // @access  Private (Manager only)
