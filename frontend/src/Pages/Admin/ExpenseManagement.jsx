@@ -58,15 +58,17 @@ const ExpenseManagement = () => {
       try {
         // Get current user
         const userRes = await api.get("/auth/me");
-        setCurrentUser(userRes.data);
-        const role = userRes.data.role || "";
-        setCurrentUserRole(role.replace(/\s+/g, '').toLowerCase());
+        const userData = userRes.data.user || userRes.data;
+        setCurrentUser(userData);
+        const role = userData.role || "";
+        const normalizedRole = role.replace(/\s+/g, '').toLowerCase();
+        setCurrentUserRole(normalizedRole);
 
         // Get expenses
         await fetchExpenses();
-        
-        // Get users if admin/superadmin
-        if (role === 'admin' || role === 'superadmin') {
+
+        // Get users if admin/manager/superadmin
+        if (role === 'admin' || role === 'manager' || role === 'superadmin') {
           const usersRes = await api.get("/users");
           setUsers(usersRes.data);
         }
@@ -93,7 +95,7 @@ const ExpenseManagement = () => {
     }
   };
 
-  const canApprove = currentUserRole === 'admin' || currentUserRole === 'superadmin';
+  const canApprove = currentUserRole === 'admin' || currentUserRole === 'manager' || currentUserRole === 'superadmin';
   const canEdit = currentUserRole === 'superadmin';
   const isManager = currentUserRole === 'manager';
 
@@ -346,7 +348,7 @@ const ExpenseManagement = () => {
         selectedUser={selectedUser}
         onUserChange={setSelectedUser}
         users={users}
-        showUserFilter={currentUser?.role === "Admin" || currentUser?.role === "Super Admin"}
+        showUserFilter={currentUser?.role === "Admin" || currentUser?.role === "Manager" || currentUser?.role === "Super Admin"}
       />
 
       {/* Expenses Table */}
@@ -359,13 +361,6 @@ const ExpenseManagement = () => {
             setIsDetailModalOpen(true);
           }}
           onEdit={handleEditClick}
-          onApprove={handleApprove}
-          onReject={(expense) => {
-            setEditingExpense(expense);
-            setEditFormData({ ...editFormData, status: expense.status });
-            setIsEditModalOpen(true);
-          }}
-          canApprove={canApprove}
           canEdit={canEdit}
         />
       </div>
@@ -408,7 +403,11 @@ const ExpenseManagement = () => {
             setSelectedExpense(null);
           }}
           onApprove={handleApprove}
-          onReject={handleReject}
+          onReject={(expense) => {
+            setEditingExpense(expense);
+            setEditFormData({ ...editFormData, rejectionReason: "" });
+            setIsEditModalOpen(true);
+          }}
           onEdit={handleEditClick}
           onDelete={handleDelete}
           canApprove={canApprove}
@@ -420,17 +419,17 @@ const ExpenseManagement = () => {
       {/* Edit/Reject Modal */}
       {isEditModalOpen && editingExpense && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4">
-          <div className="bg-card-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn border border-default">
-            <div className="px-6 py-4 border-b border-default flex justify-between items-center bg-hover-surface/50">
-              <h3 className="text-sm font-black text-heading-color uppercase tracking-widest">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn border border-slate-200">
+            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">
                 {editingExpense.status === 'pending' && canApprove ? 'Reject Expense' : 'Edit Expense'}
               </h3>
-              <button 
+              <button
                 onClick={() => {
                   setIsEditModalOpen(false);
                   setEditingExpense(null);
-                }} 
-                className="text-primary-color/40 hover:text-error transition-colors"
+                }}
+                className="text-slate-400 hover:text-rose-500 transition-colors"
               >
                 <X size={20} />
               </button>
@@ -440,23 +439,23 @@ const ExpenseManagement = () => {
               {editingExpense.status === 'pending' && canApprove ? (
                 // Reject Form
                 <div>
-                  <label className="block text-[10px] font-black text-primary-color/40 uppercase tracking-widest mb-2">
-                    Rejection Reason <span className="text-error">*</span>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                    Rejection Reason <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     value={editFormData.rejectionReason}
                     onChange={(e) => setEditFormData({ ...editFormData, rejectionReason: e.target.value })}
-                    className="w-full border border-default rounded-xl px-3 py-3 text-sm font-medium focus:ring-2 focus:ring-primary-light outline-none bg-card-surface text-primary-color min-h-[100px] resize-none"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-3 text-sm font-medium focus:ring-2 focus:ring-slate-400 outline-none bg-white text-slate-700 min-h-[100px] resize-none"
                     placeholder="Please provide a reason for rejection..."
                   />
-                  
+
                   <div className="flex gap-3 mt-6">
                     <button
                       onClick={() => {
                         setIsEditModalOpen(false);
                         setEditingExpense(null);
                       }}
-                      className="flex-1 py-2 text-xs font-bold text-primary-color/50 hover:text-primary-color uppercase tracking-wider transition-colors"
+                      className="flex-1 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 uppercase tracking-wider transition-colors"
                     >
                       Cancel
                     </button>
@@ -464,7 +463,7 @@ const ExpenseManagement = () => {
                       onClick={() => {
                         handleReject(editingExpense._id, editFormData.rejectionReason);
                       }}
-                      className="flex-1 py-2 bg-error text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-error/80 shadow-md shadow-error/10 flex justify-center items-center gap-2 transition-all"
+                      className="flex-1 py-2 bg-rose-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-rose-600 shadow-md shadow-rose-500/20 flex justify-center items-center gap-2 transition-all"
                     >
                       <XCircle size={14} /> Reject
                     </button>

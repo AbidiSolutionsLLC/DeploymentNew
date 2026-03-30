@@ -58,7 +58,9 @@ exports.createExpense = catchAsync(async (req, res, next) => {
 exports.getAllExpenses = catchAsync(async (req, res, next) => {
   let query;
   
-  if (req.user.role === "manager") {
+  const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
+  
+  if (userRole === "manager") {
     query = Expense.find({ submittedBy: req.user.id });
   } else {
     query = Expense.find();
@@ -74,12 +76,12 @@ exports.getAllExpenses = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get pending expenses (for admin approval)
+// @desc    Get pending expenses (for admin/manager approval)
 // @route   GET /api/web/expenses/pending
-// @access  Private (Admin/Superadmin)
+// @access  Private (Admin/Manager/Superadmin)
 exports.getPendingExpenses = catchAsync(async (req, res, next) => {
-  // Check if user has admin privileges
-  if (req.user.role === "manager") {
+  const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
+  if (userRole === "employee" || userRole === "technician" || userRole === "hr") {
     throw new ForbiddenError("You do not have permission to access this resource");
   }
 
@@ -115,8 +117,9 @@ exports.getExpenseById = catchAsync(async (req, res, next) => {
     throw new NotFoundError("Expense");
   }
 
+  const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
   // Check if manager owns this expense
-  if (req.user.role === "manager" && expense.submittedBy._id.toString() !== req.user._id.toString()) {
+  if (userRole === "manager" && expense.submittedBy._id.toString() !== req.user._id.toString()) {
     throw new ForbiddenError("You do not have permission to view this expense");
   }
 
@@ -136,8 +139,9 @@ exports.updateExpense = catchAsync(async (req, res, next) => {
     throw new NotFoundError("Expense");
   }
 
+  const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
   // Check permissions
-  const isSuperAdmin = req.user.role === "superadmin";
+  const isSuperAdmin = userRole === "superadmin";
   const isOwner = expense.submittedBy._id.toString() === req.user._id.toString();
   const isPending = expense.status === "pending";
 
@@ -184,10 +188,10 @@ exports.updateExpense = catchAsync(async (req, res, next) => {
 
 // @desc    Approve expense
 // @route   PUT /api/web/expenses/:id/approve
-// @access  Private (Admin/Superadmin)
+// @access  Private (Admin/Manager/Superadmin)
 exports.approveExpense = catchAsync(async (req, res, next) => {
-  // Check if user has admin privileges
-  if (req.user.role === "manager") {
+  const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
+  if (userRole === "employee" || userRole === "technician" || userRole === "hr") {
     throw new ForbiddenError("You do not have permission to approve expenses");
   }
 
@@ -202,7 +206,7 @@ exports.approveExpense = catchAsync(async (req, res, next) => {
   }
 
   expense.status = "approved";
-  expense.approvedBy = req.user._id;
+  expense.approvedBy = req.user._id || req.user.id;
   expense.approvedByName = req.user.name;
   expense.approvedAt = Date.now();
 
@@ -216,10 +220,10 @@ exports.approveExpense = catchAsync(async (req, res, next) => {
 
 // @desc    Reject expense
 // @route   PUT /api/web/expenses/:id/reject
-// @access  Private (Admin/Superadmin)
+// @access  Private (Admin/Manager/Superadmin)
 exports.rejectExpense = catchAsync(async (req, res, next) => {
-  // Check if user has admin privileges
-  if (req.user.role === "manager") {
+  const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
+  if (userRole === "employee" || userRole === "technician" || userRole === "hr") {
     throw new ForbiddenError("You do not have permission to reject expenses");
   }
 
@@ -260,8 +264,9 @@ exports.deleteExpense = catchAsync(async (req, res, next) => {
     throw new NotFoundError("Expense");
   }
 
+  const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
   // Check permissions
-  const isSuperAdmin = req.user.role === "superadmin";
+  const isSuperAdmin = userRole === "superadmin";
   const isOwner = expense.submittedBy._id.toString() === req.user._id.toString();
   const isPending = expense.status === "pending";
 
@@ -287,10 +292,10 @@ exports.deleteExpense = catchAsync(async (req, res, next) => {
 
 // @desc    Get expense statistics
 // @route   GET /api/web/expenses/stats
-// @access  Private (Admin/Superadmin)
+// @access  Private (Admin/Manager/Superadmin)
 exports.getExpenseStats = catchAsync(async (req, res, next) => {
-  // Check if user has admin privileges
-  if (req.user.role === "manager") {
+  const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
+  if (userRole === "employee" || userRole === "technician" || userRole === "hr") {
     throw new ForbiddenError("You do not have permission to view statistics");
   }
 

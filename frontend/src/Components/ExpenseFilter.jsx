@@ -30,7 +30,7 @@ const ExpenseFilters = ({
   const hasActiveFilters = searchTerm || statusFilter !== "all" || categoryFilter !== "all" || (showUserFilter && selectedUser !== "all");
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 mb-4">
+    <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 mb-4 relative z-10">
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Search */}
         <div className="relative flex-1">

@@ -51,14 +51,14 @@ router.use(isLoggedIn);
 // EXPENSE ROUTES
 // ============================================
 
-// Get statistics (admin/superadmin only)
-router.get("/stats", restrictTo("admin", "superadmin"), expenseController.getExpenseStats);
+// Get statistics (admin/manager/superadmin only)
+router.get("/stats", restrictTo("admin", "manager", "superadmin"), expenseController.getExpenseStats);
 
 // Get my expenses (for current user)
 router.get("/my-expenses", expenseController.getMyExpenses);
 
-// Get pending expenses (admin/superadmin only)
-router.get("/pending", restrictTo("admin", "superadmin"), expenseController.getPendingExpenses);
+// Get pending expenses (admin/manager/superadmin only)
+router.get("/pending", restrictTo("admin", "manager", "superadmin"), expenseController.getPendingExpenses);
 
 // Main expense routes
 router
@@ -74,7 +74,7 @@ router
   .delete(expenseController.deleteExpense);
 
 // Approval/Rejection routes
-router.put("/:id/approve", restrictTo("admin", "superadmin"), expenseController.approveExpense);
-router.put("/:id/reject", restrictTo("admin", "superadmin"), expenseController.rejectExpense);
+router.put("/:id/approve", restrictTo("admin", "manager", "superadmin"), expenseController.approveExpense);
+router.put("/:id/reject", restrictTo("admin", "manager", "superadmin"), expenseController.rejectExpense);
 
 module.exports = router;

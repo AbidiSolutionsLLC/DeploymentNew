@@ -3,6 +3,28 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 const NotificationModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
+  // ✅ Dummy notifications JSON
+  const notifications = [
+    {
+      id: 1,
+      title: "New Order",
+      message: "You received a new order from Ahmed.",
+      time: "2 min ago",
+    },
+    {
+      id: 2,
+      title: "Payment Received",
+      message: "Your payment of $120 has been received.",
+      time: "10 min ago",
+    },
+    {
+      id: 3,
+      title: "System Update",
+      message: "System maintenance scheduled at midnight.",
+      time: "1 hour ago",
+    },
+  ];
+
   return (
     <div className="fixed inset-0 z-[9999] flex justify-end">
       
@@ -27,9 +49,26 @@ const NotificationModal = ({ isOpen, onClose }) => {
 
         {/* CONTENT */}
         <div className="flex-1 overflow-y-auto space-y-3">
-          <div className="p-4 bg-slate-100 rounded-xl text-sm">
-            No new notifications
-          </div>
+          {notifications.length > 0 ? (
+            notifications.map((item) => (
+              <div
+                key={item.id}
+                className="p-4 bg-slate-100 rounded-xl text-sm"
+              >
+                <p className="font-semibold text-slate-700">
+                  {item.title}
+                </p>
+                <p className="text-slate-600">{item.message}</p>
+                <span className="text-xs text-slate-400">
+                  {item.time}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 bg-slate-100 rounded-xl text-sm">
+              No new notifications
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React from "react";
-import { Eye, Edit2, CheckCircle, XCircle, Download, FileText } from "lucide-react";
+import { Eye, Edit2, Download, FileText } from "lucide-react";
 import { toast } from "react-toastify";
 
 const ExpenseTable = ({
@@ -7,9 +7,6 @@ const ExpenseTable = ({
   loading,
   onView,
   onEdit,
-  onApprove,
-  onReject,
-  canApprove,
   canEdit
 }) => {
   const getStatusBadge = (status) => {
@@ -148,25 +145,6 @@ const ExpenseTable = ({
                       >
                         <Edit2 size={16} />
                       </button>
-                    )}
-
-                    {canApprove && expense.status === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => onApprove(expense._id)}
-                          className="p-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
-                          title="Approve"
-                        >
-                          <CheckCircle size={16} />
-                        </button>
-                        <button
-                          onClick={() => onReject(expense)}
-                          className="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                          title="Reject"
-                        >
-                          <XCircle size={16} />
-                        </button>
-                      </>
                     )}
                   </div>
                 </td>
