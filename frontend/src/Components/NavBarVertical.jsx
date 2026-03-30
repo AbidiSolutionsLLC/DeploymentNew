@@ -76,7 +76,7 @@ const NavBarVertical = () => {
   return (
     <>
       {/* Notification Bell - Repositioned to Top Left */}
-      <div className="absolute top-4 left-0 z-30">
+      <div className="absolute bottom-8 left-[-5px] z-30">
         <button
           id="nav-notification-bell"
           onClick={handleNotificationToggle}

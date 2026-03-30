@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -18,6 +18,7 @@ export default function NotificationsPage() {
 
   const [activeTab, setActiveTab] = useState(0); // 0 = All, 1 = Unread
   const [page, setPage] = useState(1);
+  const [selectedNotif, setSelectedNotif] = useState(null);
   const limit = 20;
 
   useEffect(() => {
@@ -32,10 +33,12 @@ export default function NotificationsPage() {
   };
 
   const handleClick = (notif) => {
+    setSelectedNotif(notif);
     if (!notif.isRead) dispatch(markAsRead(notif._id));
-    const route = getRouteForNotification(notif);
-    if (route) navigate(route);
+    // NOTE: Removed immediate navigation to allow viewing in the master-detail layout.
   };
+
+  const handleBackToList = () => setSelectedNotif(null);
 
   const handleDelete = (e, id) => {
     e.stopPropagation();
@@ -45,67 +48,59 @@ export default function NotificationsPage() {
   const totalPages = Math.ceil((pagination.total || 0) / limit);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-
-        {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
-            </p>
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white rounded-2xl my-2">
+      {/* --- MASTER LIST SIDEBAR --- */}
+      <div className={`w-full md:w-[350px] lg:w-[400px] border-r border-gray-200 flex flex-col transition-all bg-white ${selectedNotif ? 'hidden md:flex' : 'flex'}`}>
+        
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Notifications</h1>
+            {unreadCount > 0 && (
+              <button
+                onClick={() => dispatch(markAllAsRead())}
+                className="text-xs text-teal-600 hover:text-teal-800 font-semibold"
+                title="Mark all as read"
+              >
+                Mark all read
+              </button>
+            )}
           </div>
-          {unreadCount > 0 && (
-            <button
-              onClick={() => dispatch(markAllAsRead())}
-              className="inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-800 font-medium border border-teal-200 hover:border-teal-400 rounded-lg px-3 py-1.5 transition-all"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-              Mark all as read
-            </button>
-          )}
+
+          {/* Filtering Tabs */}
+          <div className="flex bg-gray-50 p-1 rounded-lg">
+            {TABS.map((tab, idx) => (
+              <button
+                key={tab}
+                onClick={() => handleTabChange(idx)}
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  activeTab === idx
+                    ? 'bg-white text-teal-600 shadow-sm border border-gray-100'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {tab}
+                {tab === 'Unread' && unreadCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-teal-100 text-teal-700 rounded-full text-[10px]">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-4">
-          {TABS.map((tab, idx) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(idx)}
-              className={`px-5 py-2.5 text-sm font-medium transition-colors focus:outline-none ${
-                activeTab === idx
-                  ? 'border-b-2 border-teal-600 text-teal-700'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {tab === 'Unread' ? `Unread${unreadCount > 0 ? ` (${unreadCount})` : ''}` : tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Notification List */}
-        <div className="space-y-2">
+        {/* Notification List Content */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
           {loading && (
-            <div className="py-16 text-center text-gray-400">
-              <div className="inline-block w-8 h-8 border-2 border-teal-400 border-t-transparent rounded-full animate-spin mb-3" />
-              <p className="text-sm">Loading notifications...</p>
+            <div className="py-12 text-center">
+              <div className="inline-block w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
           {!loading && items.length === 0 && (
-            <div className="py-20 text-center">
-              <div className="text-6xl mb-4">
-                {activeTab === 1 ? '✅' : '🔔'}
-              </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-1">
-                {activeTab === 1 ? "You're all caught up!" : 'No notifications yet'}
-              </h3>
-              <p className="text-sm text-gray-400">
-                {activeTab === 1 ? 'No unread notifications at the moment.' : "We'll notify you when something happens."}
-              </p>
+            <div className="py-20 px-8 text-center">
+              <p className="text-sm text-gray-400">No {activeTab === 1 ? 'unread ' : ''}notifications.</p>
             </div>
           )}
 
@@ -113,70 +108,135 @@ export default function NotificationsPage() {
             <div
               key={notif._id}
               onClick={() => handleClick(notif)}
-              className={`group relative flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-md hover:border-teal-200 ${
-                !notif.isRead
-                  ? 'bg-blue-50 border-blue-100'
-                  : 'bg-white border-gray-100'
+              className={`relative p-4 border-b border-gray-50 cursor-pointer transition-all hover:bg-gray-50 group border-l-4 ${
+                selectedNotif?._id === notif._id 
+                  ? 'bg-teal-50/50 border-l-teal-600' 
+                  : 'bg-white border-l-transparent'
               }`}
             >
-              {/* Icon */}
-              <span className="text-2xl shrink-0 mt-0.5 select-none" aria-hidden="true">
-                {getNotificationIcon(notif.type)}
-              </span>
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className={`text-sm font-semibold leading-snug ${!notif.isRead ? 'text-gray-900' : 'text-gray-700'}`}>
-                    {notif.title}
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0 select-none">
+                  {getNotificationIcon(notif.type)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start gap-2 mb-0.5">
+                    <h3 className={`text-xs font-bold truncate ${!notif.isRead ? 'text-gray-900' : 'text-gray-600'}`}>
+                      {notif.title}
+                    </h3>
+                    <span className="text-[10px] text-gray-400 whitespace-nowrap mt-0.5 font-medium">
+                      {formatNotifDate(notif.createdAt)}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed">
+                    {notif.message}
                   </p>
-                  <span className="text-xs text-gray-400 shrink-0 mt-0.5">
-                    {formatNotifDate(notif.createdAt)}
-                  </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1 leading-relaxed">{notif.message}</p>
+                {!notif.isRead && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 shrink-0" />
+                )}
               </div>
-
-              {/* Unread indicator */}
-              {!notif.isRead && (
-                <span className="shrink-0 w-2.5 h-2.5 rounded-full bg-blue-500 mt-1.5 flex-none" aria-label="Unread" />
-              )}
-
-              {/* Delete button (visible on hover) */}
+              
+              {/* Delete on hover */}
               <button
                 onClick={(e) => handleDelete(e, notif._id)}
-                className="absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 p-1 rounded"
-                title="Delete notification"
-                aria-label="Delete notification"
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-red-400 transition-opacity"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
           ))}
-        </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-8">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
-            >
-              ← Prev
-            </button>
-            <span className="text-sm text-gray-500">
-              Page {page} of {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
-            >
-              Next →
-            </button>
+          {/* Pagination in Sidebar */}
+          {totalPages > 1 && (
+            <div className="p-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="text-[10px] font-bold text-gray-400 disabled:opacity-30 hover:text-teal-600 uppercase tracking-tighter"
+              >
+                ← Prev
+              </button>
+              <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
+                {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="text-[10px] font-bold text-gray-400 disabled:opacity-30 hover:text-teal-600 uppercase tracking-tighter"
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* --- DETAIL VIEW PANE --- */}
+      <div className={`flex-1 flex flex-col bg-gray-50 ${!selectedNotif ? 'hidden md:flex' : 'flex'}`}>
+        {selectedNotif ? (
+          <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+            {/* Detail Header */}
+            <div className="bg-white p-4 md:p-6 border-b border-gray-200 flex items-center gap-4">
+              <button 
+                onClick={handleBackToList}
+                className="md:hidden p-2 -ml-2 text-gray-400 hover:text-teal-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-1">
+                  <span className="text-4xl p-3 bg-gray-50 rounded-2xl">{getNotificationIcon(selectedNotif.type)}</span>
+                  <div>
+                    <h2 className="text-xl font-extrabold text-gray-900 leading-tight">{selectedNotif.title}</h2>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-1">{formatNotifDate(selectedNotif.createdAt)}</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const route = getRouteForNotification(selectedNotif);
+                  if (route) navigate(route);
+                }}
+                className="px-5 py-2.5 text-sm font-bold bg-gray-900 text-white rounded-xl hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-100 transition-all active:scale-95"
+              >
+                Deep Link →
+              </button>
+            </div>
+
+            {/* Detail Body */}
+            <div className="flex-1 p-6 md:p-12 overflow-y-auto bg-gray-50/50">
+              <div className="max-w-3xl mx-auto bg-white p-10 md:p-14 rounded-[32px] shadow-sm border border-gray-100 relative overflow-hidden">
+                {/* Subtle background decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full -mr-16 -mt-16 opacity-50" />
+                
+                <h3 className="text-xs font-bold text-teal-600 uppercase tracking-[0.2em] mb-6">Notification Details</h3>
+                <p className="text-gray-700 leading-relaxed text-lg whitespace-pre-wrap font-medium">
+                  {selectedNotif.message}
+                </p>
+                
+                {/* Specific Action Buttons for Leave/Tickets etc. - REMOVED per user request */}
+                
+                {/* Example of a generic secondary action info */}
+                <div className="mt-12 pt-10 border-t border-gray-100 italic text-sm text-gray-400 font-medium leading-relaxed">
+                  Use the "Deep Link" button above to view full context and take actions in the relevant module.
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+            <div className="w-24 h-24 bg-white rounded-[30%] rotate-12 flex items-center justify-center mb-8 shadow-2xl shadow-gray-200 border border-gray-50">
+              <svg className="w-10 h-10 text-teal-400 -rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-black text-gray-900 mb-2">Select a notification</h3>
+            <p className="text-sm text-gray-500 max-w-xs font-medium leading-relaxed">Choose an item from the list to view its full content and available actions.</p>
           </div>
         )}
       </div>
