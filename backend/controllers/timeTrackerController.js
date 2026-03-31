@@ -1,5 +1,6 @@
 const TimeTracker = require("../models/timeTrackerSchema");
 const User = require("../models/userSchema");
+const LeaveRequest = require("../models/leaveRequestSchema");
 const catchAsync = require("../utils/catchAsync");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { getSearchScope } = require("../utils/rbac"); 
@@ -232,6 +233,80 @@ exports.getTimeLogById = catchAsync(async (req, res) => {
   const log = await TimeTracker.findById(req.params.id).populate('user');
   if (!log) throw new NotFoundError("Time log not found");
   res.status(200).json(log);
+});
+
+// --- 4. GET ADMIN ATTENDANCE SUMMARY (NEW) ---
+exports.getAdminAttendanceSummary = catchAsync(async (req, res) => {
+  const { date } = req.query;
+  const targetDateMoment = date ? moment.tz(date, TIMEZONE) : getCurrentESTTime();
+  const targetDateStart = targetDateMoment.clone().startOf('day').toDate();
+  const targetDateEnd = targetDateMoment.clone().endOf('day').toDate();
+  const targetDateStr = targetDateMoment.format('YYYY-MM-DD');
+
+  const { id } = req.user;
+  
+  // 1. Get scope for users
+  const scope = await getSearchScope(req.user, 'attendance');
+  
+  // Normalize scope for users (getSearchScope returns {user: ...} or {})
+  let userQuery = {};
+  if (scope.user) {
+    userQuery._id = scope.user;
+  } else if (scope._id === null) {
+    return res.status(200).json({ present: [], absent: [], onLeave: [], counts: { present: 0, absent: 0, onLeave: 0, total: 0 } });
+  }
+
+  // 2. Fetch all relevant users in scope (exclude Super Admin if necessary based on your policy, usually they are included)
+  const usersInScope = await User.find(userQuery).select('name email designation department avatar empID');
+  const userIds = usersInScope.map(u => u._id.toString());
+
+  // 3. Fetch TimeTracker logs for the specific date
+  const timeLogs = await TimeTracker.find({
+    user: { $in: userIds },
+    date: targetDateStart
+  }).populate('user', 'name email designation department avatar empID');
+
+  const presentUserIds = timeLogs.map(log => log.user._id.toString());
+
+  // 4. Fetch Approved Leaves for the date
+  // We need to find leaves where targetDate is between startDate and endDate (inclusive)
+  // Note: startDate/endDate in LeaveRequest are currently Strings (YYYY-MM-DD)
+  const approvedLeaves = await LeaveRequest.find({
+    employee: { $in: userIds },
+    status: 'Approved',
+    startDate: { $lte: targetDateStr },
+    endDate: { $gte: targetDateStr }
+  }).populate('employee', 'name email designation department avatar empID');
+
+  const onLeaveUserIds = approvedLeaves.map(leave => leave.employee._id.toString());
+
+  // 5. Categorize
+  const present = timeLogs; // Already populated
+  const onLeave = approvedLeaves.map(leave => ({
+      user: leave.employee,
+      status: 'On Leave',
+      leaveType: leave.leaveType,
+      date: targetDateStart
+  }));
+
+  const absentUserIds = userIds.filter(id => !presentUserIds.includes(id) && !onLeaveUserIds.includes(id));
+  const absentUsers = usersInScope.filter(u => absentUserIds.includes(u._id.toString())).map(u => ({
+      user: u,
+      status: 'Absent',
+      date: targetDateStart
+  }));
+
+  res.status(200).json({
+    present,
+    onLeave,
+    absent: absentUsers,
+    counts: {
+      present: present.length,
+      onLeave: onLeave.length,
+      absent: absentUsers.length,
+      total: usersInScope.length
+    }
+  });
 });
 
 // --- CRITICAL ALIASES TO FIX "UNDEFINED" ROUTE ERRORS ---

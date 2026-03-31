@@ -42,10 +42,11 @@ const LiveTimer = ({ startTime }) => {
 
 // --- MAIN COMPONENT ---
 const AdminAttendance = () => {
-  const [logs, setLogs] = useState([]);
+  const [summaryData, setSummaryData] = useState({ present: [], absent: [], onLeave: [], counts: { present: 0, absent: 0, onLeave: 0, total: 0 } });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDate, setFilterDate] = useState(new Date());
+  const [activeTab, setActiveTab] = useState("present");
 
   // Edit State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -55,47 +56,68 @@ const AdminAttendance = () => {
   // Permission State
   const [currentUserRole, setCurrentUserRole] = useState("");
 
+  const fetchSummary = async (date) => {
+    setLoading(true);
+    try {
+      const dateStr = date.toISOString().split('T')[0];
+      const res = await api.get(`/timetrackers/admin-summary?date=${dateStr}`);
+      setSummaryData(res.data);
+    } catch (error) {
+      console.error("Fetch Summary Error:", error);
+      toast.error("Failed to load attendance summary");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const initData = async () => {
-      setLoading(true);
       try {
         const userRes = await api.get("/auth/me");
         const role = userRes.data.user.role || "";
         setCurrentUserRole(role.replace(/\s+/g, '').toLowerCase());
-
-        const logRes = await api.get("/timetrackers");
-        const sortedLogs = logRes.data.sort((a, b) => new Date(b.date) - new Date(a.date));
-        setLogs(sortedLogs);
+        await fetchSummary(filterDate);
       } catch (error) {
         console.error("Init Error:", error);
-        toast.error("Failed to load data");
-      } finally {
-        setLoading(false);
+        toast.error("Failed to initialize data");
       }
     };
-
     initData();
-  }, []);
+  }, [filterDate]);
 
   const canEdit = currentUserRole === 'superadmin';
 
   // --- DOWNLOAD EXCEL (CSV) ---
   const handleDownload = () => {
-    if (filteredLogs.length === 0) {
+    const dataToExport = activeTabLogs;
+    if (dataToExport.length === 0) {
       toast.warn("No data to download");
       return;
     }
 
-    const headers = ["Employee Name", "Email", "Date", "Check In", "Check Out", "Total Hours", "Status"];
-    const rows = filteredLogs.map(log => [
-      `"${log.user?.name || 'Unknown'}"`,
-      `"${log.user?.email || 'N/A'}"`,
-      new Date(log.date).toLocaleDateString(),
-      log.checkInTime ? new Date(log.checkInTime).toLocaleTimeString() : "--",
-      log.checkOutTime ? new Date(log.checkOutTime).toLocaleTimeString() : "Active",
-      log.totalHours || "--",
-      log.status
-    ]);
+    const isPresentTab = activeTab === "present";
+    const headers = isPresentTab 
+      ? ["Employee Name", "Email", "Date", "Check In", "Check Out", "Total Hours", "Status"]
+      : ["Employee Name", "Email", "Date", "Status"];
+
+    const rows = dataToExport.map(log => {
+      const base = [
+        `"${log.user?.name || 'Unknown'}"`,
+        `"${log.user?.email || 'N/A'}"`,
+        new Date(log.date || filterDate).toLocaleDateString(),
+        log.status
+      ];
+      if (isPresentTab) {
+        return [
+          base[0], base[1], base[2],
+          log.checkInTime ? new Date(log.checkInTime).toLocaleTimeString() : "--",
+          log.checkOutTime ? new Date(log.checkOutTime).toLocaleTimeString() : "Active",
+          log.totalHours || "--",
+          base[3]
+        ];
+      }
+      return base;
+    });
 
     const csvContent = [
       headers.join(","),
@@ -106,7 +128,7 @@ const AdminAttendance = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `attendance_report_${filterDate ? filterDate.toISOString().split('T')[0] : 'all'}.csv`);
+    link.setAttribute("download", `attendance_${activeTab}_report_${filterDate.toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -137,12 +159,9 @@ const AdminAttendance = () => {
       }
 
       await api.put(`/timetrackers/${editingLog._id}`, updates);
-
       toast.success("Attendance updated successfully");
       setIsEditModalOpen(false);
-
-      const res = await api.get("/timetrackers");
-      setLogs(res.data.sort((a, b) => new Date(b.date) - new Date(a.date)));
+      await fetchSummary(filterDate);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update record");
     }
@@ -166,18 +185,26 @@ const AdminAttendance = () => {
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200"><AlertCircle size={12} /> Half Day</span>;
       case "Absent":
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200"><XCircle size={12} /> Absent</span>;
+      case "On Leave":
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200"><Calendar size={12} /> On Leave</span>;
       default:
-        return <span className="text-slate-500 text-xs">{status}</span>;
+        return <span className="text-slate-500 text-xs font-bold">{status}</span>;
     }
   };
 
-  const filteredLogs = logs.filter((log) => {
-    const logDate = new Date(log.date).toISOString().split("T")[0];
-    const targetDate = filterDate ? filterDate.toISOString().split("T")[0] : null;
-    const matchesDate = targetDate ? logDate === targetDate : true;
+  const getActiveTabData = () => {
+    switch (activeTab) {
+      case "present": return summaryData.present;
+      case "absent": return summaryData.absent;
+      case "leave": return summaryData.onLeave;
+      default: return [];
+    }
+  };
+
+  const activeTabLogs = getActiveTabData().filter((log) => {
     const employeeName = log.user?.name || "Unknown";
     const matchesSearch = employeeName.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesDate && matchesSearch;
+    return matchesSearch;
   });
 
   return (
@@ -225,21 +252,46 @@ const AdminAttendance = () => {
         <div className="grid grid-cols-4 gap-0 bg-white border border-slate-100 rounded-xl overflow-hidden divide-x divide-slate-100 shadow-sm">
           <div className="px-2 py-3 flex flex-col justify-center text-center bg-blue-50/30">
             <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">TOTAL</p>
-            <p className="text-xl font-black text-slate-700">{filteredLogs.length}</p>
+            <p className="text-xl font-black text-slate-700">{summaryData.counts.total}</p>
           </div>
-          <div className="px-2 py-3 flex flex-col justify-center text-center bg-emerald-50/30">
+          <div 
+            onClick={() => setActiveTab("present")}
+            className={`px-2 py-3 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'present' ? 'bg-emerald-100/50' : 'bg-emerald-50/30 hover:bg-emerald-50'}`}
+          >
             <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">PRESENT</p>
-            <p className="text-xl font-black text-emerald-700">{filteredLogs.filter(l => l.status === 'Present').length}</p>
+            <p className="text-xl font-black text-emerald-700">{summaryData.counts.present}</p>
           </div>
-          <div className="px-2 py-3 flex flex-col justify-center text-center bg-rose-50/30">
+          <div 
+            onClick={() => setActiveTab("absent")}
+            className={`px-2 py-3 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'absent' ? 'bg-rose-100/50' : 'bg-rose-50/30 hover:bg-rose-50'}`}
+          >
             <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">ABSENT</p>
-            <p className="text-xl font-black text-rose-700">{filteredLogs.filter(l => l.status === 'Absent').length}</p>
+            <p className="text-xl font-black text-rose-700">{summaryData.counts.absent}</p>
           </div>
-          <div className="px-2 py-3 flex flex-col justify-center text-center bg-amber-50/30">
-            <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">HALF DAY</p>
-            <p className="text-xl font-black text-amber-700">{filteredLogs.filter(l => l.status === 'Half Day' || l.status === 'Late').length}</p>
+          <div 
+            onClick={() => setActiveTab("leave")}
+            className={`px-2 py-3 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'leave' ? 'bg-blue-100/50' : 'bg-blue-50/30 hover:bg-blue-50'}`}
+          >
+            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">LEAVE</p>
+            <p className="text-xl font-black text-blue-700">{summaryData.counts.onLeave}</p>
           </div>
         </div>
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        {["present", "absent", "leave"].map((t) => (
+          <button
+            key={t}
+            onClick={() => setActiveTab(t)}
+            className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${
+              activeTab === t 
+                ? "bg-slate-800 text-white border-slate-800 shadow-lg shadow-slate-200" 
+                : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
       </div>
 
       <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 overflow-hidden">
@@ -249,21 +301,27 @@ const AdminAttendance = () => {
               <tr className="bg-slate-50/80 border-b border-slate-100">
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Check In</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Check Out</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
+                {activeTab === "present" && (
+                  <>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Check In</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Check Out</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
+                  </>
+                )}
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                {activeTab === "present" && (
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr><td colSpan="7" className="px-6 py-12 text-center text-slate-400">Loading...</td></tr>
-              ) : filteredLogs.length === 0 ? (
+              ) : activeTabLogs.length === 0 ? (
                 <tr><td colSpan="7" className="px-6 py-12 text-center text-slate-400">No records found.</td></tr>
               ) : (
-                filteredLogs.map((log) => (
-                  <tr key={log._id} className="hover:bg-slate-50/50 transition-colors">
+                activeTabLogs.map((log) => (
+                  <tr key={log._id || log.user?._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm">
@@ -276,31 +334,37 @@ const AdminAttendance = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {new Date(log.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {new Date(log.date || filterDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </td>
-                    <td className="px-6 py-4 text-sm font-bold text-slate-700">{formatTime(log.checkInTime)}</td>
-                    <td className="px-6 py-4">
-                      {log.checkOutTime ? (
-                        <span className="text-sm font-bold text-slate-700">{formatTime(log.checkOutTime)}</span>
-                      ) : (
-                        <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 uppercase tracking-wider">Active</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium">
-                      {log.checkOutTime ? (
-                        <span className="text-slate-600">{log.totalHours} hrs</span>
-                      ) : (
-                        <LiveTimer startTime={log.checkInTime} />
-                      )}
-                    </td>
+                    {activeTab === "present" && (
+                      <>
+                        <td className="px-6 py-4 text-sm font-bold text-slate-700">{formatTime(log.checkInTime)}</td>
+                        <td className="px-6 py-4">
+                          {log.checkOutTime ? (
+                            <span className="text-sm font-bold text-slate-700">{formatTime(log.checkOutTime)}</span>
+                          ) : (
+                            <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 uppercase tracking-wider">Active</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium">
+                          {log.checkOutTime ? (
+                            <span className="text-slate-600">{log.totalHours} hrs</span>
+                          ) : (
+                            log.checkInTime ? <LiveTimer startTime={log.checkInTime} /> : "--"
+                          )}
+                        </td>
+                      </>
+                    )}
                     <td className="px-6 py-4">{getStatusBadge(log.status)}</td>
-                    <td className="px-6 py-4 text-right">
-                      {canEdit && (
-                        <button onClick={() => handleEditClick(log)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Record">
-                          <Edit2 size={16} />
-                        </button>
-                      )}
-                    </td>
+                    {activeTab === "present" && (
+                      <td className="px-6 py-4 text-right">
+                        {canEdit && log._id && (
+                          <button onClick={() => handleEditClick(log)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Record">
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
