@@ -1,6 +1,7 @@
 const Department = require("../models/departemt");
 const catchAsync = require("../utils/catchAsync");
 const { BadRequestError, NotFoundError } = require("../utils/ExpressError");
+const { createNotification } = require('../utils/notificationService');
 
 // 1. Create a New Department
 exports.createDepartment = catchAsync(async (req, res) => {

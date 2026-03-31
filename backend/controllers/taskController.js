@@ -124,20 +124,45 @@ exports.updateTask = catchAsync(async (req, res) => {
 
   // Notify team on status change (TASK_STATUS_CHANGED)
   if (status && status !== previousStatus && updatedTask.team && updatedTask.team.length > 0) {
-    try {
-      const notifPromises = updatedTask.team.map(memberId =>
-        createNotification({
-          recipient: memberId,
-          type: 'TASK_STATUS_CHANGED',
-          title: 'Task Status Updated',
-          message: `Task "${updatedTask.title}" status has been updated to "${status}".`,
-          relatedEntity: { entityType: 'task', entityId: updatedTask._id },
-        })
-      );
-      await Promise.all(notifPromises);
-    } catch (notifErr) {
-      console.error('[Notification] Task status change:', notifErr.message);
+    updatedTask.team.forEach(memberId => {
+      createNotification({
+        recipient: memberId,
+        type: 'TASK_STATUS_CHANGED',
+        title: 'Task Status Updated',
+        message: `Task "${updatedTask.title}" status has been updated to "${status}".`,
+        relatedEntity: { entityType: 'task', entityId: updatedTask._id },
+      }).catch(err => console.error('Notification failed:', err));
+    });
+
+    // Special case: TASK_BLOCKED notification to Project Owner and Creator
+    if (status.toLowerCase() === 'blocked' && previousStatus.toLowerCase() !== 'blocked') {
+      Project.findById(updatedTask.project).then(project => {
+        if (project && project.owner) {
+          createNotification({
+            recipient: project.owner,
+            type: 'TASK_BLOCKED',
+            title: 'Task Blocked',
+            message: `⚠️ Task "${updatedTask.title}" has been marked as BLOCKED by ${req.user.name}.`,
+            relatedEntity: { entityType: 'task', entityId: updatedTask._id },
+          }).catch(console.error);
+        }
+      });
     }
+  }
+
+  // Notify team on detail changes (TASK_UPDATED)
+  const detailFields = ['title', 'description', 'priority', 'dueDate'];
+  const hasDetailChange = detailFields.some(field => req.body[field] !== undefined && req.body[field] !== task[field]);
+  if (hasDetailChange && updatedTask.team && updatedTask.team.length > 0) {
+    updatedTask.team.forEach(memberId => {
+      createNotification({
+        recipient: memberId,
+        type: 'TASK_UPDATED',
+        title: 'Task Details Updated',
+        message: `Task "${updatedTask.title}" details have been updated.`,
+        relatedEntity: { entityType: 'task', entityId: updatedTask._id },
+      }).catch(err => console.error('Notification failed:', err));
+    });
   }
 
   res.status(200).json(updatedTask);
@@ -147,6 +172,20 @@ exports.updateTask = catchAsync(async (req, res) => {
 exports.deleteTask = catchAsync(async (req, res) => {
   const task = await Task.findById(req.params.id);
   if (!task) throw new NotFoundError("Task");
+
+  // Notify team before deletion
+  if (task.team && task.team.length > 0) {
+    task.team.forEach(memberId => {
+      createNotification({
+        recipient: memberId,
+        type: 'TASK_DELETED',
+        title: 'Task Removed',
+        message: `Task "${task.title}" has been removed from the project.`,
+        // associated entity ID is provided for history/reference
+        relatedEntity: { entityType: 'task', entityId: task._id },
+      }).catch(err => console.error('Notification failed:', err));
+    });
+  }
 
   await task.deleteOne();
   res.status(200).json({ message: "Task deleted successfully" });

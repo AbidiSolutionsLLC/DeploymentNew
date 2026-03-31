@@ -56,6 +56,17 @@ const adminEmails = admins.map(admin => admin.email);
  
   sendTicketCreationEmail(recipients, savedTicket).catch(console.error);
  
+  // In-app notification: notify all admins about new ticket
+  admins.forEach(admin => {
+    createNotification({
+      recipient: admin._id,
+      type: 'TICKET_CREATED',
+      title: 'New Support Ticket',
+      message: `A new ${savedTicket.priority} priority support ticket has been created: "${savedTicket.subject}".`,
+      relatedEntity: { entityType: 'ticket', entityId: savedTicket._id },
+    }).catch(console.error);
+  });
+
   res.status(201).json(savedTicket);
 });
  
@@ -137,9 +148,21 @@ exports.updateTicket = catchAsync(async (req, res) => {
  
 // --- 6. DELETE TICKET ---
 exports.deleteTicket = catchAsync(async (req, res) => {
-  const ticket = await Ticket.findByIdAndDelete(req.params.id);
+  const ticket = await Ticket.findById(req.params.id);
   if (!ticket) throw new NotFoundError("Ticket");
- 
+
+  // Notify creator before deletion
+  if (ticket.closedBy) {
+    createNotification({
+      recipient: ticket.closedBy,
+      type: 'TICKET_DELETED',
+      title: 'Support Ticket Deleted',
+      message: `Support ticket "${ticket.subject}" has been deleted.`,
+      relatedEntity: { entityType: 'ticket', entityId: ticket._id },
+    }).catch(console.error);
+  }
+
+  await ticket.deleteOne();
   res.status(200).json({ message: "Ticket deleted successfully" });
 });
  
@@ -175,11 +198,17 @@ exports.updateTicketStatus = catchAsync(async (req, res) => {
   // Notify the ticket creator about status change
   try {
     if (ticket.closedBy && ticket.closedBy._id) {
+      const type = normalizedStatus === 'Closed' ? 'TICKET_CLOSED' : 'TICKET_STATUS_CHANGED';
+      const title = normalizedStatus === 'Closed' ? 'Ticket Closed' : 'Ticket Status Updated';
+      const message = normalizedStatus === 'Closed' 
+        ? `Your ticket "${ticket.subject}" has been closed.` 
+        : `Your support ticket "${ticket.subject}" is now "${normalizedStatus}".`;
+
       await createNotification({
         recipient: ticket.closedBy._id,
-        type: 'TICKET_STATUS_CHANGED',
-        title: 'Ticket Status Updated',
-        message: `Your support ticket "${ticket.subject}" is now "${normalizedStatus}".`,
+        type: type,
+        title: title,
+        message: message,
         relatedEntity: { entityType: 'ticket', entityId: ticket._id },
       });
     }

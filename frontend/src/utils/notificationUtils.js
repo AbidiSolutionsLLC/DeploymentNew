@@ -17,6 +17,17 @@ export const getNotificationIcon = (type) => {
     TICKET_STATUS_CHANGED:    '🎫',
     TICKET_ASSIGNED:          '🎫',
     PROJECT_MEMBER_ADDED:     '🗂️',
+    PROJECT_CREATED:          '🚀',
+    PROJECT_STATUS_UPDATED:   '📊',
+    PROJECT_DELETED:          '🗑️',
+    TASK_BLOCKED:             '🛑',
+    TASK_DELETED:             '🗑️',
+    TASK_UPDATED:             '📝',
+    TICKET_CREATED:           '🆕',
+    TICKET_CLOSED:            '✅',
+    TICKET_DELETED:           '🗑️',
+    DEPARTMENT_MEMBER_ADDED:  '🏢',
+    COMPANY_UPDATED:          '⚙️',
     USER_CREATED:             '👤',
     USER_DEACTIVATED:         '🚫',
   };
@@ -38,6 +49,8 @@ export const getRouteForNotification = (notif) => {
     ticket:      `/people/raise`,
     project:     `/project/projects`,
     user:        `/admin/userManagement`,
+    department:  `/people/org-chart`,
+    company:     `/admin/adminDashboard`,
   };
 
   return routes[entityType] || null;

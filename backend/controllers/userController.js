@@ -271,7 +271,18 @@ exports.updateUser = catchAsync(async (req, res) => {
         const oldDeptId = user.department;
         const newDeptId = updates.department;
         if (oldDeptId) await Department.findByIdAndUpdate(oldDeptId, { $pull: { members: id } });
-        if (newDeptId) await Department.findByIdAndUpdate(newDeptId, { $push: { members: id } });
+        if (newDeptId) {
+          const dept = await Department.findByIdAndUpdate(newDeptId, { $push: { members: id } });
+          if (dept) {
+            createNotification({
+              recipient: id,
+              type: 'DEPARTMENT_MEMBER_ADDED',
+              title: 'Department Assignment',
+              message: `You have been added to the ${dept.name} department.`,
+              relatedEntity: { entityType: 'department', entityId: dept._id },
+            }).catch(console.error);
+          }
+        }
       }
       
       if (updates.reportsTo === "" || updates.reportsTo === "NO MANAGER") updates.reportsTo = null;

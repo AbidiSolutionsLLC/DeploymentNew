@@ -1,6 +1,9 @@
 const Company = require("../models/companySchema");
 const catchAsync = require("../utils/catchAsync");
 const { NotFoundError } = require("../utils/ExpressError");
+const User = require("./userController"); // Actually I need the User model or the controller
+const { createNotification } = require('../utils/notificationService');
+const UserModel = require("../models/userSchema");
 
 // Create Company
 exports.createCompany = catchAsync(async (req, res) => {
@@ -35,6 +38,25 @@ exports.updateCompany = catchAsync(async (req, res) => {
 
   Object.assign(company, updates);
   const updatedCompany = await company.save();
+
+  // Notify all administrators about company update
+  try {
+    const admins = await UserModel.find({
+      $or: [{ role: 'Super Admin' }, { role: 'Admin' }]
+    }).select('_id');
+    
+    admins.forEach(admin => {
+      createNotification({
+        recipient: admin._id,
+        type: 'COMPANY_UPDATED',
+        title: 'Company Profile Updated',
+        message: `Company profile details for "${updatedCompany.companyName}" have been updated.`,
+        relatedEntity: { entityType: 'company', entityId: updatedCompany._id },
+      }).catch(console.error);
+    });
+  } catch (notifErr) {
+    console.error('[Notification] Company update:', notifErr.message);
+  }
 
   res.status(200).json(updatedCompany);
 });
