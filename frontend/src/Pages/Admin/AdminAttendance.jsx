@@ -7,6 +7,9 @@ import {
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import AdminAddAttendanceModal from "../../Components/AdminAddAttendanceModal";
+import AdminAddTimeLogModal from "../../Components/AdminAddTimeLogModal";
+import AdminCreateTimesheetModal from "../../Components/AdminCreateTimesheetModal";
 
 // --- SUB-COMPONENT: LIVE TIMER ---
 const LiveTimer = ({ startTime }) => {
@@ -47,6 +50,10 @@ const AdminAttendance = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDate, setFilterDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState("present");
+  const [allUsers, setAllUsers] = useState([]);
+  const [isAddAttendanceOpen, setIsAddAttendanceOpen] = useState(false);
+  const [isAddTimeLogOpen, setIsAddTimeLogOpen] = useState(false);
+  const [isCreateTimesheetOpen, setIsCreateTimesheetOpen] = useState(false);
 
   // Edit State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -75,7 +82,13 @@ const AdminAttendance = () => {
       try {
         const userRes = await api.get("/auth/me");
         const role = userRes.data.user.role || "";
-        setCurrentUserRole(role.replace(/\s+/g, '').toLowerCase());
+        const processedRole = role.replace(/\s+/g, '').toLowerCase();
+        setCurrentUserRole(processedRole);
+        
+        if (processedRole === 'superadmin' || processedRole === 'admin') {
+            const allUsersRes = await api.get("/users");
+            setAllUsers(allUsersRes.data);
+        }
         await fetchSummary(filterDate);
       } catch (error) {
         console.error("Init Error:", error);
@@ -215,12 +228,36 @@ const AdminAttendance = () => {
           <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Employee Attendance</h1>
           <p className="text-sm text-slate-500 font-medium mt-1">Monitor daily check-ins, check-outs, and working hours.</p>
         </div>
-        <button
-          onClick={handleDownload}
-          className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200 text-xs font-bold uppercase tracking-wide"
-        >
-          <Download size={16} /> Export CSV
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {canEdit && (
+            <>
+              <button
+                onClick={() => setIsAddAttendanceOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 text-[11px] font-black uppercase tracking-wide"
+              >
+                + Check In/Out
+              </button>
+              <button
+                onClick={() => setIsAddTimeLogOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-[11px] font-black uppercase tracking-wide"
+              >
+                + Time Log
+              </button>
+              <button
+                onClick={() => setIsCreateTimesheetOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 text-[11px] font-black uppercase tracking-wide"
+              >
+                + Timesheet
+              </button>
+            </>
+          )}
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200 text-[11px] font-black uppercase tracking-wide"
+          >
+            <Download size={16} /> Export CSV
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
@@ -309,7 +346,7 @@ const AdminAttendance = () => {
                   </>
                 )}
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                {activeTab === "present" && (
+                {activeTab === "present" && canEdit && (
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                 )}
               </tr>
@@ -356,9 +393,9 @@ const AdminAttendance = () => {
                       </>
                     )}
                     <td className="px-6 py-4">{getStatusBadge(log.status)}</td>
-                    {activeTab === "present" && (
+                    {activeTab === "present" && canEdit && (
                       <td className="px-6 py-4 text-right">
-                        {canEdit && log._id && (
+                        {log._id && (
                           <button onClick={() => handleEditClick(log)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Record">
                             <Edit2 size={16} />
                           </button>
@@ -438,6 +475,35 @@ const AdminAttendance = () => {
           </div>
         </div>
       )}
+
+      {/* NEW MODALS */}
+      {isAddAttendanceOpen && (
+          <AdminAddAttendanceModal
+              open={isAddAttendanceOpen}
+              onClose={() => setIsAddAttendanceOpen(false)}
+              onSuccess={() => fetchSummary(filterDate)}
+              allUsers={allUsers}
+          />
+      )}
+      
+      {isAddTimeLogOpen && (
+          <AdminAddTimeLogModal
+              open={isAddTimeLogOpen}
+              onClose={() => setIsAddTimeLogOpen(false)}
+              onSuccess={() => {}}
+              allUsers={allUsers}
+          />
+      )}
+
+      {isCreateTimesheetOpen && (
+          <AdminCreateTimesheetModal
+              open={isCreateTimesheetOpen}
+              onClose={() => setIsCreateTimesheetOpen(false)}
+              onTimesheetCreated={() => {}}
+              allUsers={allUsers}
+          />
+      )}
+
     </div>
   );
 };

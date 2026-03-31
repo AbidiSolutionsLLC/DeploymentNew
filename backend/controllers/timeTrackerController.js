@@ -52,8 +52,9 @@ exports.getAllTimeLogs = catchAsync(async (req, res) => {
 exports.updateTimeLog = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { role } = req.user;
+  const roleKey = role ? role.replace(/\s+/g, '').toLowerCase() : "";
 
-  if (role !== 'Super Admin') {
+  if (roleKey !== 'superadmin') {
     throw new ForbiddenError("Access Denied. Only Super Admins can edit attendance records.");
   }
 
@@ -73,6 +74,12 @@ exports.updateTimeLog = catchAsync(async (req, res) => {
       else if (updates.totalHours >= 4.5) updates.status = "Half Day";
       else updates.status = "Absent";
     }
+  }
+
+  if (updates.checkInTime) {
+      updates.date = getStartOfESTDay(updates.checkInTime);
+  } else if (updates.date) {
+      updates.date = getStartOfESTDay(updates.date);
   }
 
   const log = await TimeTracker.findByIdAndUpdate(id, updates, { 
@@ -225,6 +232,35 @@ exports.deleteTimeLog = catchAsync(async (req, res) => {
 });
 
 exports.createTimeLog = catchAsync(async (req, res) => {
+  const role = req.user.role ? req.user.role.replace(/\s+/g, '').toLowerCase() : "";
+  if (req.body.user && !['superadmin', 'admin'].includes(role)) {
+      req.body.user = req.user.id;
+  } else if (!req.body.user) {
+      req.body.user = req.user.id;
+  }
+  
+  if (req.body.checkInTime) {
+      req.body.date = getStartOfESTDay(req.body.checkInTime);
+  } else if (req.body.date) {
+      req.body.date = getStartOfESTDay(req.body.date);
+  } else {
+      req.body.date = getStartOfESTDay();
+  }
+
+  if (req.body.checkInTime && req.body.checkOutTime) {
+      const start = moment(req.body.checkInTime).tz(TIMEZONE);
+      const end = moment(req.body.checkOutTime).tz(TIMEZONE);
+      const duration = moment.duration(end.diff(start));
+      if (req.body.totalHours === undefined) {
+          req.body.totalHours = parseFloat(duration.asHours().toFixed(2));
+      }
+      if (!req.body.status) {
+          if (req.body.totalHours >= 8) req.body.status = "Present";
+          else if (req.body.totalHours >= 4.5) req.body.status = "Half Day";
+          else req.body.status = "Absent";
+      }
+  }
+
   const newLog = await TimeTracker.create(req.body);
   res.status(201).json(newLog);
 });

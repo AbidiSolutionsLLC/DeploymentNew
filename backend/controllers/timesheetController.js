@@ -9,9 +9,18 @@ const sendEmail = require('../utils/emailService');
 
 // --- 1. CREATE TIMESHEET ---
 exports.createTimesheet = catchAsync(async (req, res) => {
-  let { name, description, timeLogs, date } = req.body;
-  const employee = req.user.id;
-  const employeeName = req.user.name;
+  let { name, description, timeLogs, date, employeeId } = req.body;
+  const role = req.user.role ? req.user.role.toLowerCase() : "";
+  
+  let employee = req.user.id;
+  let employeeName = req.user.name;
+
+  if (employeeId && ['super admin', 'admin'].includes(role)) {
+      const targetUser = await User.findById(employeeId);
+      if (!targetUser) throw new BadRequestError("Target employee not found");
+      employee = targetUser._id;
+      employeeName = targetUser.name;
+  }
 
   let logIds = Array.isArray(timeLogs) ? timeLogs : (timeLogs ? [timeLogs] : []);
   if (logIds.length === 0) throw new BadRequestError("No time logs provided");
