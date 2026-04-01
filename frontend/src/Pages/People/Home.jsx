@@ -11,8 +11,14 @@ import LeaveLogCard from "../../Components/home/LeaveLogCard";
 import UpcomingDeadlinesCard from "../../Components/home/UpcomingDeadlinesCard";
 import TimeoffBalanceCard from "../../Components/home/TimeoffBalanceCard";
 import TasksAssignedToMeCard from "../../Components/home/TasksAssignedToMeCard";
+
 import { useDispatch, useSelector } from "react-redux";
-import { fetchCurrentStatus } from "../../slices/attendanceTimer";
+import {
+  fetchCurrentStatus,
+  checkInNow,
+  checkOutNow
+} from "../../slices/attendanceTimer";
+
 import api from "../../axios";
 import { toast } from "react-toastify";
 import { refreshUserData } from "../../slices/userSlice";
@@ -27,247 +33,264 @@ function format(sec) {
 const Home = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-
-  useEffect(() => {
-    if (user?.user?._id) {
-      dispatch(refreshUserData(user.user._id));
-    }
-  }, [dispatch, user]);
-
   const { userInfo } = useSelector((state) => state.user);
+  const { checkInn, loading: reduxLoading } = useSelector((state) => state.attendanceTimer);
 
-  const { checkInn } = useSelector((state) => state.attendanceTimer);
-  const profileImage = userInfo?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e";
-  const getSafeName = (data) => {
-    if (typeof data === "string") return data;
-    if (data && typeof data === "object" && data.name) return data.name;
-    return "User";
-  };
-
-  const firstName = getSafeName(userInfo?.name);
   const userId = userInfo?._id || userInfo?.id;
 
   const [loading, setLoading] = useState(true);
   const [elapsed, setElapsed] = useState(0);
   const [cards, setCards] = useState([]);
 
-  const [time, setTime] = useState({
-    hours: "00",
-    minutes: "00",
-    period: "AM",
-  });
+  // ✅ NEW: Local Log (same as sidebar)
+  const [localLog, setLocalLog] = useState(null);
 
-  // Fetch current attendance status on mount
+  const activeLog = localLog || checkInn?.log;
+
+  // Fetch user
+  useEffect(() => {
+    if (user?.user?._id) {
+      dispatch(refreshUserData(user.user._id));
+    }
+  }, [dispatch, user]);
+
+  // Fetch attendance
   useEffect(() => {
     if (userId) {
       dispatch(fetchCurrentStatus());
     }
   }, [userId, dispatch]);
 
-  // Calculate elapsed time from check-in
+  // ✅ Verify session (CRITICAL FIX)
+  useEffect(() => {
+    const verifySession = async () => {
+      if (userId) {
+        try {
+          const { data } = await api.get(`/timetrackers/my/daily/${userId}`);
+          if (data?.log) setLocalLog(data.log);
+        } catch (e) {
+          console.error("Verification failed", e);
+        }
+      }
+    };
+    verifySession();
+  }, [userId]);
+
+  // Timer
   useEffect(() => {
     let interval;
 
-    if (checkInn?.log?.checkInTime && !checkInn?.log?.checkOutTime) {
-      const startTime = new Date(checkInn.log.checkInTime).getTime();
+    if (activeLog?.checkInTime && !activeLog?.checkOutTime) {
+      const start = new Date(activeLog.checkInTime).getTime();
 
-      const updateElapsed = () => {
+      const update = () => {
         const now = Date.now();
-        const elapsedSeconds = Math.floor((now - startTime) / 1000);
-        setElapsed(elapsedSeconds);
+        setElapsed(Math.floor((now - start) / 1000));
       };
 
-      updateElapsed();
-      interval = setInterval(updateElapsed, 1000);
+      update();
+      interval = setInterval(update, 1000);
     } else {
       setElapsed(0);
     }
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [checkInn]);
+    return () => clearInterval(interval);
+  }, [activeLog]);
 
   const { h, m, s } = format(elapsed);
 
-  // Fetch user's dashboard cards
+  // ✅ CheckIn
+  const handleCheckIn = () => {
+    dispatch(checkInNow())
+      .unwrap()
+      .then((res) => {
+        setLocalLog(res.log);
+        toast.success("Checked in");
+      })
+      .catch(async (err) => {
+        toast.error(err?.message);
+
+        if (err?.message?.includes("active")) {
+          const { data } = await api.get(`/timetrackers/my/daily/${userId}`);
+          if (data?.log) setLocalLog(data.log);
+        }
+      });
+  };
+
+  // ✅ CheckOut
+  const handleCheckOut = () => {
+    dispatch(checkOutNow())
+      .unwrap()
+      .then((res) => {
+        setLocalLog(res.log);
+        toast.success("Checked out");
+      })
+      .catch(err => toast.error(err?.message));
+  };
+
+  // ✅ Button State
+  const getButtonState = () => {
+    if (!activeLog) {
+      return {
+        text: "Check In",
+        onClick: handleCheckIn,
+        className: "bg-emerald-500 hover:bg-emerald-600"
+      };
+    }
+
+    if (activeLog.checkInTime && !activeLog.checkOutTime) {
+      return {
+        text: "Check Out",
+        onClick: handleCheckOut,
+        className: "bg-red-500 hover:bg-red-600"
+      };
+    }
+
+    return {
+      text: "Done",
+      className: "bg-slate-400",
+      disabled: true
+    };
+  };
+
+  const buttonState = getButtonState();
+
+  // Dashboard cards
   useEffect(() => {
-    const fetchDashboardCards = async () => {
+    const fetchCards = async () => {
       try {
         if (!userId) return;
-
         setLoading(true);
-        const response = await api.get(`/users/${userId}/dashboard-cards`);
-        setCards(response.data);
-      } catch (error) {
-        console.error("Failed to fetch dashboard cards:", error);
-        toast.error("Failed to load dashboard cards");
+        const res = await api.get(`/users/${userId}/dashboard-cards`);
+        setCards(res.data);
+      } catch (err) {
+        toast.error("Failed to load cards");
       } finally {
         setLoading(false);
       }
     };
-
-    fetchDashboardCards();
+    fetchCards();
   }, [userId]);
 
   const addCard = async (type) => {
     try {
-      if (cards.some(c => c.type === type)) {
-        toast.warning("This card is already added");
-        return;
-      }
-
-      const response = await api.post(`/users/${userId}/dashboard-cards/add`, { type });
-      setCards(response.data);
-      toast.success("Card added successfully");
-    } catch (error) {
-      console.error("Failed to add card:", error);
-      toast.error(error.response?.data?.message || "Failed to add card");
+      const res = await api.post(`/users/${userId}/dashboard-cards/add`, { type });
+      setCards(res.data);
+    } catch {
+      toast.error("Failed");
     }
   };
 
-  const removeCard = async (cardId) => {
+  const removeCard = async (id) => {
     try {
-      await api.delete(`/users/${userId}/dashboard-cards/${cardId}`);
-      setCards(cards.filter(c => c.id !== cardId));
-      toast.success("Card removed successfully");
-    } catch (error) {
-      console.error("Failed to remove card:", error);
-      toast.error("Failed to remove card");
+      await api.delete(`/users/${userId}/dashboard-cards/${id}`);
+      setCards(cards.filter(c => c.id !== id));
+    } catch {
+      toast.error("Failed");
     }
   };
+  const profileImage =
+  userInfo?.avatar ||
+  user?.user?.avatar ||
+  "https://ui-avatars.com/api/?name=" + (userInfo?.name || "User");
 
+const userName =
+  userInfo?.name ||
+  user?.user?.name ||
+  "User";
   const renderCard = (card) => {
-    const { id, type } = card;
-    const onDelete = () => removeCard(id);
+    const onDelete = () => removeCard(card.id);
 
-    switch (type) {
-      case "feeds":
-        return <FeedsCard key={id} onDelete={onDelete} />;
-
-      case "attendance":
-        return <AttendanceCard key={id} onDelete={onDelete} />;
-
-      case "holidays":
-        return <HolidaysCard key={id} onDelete={onDelete} />;
-
-      case "todo":
-        return <ToDoCard key={id} onDelete={onDelete} />;
-
-      case "notes":
-        return <NotesCard key={id} onDelete={onDelete} />;
-
-      case "recent activities":
-        return <RecentActivitiesCard key={id} onDelete={onDelete} />;
-
-      case "birthdays":
-        return <UpcomingBirthdaysCard key={id} onDelete={onDelete} />;
-
-      case "leavelog":
-        return <LeaveLogCard key={id} onDelete={onDelete} />;
-
-      case "upcomingDeadlines":
-        return <UpcomingDeadlinesCard key={id} onDelete={onDelete} />;
-
-      case "timeoffBalance":
-        return <TimeoffBalanceCard key={id} onDelete={onDelete} />;
-
-      case "tasksAssignedToMe":
-        return <TasksAssignedToMeCard key={id} onDelete={onDelete} />;
-
-      default:
-        return null;
+    switch (card.type) {
+      case "feeds": return <FeedsCard key={card.id} onDelete={onDelete} />;
+      case "attendance": return <AttendanceCard key={card.id} onDelete={onDelete} />;
+      case "holidays": return <HolidaysCard key={card.id} onDelete={onDelete} />;
+      case "todo": return <ToDoCard key={card.id} onDelete={onDelete} />;
+      case "notes": return <NotesCard key={card.id} onDelete={onDelete} />;
+      case "recent activities": return <RecentActivitiesCard key={card.id} onDelete={onDelete} />;
+      case "birthdays": return <UpcomingBirthdaysCard key={card.id} onDelete={onDelete} />;
+      case "leavelog": return <LeaveLogCard key={card.id} onDelete={onDelete} />;
+      case "upcomingDeadlines": return <UpcomingDeadlinesCard key={card.id} onDelete={onDelete} />;
+      case "timeoffBalance": return <TimeoffBalanceCard key={card.id} onDelete={onDelete} />;
+      case "tasksAssignedToMe": return <TasksAssignedToMeCard key={card.id} onDelete={onDelete} />;
+      default: return null;
     }
   };
 
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      let hours = now.getHours();
-      const minutes = now.getMinutes().toString().padStart(2, "0");
-      const period = hours >= 12 ? "PM" : "AM";
-
-      hours = hours % 12 || 12;
-      setTime({ hours: hours.toString().padStart(2, "0"), minutes, period });
-    };
-
-    updateTime();
-    const interval = setInterval(updateTime, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex h-[80vh] w-full items-center justify-center">
-        <div className="text-center p-6 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mx-auto"></div>
-          <p className="mt-3 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-6 text-center">Loading...</div>;
 
   return (
-    <div className="w-full bg-transparent p-2">
-      {/* Header Card */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          {/* Greeting Section */}
-          <div className="flex items-center gap-3 min-w-0">
-            {profileImage ? (
-              <img
-                src={profileImage}
-                alt={firstName}
-                className="h-11 w-11 rounded-full object-cover border-2 border-white shadow-md"
-              />
-            ) : (
-              <div className="h-11 w-11 rounded-full bg-[#E0E5EA] text-slate-700 flex items-center justify-center text-sm font-bold border-2 border-white shadow-md">
-                {firstName.charAt(0).toUpperCase()}
-              </div>
-            )}
+    <div className="w-full p-2">
 
-            <div className="truncate">
-              <h2 className="text-base font-bold text-slate-800 truncate uppercase tracking-tight">
-                Hey, {firstName}!
-              </h2>
-              <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">Have a great day</p>
-            </div>
-          </div>
+     {/* Header Card */}
+<div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4">
+  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
 
-          {/* Timer Display */}
-          <div className="flex items-center gap-1.5">
-            <div className="bg-[#E0E5EA] text-slate-800 px-3 py-2 rounded-xl font-bold text-sm shadow-inner min-w-[2.5rem] text-center">
-              {h}
-            </div>
-            <div className="text-sm font-bold text-slate-800">:</div>
-            <div className="bg-[#E0E5EA] text-slate-800 px-3 py-2 rounded-xl font-bold text-sm shadow-inner min-w-[2.5rem] text-center">
-              {m}
-            </div>
-            <div className="text-sm font-bold text-slate-800">:</div>
-            <div className="bg-[#E0E5EA] text-slate-800 px-3 py-2 rounded-xl font-bold text-sm shadow-inner min-w-[2.5rem] text-center">
-              {s}
-            </div>
-          </div>
+    {/* ✅ LEFT: GREETING (RESTORED PROPERLY) */}
+    <div className="flex items-center gap-3 min-w-0">
+    {profileImage ? (
+  <img
+    src={profileImage}
+    alt={userName}
+    className="h-11 w-11 rounded-full object-cover border-2 border-white shadow-md"
+  />
+) : (
+  <div className="h-11 w-11 rounded-full bg-[#E0E5EA] text-slate-700 flex items-center justify-center text-sm font-bold border-2 border-white shadow-md">
+    {userName.charAt(0).toUpperCase()}
+  </div>
+)}
+
+      <div className="truncate">
+        <h2 className="text-base font-bold text-slate-800 truncate uppercase tracking-tight">
+          Hey, {userInfo?.name || "User"}!
+        </h2>
+        <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">
+          Have a great day
+        </p>
+      </div>
+    </div>
+
+    {/* ✅ RIGHT: TIMER + MOBILE BUTTON */}
+    <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+
+      {/* TIMER (YOUR ORIGINAL STYLE) */}
+      <div className="flex items-center gap-1.5">
+        <div className="bg-[#E0E5EA] text-slate-800 px-3 py-2 rounded-xl font-bold text-sm shadow-inner min-w-[2.5rem] text-center">
+          {h}
+        </div>
+        <div className="text-sm font-bold text-slate-800">:</div>
+        <div className="bg-[#E0E5EA] text-slate-800 px-3 py-2 rounded-xl font-bold text-sm shadow-inner min-w-[2.5rem] text-center">
+          {m}
+        </div>
+        <div className="text-sm font-bold text-slate-800">:</div>
+        <div className="bg-[#E0E5EA] text-slate-800 px-3 py-2 rounded-xl font-bold text-sm shadow-inner min-w-[2.5rem] text-center">
+          {s}
         </div>
       </div>
 
-      {/* Add Card Menu */}
-      <div className="mb-4 text-end">
+      {/* ✅ CHECK-IN BUTTON (ONLY MOBILE) */}
+      <button
+        onClick={buttonState.onClick}
+        disabled={buttonState.disabled || reduxLoading}
+        className={`sm:hidden text-white text-[10px] font-bold px-3 py-2 rounded-full shadow-md transition-all active:scale-95
+        ${buttonState.className} disabled:opacity-50`}
+      >
+        {buttonState.text}
+      </button>
+
+    </div>
+  </div>
+</div>
+      {/* ADD CARD */}
+      <div className="mb-3 text-end">
         <AddCardMenu onAdd={addCard} />
       </div>
 
-      {/* Cards Grid */}
+      {/* GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {cards.length > 0 ? (
-          cards.map(renderCard)
-        ) : (
-          <div className="col-span-full">
-            <div className="bg-transparent backdrop-blur-sm text-center">
-              <p className="text-slate-500 text-sm font-medium">No cards added yet. Click "More" to add cards to your dashboard.</p>
-            </div>
-          </div>
-        )}
+        {cards.map(renderCard)}
       </div>
+
     </div>
   );
 };

@@ -70,7 +70,7 @@ const ModernSelect = ({
 
         {/* The Custom Dropdown Menu */}
         {isOpen && (
-          <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar animate-fadeIn">
+          <div className="absolute z-[9999] w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar animate-fadeIn">
             {options.length > 0 ? (
               options.map((opt) => (
                 <div

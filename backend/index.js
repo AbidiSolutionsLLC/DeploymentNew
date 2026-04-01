@@ -20,6 +20,8 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
+// Serve static files from uploads directory
+app.use("/uploads/receipts", express.static(path.join(__dirname, "uploads/receipts")));
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());

@@ -14,6 +14,7 @@ import {
   FolderPlusIcon, CheckBadgeIcon, TicketIcon as AssignTicketIcon,
   Cog6ToothIcon, ArrowRightOnRectangleIcon
 } from "@heroicons/react/20/solid";
+import { DollarSignIcon } from "lucide-react";
 
 const SubNavbarVertical = () => {
   const { pathname } = useLocation();
@@ -93,6 +94,7 @@ const SubNavbarVertical = () => {
     "Admin DashBoard": ShieldCheckIcon, "Leave Management": BriefcaseIcon, "User Management": UsersIcon,
     "File Management": FolderPlusIcon, "Approve Time Sheets": CheckBadgeIcon, "Assign Ticket": AssignTicketIcon,
     "Assigned Tickets": AssignTicketIcon,
+    "Expense Tracker": DollarSignIcon,
     "Org Chart": UserGroupIcon, // Added Icon mapping
     "default": Squares2X2Icon
   };

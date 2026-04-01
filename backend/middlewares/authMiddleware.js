@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const User = require('../models/userSchema');
-const { UnauthorizedError } = require('../utils/ExpressError');
+const { UnauthorizedError, ForbiddenError } = require('../utils/ExpressError');
 
 const client = jwksClient({
   jwksUri: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/discovery/v2.0/keys`,
@@ -112,5 +112,21 @@ const isLoggedIn = async (req, res, next) => {
     }
   });
 };
+const restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !req.user.role) {
+      return next(new ForbiddenError("You do not have permission to perform this action"));
+    }
 
-module.exports = { isLoggedIn };
+    // Normalize user role and allowed roles (remove spaces, lowercase)
+    const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
+    const allowedRoles = roles.map(role => role.replace(/\s+/g, '').toLowerCase());
+
+    if (!allowedRoles.includes(userRole)) {
+      return next(new ForbiddenError("You do not have permission to perform this action"));
+    }
+    next();
+  };
+};
+
+module.exports = { isLoggedIn, restrictTo };

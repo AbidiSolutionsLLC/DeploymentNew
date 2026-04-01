@@ -9,9 +9,9 @@ import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import api from "../axios"; 
 
-const NavBarVertical = () => {
+const NavBarVertical = ({ onNotificationClick }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
-  const [user, setUser] = useState(null); 
+  const [user, setUser] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const unreadCount = useSelector((s) => s.notifications?.unreadCount ?? 0);
@@ -34,30 +34,19 @@ const NavBarVertical = () => {
   };
 
   const navLinks = [
-    { 
-      name: "People", 
-      to: "/people", 
-      icon: UserGroupIcon, 
-      show: true 
-    },
-    { 
-      name: "Project", 
-      to: "/project", 
-      icon: SquaresPlusIcon, 
-      show: true 
-    },
-    { 
-      name: "Admin", 
-      to: "/admin", 
-      icon: AdjustmentsHorizontalIcon, 
-      // Requirement 1: Employee & Tech won't see this.
-      show: hasRole(["Super Admin", "Admin", "HR", "Manager"]) 
-    },
+    { name: "People", to: "/people", icon: UserGroupIcon, show: true },
+    { name: "Project", to: "/project", icon: SquaresPlusIcon, show: true },
+    {
+      name: "Admin",
+      to: "/admin",
+      icon: AdjustmentsHorizontalIcon,
+      show: hasRole(["Super Admin", "Admin", "HR", "Manager"])
+    }
   ];
 
   const isLinkActive = (item) => {
     if (item.name === "People") {
-      return ["/people", "/leave", "/file", "/faq"].some(path => 
+      return ["/people", "/leave", "/file", "/faq"].some(path =>
         location.pathname.startsWith(path)
       );
     }

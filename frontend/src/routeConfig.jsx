@@ -14,6 +14,7 @@ import {
   CheckBadgeIcon,
   UserGroupIcon
 } from "@heroicons/react/24/solid";
+import { DollarSignIcon } from "lucide-react";
 
 // People Module
 const peopleLinks = [
@@ -89,6 +90,7 @@ export const moduleConfigs = {
       { name: "Leave Management", path: "/admin/leaveTrackerAdmin", icon: BriefcaseIcon },
       { name: "Approve Time Sheets", path: "/admin/approve", icon: CheckBadgeIcon },
       { name: "Assign Ticket", path: "/admin/assign-ticket", icon: TicketIcon },
+      { name: "Expense Tracker", path: "/admin/ExpenseManagement", icon: DollarSignIcon },
 
     ],
   },
