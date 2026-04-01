@@ -135,7 +135,7 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
           
           {/* JOB TITLE INPUT */}
           <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">JOB TITLE*</label>
+            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">LOG TITLE*</label>
             <input
               type="text"
               placeholder="e.g. Frontend Development"

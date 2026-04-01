@@ -104,13 +104,21 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm border-separate border-spacing-0">
+          <table className="min-w-full text-sm border-separate border-spacing-0" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '35%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '15%' }} />
+            </colgroup>
             <thead>
               <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
                 {["Date", "Day", "Holiday Name", "Type", isUpcoming ? "Days Until" : "Days Ago"].map((header, index) => (
                   <th
                     key={index}
                     className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left"
+                    style={{ width: ['20%', '15%', '35%', '15%', '15%'][index] }}
                   >
                     {header}
                   </th>
@@ -120,38 +128,38 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
             <tbody>
               {data.map((holiday, index) => {
                 const holidayDate = extractDate(holiday.date);
-                
+
                 let daysCount;
                 let statusClass;
-                
+
                 if (isUpcoming) {
                   daysCount = Math.ceil((holidayDate - today) / (1000 * 60 * 60 * 24));
-                  statusClass = daysCount === 0 
-                    ? "bg-green-100 text-green-800" 
+                  statusClass = daysCount === 0
+                    ? "bg-green-100 text-green-800"
                     : "bg-blue-100 text-blue-800";
                 } else {
                   daysCount = Math.ceil((today - holidayDate) / (1000 * 60 * 60 * 24));
                   statusClass = "bg-gray-100 text-gray-800";
                 }
-                
+
                 return (
                   <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                    <td className="p-3 text-slate-700 font-medium">
-                      {holidayDate.toLocaleDateString('en-US', { 
-                        weekday: 'short', 
-                        month: 'short', 
+                    <td className="p-3 text-slate-700 font-medium" style={{ width: '20%' }}>
+                      {holidayDate.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
                         day: 'numeric',
-                        year: 'numeric' 
+                        year: 'numeric'
                       })}
                     </td>
-                    <td className="p-3 text-slate-600">{holiday.day}</td>
-                    <td className="p-3 text-slate-700 font-medium">{holiday.holidayName}</td>
-                    <td className="p-3">
+                    <td className="p-3 text-slate-600" style={{ width: '15%' }}>{holiday.day}</td>
+                    <td className="p-3 text-slate-700 font-medium" style={{ width: '35%' }}>{holiday.holidayName}</td>
+                    <td className="p-3" style={{ width: '15%' }}>
                       <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide bg-purple-100 text-purple-800">
                         {holiday.holidayType || "Holiday"}
                       </span>
                     </td>
-                    <td className="p-3">
+                    <td className="p-3" style={{ width: '15%' }}>
                       <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${statusClass}`}>
                         {daysCount === 0 ? 'Today' : `${daysCount} day${daysCount !== 1 ? 's' : ''} ${isUpcoming ? '' : 'ago'}`}
                       </span>
