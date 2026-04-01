@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import api from "../../axios";
+import { downloadFile } from "../../utils/downloadFile";
 import { toast } from "react-toastify";
 import { FaDownload, FaPaperPlane } from "react-icons/fa";
 import { XMarkIcon, PaperClipIcon } from "@heroicons/react/24/solid";
@@ -24,8 +25,7 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
   };
 
-  const getDownloadUrl = (ticketId, attachmentId) => 
-    `http://localhost:4000/api/web/tickets/${ticketId}/attachment/${attachmentId}`;
+  // Removed getDownloadUrl since we use downloadFile utility now
 
   // --- SEND RESPONSE FUNCTION ---
   const handleSendResponse = async () => {
@@ -95,8 +95,8 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
               </label>
               <div className="grid gap-2">
                 {ticket.attachments.map((file, idx) => (
-                  <a key={idx} href={getDownloadUrl(ticket._id, file._id)} target="_blank" rel="noreferrer"
-                    className="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-lg hover:border-blue-400 transition-colors group">
+                  <button key={idx} onClick={(e) => { e.preventDefault(); downloadFile(file.url, file.name); }}
+                    className="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-lg hover:border-blue-400 transition-colors group cursor-pointer w-full text-left">
                     <div className="flex items-center gap-2 overflow-hidden">
                       <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-[10px] font-bold shrink-0">
                         {file.name.split('.').pop().toUpperCase()}
@@ -104,7 +104,7 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
                       <span className="text-xs font-bold text-slate-700 truncate">{file.name}</span>
                     </div>
                     <FaDownload className="w-3 h-3 text-slate-400 group-hover:text-blue-600" />
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>

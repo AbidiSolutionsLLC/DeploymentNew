@@ -4,11 +4,14 @@ import { FaAngleLeft, FaAngleRight, FaEye, FaCommentDots } from "react-icons/fa"
 import { AnimatePresence, motion } from "framer-motion";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import timesheetApi from "../../api/timesheetApi"; // Ensure this has getAllTimesheets
+import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
-import { Download } from "lucide-react";
+import { Download, Plus } from "lucide-react";
+import api from "../../axios";
 import TableWithPagination from "../../Components/TableWithPagination";
 import ApproveTimesheetViewModal from "../../Components/ApproveTimesheetViewModal";
+import AdminAddTimeLogModal from "../../Components/AdminAddTimeLogModal";
+import AdminCreateTimesheetModal from "../../Components/AdminCreateTimesheetModal";
 
 const ApproveTimesheets = () => {
   // Helper functions defined first
@@ -47,6 +50,9 @@ const ApproveTimesheets = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [activeTab, setActiveTab] = useState(0); // 0 = Pending, 1 = Approved
+  const [allUsers, setAllUsers] = useState([]);
+  const [isAddTimeLogOpen, setIsAddTimeLogOpen] = useState(false);
+  const [isCreateTimesheetOpen, setIsCreateTimesheetOpen] = useState(false);
 
   const calendarRef = useRef(null);
 
@@ -86,6 +92,24 @@ const ApproveTimesheets = () => {
     if (showCalendar) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showCalendar]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const userRes = await api.get("/auth/me");
+        const role = userRes.data.user.role || "";
+        const processedRole = role.replace(/\s+/g, '').toLowerCase();
+
+        if (processedRole === 'superadmin' || processedRole === 'admin') {
+          const allUsersRes = await api.get("/users");
+          setAllUsers(allUsersRes.data);
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     fetchWeeklyTimesheets();
@@ -434,6 +458,18 @@ const ApproveTimesheets = () => {
 
         <div className="pr-1 flex items-center gap-3">
             <button
+              onClick={() => setIsAddTimeLogOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-[11px] font-black uppercase tracking-wide"
+            >
+              <Plus size={16} /> Time Log
+            </button>
+            <button
+              onClick={() => setIsCreateTimesheetOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 text-[11px] font-black uppercase tracking-wide"
+            >
+              <Plus size={16} /> Timesheet
+            </button>
+            <button
               onClick={handleExportCSV}
               className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200 text-[11px] font-black uppercase tracking-wide"
             >
@@ -485,6 +521,24 @@ const ApproveTimesheets = () => {
           onReject={activeTab === 0 ? handleReject : undefined}
           loading={updating}
           isApprovedTab={activeTab === 1}
+        />
+      )}
+
+      {isAddTimeLogOpen && (
+        <AdminAddTimeLogModal
+          open={isAddTimeLogOpen}
+          onClose={() => setIsAddTimeLogOpen(false)}
+          onSuccess={() => fetchWeeklyTimesheets()}
+          allUsers={allUsers}
+        />
+      )}
+
+      {isCreateTimesheetOpen && (
+        <AdminCreateTimesheetModal
+          open={isCreateTimesheetOpen}
+          onClose={() => setIsCreateTimesheetOpen(false)}
+          onTimesheetCreated={() => fetchWeeklyTimesheets()}
+          allUsers={allUsers}
         />
       )}
     </div>

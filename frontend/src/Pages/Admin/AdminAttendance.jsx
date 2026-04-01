@@ -8,8 +8,6 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import AdminAddAttendanceModal from "../../Components/AdminAddAttendanceModal";
-import AdminAddTimeLogModal from "../../Components/AdminAddTimeLogModal";
-import AdminCreateTimesheetModal from "../../Components/AdminCreateTimesheetModal";
 
 // --- SUB-COMPONENT: LIVE TIMER ---
 const LiveTimer = ({ startTime }) => {
@@ -52,8 +50,6 @@ const AdminAttendance = () => {
   const [activeTab, setActiveTab] = useState("present");
   const [allUsers, setAllUsers] = useState([]);
   const [isAddAttendanceOpen, setIsAddAttendanceOpen] = useState(false);
-  const [isAddTimeLogOpen, setIsAddTimeLogOpen] = useState(false);
-  const [isCreateTimesheetOpen, setIsCreateTimesheetOpen] = useState(false);
 
   // Edit State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -230,26 +226,12 @@ const AdminAttendance = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canEdit && (
-            <>
-              <button
-                onClick={() => setIsAddAttendanceOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 text-[11px] font-black uppercase tracking-wide"
-              >
-                + Check In/Out
-              </button>
-              <button
-                onClick={() => setIsAddTimeLogOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-[11px] font-black uppercase tracking-wide"
-              >
-                + Time Log
-              </button>
-              <button
-                onClick={() => setIsCreateTimesheetOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 text-[11px] font-black uppercase tracking-wide"
-              >
-                + Timesheet
-              </button>
-            </>
+            <button
+              onClick={() => setIsAddAttendanceOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 text-[11px] font-black uppercase tracking-wide"
+            >
+              + Check In/Out
+            </button>
           )}
           <button
             onClick={handleDownload}
@@ -482,24 +464,6 @@ const AdminAttendance = () => {
               open={isAddAttendanceOpen}
               onClose={() => setIsAddAttendanceOpen(false)}
               onSuccess={() => fetchSummary(filterDate)}
-              allUsers={allUsers}
-          />
-      )}
-      
-      {isAddTimeLogOpen && (
-          <AdminAddTimeLogModal
-              open={isAddTimeLogOpen}
-              onClose={() => setIsAddTimeLogOpen(false)}
-              onSuccess={() => {}}
-              allUsers={allUsers}
-          />
-      )}
-
-      {isCreateTimesheetOpen && (
-          <AdminCreateTimesheetModal
-              open={isCreateTimesheetOpen}
-              onClose={() => setIsCreateTimesheetOpen(false)}
-              onTimesheetCreated={() => {}}
               allUsers={allUsers}
           />
       )}
