@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { FaTimes } from "react-icons/fa";
+import { FaTimes, FaDownload } from "react-icons/fa";
+import { downloadFile } from "../utils/downloadFile";
 
 const ApproveTimesheetViewModal = ({ 
   timesheet, 
@@ -177,17 +178,16 @@ const ApproveTimesheetViewModal = ({
               </label>
               <div className="flex flex-wrap gap-2">
                 {timesheet.attachments.map((attachment, idx) => (
-                  <a
+                  <button
                     key={attachment._id || idx}
-                    href={attachment.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    onClick={() => downloadFile(attachment.blobName || attachment.url, attachment.originalname)}
                     className="inline-flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-100 transition-colors"
                   >
+                    <FaDownload className="text-slate-400 text-xs" />
                     <span className="truncate max-w-[150px]">
-                      {attachment.originalname}
+                      {attachment.originalname || "Attachment"}
                     </span>
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>

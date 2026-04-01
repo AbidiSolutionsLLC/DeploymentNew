@@ -15,6 +15,7 @@ import ExpenseStats from "../../Components/ExpenseStats";
 import ExpenseTable from "../../Components/ExpenseTable";
 import ExpenseForm from "../../Components/ExpenseForm";
 import ExpenseDetail from "../../Components/ExpenseDetails";
+import { downloadFile } from "../../utils/downloadFile";
 
 // --- MAIN COMPONENT ---
 const ExpenseManagement = () => {
@@ -45,6 +46,7 @@ const ExpenseManagement = () => {
     category: "",
     status: "",
     receiptUrl: "",
+    receiptPublicId: "",
     rejectionReason: ""
   });
 
@@ -156,6 +158,7 @@ const ExpenseManagement = () => {
       category: expense.category || "",
       status: expense.status || "",
       receiptUrl: expense.receiptUrl || "",
+      receiptPublicId: expense.receiptPublicId || "",
       rejectionReason: expense.rejectionReason || ""
     });
     setIsEditModalOpen(true);
@@ -543,15 +546,14 @@ const ExpenseManagement = () => {
                       <label className="block text-[10px] font-black text-primary-color/40 uppercase tracking-widest mb-2">
                         Current Receipt
                       </label>
-                      <a 
-                        href={`http://localhost:5000${editFormData.receiptUrl}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-primary-brand hover:underline text-sm"
+                      <button 
+                        type="button"
+                        onClick={() => downloadFile(editFormData.receiptPublicId || editFormData.receiptUrl, `receipt-${editFormData.title}`)}
+                        className="flex items-center gap-2 text-blue-600 hover:underline text-sm font-medium transition-all"
                       >
                         <FileText size={16} />
                         View Receipt
-                      </a>
+                      </button>
                     </div>
                   )}
 

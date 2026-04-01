@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../axios'
 import { useSelector } from 'react-redux'
+import { downloadFile } from '../utils/downloadFile'
 
 /** 1️⃣ Fetch folder contents */
 export function useFolderContents(folder) {
@@ -84,21 +85,8 @@ export function useFileDownloader() {
   const download = useCallback(async (fileId) => {
     setLoading(true); setError(null)
     try {
-      const { data } = await api.get(`/files/files/${fileId}/download`)
-      
-      // Handle different response formats
-      let downloadUrl;
-      if (data.status === 'success') {
-        downloadUrl = data.data?.downloadUrl;
-      } else {
-        downloadUrl = data.downloadUrl;
-      }
-      
-      if (downloadUrl) {
-        window.open(downloadUrl, '_blank')
-      } else {
-        throw new Error('Download URL not found');
-      }
+      // Use the universal download utility
+      await downloadFile(`/files/files/${fileId}/download`);
     } catch (e) {
       setError(e)
       console.error('Download error:', e);

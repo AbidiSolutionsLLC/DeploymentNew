@@ -1,6 +1,7 @@
 import React from "react";
 import { Eye, Edit2, Download, FileText } from "lucide-react";
 import { toast } from "react-toastify";
+import { downloadFile } from "../utils/downloadFile";
 
 const ExpenseTable = ({
   expenses,
@@ -43,9 +44,11 @@ const ExpenseTable = ({
     return categories[category] || category;
   };
 
-  const handleViewReceipt = (receiptUrl) => {
-    if (receiptUrl) {
-      window.open(`http://localhost:5000${receiptUrl}`, '_blank');
+  const handleViewReceipt = async (expense) => {
+    // Priority: receiptPublicId (blob name) -> receiptUrl
+    const source = expense.receiptPublicId || expense.receiptUrl;
+    if (source) {
+      await downloadFile(source, `receipt-${expense.title || 'expense'}`);
     } else {
       toast.info("No receipt available");
     }
@@ -129,7 +132,7 @@ const ExpenseTable = ({
 
                     {expense.receiptUrl && (
                       <button
-                        onClick={() => handleViewReceipt(expense.receiptUrl)}
+                        onClick={() => handleViewReceipt(expense)}
                         className="p-2 text-slate-400 hover:text-[#64748b] hover:bg-slate-100 rounded-xl transition-all"
                         title="View Receipt"
                       >

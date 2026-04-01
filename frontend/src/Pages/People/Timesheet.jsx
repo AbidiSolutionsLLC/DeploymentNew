@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { IoCalendarNumberOutline, IoDownloadOutline } from "react-icons/io5";
 import { FaAngleLeft, FaAngleRight, FaEye, FaCommentDots } from "react-icons/fa";
+import { downloadFile } from "../../utils/downloadFile";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
@@ -141,21 +142,18 @@ const Timesheet = ({ refreshTrigger }) => {
       const timesheet = await timesheetApi.getTimesheetById(timesheetId);
       const attachment = timesheet.attachments?.find(att => att._id === attachmentId);
 
-      if (attachment?.url) {
-        const link = document.createElement('a');
-        link.href = attachment.url;
-        link.download = filename || attachment.originalname;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success(`Downloading ${filename || attachment.originalname}`);
+      if (attachment) {
+        // Use the secure download utility with blobName priority
+        await downloadFile(
+          attachment.blobName || attachment.url || attachment.path, 
+          filename || attachment.originalname
+        );
       } else {
         toast.error("Attachment not found");
       }
     } catch (error) {
       console.error("Download failed:", error);
-      toast.error("Failed to download file");
+      // toast error is handled inside downloadFile
     }
   };
 

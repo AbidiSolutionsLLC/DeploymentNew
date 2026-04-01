@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../axios";
 import Toast from "../../Components/Toast";
 import ModernSelect from "../../Components/ui/ModernSelect"; 
+import { downloadFile } from "../../utils/downloadFile";
 import {
   ArrowLeft, Trash2, ChevronDown, Flag, User,
   Clock, Check, UserPlus, Paperclip, Send
@@ -488,14 +489,14 @@ const AssignTicket = () => {
             {ticket.attachments && ticket.attachments.length > 0 ? (
               <div className="space-y-2">
                 {ticket.attachments.map((file, idx) => (
-                  <a 
+                  <button 
                     key={idx}
-                    href={`http://localhost:4000/api/web/tickets/${ticket._id}/attachment/${file._id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all group"
+                    onClick={() => {
+                      downloadFile(file.blobName || file.url, file.name);
+                    }}
+                    className="w-full flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all group"
                   >
-                    <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="flex items-center gap-2 overflow-hidden text-left">
                       <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs">
                         {file.name.split('.').pop().toUpperCase()}
                       </div>
@@ -504,7 +505,7 @@ const AssignTicket = () => {
                     <div className="text-slate-400 group-hover:text-blue-600">
                       <Paperclip size={16}/>
                     </div>
-                  </a>
+                  </button>
                 ))}
               </div>
             ) : (

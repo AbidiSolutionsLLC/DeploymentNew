@@ -1,7 +1,6 @@
 const File = require('../models/file');
 const User = require('../models/userSchema');
 const Folder = require('../models/folder');
-const { cloudinary } = require('../storageConfig');
 const { uploadFile, uploadFolderThumbnail, ALLOWED_FILE_TYPES } = require('../middlewares/uploadMiddleware');
 const {
   BadRequestError,
@@ -122,6 +121,8 @@ exports.register = catchAsync(async (req, res, next) => {
   });
 });
 
+const { generateBlobSasUrlHelper } = require('../utils/azureDownload');
+
 // Generate secure download URL
 exports.downloadUrl = catchAsync(async (req, res, next) => {
   const file = await File.findById(req.params.fileId);
@@ -134,23 +135,29 @@ exports.downloadUrl = catchAsync(async (req, res, next) => {
     return next(new UnauthorizedError('Access denied'));
   }
 
-  // Generate signed URL that expires in 5 minutes
-  const downloadUrl = cloudinary.url(file.cloudinaryId, {
-    resource_type: file.mimeType.startsWith('image/') ? "image" : "raw",
-    sign_url: true,
-    expires_at: Math.floor(Date.now() / 1000) + 300, // 5 minutes
-    attachment: true,
-    filename: file.name
-  });
-
-  res.json({
-    status: 'success',
-    data: {
-      downloadUrl,
-      filename: file.name,
-      expiresAt: Date.now() + 300000 // 5 minutes in milliseconds
+  try {
+    // In our Azure setup, cloudinaryId stores the blobName (folder/filename)
+    // and url stores the full blob URL. We use the blobName for SAS.
+    const blobName = file.cloudinaryId || file.blobName;
+    
+    if (!blobName) {
+      return next(new BadRequestError('Blob identifier not found for this file'));
     }
-  });
+
+    const sasUrl = await generateBlobSasUrlHelper(blobName);
+
+    res.json({
+      status: 'success',
+      data: {
+        downloadUrl: sasUrl,
+        filename: file.name,
+        expiresAt: Date.now() + 300000 // 5 minutes in milliseconds
+      }
+    });
+  } catch (error) {
+    console.error('SAS generation error in filesController:', error);
+    next(error);
+  }
 });
 
 // Soft delete a file
@@ -242,7 +249,11 @@ exports.upload = catchAsync(async (req, res, next) => {
     });
   } catch (error) {
     try {
-      await cloudinary.uploader.destroy(req.file.public_id);
+      if (req.file && (req.file.blobName || req.file.filename)) {
+        const { containerClient } = require('../config/azureConfig');
+        const blockBlobClient = containerClient.getBlockBlobClient(req.file.blobName || req.file.filename);
+        await blockBlobClient.delete();
+      }
     } catch (err) {
       console.error('Failed to cleanup uploaded file:', err);
     }

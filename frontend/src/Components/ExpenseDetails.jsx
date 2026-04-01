@@ -1,6 +1,7 @@
 import React from "react";
 import { X, Download, CheckCircle, XCircle, Edit2, Trash2, Calendar, User, DollarSign, Tag, AlertCircle } from "lucide-react";
 import { toast } from "react-toastify";
+import { downloadFile } from "../utils/downloadFile";
 
 const ExpenseDetail = ({
   expense,
@@ -14,8 +15,10 @@ const ExpenseDetail = ({
   currentUser
 }) => {
   const handleViewReceipt = () => {
-    if (expense.receiptUrl) {
-      window.open(`http://localhost:5000${expense.receiptUrl}`, '_blank');
+    // Priority: receiptPublicId (typically stores blob name in Azure migration) -> receiptUrl
+    const source = expense.receiptPublicId || expense.receiptUrl;
+    if (source) {
+      downloadFile(source, `receipt-${expense.title || 'expense'}`);
     }
   };
 

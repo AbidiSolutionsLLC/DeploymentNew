@@ -13,6 +13,7 @@ import {
 import api from "../../axios";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
+import { downloadFile } from "../../utils/downloadFile";
 
 export default function AssignedTickets() {
   const [tickets, setTickets] = useState([]);
@@ -120,9 +121,12 @@ export default function AssignedTickets() {
     }
   };
 
-  const handleDownload = (ticketId, attachmentId) => {
-    const url = `https://abidipro.abidisolutions.com/api/web/tickets/${ticketId}/attachment/${attachmentId}`;
-    window.open(url, "_blank");
+  const handleDownload = async (blobName, originalName) => {
+    if (!blobName) {
+      toast.error("File details missing");
+      return;
+    }
+    await downloadFile(blobName, originalName);
   };
 
   const handleAddComment = async () => {
@@ -343,7 +347,7 @@ export default function AssignedTickets() {
                                 <span className="text-xs font-bold text-slate-700 truncate">{file.name}</span>
                               </div>
                               <button 
-                                onClick={() => handleDownload(selectedTicket._id, file._id)}
+                                onClick={() => handleDownload(file.blobName, file.name)}
                                 className="p-2 text-slate-400 hover:text-white hover:bg-blue-600 rounded-lg transition-all"
                                 title="Download"
                               >

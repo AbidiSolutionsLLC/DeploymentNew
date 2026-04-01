@@ -1,5 +1,6 @@
-import React, { useRef } from "react";
+import React, { useRef } from 'react';
 import { FaDownload } from 'react-icons/fa';
+import { downloadFile } from "../../utils/downloadFile";
 
 const ViewTimeLogModal = ({ log, onClose }) => {
   const modalRef = useRef(null);
@@ -12,9 +13,6 @@ const ViewTimeLogModal = ({ log, onClose }) => {
     }
   };
 
-  const getDownloadLink = (fileName) => {
-    return `/uploads/${fileName}`;
-  };
 
   return (
     <div
@@ -93,13 +91,12 @@ const ViewTimeLogModal = ({ log, onClose }) => {
                 {log.attachments?.[0]?.originalname || "No attachment"}
               </span>
               {log.attachments?.[0] && (
-                <a
-                  href={getDownloadLink(log.attachments[0].originalname)}
-                  download
+                <button
+                  onClick={() => downloadFile(log.attachments[0].blobName || log.attachments[0].url || log.attachments[0].path, log.attachments[0].originalname)}
                   className="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-400 hover:text-[#64748b] shadow-sm transition-colors"
                 >
                   <FaDownload size={14} />
-                </a>
+                </button>
               )}
             </div>
           </div>
