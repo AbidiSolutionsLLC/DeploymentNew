@@ -4,6 +4,8 @@ const catchAsync = require("../utils/catchAsync");
 const { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } = require("../utils/ExpressError");
 const { processReceipt, processInvoice } = require("../utils/azureDocumentIntelligence");
 const { containerClient } = require("../config/azureConfig");
+const { getSearchScope } = require("../utils/rbac");
+const { getTeamIds } = require("../utils/hierarchy");
 
 // @desc    Create new expense
 // @route   POST /api/web/expenses
@@ -57,19 +59,9 @@ exports.createExpense = catchAsync(async (req, res, next) => {
 // @route   GET /api/web/expenses
 // @access  Private
 exports.getAllExpenses = catchAsync(async (req, res, next) => {
-  let query;
-  
-  const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
-  
-  if (userRole === "manager") {
-    query = Expense.find({ submittedBy: req.user.id });
-  } else {
-    query = Expense.find();
-  }
-
-  query = query.sort("-createdAt");
+  const scope = await getSearchScope(req.user, "expense");
+  const query = Expense.find(scope).sort("-createdAt");
   const expenses = await query;
-
   res.status(200).json({
     success: true,
     count: expenses.length,
@@ -86,7 +78,8 @@ exports.getPendingExpenses = catchAsync(async (req, res, next) => {
     throw new ForbiddenError("You do not have permission to access this resource");
   }
 
-  const expenses = await Expense.find({ status: "pending" }).sort("-createdAt");
+  const scope = await getSearchScope(req.user, "expense");
+  const expenses = await Expense.find({ ...scope, status: "pending" }).sort("-createdAt");
 
   res.status(200).json({
     success: true,
@@ -192,6 +185,8 @@ exports.updateExpense = catchAsync(async (req, res, next) => {
 // @access  Private (Admin/Manager/Superadmin)
 exports.approveExpense = catchAsync(async (req, res, next) => {
   const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
+  const currentUserId = req.user.id || req.user._id;
+
   if (userRole === "employee" || userRole === "technician" || userRole === "hr") {
     throw new ForbiddenError("You do not have permission to approve expenses");
   }
@@ -206,8 +201,22 @@ exports.approveExpense = catchAsync(async (req, res, next) => {
     throw new BadRequestError("This expense has already been processed");
   }
 
+  // --- HIERARCHY & SELF-APPROVAL CHECK ---
+  if (userRole !== "superadmin") {
+    // Check if user is approving their own expense
+    if (expense.submittedBy.toString() === currentUserId.toString()) {
+      throw new ForbiddenError("You cannot approve your own expense request.");
+    }
+
+    // Check if the submitter is in the user's hierarchy
+    const teamIds = await getTeamIds(currentUserId);
+    if (!teamIds.includes(expense.submittedBy.toString())) {
+      throw new ForbiddenError("You can only approve expenses for your own team hierarchy.");
+    }
+  }
+
   expense.status = "approved";
-  expense.approvedBy = req.user._id || req.user.id;
+  expense.approvedBy = currentUserId;
   expense.approvedByName = req.user.name;
   expense.approvedAt = Date.now();
 
@@ -224,6 +233,8 @@ exports.approveExpense = catchAsync(async (req, res, next) => {
 // @access  Private (Admin/Manager/Superadmin)
 exports.rejectExpense = catchAsync(async (req, res, next) => {
   const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
+  const currentUserId = req.user.id || req.user._id;
+
   if (userRole === "employee" || userRole === "technician" || userRole === "hr") {
     throw new ForbiddenError("You do not have permission to reject expenses");
   }
@@ -244,8 +255,25 @@ exports.rejectExpense = catchAsync(async (req, res, next) => {
     throw new BadRequestError("This expense has already been processed");
   }
 
+  // --- HIERARCHY & SELF-REJECTION CHECK ---
+  if (userRole !== "superadmin") {
+    // Check if user is rejecting their own expense
+    if (expense.submittedBy.toString() === currentUserId.toString()) {
+      throw new ForbiddenError("You cannot reject your own expense request.");
+    }
+
+    // Check if the submitter is in the user's hierarchy
+    const teamIds = await getTeamIds(currentUserId);
+    if (!teamIds.includes(expense.submittedBy.toString())) {
+      throw new ForbiddenError("You can only reject expenses for your own team hierarchy.");
+    }
+  }
+
   expense.status = "rejected";
   expense.rejectionReason = reason;
+  expense.rejectedBy = currentUserId;
+  expense.rejectedByName = req.user.name;
+  expense.rejectedAt = Date.now();
 
   await expense.save();
 
@@ -303,7 +331,12 @@ exports.getExpenseStats = catchAsync(async (req, res, next) => {
     throw new ForbiddenError("You do not have permission to view statistics");
   }
 
+  const scope = await getSearchScope(req.user, "expense");
+
   const stats = await Expense.aggregate([
+    {
+      $match: scope,
+    },
     {
       $group: {
         _id: "$status",
@@ -319,11 +352,12 @@ exports.getExpenseStats = catchAsync(async (req, res, next) => {
   const rejectedCount = stats.find(s => s._id === "rejected")?.count || 0;
 
   // Get total expenses count
-  const totalCount = await Expense.countDocuments();
+  const totalCount = await Expense.countDocuments(scope);
 
   // Get total approved amount
   const totalApproved = stats.find(s => s._id === "approved")?.totalAmount || 0;
   const totalPending = stats.find(s => s._id === "pending")?.totalAmount || 0;
+
 
   res.status(200).json({
     success: true,

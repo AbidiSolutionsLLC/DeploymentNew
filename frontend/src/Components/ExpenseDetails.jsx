@@ -145,15 +145,36 @@ const ExpenseDetail = ({
               </div>
             )}
 
-            {expense.rejectionReason && (
-              <div className="col-span-2 bg-rose-50/50 rounded-xl p-4 border border-rose-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <XCircle size={14} className="text-rose-500" />
-                  <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
-                    Rejection Reason
-                  </p>
+            {expense.status === 'rejected' && (
+              <div className="col-span-2 bg-rose-50/50 rounded-xl p-4 border border-rose-100 grid grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <XCircle size={14} className="text-rose-500" />
+                    <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
+                      Rejection Reason
+                    </p>
+                  </div>
+                  <p className="text-sm font-bold text-rose-700">{expense.rejectionReason}</p>
                 </div>
-                <p className="text-sm font-bold text-rose-700">{expense.rejectionReason}</p>
+
+                {(expense.rejectedByName || expense.rejectedBy) && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <User size={14} className="text-rose-400" />
+                      <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
+                        Rejected By
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-rose-700">
+                      {expense.rejectedByName || expense.rejectedBy?.name || "Unknown"}
+                    </p>
+                    {expense.rejectedAt && (
+                      <p className="text-[10px] text-rose-600/50 font-medium">
+                        {formatDate(expense.rejectedAt)}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -185,9 +206,8 @@ const ExpenseDetail = ({
           )}
         </div>
 
-        {/* Footer Actions */}
         <div className="px-6 py-4 border-t border-slate-100 flex gap-3 bg-slate-50/50 mt-auto">
-          {expense.status === 'pending' && canApprove && (
+          {expense.status === 'pending' && canApprove && (currentUser?.role?.toLowerCase() === 'superadmin' || !isOwner) && (
             <>
               <button
                 onClick={() => onApprove(expense._id)}
