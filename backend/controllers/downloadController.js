@@ -19,12 +19,15 @@ const downloadFile = catchAsync(async (req, res) => {
       const urlObj = new URL(blobName);
       const pathParts = urlObj.pathname.split("/");
       // The first part is empty (starts with /), the second is the container name
-      // Everything after that is the blob path
-      blobName = pathParts.slice(2).join("/");
+      // Everything after that is the blob path, which needs to be decoded for the Azure SDK
+      blobName = decodeURIComponent(pathParts.slice(2).join("/"));
     } catch (err) {
       throw new BadRequestError("Invalid blob URL or name");
     }
   }
+
+  // Final decode for direct blob names: ensure it's in its literal form
+  blobName = decodeURIComponent(blobName);
 
   // Sanitize blobName: Prevent path traversal
   if (blobName.includes("..")) {
