@@ -100,7 +100,8 @@ const isLoggedIn = async (req, res, next) => {
         email: user.email,
         role: user.role,
         department: user.department,
-        isTechnician: user.isTechnician
+        isTechnician: user.isTechnician,
+        avatar: user.avatar
       };
 
       req.token = token;

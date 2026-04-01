@@ -39,6 +39,11 @@ const updateTimesheetStatus = async (id, updateData) => {
   return response.data;
 };
 
+const addTimesheetComment = async (id, content) => {
+  const response = await api.post(`${API_URL}/${id}/comment`, { content });
+  return response.data;
+};
+
 const downloadAttachment = async (timesheetId, attachmentId) => {
   const response = await api.get(`/timesheets/${timesheetId}/attachments/${attachmentId}/download`, {
     responseType: 'blob'
@@ -53,5 +58,6 @@ export default {
   getTimesheetById,
   getAllTimesheets,
   updateTimesheetStatus,
+  addTimesheetComment,
   downloadAttachment // Add this
 };

@@ -527,6 +527,7 @@ const ApproveTimesheets = () => {
           onReject={activeTab === 0 ? handleReject : undefined}
           loading={updating}
           isApprovedTab={activeTab === 1}
+          onCommentAdded={() => fetchWeeklyTimesheets()}
         />
       )}
 

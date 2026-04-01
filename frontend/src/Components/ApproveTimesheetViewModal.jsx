@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-import { FaTimes, FaDownload } from "react-icons/fa";
+import { FaTimes, FaDownload, FaPaperPlane } from "react-icons/fa";
 import { downloadFile } from "../utils/downloadFile";
+import timesheetApi from "../api/timesheetApi";
+import { toast } from "react-toastify";
+import { format } from "date-fns";
 
 const ApproveTimesheetViewModal = ({ 
   timesheet, 
@@ -8,10 +11,14 @@ const ApproveTimesheetViewModal = ({
   onApprove, 
   onReject,
   loading,
-  isApprovedTab = false 
+  isApprovedTab = false,
+  onCommentAdded = () => {} 
 }) => {
   const [approvedHours, setApprovedHours] = useState(timesheet?.submittedHours || 0);
   const [comment, setComment] = useState("");
+  const [newComment, setNewComment] = useState("");
+  const [sendingComment, setSendingComment] = useState(false);
+  const [comments, setComments] = useState(timesheet?.comments || []);
   
   if (!timesheet) return null;
 
@@ -24,6 +31,22 @@ const ApproveTimesheetViewModal = ({
   const handleReject = () => {
     if (onReject) {
       onReject(timesheet._id, comment);
+    }
+  };
+  
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    try {
+      setSendingComment(true);
+      const updatedTimesheet = await timesheetApi.addTimesheetComment(timesheet._id, newComment);
+      setComments(updatedTimesheet.comments || []);
+      setNewComment("");
+      onCommentAdded(); // Refresh parent if needed
+      toast.success("Comment added");
+    } catch (err) {
+      toast.error("Failed to add comment");
+    } finally {
+      setSendingComment(false);
     }
   };
 
@@ -192,6 +215,58 @@ const ApproveTimesheetViewModal = ({
               </div>
             </div>
           )}
+
+          {/* DISCUSSION SECTION */}
+          <div className="pt-6 border-t border-slate-100">
+            <label className="block text-[10px] font-black text-slate-400 mb-4 uppercase tracking-widest">
+              DISCUSSION
+            </label>
+            
+            {/* Comment Input */}
+            <div className="bg-slate-50 p-2 rounded-2xl border border-slate-200 flex items-center gap-2 focus-within:ring-2 focus-within:ring-blue-100 transition-all mb-6">
+              <textarea 
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Type your reply here..."
+                className="flex-1 bg-transparent border-none focus:ring-0 text-sm p-3 resize-none h-12 font-medium"
+              ></textarea>
+              <button 
+                onClick={handleAddComment}
+                disabled={sendingComment || !newComment.trim()}
+                className="p-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors disabled:opacity-50"
+              >
+                {sendingComment ? <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"/> : <FaPaperPlane className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {/* Comments List */}
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {comments.length > 0 ? (
+                [...comments].reverse().map((c, idx) => (
+                  <div key={c._id || idx} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex gap-4">
+                    {c.avatar ? (
+                      <img src={c.avatar} alt="" className="w-8 h-8 rounded-full border border-slate-100 object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold shrink-0">
+                        {c.author?.charAt(0) || "U"}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-bold text-sm text-slate-800 truncate">{c.author}</span>
+                        <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap ml-2">
+                          {format(new Date(c.time), "MMM dd, hh:mm a")}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 font-medium break-words">{c.content}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-slate-400 text-xs italic py-4">No comments yet.</p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* FOOTER */}
