@@ -62,12 +62,28 @@ const Attendance = () => {
   const fetchAttendanceData = async (startDate) => {
     try {
       setLoading(true);
-      const month = startDate.getMonth() + 1;
-      const year = startDate.getFullYear();
+      
+      const startMonth = startDate.getMonth() + 1;
+      const startYear = startDate.getFullYear();
+
+      // Find if week ends in a different month
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 6);
+      
+      const endMonth = endDate.getMonth() + 1;
+      const endYear = endDate.getFullYear();
 
       // The backend is now strictly filtered to return ONLY the current user's data
-      const response = await api.get(`/timetrackers/attendance/${month}/${year}`);
-      setAttendanceData(response.data);
+      const response1 = await api.get(`/timetrackers/attendance/${startMonth}/${startYear}`);
+      let allData = response1.data;
+
+      // If week spans two months, fetch the second month as well and combine
+      if (startMonth !== endMonth || startYear !== endYear) {
+        const response2 = await api.get(`/timetrackers/attendance/${endMonth}/${endYear}`);
+        allData = [...allData, ...response2.data];
+      }
+
+      setAttendanceData(allData);
     } catch (error) {
       toast.error("Failed to load attendance data");
       console.error("Error fetching attendance:", error);

@@ -45,10 +45,17 @@ import OrgChartPage from "./Pages/Admin/OrgChart";
 import AssignedTickets from "./Pages/People/AssignedTickets";
 import AdminAttendance from "./Pages/Admin/AdminAttendance";
 import ExpenseManagement from "./Pages/Admin/ExpenseManagement";
+import NotificationsPage from "./Pages/Notifications/NotificationsPage";
+import { useNotificationSSE } from "./Hooks/useNotificationSSE";
+import { useSelector } from "react-redux";
 
 
 function App() {
   useAutoLogin();
+
+  // Activate real-time notification stream (uses MSAL token internally)
+  const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
+  useNotificationSSE(isAuthenticated);
 
   return (
     <>
@@ -138,6 +145,9 @@ function App() {
             <Route path="attendance" element={<AdminAttendance />} />
             <Route path="ExpenseManagement" element={<ExpenseManagement />} />
           </Route>
+
+          {/* Notifications Page */}
+          <Route path="/notifications" element={<NotificationsPage />} />
         </Route>
       </Routes>
     </>

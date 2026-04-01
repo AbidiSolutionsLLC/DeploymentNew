@@ -6,6 +6,7 @@ const { moment, TIMEZONE } = require("../utils/dateUtils");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
 const sendEmail = require('../utils/emailService');
 const mongoose = require("mongoose");
+const { createNotification } = require('../utils/notificationService');
  
 // --- HELPER: GET FULL TEAM IDS (RECURSIVE) ---
 const getTeamIds = async (managerId) => {
@@ -108,7 +109,27 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
  
   // Send notification to HR/Managers about new leave request
   sendLeaveCreationNotification(savedLeaveRequest).catch(console.error);
- 
+
+  // In-app notification: notify HR/Admin/Manager users
+  try {
+    const hrManagers = await User.find({
+      $or: [{ role: 'HR' }, { role: 'Super Admin' }, { role: 'Admin' }]
+    }).select('_id');
+
+    const notifPromises = hrManagers.map(mgr =>
+      createNotification({
+        recipient: mgr._id,
+        type: 'LEAVE_REQUEST_SUBMITTED',
+        title: 'New Leave Request',
+        message: `${user.name} has submitted a ${leaveType} leave request from ${moment(startDate).format('MMM DD, YYYY')} to ${moment(endDate).format('MMM DD, YYYY')}. Action required.`,
+        relatedEntity: { entityType: 'leave', entityId: savedLeaveRequest._id },
+      })
+    );
+    await Promise.all(notifPromises);
+  } catch (notifErr) {
+    console.error('[Notification] Leave request submitted:', notifErr.message);
+  }
+
   res.status(201).json({ success: true, data: savedLeaveRequest });
 });
 // Controller to get all responses for a leave request////////////////////////////////////////
@@ -486,7 +507,25 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
     const emailBody = generateLeaveStatusEmailTemplate(leaveRequest, status, responseNote);
     sendEmail(leaveRequest.email, emailSubject, emailBody).catch(console.error);
   }
- 
+
+  // In-app notification: notify the employee
+  try {
+    const isApproved = status === 'Approved';
+    if (status === 'Approved' || status === 'Rejected') {
+      await createNotification({
+        recipient: leaveRequest.employee,
+        type: isApproved ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED',
+        title: isApproved ? 'Leave Approved' : 'Leave Rejected',
+        message: isApproved
+          ? `Your ${leaveRequest.leaveType} leave request from ${moment(leaveRequest.startDate).format('MMM DD, YYYY')} to ${moment(leaveRequest.endDate).format('MMM DD, YYYY')} has been approved.`
+          : `Your ${leaveRequest.leaveType} leave request has been rejected.${responseNote ? ' Reason: ' + responseNote : ''}`,
+        relatedEntity: { entityType: 'leave', entityId: leaveRequest._id },
+      });
+    }
+  } catch (notifErr) {
+    console.error('[Notification] Leave status update:', notifErr.message);
+  }
+
   res.status(200).json({
     success: true,
     message: `Leave status updated to ${status}`,

@@ -11,9 +11,11 @@ const globalErrorHandler = (err, req, res, next) => {
   }
 
   if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
-    const value = err.keyValue[field];
-    const friendlyMessage = `This ${field} is already registered: ${value}`;
+    const kv = err.keyValue || (err.errorResponse && err.errorResponse.keyValue) || {};
+    const keys = Object.keys(kv);
+    const field = keys.length > 0 ? keys[0] : 'field';
+    const value = keys.length > 0 ? kv[field] : '';
+    const friendlyMessage = value ? `This ${field} is already registered: ${value}` : 'A record with this information already exists.';
     err = new BadRequestError(friendlyMessage);
   }
 

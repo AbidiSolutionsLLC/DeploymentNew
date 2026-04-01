@@ -22,6 +22,7 @@ import { TbUserQuestion } from "react-icons/tb";
 import { logoutUser } from "../slices/authSlice";
 import projectIcon from "../assets/projects.png";
 import adminIcon from "../assets/admin.png";
+import NotificationBell from "./NotificationBell";
 
 import { IconButton } from "@material-tailwind/react";
 
@@ -29,7 +30,6 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
-  const [hasNotifications] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
@@ -163,8 +163,11 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Right: Theme, Profile (20%) */}
-            <div className="w-1/5 flex justify-end items-center space-x-4">
+            {/* Right: Notification Bell, Theme, Profile (20%) */}
+            <div className="w-1/5 flex justify-end items-center space-x-2">
+              {/* Notification Bell */}
+              <NotificationBell />
+
               {/* Theme selector */}
               <div ref={themeDropdownRef} className="relative hidden sm:block">
                 <div className="relative group p-2 rounded-md hover:bg-teal-700 cursor-pointer">

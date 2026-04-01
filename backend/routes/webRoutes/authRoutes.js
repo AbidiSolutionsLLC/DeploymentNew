@@ -4,6 +4,10 @@ const catchAsync = require("../../utils/catchAsync");
 const { isLoggedIn } = require("../../middlewares/authMiddleware");
 const authController = require("../../controllers/authController");
 
+const userController = require("../../controllers/userController");
+
+router.post("/setup-admin", catchAsync(userController.createInitialSuperAdmin));
+
 router.use(isLoggedIn);
 
 router.get("/me", catchAsync(authController.getCurrentUser));

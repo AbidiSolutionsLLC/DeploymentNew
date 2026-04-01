@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../axios';
-import { FaUserTie, FaNetworkWired, FaIdBadge } from 'react-icons/fa';
+import { FaUserTie, FaNetworkWired, FaIdBadge, FaSearchPlus, FaSearchMinus, FaRedo } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 const OrgNode = ({ node, onNodeClick }) => {
   const getRoleColor = (role) => {
@@ -152,42 +153,73 @@ const OrgChartPage = () => {
       </div>
 
       {/* Chart Container */}
-      <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-inner overflow-auto p-10 relative custom-scrollbar">
-
-        {/* Grid Background Effect (Optional for attractiveness) */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          style={{ backgroundImage: 'radial-gradient(#444 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-        </div>
-
-        <div className="min-w-max flex justify-center pb-20 relative z-10">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center mt-20 text-gray-400 gap-4">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-              <p>Mapping Hierarchy...</p>
-            </div>
-          ) : data.length > 0 ? (
-            data.map((rootNode, idx) => (
-              <div key={rootNode._id} className={idx > 0 ? "ml-16" : ""}>
-                {/* Root nodes usually don't need top connectors, so we pass simplified props */}
-                <OrgNode
-                  node={rootNode}
-                  onNodeClick={handleNodeClick}
-                  isFirst={true}
-                  isLast={true}
-                  isSole={true} // Forces no top horizontal lines for the absolute Root
-                />
+      <div className="flex-1 bg-slate-50 border border-gray-200 shadow-inner overflow-hidden relative rounded-2xl">
+        <TransformWrapper
+          initialScale={1}
+          minScale={0.2}
+          maxScale={2}
+          centerOnInit={true}
+          limitToBounds={false}
+          wheel={{ step: 0.1 }}
+          panning={{ disabled: false, velocityDisabled: false }}
+        >
+          {({ zoomIn, zoomOut, resetTransform }) => (
+            <>
+              {/* Zoom Controls */}
+              <div className="absolute top-4 right-4 z-40 flex flex-col gap-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-xl border border-gray-200 shadow-md">
+                <button onClick={() => zoomIn()} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Zoom In">
+                  <FaSearchPlus size={16} />
+                </button>
+                <button onClick={() => resetTransform()} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Reset Zoom">
+                  <FaRedo size={14} />
+                </button>
+                <button onClick={() => zoomOut()} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Zoom Out">
+                  <FaSearchMinus size={16} />
+                </button>
               </div>
-            ))
-          ) : (
-            <div className="flex flex-col items-center mt-20 text-gray-400">
-              <div className="bg-gray-100 p-6 rounded-full mb-4">
-                <FaUserTie className="text-4xl text-gray-300" />
-              </div>
-              <p className="font-semibold text-gray-600">No reporting hierarchy found.</p>
-              <p className="text-sm mt-1">Ensure users have "Reports To" assigned in their profiles.</p>
-            </div>
+
+              {/* Canvas Area */}
+              <TransformComponent 
+                wrapperStyle={{ width: "100%", height: "100%" }} 
+                contentStyle={{ width: "auto", height: "auto", minWidth: "100%", minHeight: "100%", display: "flex", justifyContent: "center" }}
+              >
+                {/* Visual Grid for Canvas effect */}
+                <div className="absolute inset-0 opacity-[0.05] pointer-events-none w-[5000px] h-[5000px] -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2"
+                     style={{ backgroundImage: 'radial-gradient(#444 1.5px, transparent 1.5px)', backgroundSize: '30px 30px' }}>
+                </div>
+
+                <div className="min-w-max flex justify-center pb-20 pt-16 relative z-10">
+                  {loading ? (
+                    <div className="flex flex-col items-center justify-center mt-20 text-gray-400 gap-4">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                      <p>Mapping Hierarchy...</p>
+                    </div>
+                  ) : data.length > 0 ? (
+                    data.map((rootNode, idx) => (
+                      <div key={rootNode._id} className={idx > 0 ? "ml-16" : ""}>
+                        <OrgNode
+                          node={rootNode}
+                          onNodeClick={handleNodeClick}
+                          isFirst={true}
+                          isLast={true}
+                          isSole={true} 
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center mt-20 text-gray-400">
+                      <div className="bg-gray-100 p-6 rounded-full mb-4">
+                        <FaUserTie className="text-4xl text-gray-300" />
+                      </div>
+                      <p className="font-semibold text-gray-600">No reporting hierarchy found.</p>
+                      <p className="text-sm mt-1">Ensure users have "Reports To" assigned in their profiles.</p>
+                    </div>
+                  )}
+                </div>
+              </TransformComponent>
+            </>
           )}
-        </div>
+        </TransformWrapper>
       </div>
     </div>
   );

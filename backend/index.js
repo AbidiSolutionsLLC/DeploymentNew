@@ -9,6 +9,7 @@ const globalErrorHandler = require('./middlewares/globalErrorHandler');
 const CronJobs = require('./cronjobs');
 const path = require("path");
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -27,7 +28,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api', require('./routes/allRoutes'));
 app.use('/api/web', require('./routes/webRoutesMount'));
 
 // Add this route WITHOUT isLoggedIn middleware

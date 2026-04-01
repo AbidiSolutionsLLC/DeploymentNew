@@ -22,7 +22,11 @@ const timeLogRoutes = require("./webRoutes/timeLogRoutes");
 const timesheetRoutes = require("./webRoutes/timesheetRoutes");
 const departmentRoutes = require("./webRoutes/departmentRoutes");
 const adminDashboardRoutes = require("./webRoutes/adminDashboardRoutes");
+<<<<<<< HEAD
+const notificationRoutes = require("./webRoutes/notificationRoutes");
+=======
 const expenseRoutes = require("./webRoutes/expenseRoutes"); // NEW
+>>>>>>> 46fc5b80530d2a4e6f2895bca99ffe223056217f
 
 // --- STEP 3: THE FIX (Bridge Routes) ---
 // Fix for Leave Management
@@ -52,6 +56,10 @@ router.use("/time-logs", timeLogRoutes);
 router.use("/timesheets", timesheetRoutes);
 router.use("/departments", departmentRoutes);
 router.use("/admin-dashboard", adminDashboardRoutes);
+<<<<<<< HEAD
+router.use("/notifications", notificationRoutes);
+=======
 router.use("/expenses", expenseRoutes); // NEW
+>>>>>>> 46fc5b80530d2a4e6f2895bca99ffe223056217f
 
 module.exports = router;

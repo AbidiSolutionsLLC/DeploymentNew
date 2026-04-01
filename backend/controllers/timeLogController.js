@@ -6,8 +6,9 @@ const { moment, TIMEZONE } = require("../utils/dateUtils"); // Using your projec
 
 // --- CREATE TIME LOG ---
 exports.createTimeLog = catchAsync(async (req, res) => {
-  const { job, date, description, hours } = req.body;
-  const employee = req.user.id;
+  const { job, date, description, hours, employeeId } = req.body;
+  const role = req.user.role ? req.user.role.toLowerCase() : "";
+  const employee = (employeeId && ['super admin', 'admin'].includes(role)) ? employeeId : req.user.id;
 
   // FIX: Force incoming date string into EST Midnight to prevent day-shifting
   const estDate = moment.tz(date, TIMEZONE).startOf('day').toDate();
@@ -35,8 +36,9 @@ exports.createTimeLog = catchAsync(async (req, res) => {
 
 // --- GET EMPLOYEE TIME LOGS ---
 exports.getEmployeeTimeLogs = catchAsync(async (req, res) => {
-  const employee = req.user.id;
-  const { date } = req.query; // Raw YYYY-MM-DD string from frontend
+  const { date, userId } = req.query; // Raw YYYY-MM-DD string from frontend
+  const roleKey = req.user.role ? req.user.role.toLowerCase() : "";
+  const employee = (userId && ['super admin', 'admin', 'manager'].includes(roleKey)) ? userId : req.user.id;
 
   const query = { employee };
   if (date) {

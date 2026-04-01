@@ -7,6 +7,7 @@ import attendanceTimerSlice from '../slices/attendanceTimer';
 import projectReducer from "./projectSlice";
 import taskReducer from "./taskSlice";
 import attendanceReducer from "../slices/attendanceSlice";
+import notificationReducer from "../slices/notificationSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -15,6 +16,7 @@ const rootReducer = combineReducers({
   projects: projectReducer,
   tasks: taskReducer,
   attendanceTimer: attendanceTimerSlice,
+  notifications: notificationReducer, // NOT persisted — always fresh from server
 });
 
 const persistConfig = {

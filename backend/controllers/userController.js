@@ -4,6 +4,7 @@ const catchAsync = require("../utils/catchAsync");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
 const sendEmail = require('../utils/emailService');
 const { getSearchScope } = require("../utils/rbac");
+const { createNotification } = require('../utils/notificationService');
 
 // --- HELPER: Check Write Permissions ---
 const checkWritePermission = async (actor, targetUserId = null, targetRole = null) => {
@@ -86,6 +87,55 @@ const sendInviteEmail = async (user) => {
   await sendEmail(user.email, emailSubject, emailBody);
 };
 
+// --- INITIAL SUPER ADMIN SETUP ---
+exports.createInitialSuperAdmin = catchAsync(async (req, res) => {
+  // Check if any Super Admin already exists
+  const superAdminExists = await User.findOne({ role: 'Super Admin' });
+  if (superAdminExists) {
+    throw new ForbiddenError("A Super Admin already exists. This setup route is disabled.");
+  }
+
+  let { email, name, ...otherData } = req.body;
+
+  if (!email || !name) {
+    throw new BadRequestError("Email and Name are required for setup.");
+  }
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) throw new BadRequestError("User with this email already exists.");
+
+  const newEmpID = await generateEmpID();
+  const defaultCards = [
+    { type: 'todo', id: Date.now().toString() + '-1' },
+    { type: 'holidays', id: Date.now().toString() + '-2' },
+    { type: 'leavelog', id: Date.now().toString() + '-3' }
+  ];
+
+  const newUser = new User({
+    email,
+    name,
+    ...otherData,
+    role: "Super Admin", // Force Super Admin role
+    empID: newEmpID,
+    dashboardCards: defaultCards,
+    empStatus: "Active", // Auto-activate the first admin
+    isTechnician: false
+  });
+
+  const savedUser = await newUser.save();
+
+  res.status(201).json({ 
+    status: "success", 
+    message: "Initial Super Admin created successfully.", 
+    data: {
+      id: savedUser._id,
+      email: savedUser.email,
+      name: savedUser.name,
+      role: savedUser.role
+    } 
+  });
+});
+
 // --- SECURED CREATE USER ---
 exports.createUser = catchAsync(async (req, res) => {
   // Extract hourlyWage from body
@@ -95,7 +145,7 @@ exports.createUser = catchAsync(async (req, res) => {
 
   if (otherData.reportsTo === "NO MANAGER (TOP LEVEL)" || otherData.reportsTo === "") otherData.reportsTo = null;
 
-  if (req.user.role === 'Admin' && (!otherData.reportsTo || otherData.reportsTo !== req.user.id)) {
+  if (req.user?.role === 'Admin' && (!otherData.reportsTo || otherData.reportsTo !== req.user.id)) {
      otherData.reportsTo = req.user.id;
   }
 
@@ -126,6 +176,25 @@ exports.createUser = catchAsync(async (req, res) => {
     await sendInviteEmail(savedUser);
   } catch (err) {
     console.error("❌ Failed to send invite email:", err.message);
+  }
+
+  // In-app notification: notify all admins / super admins
+  try {
+    const admins = await User.find({
+      $or: [{ role: 'Super Admin' }, { role: 'Admin' }]
+    }).select('_id');
+    const notifPromises = admins.map(admin =>
+      createNotification({
+        recipient: admin._id,
+        type: 'USER_CREATED',
+        title: 'New User Added',
+        message: `A new user "${savedUser.name}" (${savedUser.email}) has been added to the system.`,
+        relatedEntity: { entityType: 'user', entityId: savedUser._id },
+      })
+    );
+    await Promise.all(notifPromises);
+  } catch (notifErr) {
+    console.error('[Notification] User created:', notifErr.message);
   }
 
   res.status(201).json({ status: "success", message: "User invited successfully.", data: savedUser });
@@ -197,12 +266,23 @@ exports.updateUser = catchAsync(async (req, res) => {
           "emergencyContact", "timeZone"
       ];
   } else {
-      // --- ADMIN / MANAGER_TECH EDIT ---
+      // --- SUPER_ADMIN / ADMIN / MANAGER_TECH EDIT ---
       if (updates.department && updates.department !== user.department?.toString()) {
         const oldDeptId = user.department;
         const newDeptId = updates.department;
         if (oldDeptId) await Department.findByIdAndUpdate(oldDeptId, { $pull: { members: id } });
-        if (newDeptId) await Department.findByIdAndUpdate(newDeptId, { $push: { members: id } });
+        if (newDeptId) {
+          const dept = await Department.findByIdAndUpdate(newDeptId, { $push: { members: id } });
+          if (dept) {
+            createNotification({
+              recipient: id,
+              type: 'DEPARTMENT_MEMBER_ADDED',
+              title: 'Department Assignment',
+              message: `You have been added to the ${dept.name} department.`,
+              relatedEntity: { entityType: 'department', entityId: dept._id },
+            }).catch(console.error);
+          }
+        }
       }
       
       if (updates.reportsTo === "" || updates.reportsTo === "NO MANAGER") updates.reportsTo = null;
@@ -225,6 +305,29 @@ exports.updateUser = catchAsync(async (req, res) => {
   });
 
   const updatedUser = await user.save();
+
+  // In-app notification: notify admins if a user was deactivated
+  if (updates.empStatus === 'Inactive' && user.empStatus !== 'Inactive') {
+    try {
+      const admins = await User.find({
+        $or: [{ role: 'Super Admin' }, { role: 'Admin' }],
+        _id: { $ne: updatedUser._id }
+      }).select('_id');
+      const notifPromises = admins.map(admin =>
+        createNotification({
+          recipient: admin._id,
+          type: 'USER_DEACTIVATED',
+          title: 'User Deactivated',
+          message: `User "${updatedUser.name}" has been deactivated.`,
+          relatedEntity: { entityType: 'user', entityId: updatedUser._id },
+        })
+      );
+      await Promise.all(notifPromises);
+    } catch (notifErr) {
+      console.error('[Notification] User deactivated:', notifErr.message);
+    }
+  }
+
   res.status(200).json(updatedUser);
 });
 

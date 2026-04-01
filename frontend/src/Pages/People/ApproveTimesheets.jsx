@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { IoCalendarNumberOutline } from "react-icons/io5";
-import { FaAngleLeft, FaAngleRight, FaEye } from "react-icons/fa";
+import { FaAngleLeft, FaAngleRight, FaEye, FaCommentDots } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import timesheetApi from "../../api/timesheetApi"; // Ensure this has getAllTimesheets
+import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
+import { Download, Plus } from "lucide-react";
+import api from "../../axios";
 import TableWithPagination from "../../Components/TableWithPagination";
 import ApproveTimesheetViewModal from "../../Components/ApproveTimesheetViewModal";
+import AdminAddTimeLogModal from "../../Components/AdminAddTimeLogModal";
+import AdminCreateTimesheetModal from "../../Components/AdminCreateTimesheetModal";
 
 const ApproveTimesheets = () => {
   // Helper functions defined first
@@ -46,12 +50,16 @@ const ApproveTimesheets = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [activeTab, setActiveTab] = useState(0); // 0 = Pending, 1 = Approved
+  const [allUsers, setAllUsers] = useState([]);
+  const [isAddTimeLogOpen, setIsAddTimeLogOpen] = useState(false);
+  const [isCreateTimesheetOpen, setIsCreateTimesheetOpen] = useState(false);
 
   const calendarRef = useRef(null);
 
   const tabs = [
     { title: "Pending Timesheets", status: "Pending", count: 0 },
-    { title: "Approved Timesheets", status: "Approved", count: 0 }
+    { title: "Approved Timesheets", status: "Approved", count: 0 },
+    { title: "Rejected Timesheets", status: "Rejected", count: 0 }
   ];
 
   const ensureDate = (date) => {
@@ -85,6 +93,24 @@ const ApproveTimesheets = () => {
     if (showCalendar) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showCalendar]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const userRes = await api.get("/auth/me");
+        const role = userRes.data.user.role || "";
+        const processedRole = role.replace(/\s+/g, '').toLowerCase();
+
+        if (processedRole === 'superadmin' || processedRole === 'admin') {
+          const allUsersRes = await api.get("/users");
+          setAllUsers(allUsersRes.data);
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     fetchWeeklyTimesheets();
@@ -162,11 +188,12 @@ const ApproveTimesheets = () => {
     }
   };
 
-  const handleStatusChange = async (timesheetId, status, approvedHours = null) => {
+  const handleStatusChange = async (timesheetId, status, approvedHours = null, comment = "") => {
     setUpdating(true);
     try {
       const updateData = { status };
       if (approvedHours !== null) updateData.approvedHours = approvedHours;
+      if (comment && comment.trim()) updateData.comment = comment.trim();
 
       await timesheetApi.updateTimesheetStatus(timesheetId, updateData);
       
@@ -184,19 +211,83 @@ const ApproveTimesheets = () => {
     }
   };
 
-  const handleApprove = (timesheetId, approvedHours) => handleStatusChange(timesheetId, "Approved", approvedHours);
-  const handleReject = (timesheetId) => handleStatusChange(timesheetId, "Rejected", 0);
+  const handleApprove = (timesheetId, approvedHours, comment) => handleStatusChange(timesheetId, "Approved", approvedHours, comment);
+  const handleReject = (timesheetId, comment) => handleStatusChange(timesheetId, "Rejected", 0, comment);
 
   // Update tabs counts dynamically based on fetched data
   tabs[0].count = weeklyData.timesheets?.length || 0;
   tabs[1].count = weeklyData.approvedTimesheets?.length || 0;
+  tabs[2].count = weeklyData.rejectedTimesheets?.length || 0;
 
   const getCurrentData = () => {
     switch (activeTab) {
       case 0: return weeklyData.timesheets || [];
       case 1: return weeklyData.approvedTimesheets || [];
+      case 2: return weeklyData.rejectedTimesheets || [];
       default: return [];
     }
+  };
+
+  const handleExportCSV = () => {
+    const dataToExport = getCurrentData();
+    if (dataToExport.length === 0) {
+      toast.warn("No data to export");
+      return;
+    }
+
+    const headers = [
+      "Employee Name", 
+      "Email", 
+      "Timesheet Date", 
+      "Timesheet Name", 
+      "Status", 
+      "Submitted Hours", 
+      "Approved Hours", 
+      "Timelog Job", 
+      "Timelog Description", 
+      "Timelog Hours"
+    ];
+
+    const rows = [];
+    dataToExport.forEach(ts => {
+      const base = [
+        `"${ts.employee?.name || ts.employeeName || 'Unknown'}"`,
+        `"${ts.employee?.email || 'N/A'}"`,
+        ts.date ? new Date(ts.date).toLocaleDateString() : "N/A",
+        `"${ts.name || 'Unnamed'}"`,
+        ts.status || "Pending",
+        ts.submittedHours || 0,
+        ts.approvedHours || 0
+      ];
+
+      if (ts.timeLogs && ts.timeLogs.length > 0) {
+        ts.timeLogs.forEach(log => {
+          rows.push([
+            ...base,
+            `"${log.job || 'N/A'}"`,
+            `"${log.description || 'N/A'}"`,
+            log.hours || 0
+          ]);
+        });
+      } else {
+        rows.push([...base, "N/A", "N/A", 0]);
+      }
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const weekStr = formatDate(selectedWeekStart).replace(/[\s,]+/g, '_');
+    link.setAttribute("href", url);
+    link.setAttribute("download", `timesheets_${tabs[activeTab].status.toLowerCase()}_${weekStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const getCurrentActions = () => {
@@ -219,9 +310,9 @@ const ApproveTimesheets = () => {
 
   const getEmptyMessage = () => {
     const weekRange = formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd);
-    return activeTab === 0 
-      ? `No pending timesheets for ${weekRange}` 
-      : `No approved timesheets for ${weekRange}`;
+    if (activeTab === 0) return `No pending timesheets for ${weekRange}`;
+    if (activeTab === 1) return `No approved timesheets for ${weekRange}`;
+    return `No rejected timesheets for ${weekRange}`;
   };
 
   const timesheetColumns = [
@@ -287,6 +378,23 @@ const ApproveTimesheets = () => {
           {row.status || "Pending"}
         </span>
       )
+    },
+    {
+      key: "comments",
+      label: "Comments",
+      sortable: false,
+      render: (row) => {
+        const commentCount = row.comments?.length || 0;
+        if (commentCount === 0) {
+          return <span className="text-slate-400 text-xs">No comments</span>;
+        }
+        return (
+          <div className="flex items-center gap-1 text-blue-600">
+            <FaCommentDots size={14} />
+            <span className="text-xs font-medium">{commentCount} comment{commentCount !== 1 ? 's' : ''}</span>
+          </div>
+        );
+      }
     }
   ];
 
@@ -310,6 +418,21 @@ const ApproveTimesheets = () => {
               )}
             </button>
           ))}
+        </div>
+
+        <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsAddTimeLogOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-[11px] font-black uppercase tracking-wide"
+            >
+              <Plus size={16} /> Time Log
+            </button>
+            <button
+              onClick={() => setIsCreateTimesheetOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 text-[11px] font-black uppercase tracking-wide"
+            >
+              <Plus size={16} /> Timesheet
+            </button>
         </div>
       </div>
 
@@ -351,7 +474,14 @@ const ApproveTimesheets = () => {
           </button>
         </div>
 
-        <div className="pr-1">
+        <div className="pr-1 flex items-center gap-3">
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200 text-[11px] font-black uppercase tracking-wide"
+            >
+              <Download size={16} /> Export CSV
+            </button>
+
             <div className="bg-blue-50 text-blue-900 px-5 py-2.5 rounded-xl flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wide opacity-70">
                     {activeTab === 0 ? "Submitted Hours:" : "Approved Hours:"}
@@ -397,6 +527,24 @@ const ApproveTimesheets = () => {
           onReject={activeTab === 0 ? handleReject : undefined}
           loading={updating}
           isApprovedTab={activeTab === 1}
+        />
+      )}
+
+      {isAddTimeLogOpen && (
+        <AdminAddTimeLogModal
+          open={isAddTimeLogOpen}
+          onClose={() => setIsAddTimeLogOpen(false)}
+          onSuccess={() => fetchWeeklyTimesheets()}
+          allUsers={allUsers}
+        />
+      )}
+
+      {isCreateTimesheetOpen && (
+        <AdminCreateTimesheetModal
+          open={isCreateTimesheetOpen}
+          onClose={() => setIsCreateTimesheetOpen(false)}
+          onTimesheetCreated={() => fetchWeeklyTimesheets()}
+          allUsers={allUsers}
         />
       )}
     </div>

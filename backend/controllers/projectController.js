@@ -3,6 +3,7 @@ const Project = require("../models/projectSchema");
 const Task = require("../models/taskSchema");
 const catchAsync = require("../utils/catchAsync");
 const { NotFoundError, BadRequestError } = require("../utils/ExpressError");
+const { createNotification } = require('../utils/notificationService');
 
 // Create Project
 exports.createProject = catchAsync(async (req, res) => {
@@ -21,6 +22,20 @@ exports.createProject = catchAsync(async (req, res) => {
   });
 
   const savedProject = await project.save();
+
+  // Notify all initial team members they've been added
+  if (savedProject.team && savedProject.team.length > 0) {
+    savedProject.team.forEach(memberId => {
+      createNotification({
+        recipient: memberId,
+        type: 'PROJECT_CREATED',
+        title: 'New Project Assignment',
+        message: `A new project "${savedProject.title}" has been created and you are assigned to it.`,
+        relatedEntity: { entityType: 'project', entityId: savedProject._id },
+      }).catch(err => console.error('Notification failed:', err));
+    });
+  }
+
   res.status(201).json(savedProject);
 });
 
@@ -50,6 +65,8 @@ exports.updateProject = catchAsync(async (req, res) => {
   const project = await Project.findById(req.params.id);
   if (!project) throw new NotFoundError("Project");
 
+  const previousTeam = project.team.map(id => id.toString());
+
   // Update fields
   project.title = title || project.title;
   project.description = description || project.description;
@@ -61,6 +78,35 @@ exports.updateProject = catchAsync(async (req, res) => {
   project.dueDate = dueDate || project.dueDate;
 
   const updatedProject = await project.save();
+
+  // Notify newly added team members
+  if (team && team.length > 0) {
+    const newMembers = team.filter(id => !previousTeam.includes(id.toString()));
+    newMembers.forEach(memberId => {
+      createNotification({
+        recipient: memberId,
+        type: 'PROJECT_MEMBER_ADDED',
+        title: 'Added to Project',
+        message: `You have been added to the project "${updatedProject.title}".`,
+        relatedEntity: { entityType: 'project', entityId: updatedProject._id },
+      }).catch(err => console.error('Notification failed:', err));
+    });
+  }
+
+  // Notify team on status change
+  if (status && status !== project.status) {
+    const recipients = [...new Set([...updatedProject.team.map(id => id.toString()), updatedProject.owner.toString()])];
+    recipients.forEach(memberId => {
+      createNotification({
+        recipient: memberId,
+        type: 'PROJECT_STATUS_UPDATED',
+        title: 'Project Status Updated',
+        message: `Project "${updatedProject.title}" is now marked as ${status}.`,
+        relatedEntity: { entityType: 'project', entityId: updatedProject._id },
+      }).catch(err => console.error('Notification failed:', err));
+    });
+  }
+
   res.status(200).json(updatedProject);
 });
 
@@ -74,6 +120,19 @@ exports.deleteProject = catchAsync(async (req, res) => {
   if (tasksCount > 0) {
     throw new BadRequestError("Cannot delete project with associated tasks");
   }
+
+  // Notify team and manager before deletion
+  const recipients = [...new Set([...project.team.map(id => id.toString()), project.owner.toString()])];
+  recipients.forEach(memberId => {
+    createNotification({
+      recipient: memberId,
+      type: 'PROJECT_DELETED',
+      title: 'Project Deleted',
+      message: `Project "${project.title}" has been deleted or archived.`,
+      // relatedEntity is tricky for deleted projects, but we can pass the ID for historical reference
+      relatedEntity: { entityType: 'project', entityId: project._id },
+    }).catch(err => console.error('Notification failed:', err));
+  });
 
   await project.deleteOne();
   res.status(200).json({ message: "Project deleted successfully" });

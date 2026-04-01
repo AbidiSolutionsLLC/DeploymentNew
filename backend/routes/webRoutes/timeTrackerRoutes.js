@@ -11,6 +11,7 @@ router.post("/check-in", timeTrackerController.checkIn);
 router.post("/check-out", timeTrackerController.checkOut);
 
 // --- Personal Logs / Daily Logs ---
+router.get("/admin-summary", timeTrackerController.getAdminAttendanceSummary);
 router.get("/my/logs", timeTrackerController.getMyTimeLogs);
 router.get("/my/daily/:userId", timeTrackerController.getDailyLog);
 

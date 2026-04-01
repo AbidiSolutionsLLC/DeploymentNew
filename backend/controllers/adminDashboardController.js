@@ -86,11 +86,11 @@ exports.getDashboardStats = catchAsync(async (req, res, next) => {
           from: "users",
           let: { deptId: "$_id" },
           pipeline: [
-            { 
-              $match: { 
+            {
+              $match: {
                 $expr: { $eq: ["$department", "$$deptId"] },
                 ...(fullTeam ? { _id: { $in: fullTeam } } : {})
-              } 
+              }
             }
           ],
           as: "employees"
@@ -110,7 +110,7 @@ exports.getDashboardStats = catchAsync(async (req, res, next) => {
 
   // Process Attendance Data
   const attendanceMap = { Present: 0, Absent: 0, Late: 0, Leave: 0 };
-  
+
   todayAttendance.forEach(item => {
     if (attendanceMap[item._id] !== undefined) attendanceMap[item._id] = item.count;
   });

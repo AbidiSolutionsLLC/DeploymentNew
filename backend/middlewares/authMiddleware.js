@@ -20,11 +20,12 @@ function getKey(header, callback) {
 const isLoggedIn = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  // Fallback: accept ?token= query param for SSE (EventSource can't set headers)
+  const token = authHeader?.split(" ")[1] || req.query.token;
+
+  if (!token) {
     return next(new UnauthorizedError("No token provided."));
   }
-
-  const token = authHeader.split(" ")[1];
 
   const verifyOptions = {
     audience: [
