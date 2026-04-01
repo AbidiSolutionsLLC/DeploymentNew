@@ -19,6 +19,13 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
   if (!isOpen) return null;
 
   const handleBackdropClick = (e) => {
+    if (
+      e.target.closest(".react-datepicker") ||
+      e.target.closest(".react-datepicker-popper")
+    ) {
+      return;
+    }
+  
     if (modalRef.current && !modalRef.current.contains(e.target)) {
       handleClose();
     }

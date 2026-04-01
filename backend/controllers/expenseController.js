@@ -5,6 +5,7 @@ const { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } = re
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { processReceipt, processInvoice } = require("../utils/azureDocumentIntelligence");
 
 // @desc    Create new expense
 // @route   POST /api/web/expenses
@@ -329,4 +330,100 @@ exports.getExpenseStats = catchAsync(async (req, res, next) => {
       stats,
     },
   });
+});
+
+// @desc    Process receipt image and extract expense data
+// @route   POST /api/web/expenses/process-receipt
+// @access  Private
+exports.processReceipt = catchAsync(async (req, res, next) => {
+  if (!req.file) {
+    throw new BadRequestError("Receipt image is required");
+  }
+
+  // Get the document type (receipt or invoice)
+  const { documentType } = req.body;
+  const isInvoice = documentType === "invoice";
+
+  // Get the file buffer from memory storage
+  const fileBuffer = req.file.buffer;
+
+  if (!fileBuffer) {
+    throw new BadRequestError("Failed to read uploaded file");
+  }
+
+  let extractedData;
+
+  try {
+    // Process with Azure Document Intelligence
+    if (isInvoice) {
+      extractedData = await processInvoice(fileBuffer);
+    } else {
+      extractedData = await processReceipt(fileBuffer);
+    }
+
+    // Build formatted description with items, prices, and quantities
+    let description = "";
+    if (extractedData.merchantAddress || extractedData.vendorAddress) {
+      description += (extractedData.merchantAddress || extractedData.vendorAddress) + "\n";
+    }
+    
+    // Add items list with quantities and prices
+    if (extractedData.items && extractedData.items.length > 0) {
+      description += "\nItems:\n";
+      extractedData.items.forEach((item, index) => {
+        const qty = item.quantity || 1;
+        const price = item.price || item.unitPrice || 0;
+        const total = item.totalPrice || item.amount || 0;
+        const itemDesc = item.description || `Item ${index + 1}`;
+        description += `- ${itemDesc} (Qty: ${qty}) - $${price.toFixed(2)} each = $${total.toFixed(2)}\n`;
+      });
+    }
+    
+    // Add totals
+    if (extractedData.subtotal) {
+      description += `\nSubtotal: $${extractedData.subtotal.toFixed(2)}`;
+    }
+    if (extractedData.tax) {
+      description += `\nTax: $${extractedData.tax.toFixed(2)}`;
+    }
+    if (extractedData.tip) {
+      description += `\nTip: $${extractedData.tip.toFixed(2)}`;
+    }
+    if (extractedData.total) {
+      description += `\nTotal: $${extractedData.total.toFixed(2)}`;
+    }
+
+    // Format the response for frontend consumption
+    const formattedData = {
+      title: extractedData.merchant || extractedData.vendor || "",
+      description: description.trim(),
+      amount: extractedData.total || 0,
+      category: "other", // Default category, user can change
+      vendor: extractedData.merchant || extractedData.vendor || "",
+      date: extractedData.date || new Date().toISOString(),
+      currency: extractedData.currency || "USD",
+      items: extractedData.items || [],
+      subtotal: extractedData.subtotal || 0,
+      tax: extractedData.tax || 0,
+      tip: extractedData.tip || 0,
+      confidence: extractedData.confidence || 0,
+      raw: extractedData // Include raw data for reference
+    };
+
+    res.status(200).json({
+      success: true,
+      message: "Receipt processed successfully",
+      data: formattedData,
+    });
+  } catch (error) {
+    if (error.message.includes("Azure Document Intelligence API key")) {
+      throw new BadRequestError("Azure Document Intelligence service is not configured");
+    }
+
+    if (error.message.includes("No receipt data found") || error.message.includes("No invoice data found")) {
+      throw new BadRequestError("Could not extract data from the image. Please ensure the image is clear and try again.");
+    }
+
+    throw new BadRequestError(error.message || "Failed to process receipt");
+  }
 });
