@@ -1,7 +1,6 @@
 const { 
   BlobServiceClient, 
-  BlobSASPermissions, 
-  generateBlobSasUrl 
+  BlobSASPermissions 
 } = require("@azure/storage-blob");
 const { blobServiceClient, containerName } = require("../config/azureConfig");
 
@@ -22,12 +21,10 @@ const generateBlobSasUrlHelper = async (blobName) => {
   const expiryTime = new Date();
   expiryTime.setMinutes(expiryTime.getMinutes() + 5);
 
-  const sasUrl = await generateBlobSasUrl({
-    containerName,
-    blobName,
+  const sasUrl = await blobClient.generateSasUrl({
     permissions,
     expiresOn: expiryTime,
-  }, blobServiceClient.credential);
+  });
 
   return sasUrl;
 };
