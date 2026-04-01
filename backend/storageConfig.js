@@ -24,6 +24,9 @@ const timesheetsStorage = createStorage("abidiPro/timesheets/attachments");
 // Tickets attachments storage
 const ticketsAttachmentsStorage = createStorage("abidiPro/tickets/attachments");
 
+// Expenses attachments storage
+const expensesStorage = createStorage("abidiPro/expenses/receipts");
+
 // Main file storage
 const fileStorage = createStorage("abidiPro/files");
 
@@ -36,7 +39,8 @@ module.exports = {
   userProfileStorage,
   timeLogsStorage,
   timesheetsStorage,
-  ticketsAttachmentsStorage
+  ticketsAttachmentsStorage,
+  expensesStorage
 };
 
 

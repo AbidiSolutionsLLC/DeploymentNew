@@ -30,6 +30,9 @@ const expenseSchema = new mongoose.Schema(
     receiptPublicId: {
       type: String,
     },
+    blobName: {
+      type: String,
+    },
     submittedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

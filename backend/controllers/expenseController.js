@@ -2,10 +2,8 @@ const Expense = require("../models/Expense");
 const User = require("../models/userSchema");
 const catchAsync = require("../utils/catchAsync");
 const { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } = require("../utils/ExpressError");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const { processReceipt, processInvoice } = require("../utils/azureDocumentIntelligence");
+const { containerClient } = require("../config/azureConfig");
 
 // @desc    Create new expense
 // @route   POST /api/web/expenses
@@ -14,20 +12,25 @@ exports.createExpense = catchAsync(async (req, res, next) => {
   if (!req.file) {
     throw new BadRequestError("Receipt is required");
   }
-
   const { title, description, amount, category } = req.body;
 
   // Validation
   if (!title || !amount || !category) {
-    // Delete uploaded file if validation fails
-    if (req.file) fs.unlinkSync(req.file.path);
+    // Delete uploaded blob from Azure if validation fails
+    if (req.file && (req.file.blobName || req.file.filename)) {
+      try {
+        const blobToDelete = req.file.blobName || req.file.filename;
+        const blockBlobClient = containerClient.getBlockBlobClient(blobToDelete);
+        await blockBlobClient.deleteIfExists();
+      } catch (err) {
+        console.error("Failed to cleanup Azure blob after validation failure:", err);
+      }
+    }
     throw new BadRequestError("Please provide all required fields");
   }
 
-  // Get user name
   const user = await User.findById(req.user._id);
   if (!user) {
-    if (req.file) fs.unlinkSync(req.file.path);
     throw new NotFoundError("User");
   }
 
@@ -37,8 +40,9 @@ exports.createExpense = catchAsync(async (req, res, next) => {
     description: description || "",
     amount: parseFloat(amount),
     category,
-    receiptUrl: `/uploads/receipts/${req.file.filename}`,
-    receiptPublicId: req.file.filename,
+    receiptUrl: req.file.url || req.file.path,
+    receiptPublicId: req.file.blobName || req.file.filename,
+    blobName: req.file.blobName,
     submittedBy: req.user._id,
     submittedByName: user.name,
   });
@@ -271,11 +275,14 @@ exports.deleteExpense = catchAsync(async (req, res, next) => {
     throw new ForbiddenError("You do not have permission to delete this expense");
   }
 
-  // Delete receipt file
-  if (expense.receiptUrl) {
-    const filePath = path.join(__dirname, "../../", expense.receiptUrl);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+  // Delete receipt blob from Azure
+  if (expense.blobName || expense.receiptPublicId) {
+    try {
+      const blobToDelete = expense.blobName || expense.receiptPublicId;
+      const blockBlobClient = containerClient.getBlockBlobClient(blobToDelete);
+      await blockBlobClient.deleteIfExists();
+    } catch (err) {
+      console.error("Failed to delete expense receipt from Azure:", err);
     }
   }
 

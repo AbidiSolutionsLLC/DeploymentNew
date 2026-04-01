@@ -2,53 +2,20 @@ const express = require("express");
 const router = express.Router();
 const expenseController = require("../../controllers/expenseController");
 const { isLoggedIn, restrictTo } = require("../../middlewares/authMiddleware");
+const { expensesStorage } = require("../../storageConfig");
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
-
-// Ensure upload directory exists
-const uploadDir = "./uploads/receipts";
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `receipt-${uniqueSuffix}${ext}`);
-  },
-});
-
-// File filter
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|pdf/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (mimetype && extname) {
-    return cb(null, true);
-  } else {
-    cb(new Error("Only images and PDF files are allowed"));
-  }
-};
 
 // Multer upload middleware
 const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: fileFilter,
+  storage: expensesStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 }).single("receipt");
 
 // Multer upload middleware for receipt processing (temporary upload)
 const uploadForProcessing = multer({
   storage: multer.memoryStorage(), // Use memory storage for processing
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for receipt processing
-  fileFilter: fileFilter,
 }).single("receipt");
 
 // All routes require authentication
