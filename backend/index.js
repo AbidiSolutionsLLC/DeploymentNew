@@ -26,7 +26,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api', require('./routes/allRoutes'));
 app.use('/api/web', require('./routes/webRoutesMount'));
 
 // Add this route WITHOUT isLoggedIn middleware

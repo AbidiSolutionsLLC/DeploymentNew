@@ -58,7 +58,8 @@ const ApproveTimesheets = () => {
 
   const tabs = [
     { title: "Pending Timesheets", status: "Pending", count: 0 },
-    { title: "Approved Timesheets", status: "Approved", count: 0 }
+    { title: "Approved Timesheets", status: "Approved", count: 0 },
+    { title: "Rejected Timesheets", status: "Rejected", count: 0 }
   ];
 
   const ensureDate = (date) => {
@@ -216,11 +217,13 @@ const ApproveTimesheets = () => {
   // Update tabs counts dynamically based on fetched data
   tabs[0].count = weeklyData.timesheets?.length || 0;
   tabs[1].count = weeklyData.approvedTimesheets?.length || 0;
+  tabs[2].count = weeklyData.rejectedTimesheets?.length || 0;
 
   const getCurrentData = () => {
     switch (activeTab) {
       case 0: return weeklyData.timesheets || [];
       case 1: return weeklyData.approvedTimesheets || [];
+      case 2: return weeklyData.rejectedTimesheets || [];
       default: return [];
     }
   };
@@ -307,9 +310,9 @@ const ApproveTimesheets = () => {
 
   const getEmptyMessage = () => {
     const weekRange = formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd);
-    return activeTab === 0 
-      ? `No pending timesheets for ${weekRange}` 
-      : `No approved timesheets for ${weekRange}`;
+    if (activeTab === 0) return `No pending timesheets for ${weekRange}`;
+    if (activeTab === 1) return `No approved timesheets for ${weekRange}`;
+    return `No rejected timesheets for ${weekRange}`;
   };
 
   const timesheetColumns = [
@@ -416,6 +419,21 @@ const ApproveTimesheets = () => {
             </button>
           ))}
         </div>
+
+        <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsAddTimeLogOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-[11px] font-black uppercase tracking-wide"
+            >
+              <Plus size={16} /> Time Log
+            </button>
+            <button
+              onClick={() => setIsCreateTimesheetOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 text-[11px] font-black uppercase tracking-wide"
+            >
+              <Plus size={16} /> Timesheet
+            </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 p-3 mb-4 flex flex-col lg:flex-row items-center justify-between gap-4">
@@ -457,18 +475,6 @@ const ApproveTimesheets = () => {
         </div>
 
         <div className="pr-1 flex items-center gap-3">
-            <button
-              onClick={() => setIsAddTimeLogOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-[11px] font-black uppercase tracking-wide"
-            >
-              <Plus size={16} /> Time Log
-            </button>
-            <button
-              onClick={() => setIsCreateTimesheetOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 text-[11px] font-black uppercase tracking-wide"
-            >
-              <Plus size={16} /> Timesheet
-            </button>
             <button
               onClick={handleExportCSV}
               className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200 text-[11px] font-black uppercase tracking-wide"
