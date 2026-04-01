@@ -76,7 +76,7 @@ const NavBarVertical = () => {
   return (
     <>
       {/* Notification Bell - Repositioned to Top Left */}
-      <div className="absolute bottom-8 left-[-5px] z-30">
+      <div className="absolute bottom-8 left-[-5px] z-[80]">
         <button
           id="nav-notification-bell"
           onClick={handleNotificationToggle}
@@ -114,7 +114,7 @@ const NavBarVertical = () => {
         )}
       </div>
 
-      <nav className="w-[2.75rem] flex flex-col items-end gap-2 mt-20 bg-transparent z-20 relative">
+      <nav className="w-[2.75rem] flex flex-col items-end gap-2 mt-20 bg-transparent z-[80] relative">
         {/* Section Nav Links */}
         {navLinks.filter(item => item.show).map((item) => {
           const active = isLinkActive(item);
@@ -137,14 +137,14 @@ const NavBarVertical = () => {
               </NavLink>
 
               {hoveredItem === item.name && (
-                <div className="absolute top-1/2 right-full -translate-y-1/2 mr-3 px-3 py-1.5 
+                <div className="absolute top-1/2 left-full -translate-y-1/2 ml-3 px-3 py-1.5 
                 bg-slate-800 text-white text-xs font-medium rounded-lg shadow-lg 
                 whitespace-nowrap z-[9999] animate-fadeIn pointer-events-none">
                   {item.name}
                   {/* Tooltip Arrow */}
-                  <div className="absolute top-1/2 right-0 translate-x-full -translate-y-1/2
-                    w-0 h-0 border-t-4 border-b-4 border-l-4
-                    border-transparent border-l-slate-800">
+                  <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2
+                    w-0 h-0 border-t-4 border-b-4 border-r-4
+                    border-transparent border-r-slate-800">
                   </div>
                 </div>
               )}

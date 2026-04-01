@@ -6,6 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi"; // Ensure this has getAllTimesheets
 import { toast } from "react-toastify";
+import { Download } from "lucide-react";
 import TableWithPagination from "../../Components/TableWithPagination";
 import ApproveTimesheetViewModal from "../../Components/ApproveTimesheetViewModal";
 
@@ -200,6 +201,68 @@ const ApproveTimesheets = () => {
     }
   };
 
+  const handleExportCSV = () => {
+    const dataToExport = getCurrentData();
+    if (dataToExport.length === 0) {
+      toast.warn("No data to export");
+      return;
+    }
+
+    const headers = [
+      "Employee Name", 
+      "Email", 
+      "Timesheet Date", 
+      "Timesheet Name", 
+      "Status", 
+      "Submitted Hours", 
+      "Approved Hours", 
+      "Timelog Job", 
+      "Timelog Description", 
+      "Timelog Hours"
+    ];
+
+    const rows = [];
+    dataToExport.forEach(ts => {
+      const base = [
+        `"${ts.employee?.name || ts.employeeName || 'Unknown'}"`,
+        `"${ts.employee?.email || 'N/A'}"`,
+        ts.date ? new Date(ts.date).toLocaleDateString() : "N/A",
+        `"${ts.name || 'Unnamed'}"`,
+        ts.status || "Pending",
+        ts.submittedHours || 0,
+        ts.approvedHours || 0
+      ];
+
+      if (ts.timeLogs && ts.timeLogs.length > 0) {
+        ts.timeLogs.forEach(log => {
+          rows.push([
+            ...base,
+            `"${log.job || 'N/A'}"`,
+            `"${log.description || 'N/A'}"`,
+            log.hours || 0
+          ]);
+        });
+      } else {
+        rows.push([...base, "N/A", "N/A", 0]);
+      }
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const weekStr = formatDate(selectedWeekStart).replace(/[\s,]+/g, '_');
+    link.setAttribute("href", url);
+    link.setAttribute("download", `timesheets_${tabs[activeTab].status.toLowerCase()}_${weekStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getCurrentActions = () => {
     if (activeTab === 0) {
       return [{
@@ -369,7 +432,14 @@ const ApproveTimesheets = () => {
           </button>
         </div>
 
-        <div className="pr-1">
+        <div className="pr-1 flex items-center gap-3">
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200 text-[11px] font-black uppercase tracking-wide"
+            >
+              <Download size={16} /> Export CSV
+            </button>
+
             <div className="bg-blue-50 text-blue-900 px-5 py-2.5 rounded-xl flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wide opacity-70">
                     {activeTab === 0 ? "Submitted Hours:" : "Approved Hours:"}
