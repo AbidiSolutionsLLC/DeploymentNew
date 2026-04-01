@@ -44,6 +44,13 @@ const upload = multer({
   fileFilter: fileFilter,
 }).single("receipt");
 
+// Multer upload middleware for receipt processing (temporary upload)
+const uploadForProcessing = multer({
+  storage: multer.memoryStorage(), // Use memory storage for processing
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for receipt processing
+  fileFilter: fileFilter,
+}).single("receipt");
+
 // All routes require authentication
 router.use(isLoggedIn);
 
@@ -76,5 +83,8 @@ router
 // Approval/Rejection routes
 router.put("/:id/approve", restrictTo("admin", "manager", "superadmin"), expenseController.approveExpense);
 router.put("/:id/reject", restrictTo("admin", "manager", "superadmin"), expenseController.rejectExpense);
+
+// Receipt processing route (for Azure Document Intelligence)
+router.post("/process-receipt", uploadForProcessing, expenseController.processReceipt);
 
 module.exports = router;

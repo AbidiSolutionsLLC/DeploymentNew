@@ -211,7 +211,68 @@ body {
   background: var(--color-text-muted);
 }
 
-/* Hide scrollbar for elements with .no-scrollbar */
+/* Custom scrollbar styles for main content areas */
+.custom-scrollbar-visible {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-accent) var(--color-bg-tertiary);
+}
+
+.custom-scrollbar-visible::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar-visible::-webkit-scrollbar-track {
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.custom-scrollbar-visible::-webkit-scrollbar-thumb {
+  background: var(--color-border-accent);
+  border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
+}
+
+.custom-scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Scrollbar visible on hover for main content areas */
+.scrollbar-on-hover {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s ease;
+}
+
+.scrollbar-on-hover:hover {
+  scrollbar-color: var(--color-border-accent) var(--color-bg-tertiary);
+}
+
+.scrollbar-on-hover::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-on-hover::-webkit-scrollbar-track {
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.scrollbar-on-hover::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
+}
+
+.scrollbar-on-hover:hover::-webkit-scrollbar-thumb {
+  background: var(--color-border-accent);
+}
+
+.scrollbar-on-hover:hover::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Hide scrollbar for elements with .no-scrollbar (keep for specific cases) */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

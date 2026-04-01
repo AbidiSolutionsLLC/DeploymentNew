@@ -40,7 +40,7 @@ const ModernDatePicker = ({
   // Handle Date Change (Convert standard JS Date to Event-like object for your forms)
   const handleDateChange = (date) => {
     // Format to YYYY-MM-DD for consistency with backend
-    const formattedDate = date ? date.toISOString().split("T")[0] : "";
+    const formattedDate = date ? date.toLocaleDateString("en-CA") : "";
     
     onChange({
       target: {
@@ -64,8 +64,11 @@ const ModernDatePicker = ({
       {/* Input Container */}
       <div className="relative w-full">
         <DatePicker
-          selected={value ? new Date(value) : null}
-          onChange={handleDateChange}
+selected={
+  value
+    ? new Date(value + "T00:00:00")
+    : null
+}          onChange={handleDateChange}
           dateFormat="yyyy-MM-dd"
           placeholderText={placeholder}
           required={required}
@@ -74,6 +77,7 @@ const ModernDatePicker = ({
           showMonthDropdown
           showYearDropdown
           dropdownMode="select"
+          portalId="root" 
         />
         
         {/* Calendar Icon */}

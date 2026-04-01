@@ -113,7 +113,7 @@ const AppLayout = () => {
 
         {/* --- MAIN CONTENT AREA --- */}
         <main className="flex-1 m-2 md:m-4 md:ml-2 md:mr-2 rounded-[1.5rem] md:rounded-[2rem] bg-[#ECF0F3] shadow-lg text-slate-800 relative transition-all duration-500 ease-in-out overflow-hidden flex flex-col">
-          <div className="flex-1 p-4 md:p-6 overflow-y-auto no-scrollbar">
+          <div className="flex-1 p-4 md:p-6 overflow-y-auto scrollbar-on-hover">
             <Outlet />
           </div>
         </main>

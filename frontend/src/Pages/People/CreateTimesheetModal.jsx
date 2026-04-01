@@ -3,6 +3,7 @@ import timesheetApi from "../../api/timesheetApi";
 import timeLogApi from "../../api/timeLogApi";
 import { toast } from "react-toastify";
 import { moment, TIMEZONE } from "../../utils/dateUtils"; // Use project's moment util
+import DatePicker from "react-datepicker";
 
 export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated, selectedDate: propSelectedDate }) {
   const [timesheetName, setTimesheetName] = useState("");
@@ -146,14 +147,16 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               TIMESHEET DATE*
             </label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              max={getTodayString()}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
-              required
-            />
+            <DatePicker
+  selected={selectedDate ? new Date(selectedDate) : null}
+  onChange={(date) => setSelectedDate(date)}
+  maxDate={new Date()} // replaces max={getTodayString()}
+  dateFormat="yyyy-MM-dd"
+  wrapperClassName="w-full"
+  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
+  placeholderText="Select date"
+  required
+/>
           </div>
 
           <div>

@@ -400,7 +400,7 @@ const AdminAttendance = () => {
               <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-red-500"><X size={20} /></button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 ">
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Check In Time</label>
                 <DatePicker
@@ -408,6 +408,7 @@ const AdminAttendance = () => {
                   onChange={(date) => setEditFormData({ ...editFormData, checkInTime: date })}
                   showTimeSelect
                   dateFormat="Pp"
+                  wrapperClassName="w-full"
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none"
                   popperProps={{ strategy: "fixed" }}
                 />
@@ -420,6 +421,7 @@ const AdminAttendance = () => {
                   onChange={(date) => setEditFormData({ ...editFormData, checkOutTime: date })}
                   showTimeSelect
                   dateFormat="Pp"
+                  wrapperClassName="w-full"
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none"
                   popperProps={{ strategy: "fixed" }}
                 />
