@@ -39,6 +39,10 @@ const notificationSchema = new mongoose.Schema(
         'COMPANY_UPDATED',
         'USER_CREATED',
         'USER_DEACTIVATED',
+        'EXPENSE_SUBMITTED',
+        'EXPENSE_APPROVED',
+        'EXPENSE_REJECTED',
+        'EXPENSE_DELETED',
       ],
     },
     title: { type: String, required: true },
@@ -48,7 +52,7 @@ const notificationSchema = new mongoose.Schema(
     relatedEntity: {
       entityType: {
         type: String,
-        enum: ['leave', 'task', 'timetracker', 'ticket', 'project', 'user', 'department', 'company'],
+        enum: ['leave', 'task', 'timetracker', 'ticket', 'project', 'user', 'department', 'company', 'expense'],
       },
       entityId: { type: mongoose.Schema.Types.ObjectId },
     },

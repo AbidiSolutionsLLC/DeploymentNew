@@ -6,6 +6,7 @@ const { processReceipt, processInvoice } = require("../utils/azureDocumentIntell
 const { containerClient } = require("../config/azureConfig");
 const { getSearchScope } = require("../utils/rbac");
 const { getTeamIds } = require("../utils/hierarchy");
+const { createNotification } = require('../utils/notificationService');
 
 // @desc    Create new expense
 // @route   POST /api/web/expenses
@@ -48,6 +49,31 @@ exports.createExpense = catchAsync(async (req, res, next) => {
     submittedBy: req.user._id,
     submittedByName: user.name,
   });
+
+  // Notify manager and admins
+  try {
+    const notifyRecipients = await User.find({
+      $or: [
+        { _id: user.reportsTo },
+        { role: 'Admin' },
+        { role: 'Super Admin' }
+      ]
+    });
+
+    notifyRecipients.forEach(recipient => {
+      if (recipient._id.toString() !== req.user._id.toString()) {
+        createNotification({
+          recipient: recipient._id,
+          type: 'EXPENSE_SUBMITTED',
+          title: 'New Expense Submitted',
+          message: `${user.name} submitted a new expense: "${expense.title}" for $${expense.amount}.`,
+          relatedEntity: { entityType: 'expense', entityId: expense._id },
+        }).catch(err => console.error('[Notification Error] Expense submission:', err.message));
+      }
+    });
+  } catch (err) {
+    console.error('[Notification Error] Failed to fetch recipients for expense:', err.message);
+  }
 
   res.status(201).json({
     success: true,
@@ -174,6 +200,23 @@ exports.updateExpense = catchAsync(async (req, res, next) => {
     }
   );
 
+  // Notify if status changed
+  if (updates.status && updates.status !== expense.status) {
+    const type = updates.status === 'approved' ? 'EXPENSE_APPROVED' : 'EXPENSE_REJECTED';
+    const title = updates.status === 'approved' ? 'Expense Approved' : 'Expense Rejected';
+    const message = updates.status === 'approved'
+      ? `Your expense "${updatedExpense.title}" for $${updatedExpense.amount} has been approved.`
+      : `Your expense "${updatedExpense.title}" for $${updatedExpense.amount} has been rejected.`;
+
+    createNotification({
+      recipient: updatedExpense.submittedBy._id,
+      type,
+      title,
+      message,
+      relatedEntity: { entityType: 'expense', entityId: updatedExpense._id },
+    }).catch(err => console.error('[Notification Error] Expense update status:', err.message));
+  }
+
   res.status(200).json({
     success: true,
     data: updatedExpense,
@@ -221,6 +264,15 @@ exports.approveExpense = catchAsync(async (req, res, next) => {
   expense.approvedAt = Date.now();
 
   await expense.save();
+
+  // Notify the submitter
+  createNotification({
+    recipient: expense.submittedBy._id,
+    type: 'EXPENSE_APPROVED',
+    title: 'Expense Approved',
+    message: `Your expense "${expense.title}" for $${expense.amount} has been approved.`,
+    relatedEntity: { entityType: 'expense', entityId: expense._id },
+  }).catch(err => console.error('[Notification Error] Expense approved:', err.message));
 
   res.status(200).json({
     success: true,
@@ -277,6 +329,15 @@ exports.rejectExpense = catchAsync(async (req, res, next) => {
 
   await expense.save();
 
+  // Notify the submitter
+  createNotification({
+    recipient: expense.submittedBy._id,
+    type: 'EXPENSE_REJECTED',
+    title: 'Expense Rejected',
+    message: `Your expense "${expense.title}" for $${expense.amount} has been rejected. Reason: ${reason}`,
+    relatedEntity: { entityType: 'expense', entityId: expense._id },
+  }).catch(err => console.error('[Notification Error] Expense rejected:', err.message));
+
   res.status(200).json({
     success: true,
     data: expense,
@@ -315,6 +376,17 @@ exports.deleteExpense = catchAsync(async (req, res, next) => {
   }
 
   await expense.deleteOne();
+
+  // Notify the submitter if deleted by someone else
+  if (expense.submittedBy._id.toString() !== req.user._id.toString()) {
+    createNotification({
+      recipient: expense.submittedBy._id,
+      type: 'EXPENSE_DELETED',
+      title: 'Expense Request Deleted',
+      message: `Your expense request "${expense.title}" has been deleted by an administrator.`,
+      relatedEntity: { entityType: 'expense', entityId: expense._id },
+    }).catch(err => console.error('[Notification Error] Expense deleted:', err.message));
+  }
 
   res.status(200).json({
     success: true,
