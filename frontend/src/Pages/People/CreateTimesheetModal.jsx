@@ -223,6 +223,7 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
             <div className="relative group">
               <input
                 type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
                 onChange={(e) => setAttachment(e.target.files[0])}
                 className="w-full opacity-0 absolute inset-0 cursor-pointer z-10"
               />

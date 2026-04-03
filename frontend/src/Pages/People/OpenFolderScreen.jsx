@@ -77,6 +77,7 @@ const OpenFolderScreen = ({ folder, onClose }) => {
                 type="file"
                 onChange={handleFileChange}
                 className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
               />
             </div>
           </div>
@@ -149,6 +150,7 @@ const OpenFolderScreen = ({ folder, onClose }) => {
               type="file"
               onChange={handleFileChange}
               className="hidden"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
             />
           </div>
         )}

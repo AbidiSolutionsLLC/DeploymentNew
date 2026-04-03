@@ -579,6 +579,7 @@ console.log(user)
                         className="hidden"
                         onChange={handleAttachmentChange}
                         disabled={isSubmitting}
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
                       />
                       <Paperclip size={16} />
                     </label>

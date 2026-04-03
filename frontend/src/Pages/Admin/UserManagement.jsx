@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import CreateUserModal from "../../Components/CreateUserModal";
+import CreateDepartmentModal from "../../Components/CreateDepartmentModal";
 import UserManagementTable from "../../Components/UserManagementTable";
 import { FaPlus, FaSearch, FaSortDown } from "react-icons/fa";
 import UserDetailModal from "../../Components/UserDetailModal";
@@ -14,6 +15,7 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -88,6 +90,11 @@ const UserManagement = () => {
     toast.success("User created successfully");
   };
 
+  const handleDepartmentCreated = () => {
+    fetchData();
+    toast.success("Department created successfully");
+  };
+
   const handleUserUpdated = (type = "update") => {
     fetchData();
     toast.success(type === "delete" ? "User deleted successfully" : "User updated successfully");
@@ -143,14 +150,25 @@ const UserManagement = () => {
             </p>
           </div>
 
-          {canAddUser && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
-            >
-              <FaPlus className="text-xs" /> Add User
-            </button>
-          )}
+          <div className="flex gap-2">
+            {canAddUser && (
+              <button
+                onClick={() => setIsDeptModalOpen(true)}
+                className="px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <FaPlus className="text-xs" /> Add Dept
+              </button>
+            )}
+
+            {canAddUser && (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <FaPlus className="text-xs" /> Add User
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -279,6 +297,12 @@ const UserManagement = () => {
         onUserUpdated={handleUserUpdated}
         allManagers={users}
         allDepartments={departments}
+      />
+      <CreateDepartmentModal
+        isOpen={isDeptModalOpen}
+        onClose={() => setIsDeptModalOpen(false)}
+        onDepartmentCreated={handleDepartmentCreated}
+        potentialManagers={users}
       />
     </div>
   );

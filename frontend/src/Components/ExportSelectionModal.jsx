@@ -14,10 +14,10 @@ const ExportSelectionModal = ({
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Initialize all as selected when modal opens
+  // Initialize none as selected when modal opens
   useEffect(() => {
     if (isOpen) {
-      setSelectedIds(new Set(items.map(item => item._id)));
+      setSelectedIds(new Set());
     }
   }, [isOpen, items]);
 

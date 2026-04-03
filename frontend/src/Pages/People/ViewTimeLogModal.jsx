@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { FaDownload } from 'react-icons/fa';
+import { Paperclip } from 'lucide-react';
 import { downloadFile } from "../../utils/downloadFile";
 
 const ViewTimeLogModal = ({ log, onClose }) => {
@@ -81,24 +81,34 @@ const ViewTimeLogModal = ({ log, onClose }) => {
             </div>
           </div>
 
-          {/* Attachment */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               ATTACHMENT
             </label>
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-              <span className="text-[11px] font-bold text-slate-500 truncate mr-4">
-                {log.attachments?.[0]?.originalname || "No attachment"}
-              </span>
-              {log.attachments?.[0] && (
-                <button
-                  onClick={() => downloadFile(log.attachments[0].blobName || log.attachments[0].url || log.attachments[0].path, log.attachments[0].originalname)}
-                  className="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-400 hover:text-[#64748b] shadow-sm transition-colors"
-                >
-                  <FaDownload size={14} />
-                </button>
-              )}
-            </div>
+            {log.attachments?.[0] ? (
+              <button
+                onClick={() => downloadFile(log.attachments[0].blobName || log.attachments[0].url || log.attachments[0].path, log.attachments[0].originalname)}
+                className="w-full flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all group text-left"
+              >
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">
+                    {log.attachments[0].originalname?.split('.').pop().toUpperCase() || "FILE"}
+                  </div>
+                  <span className="text-xs font-bold text-slate-700 truncate">
+                    {log.attachments[0].originalname || "Attachment"}
+                  </span>
+                </div>
+                <div className="text-slate-400 group-hover:text-blue-600">
+                  <Paperclip size={16} />
+                </div>
+              </button>
+            ) : (
+              <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                  No attachment found
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

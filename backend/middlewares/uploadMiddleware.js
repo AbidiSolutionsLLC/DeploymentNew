@@ -16,8 +16,15 @@ const ALLOWED_FILE_TYPES = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
   'application/vnd.ms-excel': 'xls',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
-  'text/plain': 'txt'
+  'text/plain': 'txt',
+  'text/csv': 'csv'
+};
+
+const commonFileFilter = (req, file, cb) => {
+  if (!ALLOWED_FILE_TYPES[file.mimetype]) {
+    return cb(new BadRequestError(400, `File type not allowed. Please upload DOC, PDF, EXCEL, PNG, JPG, TXT, or CSV.`), false);
+  }
+  cb(null, true);
 };
 
 // File upload middleware
@@ -27,12 +34,7 @@ const uploadFile = multer({
     fileSize: 25 * 1024 * 1024, // 25MB limit (Cloudinary's max for unsigned uploads)
     files: 1
   },
-  fileFilter: (req, file, cb) => {
-    if (!ALLOWED_FILE_TYPES[file.mimetype]) {
-      return cb(new BadRequestError(400, `File type ${file.mimetype} not allowed`), false);
-    }
-    cb(null, true);
-  }
+  fileFilter: commonFileFilter
 }).single('file');
 
 // Folder thumbnail upload middleware
@@ -80,5 +82,7 @@ const handleUpload = (uploadFunction) => {
 module.exports = {
   uploadFile: handleUpload(uploadFile),
   uploadFolderThumbnail: handleUpload(uploadFolderThumbnail),
-  ALLOWED_FILE_TYPES
+  ALLOWED_FILE_TYPES,
+  commonFileFilter,
+  handleUpload
 };

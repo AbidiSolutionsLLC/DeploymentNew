@@ -30,6 +30,10 @@ export const getNotificationIcon = (type) => {
     COMPANY_UPDATED:          '⚙️',
     USER_CREATED:             '👤',
     USER_DEACTIVATED:         '🚫',
+    EXPENSE_SUBMITTED:        '💵',
+    EXPENSE_APPROVED:         '✅',
+    EXPENSE_REJECTED:         '❌',
+    EXPENSE_DELETED:          '🗑️',
   };
   return icons[type] || '🔔';
 };
@@ -51,6 +55,8 @@ export const getRouteForNotification = (notif) => {
     user:        `/admin/userManagement`,
     department:  `/people/org-chart`,
     company:     `/admin/adminDashboard`,
+    expense:     `/admin/ExpenseManagement`,
+    timesheet:   `/admin/approve`,
   };
 
   return routes[entityType] || null;

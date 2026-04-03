@@ -14,7 +14,8 @@ import {
 } from "../../Hooks/useDrive"
 import { toast } from "react-toastify"
 import { IoEllipsisVertical } from "react-icons/io5"
-import { FaFolder, FaFile, FaDownload, FaShare, FaTrash } from "react-icons/fa"
+import { FaFolder, FaFile, FaShare, FaTrash } from "react-icons/fa"
+import { Paperclip } from "lucide-react"
 
 const UploadDocument = () => {
   const [folderStack, setFolderStack] = useState([])
@@ -397,6 +398,7 @@ const UploadDocument = () => {
                 onChange={(e) => handleFileChange(e.target.files[0])} 
                 className="hidden" 
                 id="file-upload" 
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
               />
               <label
                 htmlFor="file-upload"
@@ -410,6 +412,7 @@ const UploadDocument = () => {
                 onChange={handleShareFile} 
                 className="hidden" 
                 id="file-upload-with-share" 
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
               />
               <label
                 htmlFor="file-upload-with-share"
@@ -599,7 +602,7 @@ const UploadDocument = () => {
             }}
             className="flex items-center gap-2 text-slate-700"
           >
-            <FaDownload size={14} />
+            <Paperclip size={14} />
             Download
           </MenuItem>
           <MenuItem

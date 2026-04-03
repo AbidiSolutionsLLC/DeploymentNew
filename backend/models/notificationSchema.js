@@ -52,7 +52,7 @@ const notificationSchema = new mongoose.Schema(
     relatedEntity: {
       entityType: {
         type: String,
-        enum: ['leave', 'task', 'timetracker', 'ticket', 'project', 'user', 'department', 'company', 'expense'],
+        enum: ['leave', 'task', 'timetracker', 'ticket', 'project', 'user', 'department', 'company', 'expense', 'timesheet'],
       },
       entityId: { type: mongoose.Schema.Types.ObjectId },
     },

@@ -142,7 +142,7 @@ export default function Profile({ userId: propUserId }) {
                   <input
                       id="cover-upload"
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/jpg"
                       className="hidden"
                       onChange={handleCoverUpload}
                       disabled={uploadingCover}
@@ -186,7 +186,7 @@ export default function Profile({ userId: propUserId }) {
                 <input
                     id="avatar-upload"
                     type="file"
-                    accept="image/*"
+                    accept="image/png,image/jpeg,image/jpg"
                     className="hidden"
                     onChange={handleAvatarUpload}
                     disabled={uploadingAvatar}

@@ -2,7 +2,12 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const { ticketsAttachmentsStorage } = require("../../storageConfig");
-const upload = multer({ storage: ticketsAttachmentsStorage });
+const { commonFileFilter, handleUpload } = require("../../middlewares/uploadMiddleware");
+const upload = multer({ 
+  storage: ticketsAttachmentsStorage,
+  limits: { fileSize: 25 * 1024 * 1024, files: 1 },
+  fileFilter: commonFileFilter
+});
 const ticketController = require("../../controllers/ticketController");
 const { isLoggedIn } = require("../../middlewares/authMiddleware");
 
@@ -12,7 +17,7 @@ const { isLoggedIn } = require("../../middlewares/authMiddleware");
 router.get("/all", isLoggedIn, ticketController.getAllTickets); 
 
 router.route("/")
-  .post(isLoggedIn, upload.single("attachment"), ticketController.createTicket)
+  .post(isLoggedIn, handleUpload(upload.single("attachment")), ticketController.createTicket)
   .get(isLoggedIn, ticketController.getAllTickets);
 
 // Specific Ticket Operations

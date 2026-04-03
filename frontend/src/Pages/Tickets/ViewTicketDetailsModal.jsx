@@ -2,8 +2,9 @@ import React, { useRef, useState } from "react";
 import api from "../../axios";
 import { downloadFile } from "../../utils/downloadFile";
 import { toast } from "react-toastify";
-import { FaDownload, FaPaperPlane } from "react-icons/fa";
+import { FaPaperPlane } from "react-icons/fa";
 import { XMarkIcon, PaperClipIcon } from "@heroicons/react/24/solid";
+import { Paperclip } from "lucide-react";
 import { format } from "date-fns";
 
 const DetailItem = ({ label, value }) => (
@@ -95,15 +96,20 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
               </label>
               <div className="grid gap-2">
                 {ticket.attachments.map((file, idx) => (
-                  <button key={idx} onClick={(e) => { e.preventDefault(); downloadFile(file.url, file.name); }}
-                    className="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-lg hover:border-blue-400 transition-colors group cursor-pointer w-full text-left">
+                  <button 
+                    key={idx}
+                    onClick={(e) => { e.preventDefault(); downloadFile(file.blobName || file.url, file.name); }}
+                    className="w-full flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all group cursor-pointer text-left"
+                  >
                     <div className="flex items-center gap-2 overflow-hidden">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-[10px] font-bold shrink-0">
+                      <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">
                         {file.name.split('.').pop().toUpperCase()}
                       </div>
                       <span className="text-xs font-bold text-slate-700 truncate">{file.name}</span>
                     </div>
-                    <FaDownload className="w-3 h-3 text-slate-400 group-hover:text-blue-600" />
+                    <div className="text-slate-400 group-hover:text-blue-600">
+                      <Paperclip size={16}/>
+                    </div>
                   </button>
                 ))}
               </div>

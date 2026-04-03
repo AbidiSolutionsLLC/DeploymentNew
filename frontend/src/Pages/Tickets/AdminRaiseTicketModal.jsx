@@ -129,6 +129,7 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
             <input
               name="attachment"
               type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
               className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-slate-200 file:text-slate-600 hover:file:bg-slate-300 cursor-pointer"
               onChange={handleChange}
             />

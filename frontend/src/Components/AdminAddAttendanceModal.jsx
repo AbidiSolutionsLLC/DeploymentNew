@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { X, Save } from "lucide-react";
+import ModernSelect from "./ui/ModernSelect";
 
 export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allUsers }) {
   const [formData, setFormData] = useState({
@@ -83,21 +84,20 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
         </div>
 
         <form className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              EMPLOYEE*
-            </label>
-            <select
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
+          <div className="relative z-50">
+            <ModernSelect
+              label="Employee"
+              name="user"
               value={formData.user}
               onChange={(e) => setFormData({ ...formData, user: e.target.value })}
               required
-            >
-              <option value="">Select Employee</option>
-              {allUsers.map(u => (
-                <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
-              ))}
-            </select>
+              placeholder="Select Employee"
+              options={[
+                { value: "", label: "Select Employee" },
+                ...allUsers.map((u) => ({ value: u._id, label: `${u.name} (${u.email})` }))
+              ]}
+              className="w-full"
+            />
           </div>
 
           <div>
@@ -129,20 +129,20 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              STATUS
-            </label>
-            <select
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
+          <div className="relative z-40">
+            <ModernSelect
+              label="Status"
+              name="status"
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-            >
-              <option value="Present">Present</option>
-              <option value="Half Day">Half Day</option>
-              <option value="Absent">Absent</option>
-              <option value="Late">Late</option>
-            </select>
+              options={[
+                { value: "Present", label: "Present" },
+                { value: "Half Day", label: "Half Day" },
+                { value: "Absent", label: "Absent" },
+                { value: "Late", label: "Late" }
+              ]}
+              className="w-full"
+            />
           </div>
           
           <div>

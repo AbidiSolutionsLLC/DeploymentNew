@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../axios";
 import AdminRaiseTicketModal from "../../Pages/Tickets/RaiseTicketModal";
 import { Spin } from "antd";
+import ModernSelect from "../../Components/ui/ModernSelect";
 
 const AdminTickets = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
@@ -284,26 +285,34 @@ const AdminTickets = () => {
                       <td className="p-3 text-right">
                         <div className="flex justify-end items-center gap-2">
                           {/* Status Dropdown */}
-                          <select
-                            className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 bg-white/80 focus:outline-none focus:ring-1 focus:ring-blue-300"
-                            value={ticket.status}
-                            onChange={(e) => handleStatusChange(ticket._id, e.target.value)}
-                          >
-                            <option value="opened">Opened</option>
-                            <option value="in progress">In Progress</option>
-                            <option value="closed">Closed</option>
-                          </select>
+                          <div className="w-32">
+                            <ModernSelect
+                              name="status"
+                              value={ticket.status}
+                              onChange={(e) => handleStatusChange(ticket._id, e.target.value)}
+                              options={[
+                                { value: "Open", label: "Open" },
+                                { value: "In Progress", label: "In Progress" },
+                                { value: "Closed", label: "Closed" },
+                              ]}
+                              className="w-full text-xs"
+                            />
+                          </div>
 
                           {/* Priority Dropdown */}
-                          <select
-                            className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 bg-white/80 focus:outline-none focus:ring-1 focus:ring-blue-300"
-                            value={ticket.priority || "Medium Priority"}
-                            onChange={(e) => handlePriorityChange(ticket._id, e.target.value)}
-                          >
-                            <option value="High Priority">High</option>
-                            <option value="Medium Priority">Medium</option>
-                            <option value="Low Priority">Low</option>
-                          </select>
+                          <div className="w-32">
+                            <ModernSelect
+                              name="priority"
+                              value={ticket.priority || "Medium Priority"}
+                              onChange={(e) => handlePriorityChange(ticket._id, e.target.value)}
+                              options={[
+                                { value: "High Priority", label: "High Priority" },
+                                { value: "Medium Priority", label: "Medium Priority" },
+                                { value: "Low Priority", label: "Low Priority" },
+                              ]}
+                              className="w-full text-xs"
+                            />
+                          </div>
 
                           {/* Assign Button */}
                           <button
