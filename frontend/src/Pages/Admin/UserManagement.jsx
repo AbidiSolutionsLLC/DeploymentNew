@@ -154,12 +154,11 @@ const UserManagement = () => {
             {canAddUser && (
               <button
                 onClick={() => setIsDeptModalOpen(true)}
-                className="px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+                className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-2"
               >
-                <FaPlus className="text-xs" /> Add Dept
+                <FaPlus className="text-xs" /> Add Department
               </button>
             )}
-
             {canAddUser && (
               <button
                 onClick={() => setIsModalOpen(true)}
@@ -284,6 +283,17 @@ const UserManagement = () => {
         onUserCreated={handleUserCreated}
         allDepartments={departments}
         allManagers={users}
+      />
+
+      <CreateDepartmentModal
+        isOpen={isDeptModalOpen}
+        onClose={() => setIsDeptModalOpen(false)}
+        onDepartmentCreated={() => {
+          fetchData();
+          setIsDeptModalOpen(false);
+          toast.success("Department created successfully");
+        }}
+        potentialManagers={users}
       />
 
       <UserDetailModal

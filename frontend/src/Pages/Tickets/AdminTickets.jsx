@@ -287,30 +287,28 @@ const AdminTickets = () => {
                           {/* Status Dropdown */}
                           <div className="w-32">
                             <ModernSelect
-                              name="status"
                               value={ticket.status}
                               onChange={(e) => handleStatusChange(ticket._id, e.target.value)}
                               options={[
-                                { value: "Open", label: "Open" },
-                                { value: "In Progress", label: "In Progress" },
-                                { value: "Closed", label: "Closed" },
+                                { value: "opened", label: "Opened" },
+                                { value: "in progress", label: "In Progress" },
+                                { value: "closed", label: "Closed" }
                               ]}
-                              className="w-full text-xs"
+                              className="text-xs"
                             />
                           </div>
 
                           {/* Priority Dropdown */}
                           <div className="w-32">
                             <ModernSelect
-                              name="priority"
                               value={ticket.priority || "Medium Priority"}
                               onChange={(e) => handlePriorityChange(ticket._id, e.target.value)}
                               options={[
-                                { value: "High Priority", label: "High Priority" },
-                                { value: "Medium Priority", label: "Medium Priority" },
-                                { value: "Low Priority", label: "Low Priority" },
+                                { value: "High Priority", label: "High" },
+                                { value: "Medium Priority", label: "Medium" },
+                                { value: "Low Priority", label: "Low" }
                               ]}
-                              className="w-full text-xs"
+                              className="text-xs"
                             />
                           </div>
 

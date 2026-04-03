@@ -37,6 +37,7 @@ const ExpenseManagement = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [editMode, setEditMode] = useState("edit"); // "edit" or "reject"
 
   // Edit Form State
   const [editFormData, setEditFormData] = useState({
@@ -161,6 +162,7 @@ const ExpenseManagement = () => {
       receiptPublicId: expense.receiptPublicId || "",
       rejectionReason: expense.rejectionReason || ""
     });
+    setEditMode("edit"); // Always open edit form when clicking edit button
     setIsEditModalOpen(true);
   };
 
@@ -409,6 +411,7 @@ const ExpenseManagement = () => {
           onReject={(expense) => {
             setEditingExpense(expense);
             setEditFormData({ ...editFormData, rejectionReason: "" });
+            setEditMode("reject"); // Open reject form when coming from detail modal reject button
             setIsEditModalOpen(true);
           }}
           onEdit={handleEditClick}
@@ -425,12 +428,13 @@ const ExpenseManagement = () => {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn border border-slate-200">
             <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">
-                {editingExpense.status === 'pending' && canApprove ? 'Reject Expense' : 'Edit Expense'}
+                {editMode === "reject" ? 'Reject Expense' : 'Edit Expense'}
               </h3>
               <button
                 onClick={() => {
                   setIsEditModalOpen(false);
                   setEditingExpense(null);
+                  setEditMode("edit");
                 }}
                 className="text-slate-400 hover:text-rose-500 transition-colors"
               >
@@ -439,7 +443,7 @@ const ExpenseManagement = () => {
             </div>
 
             <div className="p-6 space-y-4">
-              {editingExpense.status === 'pending' && canApprove ? (
+              {editMode === "reject" ? (
                 // Reject Form
                 <div>
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
@@ -457,6 +461,7 @@ const ExpenseManagement = () => {
                       onClick={() => {
                         setIsEditModalOpen(false);
                         setEditingExpense(null);
+                        setEditMode("edit");
                       }}
                       className="flex-1 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 uppercase tracking-wider transition-colors"
                     >
@@ -562,6 +567,7 @@ const ExpenseManagement = () => {
                       onClick={() => {
                         setIsEditModalOpen(false);
                         setEditingExpense(null);
+                        setEditMode("edit");
                       }}
                       className="flex-1 py-2 text-xs font-bold text-primary-color/50 hover:text-primary-color uppercase tracking-wider transition-colors"
                     >

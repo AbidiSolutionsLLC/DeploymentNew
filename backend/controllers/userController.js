@@ -423,6 +423,19 @@ exports.updateUserLeaves = catchAsync(async (req, res) => {
   res.status(200).json(user.leaves);
 });
 
+exports.getUserLeaveHistory = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const user = await User.findById(id).select('leaveHistory employeeName email');
+  if (!user) throw new NotFoundError("User not found");
+  
+  const leaveHistory = user.leaveHistory || [];
+  
+  res.status(200).json({
+    success: true,
+    data: leaveHistory
+  });
+});
+
 exports.getUpcomingBirthdays = catchAsync(async (req, res) => {
   const today = new Date();
   const currentMonth = today.getMonth() + 1;

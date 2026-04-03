@@ -7,43 +7,65 @@ import Toast from "../../Components/Toast";
 import ViewLeaveModal from "../../Components/ViewLeaveModal";
 import ModernSelect from "../../Components/ui/ModernSelect";
 import { useSelector } from "react-redux";
- 
+import TableWithPagination from "../../Components/TableWithPagination";
+
 const LeaveTrackerAdmin = () => {
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Tab definitions
+  const tabs = [
+    { title: "Leave Requests" },
+    { title: "Holidays & Leaves" },
+    { title: "Manage Leaves" },
+  ];
+
+  // ==================== LEAVE REQUESTS STATE ====================
   const [departmentLeaveRecord, setDepartmentLeaveRecord] = useState([]);
+  const [loadingLeaves, setLoadingLeaves] = useState(true);
+
+  // ==================== HOLIDAYS STATE ====================
   const [holidays, setHolidays] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedLeave, setSelectedLeave] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0);
- 
+  const [refreshHolidayKey, setRefreshHolidayKey] = useState(0);
+  const [loadingHolidays, setLoadingHolidays] = useState(true);
+
+  // ==================== MANAGE LEAVES STATE ====================
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState("");
   const [leaveBalances, setLeaveBalances] = useState({ pto: 0, sick: 0 });
- 
-  const [loading, setLoading] = useState({
-    leaves: true,
-    holidays: true,
-    users: true
-  });
- 
-  // Get current user role to determine if they can see Super Admins
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
+  // ==================== LEAVE HISTORY STATE ====================
+  const [historyUsers, setHistoryUsers] = useState([]);
+  const [historySelectedUser, setHistorySelectedUser] = useState("");
+  const [leaveHistory, setLeaveHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // ==================== COMMON STATE ====================
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedLeave, setSelectedLeave] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  // Get current user role
   const { user: authUser } = useSelector(state => state.auth);
   const userRole = (authUser?.user?.role || authUser?.role || "").replace(/\s+/g, '').toLowerCase();
   const isSuperAdmin = userRole === 'superadmin';
- 
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
- 
+
+  // ==================== LEAVE REQUESTS FUNCTIONS ====================
   const fetchLeaves = async () => {
     try {
-      // FIX: Use /getAllLeaves as defined in allRoutes.js
       const response = await api.get("/getAllLeaves");
       const formatted = response.data.data.map((item) => ({
         ...item, // Keep all raw data for the modal
         id: item._id,
+        startDate: item.startDate,
+        endDate: item.endDate,
+        appliedAt: item.appliedAt || item.createdAt,
         date: new Date(item.startDate).toLocaleDateString(),
         name: item.employeeName,
         email: item.email,
@@ -55,16 +77,42 @@ const LeaveTrackerAdmin = () => {
           1
         )} days`,
         status: item.status || "Pending",
+        rawData: item,
       }));
       setDepartmentLeaveRecord(formatted);
     } catch (err) {
       console.error("Failed to fetch leaves:", err);
       showToast("Failed to load leave records", "error");
     } finally {
-      setLoading(prev => ({ ...prev, leaves: false }));
+      setLoadingLeaves(false);
     }
   };
- 
+
+  const handleStatusChange = async (leaveId, newStatus) => {
+    try {
+      await api.put(`/leaves/${leaveId}/status`, { status: newStatus });
+      showToast(`Leave status updated to ${newStatus}`);
+
+      setDepartmentLeaveRecord(prev =>
+        prev.map(leave =>
+          leave.id === leaveId
+            ? { ...leave, status: newStatus }
+            : leave
+        )
+      );
+
+      await fetchLeaves();
+    } catch (error) {
+      console.error("Failed to update status:", error.response?.data || error.message);
+    }
+  };
+
+  const handleViewLeave = (leave) => {
+    setSelectedLeave(leave);
+    setViewModalOpen(true);
+  };
+
+  // ==================== HOLIDAYS FUNCTIONS ====================
   const fetchHolidays = async () => {
     try {
       const response = await api.get("/holidays");
@@ -73,27 +121,35 @@ const LeaveTrackerAdmin = () => {
       console.error("Failed to fetch holidays:", err);
       showToast("Failed to load holidays", "error");
     } finally {
-      setLoading(prev => ({ ...prev, holidays: false }));
+      setLoadingHolidays(false);
     }
   };
- 
+
+  const handleHolidayAdded = () => {
+    showToast("Holiday added successfully");
+    fetchHolidays();
+    setRefreshHolidayKey(prev => prev + 1);
+    setIsOpen(false);
+  };
+
+  // ==================== MANAGE LEAVES FUNCTIONS ====================
   const fetchUsers = async () => {
     try {
       const response = await api.get("/users");
-      // FIX: Super Admin should see everyone. Normal Admin should not see Super Admins.
       let filtered = response.data;
       if (!isSuperAdmin) {
-         filtered = response.data.filter(u => u.role !== 'Super Admin');
+        filtered = response.data.filter(u => u.role !== 'Super Admin');
       }
       setUsers(filtered);
+      setHistoryUsers(filtered);
     } catch (err) {
       console.error("Failed to fetch users:", err);
       showToast("Failed to load users", "error");
     } finally {
-      setLoading(prev => ({ ...prev, users: false }));
+      setLoadingUsers(false);
     }
   };
- 
+
   const handleUserSelect = async (e) => {
     const userId = e.target.value;
     setSelectedUser(userId);
@@ -101,7 +157,7 @@ const LeaveTrackerAdmin = () => {
       setLeaveBalances({ pto: 0, sick: 0 });
       return;
     }
- 
+
     try {
       const response = await api.get(`/users/${userId}/leaves`);
       setLeaveBalances({
@@ -113,7 +169,7 @@ const LeaveTrackerAdmin = () => {
       showToast("Failed to fetch user leave balance", "error");
     }
   };
- 
+
   const handleUpdateLeaves = async () => {
     if (!selectedUser) return;
     try {
@@ -124,46 +180,29 @@ const LeaveTrackerAdmin = () => {
       showToast("Failed to update leaves", "error");
     }
   };
- 
-  const handleStatusChange = async (leaveId, newStatus) => {
+
+  // ==================== LEAVE HISTORY FUNCTIONS ====================
+  const handleHistoryUserSelect = async (e) => {
+    const userId = e.target.value;
+    setHistorySelectedUser(userId);
+    if (!userId) {
+      setLeaveHistory([]);
+      return;
+    }
+
+    setLoadingHistory(true);
     try {
-      // FIX: Use the update status endpoint
-      await api.put(`/leaves/${leaveId}/status`, { status: newStatus });
-      showToast(`Leave status updated to ${newStatus}`);
- 
-      setDepartmentLeaveRecord(prev =>
-        prev.map(leave =>
-          leave.id === leaveId
-            ? { ...leave, status: newStatus }
-            : leave
-        )
-      );
- 
-      await fetchLeaves();
+      const response = await api.get(`/users/${userId}/leaves/history`);
+      setLeaveHistory(response.data.data || []);
     } catch (error) {
-      console.error("Failed to update status:", error.response?.data || error.message);
-      // showToast("Failed to update status", "error");
+      console.error("Failed to fetch leave history:", error);
+      showToast("Failed to fetch leave history", "error");
+      setLeaveHistory([]);
+    } finally {
+      setLoadingHistory(false);
     }
   };
- 
-  const handleHolidayAdded = () => {
-    showToast("Holiday added successfully");
-    fetchHolidays();
-    setRefreshKey(prev => prev + 1);
-    setIsOpen(false);
-  };
- 
-  const handleViewLeave = (leave) => {
-    setSelectedLeave(leave);
-    setViewModalOpen(true);
-  };
- 
-  useEffect(() => {
-    fetchLeaves();
-    fetchHolidays();
-    fetchUsers();
-  }, []);
- 
+
   const getStatusColor = (status) => {
     switch (status) {
       case "Approved": return "bg-green-100 text-green-800";
@@ -171,7 +210,22 @@ const LeaveTrackerAdmin = () => {
       default: return "bg-yellow-100 text-yellow-800";
     }
   };
- 
+
+  // ==================== INITIAL FETCH ====================
+  useEffect(() => {
+    fetchLeaves();
+    fetchHolidays();
+    fetchUsers();
+  }, []);
+
+  // Refetch data when tab changes
+  useEffect(() => {
+    if (activeTab === 0) {
+      fetchLeaves();
+    }
+  }, [activeTab]);
+
+  // ==================== RENDER ====================
   return (
     <div className="min-h-screen bg-transparent p-2">
       {toast && (
@@ -181,7 +235,7 @@ const LeaveTrackerAdmin = () => {
           onClose={() => setToast(null)}
         />
       )}
- 
+
       {selectedLeave && (
         <ViewLeaveModal
           isOpen={viewModalOpen}
@@ -190,15 +244,49 @@ const LeaveTrackerAdmin = () => {
           onStatusChange={handleStatusChange}
         />
       )}
- 
-      <div className="space-y-4">
-        {/* Applied Leave Section */}
+
+      {/* Tab Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+        <div className="inline-flex flex-row flex-wrap items-center justify-center bg-white/90 backdrop-blur-sm p-1.5 rounded-[1.2rem] shadow-sm border border-white/50">
+          {tabs.map((item, index) => (
+            <div key={item.title} className="flex items-center">
+              <button
+                className={`px-5 py-2.5 text-sm font-medium transition-all duration-200 rounded-xl
+                  ${activeTab === index
+                    ? "text-slate-800 bg-white shadow-sm font-bold"
+                    : "text-slate-600 hover:text-slate-800 hover:bg-slate-50/80"
+                  }`}
+                onClick={() => setActiveTab(index)}
+              >
+                {item.title}
+              </button>
+              {index !== tabs.length - 1 && (
+                <span className="w-px h-5 bg-slate-200 mx-1.5"></span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Dynamic Action Button */}
+        {activeTab === 1 && (
+          <button
+            onClick={() => setIsOpen(true)}
+            className="w-full sm:w-auto px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <FaPlus size={14} />
+            Add Holidays
+          </button>
+        )}
+      </div>
+
+      {/* ==================== TAB 0: LEAVE REQUESTS ==================== */}
+      {activeTab === 0 && (
         <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
           <div className="mb-4">
             <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Applied Leave</h2>
             <p className="text-[10px] font-medium text-slate-500 mt-1">Leave requests awaiting approval</p>
           </div>
- 
+
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border-separate border-spacing-0">
               <thead>
@@ -211,7 +299,7 @@ const LeaveTrackerAdmin = () => {
                 </tr>
               </thead>
               <tbody>
-                {loading.leaves ? (
+                {loadingLeaves ? (
                   [...Array(5)].map((_, index) => (
                     <tr key={index} className="border-b border-slate-100">
                       {[...Array(9)].map((__, colIndex) => (
@@ -262,90 +350,173 @@ const LeaveTrackerAdmin = () => {
             </table>
           </div>
         </div>
- 
-        {/* Holidays Section */}
+      )}
+
+      {/* ==================== TAB 1: HOLIDAYS & LEAVES ==================== */}
+      {activeTab === 1 && (
         <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-            <div>
-              <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Upcoming Holidays & Leaves</h2>
-              <p className="text-[10px] font-medium text-slate-500 mt-1">Company holidays and scheduled leaves</p>
-            </div>
-            <button
-              onClick={() => setIsOpen(true)}
-              className="flex items-center justify-center gap-2 bg-[#64748b] text-white px-4 py-2.5 rounded-xl font-medium text-sm hover:brightness-110 transition-all shadow-sm hover:shadow-md"
-            >
-              <FaPlus size={14} />
-              Add Holidays
-            </button>
+          <div className="mb-4">
+            <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Upcoming Holidays & Leaves</h2>
+            <p className="text-[10px] font-medium text-slate-500 mt-1">Company holidays and scheduled leaves</p>
           </div>
- 
-          {loading.holidays ? (
+
+          {loadingHolidays ? (
             <div className="text-center p-6">
               <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
               <p className="mt-2 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading holidays...</p>
             </div>
           ) : (
-            <HolidayTable holidays={holidays} key={refreshKey} />
+            <HolidayTable holidays={holidays} key={refreshHolidayKey} />
           )}
         </div>
-      </div>
- 
-      {/* Manage User Leaves Section */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 mt-4">
-        <div className="mb-4">
-          <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Manage User Leaves</h2>
-          <p className="text-[10px] font-medium text-slate-500 mt-1">Adjust leave balances for employees</p>
-        </div>
- 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div className="col-span-1 md:col-span-2">
-            <ModernSelect
-              label="Select Employee"
-              name="employee"
-              value={selectedUser}
-              onChange={handleUserSelect}
-              placeholder="Select an employee..."
-              options={users.map(user => ({
-                value: user._id,
-                label: `${user.name} (${user.role})`
-              }))}
-            />
+      )}
+
+      {/* ==================== TAB 2: MANAGE LEAVES ==================== */}
+      {activeTab === 2 && (
+        <div className="space-y-4">
+          {/* Update User Leave Balances */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
+            <div className="mb-4">
+              <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Update User Leave Balances</h2>
+              <p className="text-[10px] font-medium text-slate-500 mt-1">Adjust leave balances for employees</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="col-span-1 md:col-span-2">
+                <ModernSelect
+                  label="Select Employee"
+                  name="employee"
+                  value={selectedUser}
+                  onChange={handleUserSelect}
+                  placeholder="Select an employee..."
+                  options={users.map(user => ({
+                    value: user._id,
+                    label: `${user.name} (${user.role})`
+                  }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">PTO Balance</label>
+                <input
+                  type="number"
+                  value={leaveBalances.pto}
+                  onChange={(e) => setLeaveBalances(prev => ({ ...prev, pto: Number(e.target.value) }))}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
+                  disabled={!selectedUser}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Sick Leaves</label>
+                <input
+                  type="number"
+                  value={leaveBalances.sick}
+                  onChange={(e) => setLeaveBalances(prev => ({ ...prev, sick: Number(e.target.value) }))}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
+                  disabled={!selectedUser}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={handleUpdateLeaves}
+                disabled={!selectedUser}
+                className="px-6 py-3 bg-[#64748b] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-100"
+              >
+                Update Balances
+              </button>
+            </div>
           </div>
- 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">PTO Balance</label>
-            <input
-              type="number"
-              value={leaveBalances.pto}
-              onChange={(e) => setLeaveBalances(prev => ({ ...prev, pto: Number(e.target.value) }))}
-              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
-              disabled={!selectedUser}
-            />
-          </div>
- 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Sick Leaves</label>
-            <input
-              type="number"
-              value={leaveBalances.sick}
-              onChange={(e) => setLeaveBalances(prev => ({ ...prev, sick: Number(e.target.value) }))}
-              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
-              disabled={!selectedUser}
-            />
+
+          {/* Employee Leave History */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
+            <div className="mb-4">
+              <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Employee Leave History</h2>
+              <p className="text-[10px] font-medium text-slate-500 mt-1">View complete leave history for any employee</p>
+            </div>
+
+            {/* Employee Selector */}
+            <div className="mb-6">
+              <ModernSelect
+                label="Select Employee"
+                name="historyEmployee"
+                value={historySelectedUser}
+                onChange={handleHistoryUserSelect}
+                placeholder="Select an employee..."
+                options={users.map(user => ({
+                  value: user._id,
+                  label: `${user.name} (${user.role})`
+                }))}
+              />
+            </div>
+
+            {/* Leave History Table */}
+            {loadingHistory ? (
+              <div className="text-center p-6">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
+                <p className="mt-2 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading leave history...</p>
+              </div>
+            ) : leaveHistory.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm border-separate border-spacing-0">
+                  <thead>
+                    <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
+                      {["Leave Type", "Start Date", "End Date", "Duration", "Status", "Reason"].map((heading) => (
+                        <th key={heading} className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left">
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaveHistory.map((leave, index) => {
+                      const startDate = new Date(leave.startDate);
+                      const endDate = new Date(leave.endDate);
+                      const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+                      return (
+                        <tr key={leave._id || index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
+                          <td className="p-3 text-slate-700">
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                              {leave.leaveType}
+                            </span>
+                          </td>
+                          <td className="p-3 text-slate-600">{startDate.toLocaleDateString()}</td>
+                          <td className="p-3 text-slate-600">{endDate.toLocaleDateString()}</td>
+                          <td className="p-3 text-slate-700 font-medium">{duration} days</td>
+                          <td className="p-3">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(leave.status)}`}>
+                              {leave.status}
+                            </span>
+                          </td>
+                          <td className="p-3 text-slate-600 max-w-xs truncate">{leave.reason || "-"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : historySelectedUser ? (
+              <div className="text-center p-8">
+                <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-sm font-medium text-slate-500">No leave history found for this employee</p>
+              </div>
+            ) : (
+              <div className="text-center p-8">
+                <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <p className="text-sm font-medium text-slate-500">Select an employee to view their leave history</p>
+              </div>
+            )}
           </div>
         </div>
- 
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={handleUpdateLeaves}
-            disabled={!selectedUser}
-            className="px-6 py-3 bg-[#64748b] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-100"
-          >
-            Update Balances
-          </button>
-        </div>
-      </div>
- 
+      )}
+
       <AddHolidayModal
         isOpen={isOpen}
         setIsOpen={setIsOpen}
@@ -354,5 +525,5 @@ const LeaveTrackerAdmin = () => {
     </div>
   );
 };
- 
+
 export default LeaveTrackerAdmin;

@@ -402,8 +402,8 @@ const ViewLeaveModal = ({
                   </div>
                 </div>
 
-                {/* STATUS UPDATE SECTION - Only show if leave is Pending */}
-                {leaveData.status === "Pending" && (
+                {/* STATUS UPDATE SECTION - Only show if leave is Pending AND user has admin/HR role */}
+                {leaveData.status === "Pending" && canUpdateStatus && (
                   <div className="border-t border-slate-200 pt-6">
                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
                       Update Status
