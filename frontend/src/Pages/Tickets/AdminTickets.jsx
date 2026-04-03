@@ -6,7 +6,6 @@ import api from "../../axios";
 import AdminRaiseTicketModal from "../../Pages/Tickets/RaiseTicketModal";
 import { Spin } from "antd";
 import ModernSelect from "../../Components/ui/ModernSelect";
-import ModernSelect from "../../Components/ui/ModernSelect";
 
 const AdminTickets = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import CreateUserModal from "../../Components/CreateUserModal";
 import CreateDepartmentModal from "../../Components/CreateDepartmentModal";
-import CreateDepartmentModal from "../../Components/CreateDepartmentModal";
 import UserManagementTable from "../../Components/UserManagementTable";
 import { FaPlus, FaSearch, FaSortDown } from "react-icons/fa";
 import UserDetailModal from "../../Components/UserDetailModal";
@@ -16,7 +15,6 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
