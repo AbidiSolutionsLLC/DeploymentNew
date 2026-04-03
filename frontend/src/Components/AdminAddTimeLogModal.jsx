@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { X } from "lucide-react";
+import ModernSelect from "./ui/ModernSelect";
 
 export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUsers }) {
   const [formData, setFormData] = useState({
@@ -82,21 +83,20 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
         </div>
 
         <form className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              EMPLOYEE*
-            </label>
-            <select
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
+          <div className="relative z-50">
+            <ModernSelect
+              label="Employee"
+              name="employeeId"
               value={formData.employeeId}
               onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
               required
-            >
-              <option value="">Select Employee</option>
-              {allUsers.map(u => (
-                <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
-              ))}
-            </select>
+              placeholder="Select Employee"
+              options={[
+                { value: "", label: "Select Employee" },
+                ...allUsers.map((u) => ({ value: u._id, label: `${u.name} (${u.email})` }))
+              ]}
+              className="w-full"
+            />
           </div>
 
           <div>

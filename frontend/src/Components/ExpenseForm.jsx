@@ -43,7 +43,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
     }
     
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
 
   const handleFileChange = (e) => {
@@ -110,8 +110,10 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      toast.error("Please fix the errors");
+    const formErrors = validateForm();
+    if (Object.keys(formErrors).length > 0) {
+      const firstError = Object.values(formErrors)[0];
+      toast.error(firstError);
       return;
     }
 
@@ -270,7 +272,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
                   <div>
                     <p className="text-sm font-bold text-slate-700">Click or drag {documentType}</p>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                      Supported: PNG, JPG, PDF (Max 5MB)
+                      Supported: DOC, XLS, CSV, TXT, PNG, JPG, PDF (Max 5MB)
                     </p>
                   </div>
                 </div>
@@ -279,7 +281,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
               <input
                 id="receipt-upload"
                 type="file"
-                accept="image/*,.pdf"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
                 onChange={handleFileChange}
                 className="hidden"
               />

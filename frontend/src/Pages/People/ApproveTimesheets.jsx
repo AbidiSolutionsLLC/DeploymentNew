@@ -12,6 +12,8 @@ import TableWithPagination from "../../Components/TableWithPagination";
 import ApproveTimesheetViewModal from "../../Components/ApproveTimesheetViewModal";
 import AdminAddTimeLogModal from "../../Components/AdminAddTimeLogModal";
 import AdminCreateTimesheetModal from "../../Components/AdminCreateTimesheetModal";
+import ExportSelectionModal from "../../Components/ExportSelectionModal";
+
 
 const ApproveTimesheets = () => {
   // Helper functions defined first
@@ -53,8 +55,10 @@ const ApproveTimesheets = () => {
   const [allUsers, setAllUsers] = useState([]);
   const [isAddTimeLogOpen, setIsAddTimeLogOpen] = useState(false);
   const [isCreateTimesheetOpen, setIsCreateTimesheetOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const calendarRef = useRef(null);
+
 
   const tabs = [
     { title: "Pending Timesheets", status: "Pending", count: 0 },
@@ -234,6 +238,14 @@ const ApproveTimesheets = () => {
       toast.warn("No data to export");
       return;
     }
+    setIsExportModalOpen(true);
+  };
+
+  const performExportCSV = (selectedData) => {
+    if (!selectedData || selectedData.length === 0) {
+      toast.warn("No timesheets selected for export");
+      return;
+    }
 
     const headers = [
       "Employee Name", 
@@ -249,7 +261,7 @@ const ApproveTimesheets = () => {
     ];
 
     const rows = [];
-    dataToExport.forEach(ts => {
+    selectedData.forEach(ts => {
       const base = [
         `"${ts.employee?.name || ts.employeeName || 'Unknown'}"`,
         `"${ts.employee?.email || 'N/A'}"`,
@@ -288,7 +300,9 @@ const ApproveTimesheets = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success(`Exported ${selectedData.length} timesheets successfully`);
   };
+
 
   const getCurrentActions = () => {
     if (activeTab === 0) {
@@ -548,8 +562,19 @@ const ApproveTimesheets = () => {
           allUsers={allUsers}
         />
       )}
+
+      {isExportModalOpen && (
+        <ExportSelectionModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          items={getCurrentData()}
+          onExport={performExportCSV}
+          title={`Select ${tabs[activeTab].status} Timesheets to Export`}
+        />
+      )}
     </div>
   );
 };
 
 export default ApproveTimesheets;
+

@@ -60,6 +60,16 @@ const expenseSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    rejectedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    rejectedByName: {
+      type: String,
+    },
+    rejectedAt: {
+      type: Date,
+    },
     createdAt: {
       type: Date,
       default: Date.now,
@@ -87,6 +97,9 @@ expenseSchema.pre(/^find/, function (next) {
     select: "name email role department",
   }).populate({
     path: "approvedBy",
+    select: "name email role",
+  }).populate({
+    path: "rejectedBy",
     select: "name email role",
   });
   next();

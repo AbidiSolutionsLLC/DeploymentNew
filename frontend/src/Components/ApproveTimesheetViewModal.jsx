@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { FaTimes, FaDownload, FaPaperPlane } from "react-icons/fa";
+import { FaTimes, FaPaperPlane } from "react-icons/fa";
 import { downloadFile } from "../utils/downloadFile";
 import timesheetApi from "../api/timesheetApi";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
+import { Paperclip } from "lucide-react";
 
 const ApproveTimesheetViewModal = ({ 
   timesheet, 
@@ -15,7 +16,6 @@ const ApproveTimesheetViewModal = ({
   onCommentAdded = () => {} 
 }) => {
   const [approvedHours, setApprovedHours] = useState(timesheet?.submittedHours || 0);
-  const [comment, setComment] = useState("");
   const [newComment, setNewComment] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
   const [comments, setComments] = useState(timesheet?.comments || []);
@@ -24,13 +24,13 @@ const ApproveTimesheetViewModal = ({
 
   const handleApprove = () => {
     if (onApprove) {
-      onApprove(timesheet._id, approvedHours, comment);
+      onApprove(timesheet._id, approvedHours, "");
     }
   };
 
   const handleReject = () => {
     if (onReject) {
-      onReject(timesheet._id, comment);
+      onReject(timesheet._id, "");
     }
   };
   
@@ -142,22 +142,7 @@ const ApproveTimesheetViewModal = ({
                 </p>
               </div>
 
-              {/* COMMENT FIELD */}
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-                  COMMENT (OPTIONAL)
-                </label>
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium resize-none"
-                  placeholder="Add a comment about this approval/rejection..."
-                  rows="3"
-                />
-                <p className="text-xs text-slate-400 mt-1">
-                  This comment will be sent to the employee
-                </p>
-              </div>
+
             </>
           )}
 
@@ -199,17 +184,24 @@ const ApproveTimesheetViewModal = ({
               <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
                 ATTACHMENTS
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {timesheet.attachments.map((attachment, idx) => (
                   <button
                     key={attachment._id || idx}
                     onClick={() => downloadFile(attachment.blobName || attachment.url, attachment.originalname)}
-                    className="inline-flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+                    className="w-full flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all group text-left"
                   >
-                    <FaDownload className="text-slate-400 text-xs" />
-                    <span className="truncate max-w-[150px]">
-                      {attachment.originalname || "Attachment"}
-                    </span>
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">
+                        {attachment.originalname?.split('.').pop().toUpperCase() || "FILE"}
+                      </div>
+                      <span className="text-xs font-bold text-slate-700 truncate">
+                        {attachment.originalname || "Attachment"}
+                      </span>
+                    </div>
+                    <div className="text-slate-400 group-hover:text-blue-600">
+                      <Paperclip size={16} />
+                    </div>
                   </button>
                 ))}
               </div>

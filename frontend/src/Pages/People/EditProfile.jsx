@@ -365,7 +365,7 @@ export default function EditProfile() {
           <input
             id="avatar-upload-edit"
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/jpg"
             className="hidden"
             onChange={handleAvatarUpload}
             disabled={loading}

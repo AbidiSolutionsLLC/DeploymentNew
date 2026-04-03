@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Download, CheckCircle, XCircle, Edit2, Trash2, Calendar, User, DollarSign, Tag, AlertCircle } from "lucide-react";
+import { X, CheckCircle, XCircle, Trash2, Calendar, User, Paperclip } from "lucide-react";
 import { toast } from "react-toastify";
 import { downloadFile } from "../utils/downloadFile";
 
@@ -145,15 +145,36 @@ const ExpenseDetail = ({
               </div>
             )}
 
-            {expense.rejectionReason && (
-              <div className="col-span-2 bg-rose-50/50 rounded-xl p-4 border border-rose-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <XCircle size={14} className="text-rose-500" />
-                  <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
-                    Rejection Reason
-                  </p>
+            {expense.status === 'rejected' && (
+              <div className="col-span-2 bg-rose-50/50 rounded-xl p-4 border border-rose-100 grid grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <XCircle size={14} className="text-rose-500" />
+                    <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
+                      Rejection Reason
+                    </p>
+                  </div>
+                  <p className="text-sm font-bold text-rose-700">{expense.rejectionReason}</p>
                 </div>
-                <p className="text-sm font-bold text-rose-700">{expense.rejectionReason}</p>
+
+                {(expense.rejectedByName || expense.rejectedBy) && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <User size={14} className="text-rose-400" />
+                      <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
+                        Rejected By
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-rose-700">
+                      {expense.rejectedByName || expense.rejectedBy?.name || "Unknown"}
+                    </p>
+                    {expense.rejectedAt && (
+                      <p className="text-[10px] text-rose-600/50 font-medium">
+                        {formatDate(expense.rejectedAt)}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -164,30 +185,29 @@ const ExpenseDetail = ({
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
                 Receipt
               </p>
-              <div 
+              <button 
                 onClick={handleViewReceipt}
-                className="bg-white rounded-xl p-4 border border-slate-200 flex items-center justify-between cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
+                className="w-full flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all group text-left"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center">
-                    <Download size={20} className="text-slate-500" />
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">
+                    {(expense.receiptUrl?.split('.').pop().split('?')[0] || "IMG").toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-700">View Attachment</p>
-                    <p className="text-[10px] text-slate-400 font-medium">Click to open receipt in new tab</p>
+                    <p className="text-xs font-bold text-slate-700 truncate">Expense Receipt</p>
+                    <p className="text-[10px] text-slate-400 font-medium">Click to download recipient</p>
                   </div>
                 </div>
-                <div className="px-3 py-1 bg-slate-50 text-slate-400 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-slate-100 group-hover:bg-slate-100 transition-colors">
-                  Open
+                <div className="text-slate-400 group-hover:text-blue-600">
+                  <Paperclip size={16} />
                 </div>
-              </div>
+              </button>
             </div>
           )}
         </div>
 
-        {/* Footer Actions */}
         <div className="px-6 py-4 border-t border-slate-100 flex gap-3 bg-slate-50/50 mt-auto">
-          {expense.status === 'pending' && canApprove && (
+          {expense.status === 'pending' && canApprove && (currentUser?.role?.toLowerCase() === 'superadmin' || !isOwner) && (
             <>
               <button
                 onClick={() => onApprove(expense._id)}
@@ -204,17 +224,7 @@ const ExpenseDetail = ({
             </>
           )}
 
-          {canEdit && (
-            <button
-              onClick={() => {
-                onClose();
-                onEdit(expense);
-              }}
-              className="flex-1 px-4 py-3 bg-white text-slate-700 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-md border border-slate-200 hover:bg-slate-50 active:scale-95 transition-all flex justify-center items-center gap-2"
-            >
-              <Edit2 size={14} /> Edit
-            </button>
-          )}
+
 
           {(canEdit || (isOwner && expense.status === 'pending')) && (
             <button

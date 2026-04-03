@@ -6,6 +6,7 @@ const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/Exp
 const { cloudinary } = require("../storageConfig");
 const { getStartOfESTDay, getEndOfESTDay, moment, TIMEZONE } = require("../utils/dateUtils");
 const sendEmail = require('../utils/emailService');
+const { createNotification } = require('../utils/notificationService');
 
 // --- 1. CREATE TIMESHEET ---
 exports.createTimesheet = catchAsync(async (req, res) => {
@@ -89,6 +90,22 @@ exports.createTimesheet = catchAsync(async (req, res) => {
 
   const savedTimesheet = await timesheet.save();
   await TimeLog.updateMany({ _id: { $in: logIds } }, { isAddedToTimesheet: true, timesheet: savedTimesheet._id });
+
+  // --- NOTIFICATION: Only Notify Reporting Manager ---
+  try {
+    const user = await User.findById(employee).select('reportsTo name');
+    if (user && user.reportsTo) {
+      await createNotification({
+        recipient: user.reportsTo,
+        type: 'TIMESHEET_SUBMITTED',
+        title: 'New Timesheet Submitted',
+        message: `${user.name} submitted a new timesheet for ${moment(timesheetDate).tz(TIMEZONE).format('MM-DD-YYYY')}.`,
+        relatedEntity: { entityType: 'timesheet', entityId: savedTimesheet._id },
+      });
+    }
+  } catch (notifErr) {
+    console.error('[Notification Error] Timesheet submission:', notifErr.message);
+  }
 
   res.status(201).json(savedTimesheet);
 });
@@ -206,6 +223,24 @@ exports.updateTimesheetStatus = catchAsync(async (req, res) => {
       </div>`;
     sendEmail(timesheet.employee.email, `Timesheet Update: ${status}`, emailBody).catch(console.error);
   }
+
+  // --- NOTIFICATION: Notify Employee ---
+  try {
+    const type = status === 'Approved' ? 'TIMESHEET_APPROVED' : 'TIMESHEET_REJECTED';
+    const title = `Timesheet ${status}`;
+    const message = `Your timesheet for ${new Date(timesheet.date).toDateString()} has been ${status.toLowerCase()}.`;
+
+    await createNotification({
+      recipient: timesheet.employee._id,
+      type,
+      title,
+      message,
+      relatedEntity: { entityType: 'timesheet', entityId: updatedTimesheet._id },
+    });
+  } catch (notifErr) {
+    console.error('[Notification Error] Timesheet status update:', notifErr.message);
+  }
+
   res.status(200).json(updatedTimesheet);
 });
 

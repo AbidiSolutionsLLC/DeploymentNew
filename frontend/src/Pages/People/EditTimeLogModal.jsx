@@ -130,6 +130,7 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
             <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">ATTACHMENT</label>
             <input
               type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
               onChange={(e) => setNewAttachment(e.target.files[0])}
               className="text-[11px] text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-full file:bg-slate-200 file:text-slate-600 cursor-pointer"
             />

@@ -14,6 +14,7 @@ import api from "../../axios";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
 import { downloadFile } from "../../utils/downloadFile";
+import { Paperclip } from "lucide-react";
 
 export default function AssignedTickets() {
   const [tickets, setTickets] = useState([]);
@@ -339,21 +340,21 @@ export default function AssignedTickets() {
                     {selectedTicket.attachments && selectedTicket.attachments.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {selectedTicket.attachments.map((file, idx) => (
-                           <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 group hover:border-blue-200 transition-colors">
+                           <button 
+                             key={idx}
+                             onClick={() => handleDownload(file.blobName, file.name)}
+                             className="w-full flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all group text-left"
+                           >
                               <div className="flex items-center gap-2 overflow-hidden">
                                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-xs shrink-0">
                                   {file.name.split('.').pop().toUpperCase()}
                                 </div>
                                 <span className="text-xs font-bold text-slate-700 truncate">{file.name}</span>
                               </div>
-                              <button 
-                                onClick={() => handleDownload(file.blobName, file.name)}
-                                className="p-2 text-slate-400 hover:text-white hover:bg-blue-600 rounded-lg transition-all"
-                                title="Download"
-                              >
-                                <ArrowDownTrayIcon className="w-4 h-4" />
-                              </button>
-                           </div>
+                              <div className="text-slate-400 group-hover:text-blue-600">
+                                <Paperclip size={16}/>
+                              </div>
+                           </button>
                         ))}
                       </div>
                     ) : (

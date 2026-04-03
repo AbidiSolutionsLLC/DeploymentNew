@@ -197,7 +197,7 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
                     {attachment ? attachment.name : "click to upload file"}
                   </p>
                 </div>
-                <input type="file" className="hidden" onChange={(e) => setAttachment(e.target.files[0])} />
+                <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg" className="hidden" onChange={(e) => setAttachment(e.target.files[0])} />
               </label>
             </div>
           </div>

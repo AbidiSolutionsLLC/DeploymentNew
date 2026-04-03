@@ -3,6 +3,7 @@ const router = express.Router();
 const expenseController = require("../../controllers/expenseController");
 const { isLoggedIn, restrictTo } = require("../../middlewares/authMiddleware");
 const { expensesStorage } = require("../../storageConfig");
+const { commonFileFilter, handleUpload } = require("../../middlewares/uploadMiddleware");
 const multer = require("multer");
 const path = require("path");
 
@@ -10,12 +11,14 @@ const path = require("path");
 const upload = multer({
   storage: expensesStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: commonFileFilter
 }).single("receipt");
 
 // Multer upload middleware for receipt processing (temporary upload)
 const uploadForProcessing = multer({
   storage: multer.memoryStorage(), // Use memory storage for processing
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for receipt processing
+  fileFilter: commonFileFilter
 }).single("receipt");
 
 // All routes require authentication
@@ -37,7 +40,7 @@ router.get("/pending", restrictTo("admin", "manager", "superadmin"), expenseCont
 // Main expense routes
 router
   .route("/")
-  .post(upload, expenseController.createExpense)
+  .post(handleUpload(upload), expenseController.createExpense)
   .get(expenseController.getAllExpenses);
 
 // Single expense routes
@@ -52,6 +55,6 @@ router.put("/:id/approve", restrictTo("admin", "manager", "superadmin"), expense
 router.put("/:id/reject", restrictTo("admin", "manager", "superadmin"), expenseController.rejectExpense);
 
 // Receipt processing route (for Azure Document Intelligence)
-router.post("/process-receipt", uploadForProcessing, expenseController.processReceipt);
+router.post("/process-receipt", handleUpload(uploadForProcessing), expenseController.processReceipt);
 
 module.exports = router;

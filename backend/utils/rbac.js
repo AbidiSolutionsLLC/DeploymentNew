@@ -1,9 +1,10 @@
 const User = require("../models/userSchema");
+const { getTeamIds } = require("./hierarchy");
 
 /**
  * Returns a MongoDB query filter based on the user's Role & Feature.
  * @param {Object} currentUser - The user object from req.user
- * @param {String} type - 'attendance' | 'ticket' | 'leave' | 'usermanagement'
+ * @param {String} type - 'attendance' | 'ticket' | 'leave' | 'usermanagement' | 'expense'
  * @returns {Object} MongoDB Query Object
  */
 exports.getSearchScope = async (currentUser, type) => {
@@ -20,7 +21,17 @@ exports.getSearchScope = async (currentUser, type) => {
     return {}; // God Mode: See everything across all modules
   }
 
-  // --- 2. HR & ADMIN: Expanded Visibility ---
+  // --- 2. EXPENSE SCOPE (New Requirement) ---
+  if (type === 'expense') {
+    if (roleKey === 'admin' || roleKey === 'manager') {
+      const teamIds = await getTeamIds(_id);
+      return { submittedBy: { $in: teamIds } };
+    }
+    // HR can only see his, and others can only see their own
+    return { submittedBy: _id };
+  }
+
+  // --- 3. HR & ADMIN: Expanded Visibility ---
   if (roleKey === 'hr' || roleKey === 'admin') {
     // REQUIREMENT: Admin and HR must see ALL attendance, users, and leaves
     if (type === 'attendance' || type === 'usermanagement' || type === 'leave') {
@@ -43,7 +54,7 @@ exports.getSearchScope = async (currentUser, type) => {
     return {}; // Default to all for safety
   }
 
-  // --- 3. MANAGER: Team View ---
+  // --- 4. MANAGER: Team View ---
   if (roleKey === 'manager') { 
     const directReports = await User.find({ reportsTo: _id }).distinct('_id');
     const indirectReports = await User.find({ reportsTo: { $in: directReports } }).distinct('_id');
@@ -67,7 +78,7 @@ exports.getSearchScope = async (currentUser, type) => {
     return { _id: null }; // No User Management for Managers
   }
 
-  // --- 4. EMPLOYEE & TECHNICIAN: Self View Only ---
+  // --- 5. EMPLOYEE & TECHNICIAN: Self View Only ---
   if (type === 'ticket' && (roleKey === 'technician' || isTechnician)) {
     return { 
       $or: [
@@ -83,4 +94,4 @@ exports.getSearchScope = async (currentUser, type) => {
   
   // Default Self Lock
   return { user: _id };
-};
+};

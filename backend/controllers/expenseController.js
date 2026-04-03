@@ -4,6 +4,9 @@ const catchAsync = require("../utils/catchAsync");
 const { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } = require("../utils/ExpressError");
 const { processReceipt, processInvoice } = require("../utils/azureDocumentIntelligence");
 const { containerClient } = require("../config/azureConfig");
+const { getSearchScope } = require("../utils/rbac");
+const { getTeamIds } = require("../utils/hierarchy");
+const { createNotification } = require('../utils/notificationService');
 
 // @desc    Create new expense
 // @route   POST /api/web/expenses
@@ -47,6 +50,31 @@ exports.createExpense = catchAsync(async (req, res, next) => {
     submittedByName: user.name,
   });
 
+  // Notify manager and admins
+  try {
+    const notifyRecipients = await User.find({
+      $or: [
+        { _id: user.reportsTo },
+        { role: 'Admin' },
+        { role: 'Super Admin' }
+      ]
+    });
+
+    notifyRecipients.forEach(recipient => {
+      if (recipient._id.toString() !== req.user._id.toString()) {
+        createNotification({
+          recipient: recipient._id,
+          type: 'EXPENSE_SUBMITTED',
+          title: 'New Expense Submitted',
+          message: `${user.name} submitted a new expense: "${expense.title}" for $${expense.amount}.`,
+          relatedEntity: { entityType: 'expense', entityId: expense._id },
+        }).catch(err => console.error('[Notification Error] Expense submission:', err.message));
+      }
+    });
+  } catch (err) {
+    console.error('[Notification Error] Failed to fetch recipients for expense:', err.message);
+  }
+
   res.status(201).json({
     success: true,
     data: expense,
@@ -57,19 +85,9 @@ exports.createExpense = catchAsync(async (req, res, next) => {
 // @route   GET /api/web/expenses
 // @access  Private
 exports.getAllExpenses = catchAsync(async (req, res, next) => {
-  let query;
-  
-  const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
-  
-  if (userRole === "manager") {
-    query = Expense.find({ submittedBy: req.user.id });
-  } else {
-    query = Expense.find();
-  }
-
-  query = query.sort("-createdAt");
+  const scope = await getSearchScope(req.user, "expense");
+  const query = Expense.find(scope).sort("-createdAt");
   const expenses = await query;
-
   res.status(200).json({
     success: true,
     count: expenses.length,
@@ -86,7 +104,8 @@ exports.getPendingExpenses = catchAsync(async (req, res, next) => {
     throw new ForbiddenError("You do not have permission to access this resource");
   }
 
-  const expenses = await Expense.find({ status: "pending" }).sort("-createdAt");
+  const scope = await getSearchScope(req.user, "expense");
+  const expenses = await Expense.find({ ...scope, status: "pending" }).sort("-createdAt");
 
   res.status(200).json({
     success: true,
@@ -181,6 +200,23 @@ exports.updateExpense = catchAsync(async (req, res, next) => {
     }
   );
 
+  // Notify if status changed
+  if (updates.status && updates.status !== expense.status) {
+    const type = updates.status === 'approved' ? 'EXPENSE_APPROVED' : 'EXPENSE_REJECTED';
+    const title = updates.status === 'approved' ? 'Expense Approved' : 'Expense Rejected';
+    const message = updates.status === 'approved'
+      ? `Your expense "${updatedExpense.title}" for $${updatedExpense.amount} has been approved.`
+      : `Your expense "${updatedExpense.title}" for $${updatedExpense.amount} has been rejected.`;
+
+    createNotification({
+      recipient: updatedExpense.submittedBy._id,
+      type,
+      title,
+      message,
+      relatedEntity: { entityType: 'expense', entityId: updatedExpense._id },
+    }).catch(err => console.error('[Notification Error] Expense update status:', err.message));
+  }
+
   res.status(200).json({
     success: true,
     data: updatedExpense,
@@ -192,6 +228,8 @@ exports.updateExpense = catchAsync(async (req, res, next) => {
 // @access  Private (Admin/Manager/Superadmin)
 exports.approveExpense = catchAsync(async (req, res, next) => {
   const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
+  const currentUserId = req.user.id || req.user._id;
+
   if (userRole === "employee" || userRole === "technician" || userRole === "hr") {
     throw new ForbiddenError("You do not have permission to approve expenses");
   }
@@ -206,12 +244,35 @@ exports.approveExpense = catchAsync(async (req, res, next) => {
     throw new BadRequestError("This expense has already been processed");
   }
 
+  // --- HIERARCHY & SELF-APPROVAL CHECK ---
+  if (userRole !== "superadmin") {
+    // Check if user is approving their own expense
+    if (expense.submittedBy.toString() === currentUserId.toString()) {
+      throw new ForbiddenError("You cannot approve your own expense request.");
+    }
+
+    // Check if the submitter is in the user's hierarchy
+    const teamIds = await getTeamIds(currentUserId);
+    if (!teamIds.includes(expense.submittedBy.toString())) {
+      throw new ForbiddenError("You can only approve expenses for your own team hierarchy.");
+    }
+  }
+
   expense.status = "approved";
-  expense.approvedBy = req.user._id || req.user.id;
+  expense.approvedBy = currentUserId;
   expense.approvedByName = req.user.name;
   expense.approvedAt = Date.now();
 
   await expense.save();
+
+  // Notify the submitter
+  createNotification({
+    recipient: expense.submittedBy._id,
+    type: 'EXPENSE_APPROVED',
+    title: 'Expense Approved',
+    message: `Your expense "${expense.title}" for $${expense.amount} has been approved.`,
+    relatedEntity: { entityType: 'expense', entityId: expense._id },
+  }).catch(err => console.error('[Notification Error] Expense approved:', err.message));
 
   res.status(200).json({
     success: true,
@@ -224,6 +285,8 @@ exports.approveExpense = catchAsync(async (req, res, next) => {
 // @access  Private (Admin/Manager/Superadmin)
 exports.rejectExpense = catchAsync(async (req, res, next) => {
   const userRole = req.user.role.replace(/\s+/g, '').toLowerCase();
+  const currentUserId = req.user.id || req.user._id;
+
   if (userRole === "employee" || userRole === "technician" || userRole === "hr") {
     throw new ForbiddenError("You do not have permission to reject expenses");
   }
@@ -244,10 +307,36 @@ exports.rejectExpense = catchAsync(async (req, res, next) => {
     throw new BadRequestError("This expense has already been processed");
   }
 
+  // --- HIERARCHY & SELF-REJECTION CHECK ---
+  if (userRole !== "superadmin") {
+    // Check if user is rejecting their own expense
+    if (expense.submittedBy.toString() === currentUserId.toString()) {
+      throw new ForbiddenError("You cannot reject your own expense request.");
+    }
+
+    // Check if the submitter is in the user's hierarchy
+    const teamIds = await getTeamIds(currentUserId);
+    if (!teamIds.includes(expense.submittedBy.toString())) {
+      throw new ForbiddenError("You can only reject expenses for your own team hierarchy.");
+    }
+  }
+
   expense.status = "rejected";
   expense.rejectionReason = reason;
+  expense.rejectedBy = currentUserId;
+  expense.rejectedByName = req.user.name;
+  expense.rejectedAt = Date.now();
 
   await expense.save();
+
+  // Notify the submitter
+  createNotification({
+    recipient: expense.submittedBy._id,
+    type: 'EXPENSE_REJECTED',
+    title: 'Expense Rejected',
+    message: `Your expense "${expense.title}" for $${expense.amount} has been rejected. Reason: ${reason}`,
+    relatedEntity: { entityType: 'expense', entityId: expense._id },
+  }).catch(err => console.error('[Notification Error] Expense rejected:', err.message));
 
   res.status(200).json({
     success: true,
@@ -288,6 +377,17 @@ exports.deleteExpense = catchAsync(async (req, res, next) => {
 
   await expense.deleteOne();
 
+  // Notify the submitter if deleted by someone else
+  if (expense.submittedBy._id.toString() !== req.user._id.toString()) {
+    createNotification({
+      recipient: expense.submittedBy._id,
+      type: 'EXPENSE_DELETED',
+      title: 'Expense Request Deleted',
+      message: `Your expense request "${expense.title}" has been deleted by an administrator.`,
+      relatedEntity: { entityType: 'expense', entityId: expense._id },
+    }).catch(err => console.error('[Notification Error] Expense deleted:', err.message));
+  }
+
   res.status(200).json({
     success: true,
     message: "Expense deleted successfully",
@@ -303,7 +403,12 @@ exports.getExpenseStats = catchAsync(async (req, res, next) => {
     throw new ForbiddenError("You do not have permission to view statistics");
   }
 
+  const scope = await getSearchScope(req.user, "expense");
+
   const stats = await Expense.aggregate([
+    {
+      $match: scope,
+    },
     {
       $group: {
         _id: "$status",
@@ -319,11 +424,12 @@ exports.getExpenseStats = catchAsync(async (req, res, next) => {
   const rejectedCount = stats.find(s => s._id === "rejected")?.count || 0;
 
   // Get total expenses count
-  const totalCount = await Expense.countDocuments();
+  const totalCount = await Expense.countDocuments(scope);
 
   // Get total approved amount
   const totalApproved = stats.find(s => s._id === "approved")?.totalAmount || 0;
   const totalPending = stats.find(s => s._id === "pending")?.totalAmount || 0;
+
 
   res.status(200).json({
     success: true,

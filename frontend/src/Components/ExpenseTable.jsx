@@ -140,15 +140,7 @@ const ExpenseTable = ({
                       </button>
                     )}
 
-                    {canEdit && (
-                      <button
-                        onClick={() => onEdit(expense)}
-                        className="p-2 text-slate-400 hover:text-[#64748b] hover:bg-slate-100 rounded-xl transition-all"
-                        title="Edit Expense"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                    )}
+
                   </div>
                 </td>
               </tr>

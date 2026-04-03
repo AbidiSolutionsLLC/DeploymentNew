@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { FaPaperPlane, FaDownload } from "react-icons/fa";
+import { FaPaperPlane } from "react-icons/fa";
+import { Paperclip } from "lucide-react";
 import { downloadFile } from "../utils/downloadFile";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
@@ -140,17 +141,24 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
               <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
                 ATTACHMENTS
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {timesheet.attachments.map((attachment, idx) => (
                   <button
                     key={attachment._id || idx}
                     onClick={() => downloadFile(attachment.blobName || attachment.url, attachment.originalname)}
-                    className="inline-flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+                    className="w-full flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all group text-left"
                   >
-                    <FaDownload className="text-slate-400 text-xs" />
-                    <span className="truncate max-w-[150px]">
-                      {attachment.originalname || "Attachment"}
-                    </span>
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-xs shrink-0">
+                        {(attachment.originalname?.split('.').pop() || "FILE").toUpperCase()}
+                      </div>
+                      <span className="text-xs font-bold text-slate-700 truncate">
+                        {attachment.originalname || "Attachment"}
+                      </span>
+                    </div>
+                    <div className="text-slate-400 group-hover:text-blue-600">
+                      <Paperclip size={16} />
+                    </div>
                   </button>
                 ))}
               </div>
