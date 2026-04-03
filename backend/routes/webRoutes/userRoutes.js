@@ -36,5 +36,6 @@ router.route('/:id/dashboard-cards').get(isLoggedIn, userController.getDashboard
 router.route('/:id/dashboard-cards/add').post(isLoggedIn, userController.addDashboardCard);
 router.route('/:id/dashboard-cards/:cardId').delete(isLoggedIn, userController.removeDashboardCard);
 router.route('/:id/leaves').get(isLoggedIn, userController.getUserLeaves).put(isLoggedIn, userController.updateUserLeaves);
+router.route('/:id/leaves/history').get(isLoggedIn, userController.getUserLeaveHistory);
 
 module.exports = router;

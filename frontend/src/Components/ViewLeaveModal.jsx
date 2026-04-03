@@ -28,14 +28,18 @@ import { toast } from "react-toastify"; // Import toast
 import { useSelector } from "react-redux";
 
 const ViewLeaveModal = ({ 
-  isOpen, 
-  setIsOpen, 
-  leaveData, 
-  onStatusChange, 
+  isOpen,
+  setIsOpen,
+  leaveData,
+  onStatusChange,
   fetchLeaveRequests,
 }) => {
     const { user } = useSelector((state) => state.auth);
-  
+    
+    // Check if user has admin/HR role
+    const userRole = (user?.user?.role || user?.role || "").replace(/\s+/g, '').toLowerCase();
+    const canUpdateStatus = ['superadmin', 'admin', 'hr'].includes(userRole);
+
   const [selectedStatus, setSelectedStatus] = useState(leaveData?.status || "Pending");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [responses, setResponses] = useState([]);
@@ -385,8 +389,8 @@ console.log(user)
                   </div>
                 </div>
 
-                {/* STATUS UPDATE SECTION - Only show if leave is Pending */}
-                {leaveData.status === "Pending" && (
+                {/* STATUS UPDATE SECTION - Only show if leave is Pending AND user has admin/HR role */}
+                {leaveData.status === "Pending" && canUpdateStatus && (
                   <div className="border-t border-slate-200 pt-6">
                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
                       Update Status

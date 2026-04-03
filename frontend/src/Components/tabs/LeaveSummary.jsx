@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { refreshUserData } from "../../slices/userSlice";
-import { FaMoneyBillWave, FaHospital } from "react-icons/fa";
+import { FaMoneyBillWave, FaHospital, FaEye } from "react-icons/fa";
 import { MdEventAvailable } from "react-icons/md";
 import ApplyLeaveModal from "../../Components/LeaveModal";
 import HolidayTable from "../../Components/HolidayTable";
+import ViewLeaveModal from "../../Components/ViewLeaveModal";
 import api from "../../axios";
 
 
 const LeaveSummary = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const [viewModalOpen, setViewModalOpen] = useState(false);
+    const [selectedLeave, setSelectedLeave] = useState(null);
     const dispatch = useDispatch();
     const [holidays, setHolidays] = useState([]);
     const [loading, setLoading] = useState({
@@ -83,7 +86,11 @@ const LeaveSummary = () => {
     // Format applied leaves
     const formatAppliedLeaves = () => {
         return leaveHistory.map(leave => ({
+            id: leave.leaveId,
             date: new Date(leave.startDate || leave.date || Date.now()).toLocaleDateString(),
+            startDate: leave.startDate,
+            endDate: leave.endDate,
+            appliedAt: leave.appliedAt,
             leaveType: leave.leaveType || leave.type || "-",
             reason: leave.reason || "-",
             duration: leave.duration || `${Math.ceil(
@@ -95,6 +102,38 @@ const LeaveSummary = () => {
 
     const appliedLeaves = formatAppliedLeaves();
 
+    // Handle view leave
+    const handleViewLeave = async (leave) => {
+        try {
+            // Fetch full leave details from API
+            const response = await api.get(`/leaves/${leave.id}`);
+            const fullLeaveData = response.data.data;
+            
+            setSelectedLeave({
+                id: fullLeaveData._id,
+                startDate: fullLeaveData.startDate,
+                endDate: fullLeaveData.endDate,
+                appliedAt: fullLeaveData.appliedAt || fullLeaveData.createdAt,
+                name: fullLeaveData.employeeName,
+                email: fullLeaveData.email,
+                leaveType: fullLeaveData.leaveType,
+                reason: fullLeaveData.reason || "-",
+                duration: leave.duration,
+                status: fullLeaveData.status,
+            });
+            setViewModalOpen(true);
+        } catch (error) {
+            console.error("Failed to fetch leave details:", error);
+            // Fallback to basic data
+            setSelectedLeave({
+                ...leave,
+                name: user?.user?.name || user?.name,
+                email: user?.user?.email || user?.email,
+            });
+            setViewModalOpen(true);
+        }
+    };
+
     // Handle leave addition callback
     const handleLeaveAdded = () => {
         // Refresh user data when a new leave is added
@@ -105,6 +144,15 @@ const LeaveSummary = () => {
 
     return (
         <div className="min-h-screen bg-transparent p-4">
+            {/* View Leave Modal */}
+            {selectedLeave && (
+                <ViewLeaveModal
+                    isOpen={viewModalOpen}
+                    setIsOpen={setViewModalOpen}
+                    leaveData={selectedLeave}
+                />
+            )}
+
             {/* Leave Summary Header */}
             <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-6 p-4">
                 <div className="flex flex-col items-center sm:flex-row sm:justify-between sm:items-center">
@@ -207,11 +255,11 @@ const LeaveSummary = () => {
                         <table className="min-w-full text-sm border-separate border-spacing-0">
                             <thead>
                                 <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                                    {["Date", "Leave Type", "Reason", "Duration", "Status"].map((header, index) => (
+                                    {["Date", "Leave Type", "Reason", "Duration", "Status", "Actions"].map((header, index) => (
                                         <th
                                             key={index}
                                             className={`p-4 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left ${index === 0 ? "rounded-tl-lg" : ""
-                                                } ${index === 4 ? "rounded-tr-lg" : ""
+                                                } ${index === 5 ? "rounded-tr-lg" : ""
                                                 }`}
                                         >
                                             {header}
@@ -235,6 +283,15 @@ const LeaveSummary = () => {
                                                 }`}>
                                                 {item.status}
                                             </span>
+                                        </td>
+                                        <td className="p-4">
+                                            <button
+                                                onClick={() => handleViewLeave(item)}
+                                                className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
+                                            >
+                                                <FaEye size={12} />
+                                                View
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
