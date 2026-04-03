@@ -5,6 +5,7 @@ import HolidayTable from "../../Components/HolidayTable";
 import AddHolidayModal from "../../Components/AddHolidayModal";
 import Toast from "../../Components/Toast";
 import ViewLeaveModal from "../../Components/ViewLeaveModal";
+import HistoryViewLeaveModal from "../../Components/HistoryViewLeaveModal";
 import ModernSelect from "../../Components/ui/ModernSelect";
 import { useSelector } from "react-redux";
 import TableWithPagination from "../../Components/TableWithPagination";
@@ -41,6 +42,8 @@ const LeaveTrackerAdmin = () => {
   const [historySelectedUser, setHistorySelectedUser] = useState("");
   const [leaveHistory, setLeaveHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyViewModalOpen, setHistoryViewModalOpen] = useState(false);
+  const [selectedHistoryLeave, setSelectedHistoryLeave] = useState(null);
 
   // ==================== COMMON STATE ====================
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -112,6 +115,43 @@ const LeaveTrackerAdmin = () => {
   const handleViewLeave = (leave) => {
     setSelectedLeave(leave);
     setViewModalOpen(true);
+  };
+
+  const handleViewHistoryLeave = async (leave) => {
+    try {
+      // Use leaveId from the history entry, or _id if it's a direct leave request
+      const leaveId = leave.leaveId || leave._id || leave.id;
+      
+      if (!leaveId) {
+        showToast("Leave ID not found", "error");
+        return;
+      }
+
+      // Fetch full leave details from API
+      const response = await api.get(`/leaves/${leaveId}`);
+      const fullLeaveData = response.data.data;
+
+      setSelectedHistoryLeave({
+        id: fullLeaveData._id,
+        startDate: fullLeaveData.startDate,
+        endDate: fullLeaveData.endDate,
+        appliedAt: fullLeaveData.appliedAt || fullLeaveData.createdAt,
+        employeeName: fullLeaveData.employeeName,
+        name: fullLeaveData.employeeName,
+        email: fullLeaveData.email,
+        employee: { department: fullLeaveData.department || "Department not specified" },
+        leaveType: fullLeaveData.leaveType,
+        reason: fullLeaveData.reason || "-",
+        duration: `${Math.ceil(
+          (new Date(fullLeaveData.endDate) - new Date(fullLeaveData.startDate)) / (1000 * 60 * 60 * 24) + 1
+        )} days`,
+        status: fullLeaveData.status,
+      });
+      setHistoryViewModalOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch leave details:", error);
+      showToast("Failed to load leave details", "error");
+    }
   };
 
   // ==================== HOLIDAYS FUNCTIONS ====================
@@ -362,6 +402,7 @@ const LeaveTrackerAdmin = () => {
           setIsOpen={setViewModalOpen}
           leaveData={selectedLeave}
           onStatusChange={handleStatusChange}
+          isAdminPortal={true}
         />
       )}
 
@@ -467,8 +508,12 @@ const LeaveTrackerAdmin = () => {
                 <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">PTO Balance</label>
                 <input
                   type="number"
+                  min="0"
                   value={leaveBalances.pto}
-                  onChange={(e) => setLeaveBalances(prev => ({ ...prev, pto: Number(e.target.value) }))}
+                  onChange={(e) => {
+                    const val = Math.max(0, Number(e.target.value));
+                    setLeaveBalances(prev => ({ ...prev, pto: val }));
+                  }}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
                   disabled={!selectedUser}
                 />
@@ -478,8 +523,12 @@ const LeaveTrackerAdmin = () => {
                 <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Sick Leaves</label>
                 <input
                   type="number"
+                  min="0"
                   value={leaveBalances.sick}
-                  onChange={(e) => setLeaveBalances(prev => ({ ...prev, sick: Number(e.target.value) }))}
+                  onChange={(e) => {
+                    const val = Math.max(0, Number(e.target.value));
+                    setLeaveBalances(prev => ({ ...prev, sick: val }));
+                  }}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
                   disabled={!selectedUser}
                 />
@@ -526,13 +575,54 @@ const LeaveTrackerAdmin = () => {
                 <p className="mt-2 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading leave history...</p>
               </div>
             ) : leaveHistory.length > 0 ? (
-              <TableWithPagination
-                columns={historyColumns}
-                data={leaveHistory}
-                loading={loadingHistory}
-                emptyMessage="No leave history found for this employee"
-                rowsPerPage={10}
-              />
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm border-separate border-spacing-0">
+                  <thead>
+                    <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
+                      {["Leave Type", "Start Date", "End Date", "Duration", "Status", "Reason", "Actions"].map((heading) => (
+                        <th key={heading} className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left">
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaveHistory.map((leave, index) => {
+                      const startDate = new Date(leave.startDate);
+                      const endDate = new Date(leave.endDate);
+                      const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+                      return (
+                        <tr key={leave._id || index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
+                          <td className="p-3 text-slate-700">
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                              {leave.leaveType}
+                            </span>
+                          </td>
+                          <td className="p-3 text-slate-600">{startDate.toLocaleDateString()}</td>
+                          <td className="p-3 text-slate-600">{endDate.toLocaleDateString()}</td>
+                          <td className="p-3 text-slate-700 font-medium">{duration} days</td>
+                          <td className="p-3">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(leave.status)}`}>
+                              {leave.status}
+                            </span>
+                          </td>
+                          <td className="p-3 text-slate-600 max-w-xs truncate">{leave.reason || "-"}</td>
+                          <td className="p-3">
+                            <button
+                              onClick={() => handleViewHistoryLeave(leave)}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
+                            >
+                              <FaEye size={12} />
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             ) : historySelectedUser ? (
               <div className="text-center p-8">
                 <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -557,6 +647,15 @@ const LeaveTrackerAdmin = () => {
         setIsOpen={setIsOpen}
         onHolidayAdded={handleHolidayAdded}
       />
+
+      {/* History Leave View Modal - Read Only */}
+      {selectedHistoryLeave && (
+        <HistoryViewLeaveModal
+          isOpen={historyViewModalOpen}
+          setIsOpen={setHistoryViewModalOpen}
+          leaveData={selectedHistoryLeave}
+        />
+      )}
     </div>
   );
 };
