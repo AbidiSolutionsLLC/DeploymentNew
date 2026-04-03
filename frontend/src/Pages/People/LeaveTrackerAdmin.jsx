@@ -5,6 +5,7 @@ import HolidayTable from "../../Components/HolidayTable";
 import AddHolidayModal from "../../Components/AddHolidayModal";
 import Toast from "../../Components/Toast";
 import ViewLeaveModal from "../../Components/ViewLeaveModal";
+import HistoryViewLeaveModal from "../../Components/HistoryViewLeaveModal";
 import ModernSelect from "../../Components/ui/ModernSelect";
 import { useSelector } from "react-redux";
 import TableWithPagination from "../../Components/TableWithPagination";
@@ -40,6 +41,8 @@ const LeaveTrackerAdmin = () => {
   const [historySelectedUser, setHistorySelectedUser] = useState("");
   const [leaveHistory, setLeaveHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyViewModalOpen, setHistoryViewModalOpen] = useState(false);
+  const [selectedHistoryLeave, setSelectedHistoryLeave] = useState(null);
 
   // ==================== COMMON STATE ====================
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -110,6 +113,43 @@ const LeaveTrackerAdmin = () => {
   const handleViewLeave = (leave) => {
     setSelectedLeave(leave);
     setViewModalOpen(true);
+  };
+
+  const handleViewHistoryLeave = async (leave) => {
+    try {
+      // Use leaveId from the history entry, or _id if it's a direct leave request
+      const leaveId = leave.leaveId || leave._id || leave.id;
+      
+      if (!leaveId) {
+        showToast("Leave ID not found", "error");
+        return;
+      }
+
+      // Fetch full leave details from API
+      const response = await api.get(`/leaves/${leaveId}`);
+      const fullLeaveData = response.data.data;
+
+      setSelectedHistoryLeave({
+        id: fullLeaveData._id,
+        startDate: fullLeaveData.startDate,
+        endDate: fullLeaveData.endDate,
+        appliedAt: fullLeaveData.appliedAt || fullLeaveData.createdAt,
+        employeeName: fullLeaveData.employeeName,
+        name: fullLeaveData.employeeName,
+        email: fullLeaveData.email,
+        employee: { department: fullLeaveData.department || "Department not specified" },
+        leaveType: fullLeaveData.leaveType,
+        reason: fullLeaveData.reason || "-",
+        duration: `${Math.ceil(
+          (new Date(fullLeaveData.endDate) - new Date(fullLeaveData.startDate)) / (1000 * 60 * 60 * 24) + 1
+        )} days`,
+        status: fullLeaveData.status,
+      });
+      setHistoryViewModalOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch leave details:", error);
+      showToast("Failed to load leave details", "error");
+    }
   };
 
   // ==================== HOLIDAYS FUNCTIONS ====================
@@ -242,6 +282,7 @@ const LeaveTrackerAdmin = () => {
           setIsOpen={setViewModalOpen}
           leaveData={selectedLeave}
           onStatusChange={handleStatusChange}
+          isAdminPortal={true}
         />
       )}
 
@@ -400,8 +441,12 @@ const LeaveTrackerAdmin = () => {
                 <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">PTO Balance</label>
                 <input
                   type="number"
+                  min="0"
                   value={leaveBalances.pto}
-                  onChange={(e) => setLeaveBalances(prev => ({ ...prev, pto: Number(e.target.value) }))}
+                  onChange={(e) => {
+                    const val = Math.max(0, Number(e.target.value));
+                    setLeaveBalances(prev => ({ ...prev, pto: val }));
+                  }}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
                   disabled={!selectedUser}
                 />
@@ -411,8 +456,12 @@ const LeaveTrackerAdmin = () => {
                 <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Sick Leaves</label>
                 <input
                   type="number"
+                  min="0"
                   value={leaveBalances.sick}
-                  onChange={(e) => setLeaveBalances(prev => ({ ...prev, sick: Number(e.target.value) }))}
+                  onChange={(e) => {
+                    const val = Math.max(0, Number(e.target.value));
+                    setLeaveBalances(prev => ({ ...prev, sick: val }));
+                  }}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
                   disabled={!selectedUser}
                 />
@@ -463,7 +512,7 @@ const LeaveTrackerAdmin = () => {
                 <table className="min-w-full text-sm border-separate border-spacing-0">
                   <thead>
                     <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                      {["Leave Type", "Start Date", "End Date", "Duration", "Status", "Reason"].map((heading) => (
+                      {["Leave Type", "Start Date", "End Date", "Duration", "Status", "Reason", "Actions"].map((heading) => (
                         <th key={heading} className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left">
                           {heading}
                         </th>
@@ -492,6 +541,15 @@ const LeaveTrackerAdmin = () => {
                             </span>
                           </td>
                           <td className="p-3 text-slate-600 max-w-xs truncate">{leave.reason || "-"}</td>
+                          <td className="p-3">
+                            <button
+                              onClick={() => handleViewHistoryLeave(leave)}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
+                            >
+                              <FaEye size={12} />
+                              View
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -522,6 +580,15 @@ const LeaveTrackerAdmin = () => {
         setIsOpen={setIsOpen}
         onHolidayAdded={handleHolidayAdded}
       />
+
+      {/* History Leave View Modal - Read Only */}
+      {selectedHistoryLeave && (
+        <HistoryViewLeaveModal
+          isOpen={historyViewModalOpen}
+          setIsOpen={setHistoryViewModalOpen}
+          leaveData={selectedHistoryLeave}
+        />
+      )}
     </div>
   );
 };

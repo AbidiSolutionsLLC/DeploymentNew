@@ -150,6 +150,7 @@ const LeaveSummary = () => {
                     isOpen={viewModalOpen}
                     setIsOpen={setViewModalOpen}
                     leaveData={selectedLeave}
+                    isAdminPortal={false}
                 />
             )}
 

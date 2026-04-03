@@ -34,12 +34,13 @@ const ViewLeaveModal = ({
   leaveData,
   onStatusChange,
   fetchLeaveRequests,
+  isAdminPortal = false, // New prop to control admin-only features
 }) => {
     const { user } = useSelector((state) => state.auth);
-   
+
     // Check if user has admin/HR role
     const userRole = (user?.user?.role || user?.role || "").replace(/\s+/g, '').toLowerCase();
-    const canUpdateStatus = ['superadmin', 'admin', 'hr'].includes(userRole);
+    const canUpdateStatus = isAdminPortal && ['superadmin', 'admin', 'hr'].includes(userRole);
  
   const [selectedStatus, setSelectedStatus] = useState(leaveData?.status || "Pending");
   const [isSubmitting, setIsSubmitting] = useState(false);
