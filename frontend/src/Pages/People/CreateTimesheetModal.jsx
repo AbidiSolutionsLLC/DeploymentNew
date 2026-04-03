@@ -4,6 +4,7 @@ import timeLogApi from "../../api/timeLogApi";
 import { toast } from "react-toastify";
 import { moment, TIMEZONE } from "../../utils/dateUtils"; // Use project's moment util
 import DatePicker from "react-datepicker";
+import { validateDescription, sanitizeText, getApiError } from "../../utils/validationUtils";
 
 export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated, selectedDate: propSelectedDate }) {
   const [timesheetName, setTimesheetName] = useState("");
@@ -13,6 +14,7 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingLogs, setFetchingLogs] = useState(false);
+  const [descriptionError, setDescriptionError] = useState(null);
   const modalRef = useRef(null);
 
   // Get today's date in YYYY-MM-DD format based on EST
@@ -22,8 +24,16 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
 
   const formatDisplayDate = (dateStr) => {
     if (!dateStr) return "";
-    const [year, month, day] = dateStr.split("-");
-    return `${month}-${day}-${year}`;
+    // If it's already a Date object, format it using moment
+    if (dateStr instanceof Date) {
+      return moment(dateStr).format('MM-DD-YYYY');
+    }
+    // If it's a string in YYYY-MM-DD format
+    if (typeof dateStr === 'string' && dateStr.includes("-")) {
+      const [year, month, day] = dateStr.split("-");
+      return `${month}-${day}-${year}`;
+    }
+    return moment(dateStr).format('MM-DD-YYYY');
   };
 
   useEffect(() => {
@@ -40,6 +50,7 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
       setDescription("");
       setAttachment(null);
       setLogs([]);
+      setDescriptionError(null);
     }
   }, [open, propSelectedDate]);
 
@@ -69,13 +80,20 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
     if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
   };
 
+  const descValidation = validateDescription(description, { min: 10, max: 500, required: true });
+
   const isValid = timesheetName.trim().length >= 3 &&
-    description.trim().length >= 5 &&
+    !descValidation &&
     logs.length > 0 &&
     selectedDate;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const descErr = validateDescription(description, { min: 10, max: 500, required: true });
+    if (descErr) {
+      setDescriptionError(descErr);
+      return;
+    }
     if (!isValid) return;
 
     setLoading(true);
@@ -109,7 +127,7 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
       if (onTimesheetCreated) onTimesheetCreated();
       onClose();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to create timesheet");
+      toast.error(getApiError(error, "Failed to create timesheet"));
     } finally {
       setLoading(false);
     }
@@ -149,7 +167,7 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
             </label>
             <DatePicker
   selected={selectedDate ? new Date(selectedDate) : null}
-  onChange={(date) => setSelectedDate(date)}
+  onChange={(date) => setSelectedDate(date ? moment(date).format('YYYY-MM-DD') : "")}
   maxDate={new Date()} // replaces max={getTodayString()}
   dateFormat="yyyy-MM-dd"
   wrapperClassName="w-full"
@@ -205,15 +223,24 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
 
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              SUMMARY DESCRIPTION*
+              SUMMARY DESCRIPTION* <span className="normal-case font-normal text-slate-300">(min 10, max 500 chars)</span>
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 min-h-[100px]"
-              placeholder="Describe your work..."
-              required
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setDescriptionError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
+              }}
+              onBlur={() => setDescriptionError(validateDescription(description, { min: 10, max: 500, required: true }))}
+              className={`w-full bg-white border ${descriptionError ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 min-h-[100px]`}
+              placeholder="Describe your work in detail (at least 3 meaningful words)..."
             />
+            <div className="flex justify-between items-center mt-1">
+              {descriptionError ? (
+                <p className="text-xs text-red-500">{descriptionError}</p>
+              ) : <span />}
+              <p className="text-xs text-slate-400 text-right">{description.length}/500</p>
+            </div>
           </div>
 
           <div>

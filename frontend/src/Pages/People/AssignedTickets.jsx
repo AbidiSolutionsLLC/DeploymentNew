@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 import { format } from "date-fns";
 import { downloadFile } from "../../utils/downloadFile";
 import { Paperclip } from "lucide-react";
+import { validateDescription, getApiError } from "../../utils/validationUtils";
 
 export default function AssignedTickets() {
   const [tickets, setTickets] = useState([]);
@@ -30,6 +31,7 @@ export default function AssignedTickets() {
   // Modal & Dropdown State
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [commentText, setCommentText] = useState("");
+  const [commentError, setCommentError] = useState(null);
   const [sendingComment, setSendingComment] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const dropdownRef = useRef(null);
@@ -131,7 +133,9 @@ export default function AssignedTickets() {
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim()) return;
+    const err = validateDescription(commentText, { min: 10, max: 500, required: true });
+    if (err) { setCommentError(err); return; }
+    setCommentError(null);
     try {
       setSendingComment(true);
       const res = await api.post(`/tickets/${selectedTicket._id}/response`, {
@@ -143,7 +147,7 @@ export default function AssignedTickets() {
       setCommentText("");
       toast.success("Reply sent");
     } catch (err) {
-      toast.error("Failed to send reply");
+      toast.error(getApiError(err, "Failed to send reply"));
     } finally {
       setSendingComment(false);
     }
@@ -379,20 +383,29 @@ export default function AssignedTickets() {
                      <div className="bg-white p-2 rounded-[1.5rem] shadow-sm border border-slate-200 flex items-center gap-2 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                         <textarea 
                           value={commentText}
-                          onChange={(e) => setCommentText(e.target.value)}
-                          placeholder="Type your reply here..."
-                          className="flex-1 bg-transparent border-none focus:ring-0 text-sm p-3 resize-none h-12 font-medium"
+                          onChange={(e) => {
+                            setCommentText(e.target.value);
+                            setCommentError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
+                          }}
+                          onBlur={() => setCommentError(validateDescription(commentText, { min: 10, max: 500, required: true }))}
+                          placeholder="Type your reply (min 10 chars, at least 3 words)..."
+                          className={`flex-1 bg-transparent border-none focus:ring-0 text-sm p-3 resize-none h-12 font-medium ${commentError ? "placeholder:text-red-300" : ""}`}
                         ></textarea>
                         <button 
-                          onClick={handleAddComment}
-                          disabled={sendingComment}
+                          onClick={() => {
+                            if (!commentError) handleAddComment();
+                          }}
+                          disabled={sendingComment || !!commentError}
                           className="p-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors disabled:opacity-50"
                         >
                           {sendingComment ? <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"/> : <PaperAirplaneIcon className="w-5 h-5" />}
                         </button>
                      </div>
-                  </div>
-                </div>
+                      {commentError && (
+                        <p className="text-xs text-red-500 mt-1 pl-2">{commentError}</p>
+                     )}
+                   </div>
+                 </div>
 
                 <div className="space-y-4">
                    <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100">

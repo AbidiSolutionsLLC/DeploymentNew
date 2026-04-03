@@ -5,6 +5,7 @@ import CreateDepartmentModal from "./CreateDepartmentModal";
 import { FaPlus, FaCheck } from "react-icons/fa";
 import ModernSelect from "./ui/ModernSelect";
 import ModernDatePicker from "./ui/ModernDatePicker";
+import { validateText, validateEmail, validatePassword, validatePhone, sanitizeText } from "../utils/validationUtils";
 
 const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, allManagers }) => {
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
@@ -13,7 +14,8 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
   const modalRef = useRef(null);
 
   const initialFormState = {
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     designation: "",
@@ -31,6 +33,7 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -42,6 +45,31 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
     if (isOpen) fetchMe();
   }, [isOpen]);
 
+  const validateField = (name, value) => {
+    let error = null;
+    switch (name) {
+      case "firstName":
+      case "lastName":
+        error = validateText(value);
+        if (!error && value.length < 2) error = "Must be at least 2 characters.";
+        if (!error && !/^[a-zA-Z\s'-]+$/.test(value)) error = "Only letters allowed.";
+        break;
+      case "email":
+        error = validateEmail(value);
+        break;
+      case "password":
+        error = validatePassword(value);
+        break;
+      case "phoneNumber":
+        error = validatePhone(value, true);
+        break;
+      default:
+        break;
+    }
+    setErrors(p => ({ ...p, [name]: error }));
+    return error;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((p) => {
@@ -51,20 +79,47 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
       }
       return updated;
     });
+    // Validate on change for better UX
+    validateField(name, value);
   };
 
   const handleBackdropClick = (e) => {
+    // If clicking inside the date picker portal, don't close the modal
+    if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
     if (modalRef.current && !modalRef.current.contains(e.target)) setIsOpen(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields
+    const fNameError = validateField("firstName", formData.firstName);
+    const lNameError = validateField("lastName", formData.lastName);
+    const emailError = validateField("email", formData.email);
+    const passError = validateField("password", formData.password);
+    const phoneError = validateField("phoneNumber", formData.phoneNumber);
+
+    if (fNameError || lNameError || emailError || passError || phoneError) {
+      toast.error("Please fix errors before submitting.");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await api.post("/users", formData);
+      const submissionData = {
+        ...formData,
+        name: sanitizeText(`${formData.firstName} ${formData.lastName}`),
+        email: formData.email.toLowerCase()
+      };
+      // Remove local fields not in model
+      delete submissionData.firstName;
+      delete submissionData.lastName;
+
+      await api.post("/users", submissionData);
       onUserCreated();
       setIsOpen(false);
       setFormData(initialFormState);
+      setErrors({});
       toast.success("User created successfully");
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to create user");
@@ -118,15 +173,16 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
           <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
 
             {/* Name + Email */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="Full Name" name="name" value={formData.name} onChange={handleChange} placeholder="John Doe" required />
-              <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" required />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="John" error={errors.firstName} required />
+              <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Doe" error={errors.lastName} required />
+              <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" error={errors.email} required />
             </div>
 
             {/* Password + Phone */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="********" required />
-              <Input label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+1 234 567 890" required />
+              <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="********" error={errors.password} required />
+              <Input label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+1234567890" error={errors.phoneNumber} required />
             </div>
 
             {/* Role + Designation + Technician */}
@@ -246,14 +302,15 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
 export default CreateUserModal;
 
 /* Input Component */
-const Input = ({ label, ...props }) => (
+const Input = ({ label, error, ...props }) => (
   <div>
     <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
       {label}
     </label>
     <input
-      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100"
+      className={`w-full bg-white border ${error ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-300 transition-all`}
       {...props}
     />
+    {error && <p className="text-[10px] text-red-500 mt-1 font-bold">{error}</p>}
   </div>
 );

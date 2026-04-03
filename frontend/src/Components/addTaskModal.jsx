@@ -28,6 +28,8 @@ const AddTaskModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleBackdropClick = (e) => {
+    // If clicking inside the date picker portal, don't close the modal
+    if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
     if (modalRef.current && !modalRef.current.contains(e.target)) {
       onClose();
     }

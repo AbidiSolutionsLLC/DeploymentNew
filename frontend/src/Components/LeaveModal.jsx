@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ModernSelect from "./ui/ModernSelect";
+import { validateDescription, validateText, validateDateRange, sanitizeText } from "../utils/validationUtils";
 
 const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
   const dispatch = useDispatch();
@@ -15,6 +16,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
   const [quotaError, setQuotaError] = useState("");
   const [daysRequested, setDaysRequested] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const modalRef = useRef(null);
 
@@ -39,6 +41,8 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
   };
 
   const handleBackdropClick = (e) => {
+    // If clicking inside the date picker portal, don't close the modal
+    if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
     if (!isSubmitting && modalRef.current && !modalRef.current.contains(e.target)) {
       setIsOpen(false);
     }
@@ -52,6 +56,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
       setReason("");
       setQuotaError("");
       setDaysRequested(0);
+      setErrors({});
     }
   }, [isOpen]);
 
@@ -80,10 +85,39 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
     return adjusted.toISOString().split('T')[0];
   };
 
+  const validateField = (name, value) => {
+    let error = null;
+    switch (name) {
+      case "leaveType":
+        if (!value || value === "") error = "Please select an option.";
+        break;
+      case "startDate":
+        if (!value) error = "Please select a valid date.";
+        break;
+      case "endDate":
+        if (!value) error = "Please select a valid date.";
+        const rangeError = validateDateRange(startDate, value);
+        if (rangeError) error = rangeError;
+        break;
+      case "reason":
+        error = validateDescription(value, { min: 20, max: 500, required: true });
+        break;
+      default:
+        break;
+    }
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return error;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!leaveType || !startDate || !endDate) {
-      toast.error("PLEASE FILL ALL REQUIRED FIELDS.");
+    const typeError = validateField("leaveType", leaveType);
+    const startError = validateField("startDate", startDate);
+    const endError = validateField("endDate", endDate);
+    const reasonError = validateField("reason", reason);
+
+    if (typeError || startError || endError || reasonError || quotaError) {
+      toast.error("PLEASE FIX VALIDATION ERRORS BEFORE SUBMITTING.");
       return;
     }
     
@@ -172,6 +206,9 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
                 className="w-full"
                 disabled={isSubmitting}
               />
+              {errors.leaveType && (
+                <p className="text-xs text-red-500 mt-1">{errors.leaveType}</p>
+              )}
             </div>
             {availableBalance !== null && (
               <p className="mt-2 text-[10px] font-bold text-emerald-500 uppercase tracking-tight">
@@ -188,14 +225,18 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
               <DatePicker
                 selected={startDate}
                 onChange={(date) => setStartDate(date)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 cursor-pointer"
+                className={`w-full bg-white border ${errors.startDate ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 cursor-pointer`}
                 placeholderText="Select Date"
                 dateFormat="yyyy-MM-dd"
                 required
                 disabled={isSubmitting}
+                onBlur={() => validateField("startDate", startDate)}
                 popperProps={{ strategy: "fixed" }}
                 portalId="portal-root"
               />
+              {errors.startDate && (
+                <p className="text-xs text-red-500 mt-1">{errors.startDate}</p>
+              )}
             </div>
 
             <div>
@@ -205,15 +246,19 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
               <DatePicker
                 selected={endDate}
                 onChange={(date) => setEndDate(date)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 cursor-pointer"
+                className={`w-full bg-white border ${errors.endDate ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 cursor-pointer`}
                 placeholderText="Select Date"
                 dateFormat="yyyy-MM-dd"
                 minDate={startDate} 
                 required
                 disabled={isSubmitting}
+                onBlur={() => validateField("endDate", endDate)}
                 popperProps={{ strategy: "fixed" }}
                 portalId="portal-root"
               />
+              {errors.endDate && (
+                <p className="text-xs text-red-500 mt-1">{errors.endDate}</p>
+              )}
             </div>
           </div>
 
@@ -229,13 +274,20 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
               REASON FOR LEAVE
             </label>
             <textarea
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-300 resize-none disabled:opacity-50"
+              className={`w-full bg-white border ${errors.reason ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-300 resize-none disabled:opacity-50`}
               rows={3}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              onBlur={(e) => validateField("reason", e.target.value)}
               placeholder="e.g. family vacation"
               disabled={isSubmitting}
             ></textarea>
+            <p className="text-xs text-slate-400 text-right mt-1">
+              {reason.length}/500
+            </p>
+            {errors.reason && (
+              <p className="text-xs text-red-500 mt-1">{errors.reason}</p>
+            )}
           </div>
 
           {quotaError && (
@@ -262,9 +314,9 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
           <button 
             type="submit" 
             form="leaveForm"
-            disabled={quotaError !== "" || !leaveType || !startDate || !endDate || isSubmitting}
+            disabled={quotaError !== "" || Object.values(errors).some(Boolean) || !leaveType || !startDate || !endDate || isSubmitting}
             className={`flex-1 py-3 sm:py-4 text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg transition-all ${
-              quotaError !== "" || !leaveType || !startDate || !endDate || isSubmitting
+              quotaError !== "" || Object.values(errors).some(Boolean) || !leaveType || !startDate || !endDate || isSubmitting
                 ? "bg-slate-300 shadow-none cursor-not-allowed"
                 : "bg-[#64748b] shadow-slate-100 hover:brightness-110 active:scale-95"
             }`}

@@ -9,12 +9,18 @@ const upload = multer({
   fileFilter: commonFileFilter
 });
 const timesheetController = require("../../controllers/timesheetController");
+const validate = require("../../middlewares/validationMiddleware");
+const { 
+  createTimesheetSchema, 
+  updateTimesheetStatusSchema, 
+  timesheetCommentSchema 
+} = require("../../JoiSchema/TimesheetJoiSchema");
 const { isLoggedIn } = require("../../middlewares/authMiddleware");
 
 // Timesheet Routes
 router
     .route("/")
-    .post(isLoggedIn, handleUpload(upload.array("attachments", 5)), timesheetController.createTimesheet)
+    .post(isLoggedIn, handleUpload(upload.array("attachments", 5)), validate(createTimesheetSchema), timesheetController.createTimesheet)
     .get(isLoggedIn, timesheetController.getEmployeeTimesheets);
 
 router.get("/all", isLoggedIn, timesheetController.getAllTimesheets);
@@ -25,11 +31,11 @@ router.get("/weekly", isLoggedIn, timesheetController.getWeeklyTimesheets);
 router
     .route("/:id")
     .get(isLoggedIn, timesheetController.getTimesheetById)
-    .put(isLoggedIn, handleUpload(upload.array("attachments", 5)), timesheetController.updateTimesheetStatus);
+    .put(isLoggedIn, validate(updateTimesheetStatusSchema), handleUpload(upload.array("attachments", 5)), timesheetController.updateTimesheetStatus);
 
-router.put("/:id/status", isLoggedIn, timesheetController.updateTimesheetStatus);
+router.put("/:id/status", isLoggedIn, validate(updateTimesheetStatusSchema), timesheetController.updateTimesheetStatus);
 
-router.post("/:id/comment", isLoggedIn, timesheetController.addTimesheetComment);
+router.post("/:id/comment", isLoggedIn, validate(timesheetCommentSchema), timesheetController.addTimesheetComment);
 
 router.get('/:id/attachments/:attachmentId/download', 
   isLoggedIn, 

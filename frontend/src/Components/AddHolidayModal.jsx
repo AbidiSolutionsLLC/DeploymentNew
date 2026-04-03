@@ -3,6 +3,7 @@ import holidayApi from "../api/holidayApi";
 // FIX: Changed from "../ui/" to "./ui/"
 import ModernSelect from "./ui/ModernSelect"; 
 import ModernDatePicker from "./ui/ModernDatePicker"; 
+import { validateText, sanitizeText } from "../utils/validationUtils";
 
 const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
   const initialFormState = {
@@ -13,13 +14,16 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const modalRef = useRef(null);
 
   if (!isOpen) return null;
 
   const handleBackdropClick = (e) => {
+    // If clicking inside the date picker portal, don't close the modal
     if (
+      e.target.closest("#portal-root") ||
       e.target.closest(".react-datepicker") ||
       e.target.closest(".react-datepicker-popper")
     ) {
@@ -34,10 +38,31 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Inline validation for holiday name
+    if (name === "holidayName") {
+      const error = validateText(value);
+      let customError = error;
+      if (!error && value.length < 2) customError = "Must be at least 2 characters.";
+      if (!error && !/^[a-zA-Z\s'-]+$/.test(value)) customError = "Only letters allowed.";
+      setErrors(prev => ({ ...prev, holidayName: customError }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check errors
+    const nameError = validateText(formData.holidayName);
+    let finalNameError = nameError;
+    if (!nameError && formData.holidayName.length < 2) finalNameError = "Must be at least 2 characters.";
+    if (!nameError && !/^[a-zA-Z\s'-]+$/.test(formData.holidayName)) finalNameError = "Only letters allowed.";
+    
+    if (finalNameError || !formData.holidayType || !formData.date) {
+      setErrors(prev => ({ ...prev, holidayName: finalNameError }));
+      return;
+    }
+
     setLoading(true);
     try {
       // Ensure date is valid before processing
@@ -46,9 +71,14 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
       const dateObj = new Date(formData.date);
       const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
       
-      await holidayApi.createHoliday({ ...formData, day: dayName });
+      await holidayApi.createHoliday({ 
+        ...formData, 
+        holidayName: sanitizeText(formData.holidayName),
+        day: dayName 
+      });
       
       setFormData(initialFormState);
+      setErrors({});
       onHolidayAdded();
       setIsOpen(false);
     } catch (err) {
@@ -100,9 +130,12 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
               placeholder="Enter holiday name"
               value={formData.holidayName}
               onChange={handleChange}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300"
+              className={`w-full bg-white border ${errors.holidayName ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm sm:text-base text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300`}
               required
             />
+            {errors.holidayName && (
+              <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.holidayName}</p>
+            )}
             <datalist id="holidayNames">
               {["New Year's Day", "Labor Day", "Christmas Day", "Diwali", "Eid al-Fitr", "Independence Day"].map(name => (
                 <option key={name} value={name} />

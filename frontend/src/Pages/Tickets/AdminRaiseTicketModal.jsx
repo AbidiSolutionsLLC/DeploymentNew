@@ -1,4 +1,6 @@
 import React, { useState, useRef } from "react";
+import { validateText, validateDescription, validateEmail, sanitizeText } from "../../utils/validationUtils";
+import { toast } from "react-toastify";
 
 const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
   const [form, setForm] = useState({
@@ -8,6 +10,7 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
     comment: "",
     attachment: null,
   });
+  const [errors, setErrors] = useState({});
   const modalRef = useRef(null);
 
   const handleBackdropClick = (e) => {
@@ -18,16 +21,46 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
+    const val = files ? files[0] : value;
     setForm((prev) => ({
       ...prev,
-      [name]: files ? files[0] : value,
+      [name]: val,
     }));
+
+    // Inline validation
+    if (name === "email") {
+      setErrors(prev => ({ ...prev, email: validateEmail(val) }));
+    }
+    if (name === "subject") {
+      const error = validateText(val);
+      let customError = error;
+      if (!error && val.length < 5) customError = "Subject must be at least 5 characters.";
+      setErrors(prev => ({ ...prev, subject: customError }));
+    }
+    if (name === "comment") {
+      const error = validateDescription(val, { min: 10, max: 1000, required: true });
+      setErrors(prev => ({ ...prev, comment: error }));
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Final validation
+    const emailErr = validateEmail(form.email);
+    const subjectErr = validateText(form.subject) || (form.subject.length < 5 ? "Subject must be at least 5 characters." : null);
+    const commentErr = validateDescription(form.comment, { min: 10, max: 1000, required: true });
+
+    if (emailErr || subjectErr || commentErr) {
+      setErrors({ email: emailErr, subject: subjectErr, comment: commentErr });
+      toast.error("PLEASE FIX VALIDATION ERRORS");
+      return;
+    }
+
     const newTicket = {
       ...form,
+      subject: sanitizeText(form.subject),
+      comment: sanitizeText(form.comment),
       date: new Date().toISOString().slice(0, 10),
       status: "opened",
     };
@@ -86,11 +119,14 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
               name="email"
               type="email"
               placeholder="user@example.com"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300"
+              className={`w-full bg-white border ${errors.email ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300`}
               value={form.email}
               onChange={handleChange}
               required
             />
+            {errors.email && (
+              <p className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.email}</p>
+            )}
           </div>
 
           <div>
@@ -100,11 +136,17 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
             <input
               name="subject"
               placeholder="issue subject"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300"
+              className={`w-full bg-white border ${errors.subject ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300`}
               value={form.subject}
               onChange={handleChange}
               required
             />
+            <div className="flex justify-between items-center mt-1">
+              {errors.subject ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.subject}</p>
+              ) : <div />}
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.subject.length}/100</p>
+            </div>
           </div>
 
           <div>
@@ -114,12 +156,18 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
             <textarea
               name="comment"
               placeholder="describe the issue"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300 min-h-[100px]"
+              className={`w-full bg-white border ${errors.comment ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300 min-h-[100px] resize-none`}
               value={form.comment}
               onChange={handleChange}
               rows={3}
               required
             />
+            <div className="flex justify-between items-center mt-1">
+              {errors.comment ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.comment}</p>
+              ) : <div />}
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.comment.length}/1000</p>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">

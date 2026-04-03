@@ -10,16 +10,18 @@ const upload = multer({
 });
 const timeLogController = require("../../controllers/timeLogController");
 const { isLoggedIn } = require("../../middlewares/authMiddleware");
+const validate = require("../../middlewares/validationMiddleware");
+const { createTimeLogSchema, updateTimeLogSchema } = require("../../JoiSchema/TimeLogJoiSchema");
 
 // Time Log Routes
 router
     .route("/")
-    .post(isLoggedIn, handleUpload(upload.array("attachments", 5)), timeLogController.createTimeLog)
+    .post(isLoggedIn, handleUpload(upload.array("attachments", 5)), validate(createTimeLogSchema), timeLogController.createTimeLog)
     .get(isLoggedIn, timeLogController.getEmployeeTimeLogs);
 
 router
     .route("/:id")
-    .put(isLoggedIn, handleUpload(upload.array("attachments", 5)), timeLogController.updateTimeLog)
+    .put(isLoggedIn, handleUpload(upload.array("attachments", 5)), validate(updateTimeLogSchema), timeLogController.updateTimeLog)
     .delete(isLoggedIn, timeLogController.deleteTimeLog);
 
 router.get('/:id/attachments/:attachmentId/download', 

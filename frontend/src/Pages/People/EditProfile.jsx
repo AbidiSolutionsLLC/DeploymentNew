@@ -7,6 +7,7 @@ import api from "../../axios";
 import { toast } from "react-toastify";
 import { Spin } from "antd";
 import { format } from "date-fns";
+import { validateText, validateDescription, sanitizeText } from "../../utils/validationUtils";
 
 // IMPORT YOUR NEW MODERN COMPONENTS
 import ModernSelect from "../../Components/ui/ModernSelect";
@@ -18,6 +19,7 @@ export default function EditProfile() {
   const [userId, setUserId] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -128,9 +130,14 @@ export default function EditProfile() {
   };
 
   const handleSave = async () => {
-    const validationErrors = validateForm();
-    if (validationErrors.length > 0) {
-      validationErrors.forEach(error => toast.error(error));
+    // Basic validations
+    const phoneErr = /^\d*$/.test(formData.phoneNumber) ? null : "Phone number must contain only digits";
+    const aboutErr = validateDescription(formData.about, { min: 0, max: 1000, required: false });
+    const addressErr = validateText(formData.address, { min: 0, max: 200, required: false });
+
+    if (phoneErr || aboutErr || addressErr) {
+      setErrors({ phoneNumber: phoneErr, about: aboutErr, address: addressErr });
+      toast.error("PLEASE FIX VALIDATION ERRORS");
       return;
     }
 
@@ -138,14 +145,9 @@ export default function EditProfile() {
       setSaving(true);
       
       const payload = {
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        phoneNumber: formData.phoneNumber ? parseInt(formData.phoneNumber) : undefined,
-        designation: formData.designation.trim(),
-        branch: formData.branch.trim(),
-        empType: formData.empType,
-        about: formData.about.trim(),
-        address: formData.address.trim(),
+        phoneNumber: formData.phoneNumber || undefined,
+        about: sanitizeText(formData.about),
+        address: sanitizeText(formData.address),
         DOB: formData.DOB || null,
         maritalStatus: formData.maritalStatus.trim(),
         emergencyContact: formData.emergencyContact
@@ -153,7 +155,7 @@ export default function EditProfile() {
           .map(contact => ({
             name: contact.name.trim(),
             relation: contact.relation?.trim() || "",
-            phone: parseInt(contact.phone)
+            phone: contact.phone
           })),
         education: formData.education
           .filter(edu => edu.institution && edu.degree)
@@ -173,12 +175,6 @@ export default function EditProfile() {
             endDate: exp.endDate ? new Date(exp.endDate) : undefined
           }))
       };
-
-      Object.keys(payload).forEach(key => {
-        if (payload[key] === undefined || payload[key] === null) {
-          delete payload[key];
-        }
-      });
 
       await api.put(`/users/${userId}`, payload, {
         withCredentials: true,
@@ -233,6 +229,20 @@ export default function EditProfile() {
       ...prev,
       [field]: value
     }));
+
+    // Inline validation
+    if (field === "phoneNumber") {
+      const isDigits = /^\d*$/.test(value);
+      setErrors(prev => ({ ...prev, phoneNumber: isDigits ? null : "Phone number must contain only digits" }));
+    }
+    if (field === "about") {
+      const err = validateDescription(value, { min: 0, max: 1000, required: false });
+      setErrors(prev => ({ ...prev, about: err }));
+    }
+    if (field === "address") {
+      const err = validateText(value, { min: 0, max: 200, required: false });
+      setErrors(prev => ({ ...prev, address: err }));
+    }
   };
 
   const addEducation = () => {
@@ -410,11 +420,14 @@ export default function EditProfile() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
             <input
               type="tel"
-              className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white/80 backdrop-blur-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+              className={`w-full p-3 border ${errors.phoneNumber ? 'border-red-400' : 'border-slate-200'} rounded-lg text-sm bg-white/80 backdrop-blur-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent transition-all`}
               value={formData.phoneNumber}
               onChange={(e) => handleInputChange('phoneNumber', e.target.value.replace(/\D/g, ''))}
               placeholder="Digits only"
             />
+            {errors.phoneNumber && (
+              <p className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.phoneNumber}</p>
+            )}
           </div>
           
           {/* UPDATED: Modern Date Picker */}
@@ -480,24 +493,36 @@ export default function EditProfile() {
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
             <textarea
-              className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white/80 backdrop-blur-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+              className={`w-full p-3 border ${errors.address ? 'border-red-400' : 'border-slate-200'} rounded-lg text-sm bg-white/80 backdrop-blur-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent transition-all resize-none`}
               rows={3}
               value={formData.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
             />
+            <div className="flex justify-between items-center mt-1">
+              {errors.address ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.address}</p>
+              ) : <div />}
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{formData.address.length}/200</p>
+            </div>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* About */}
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] p-4 mb-6 shadow-md border border-white/50">
         <h3 className="font-semibold mb-3 text-sm text-slate-800 uppercase tracking-wide">About</h3>
         <textarea
-          className="w-full p-3 border border-slate-200 rounded-lg text-sm bg-white/80 backdrop-blur-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+          className={`w-full p-3 border ${errors.about ? 'border-red-400' : 'border-slate-200'} rounded-lg text-sm bg-white/80 backdrop-blur-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent transition-all resize-none`}
           rows={5}
           value={formData.about}
           onChange={(e) => handleInputChange('about', e.target.value)}
         />
+        <div className="flex justify-between items-center mt-1">
+          {errors.about ? (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.about}</p>
+          ) : <div />}
+          <p className="text-[10px] text-slate-400 uppercase tracking-widest">{formData.about.length}/1000</p>
+        </div>
       </div>
 
       {/* Emergency Contacts */}

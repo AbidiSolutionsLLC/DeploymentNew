@@ -5,12 +5,15 @@ import { toast } from "react-toastify";
 import { moment, TIMEZONE } from "../utils/dateUtils"; 
 import { X, Save } from "lucide-react";
 import ModernSelect from "./ui/ModernSelect";
+import ModernDatePicker from "./ui/ModernDatePicker";
+import { validateDescription, sanitizeText, getApiError } from "../utils/validationUtils";
 
 export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCreated, allUsers }) {
   const [employeeId, setEmployeeId] = useState("");
   const [timesheetName, setTimesheetName] = useState("");
   const [selectedDate, setSelectedDate] = useState(""); 
   const [description, setDescription] = useState("");
+  const [descriptionError, setDescriptionError] = useState(null);
   const [attachment, setAttachment] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,8 +24,17 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
 
   const formatDisplayDate = (dateStr) => {
     if (!dateStr) return "";
-    const [year, month, day] = dateStr.split("-");
-    return `${month}-${day}-${year}`;
+    if (dateStr instanceof Date) {
+      return moment(dateStr).format('MM-DD-YYYY');
+    }
+    if (typeof dateStr === 'string' && dateStr.includes("-")) {
+      const parts = dateStr.split("-");
+      if (parts.length === 3) {
+        const [year, month, day] = parts;
+        return `${month}-${day}-${year}`;
+      }
+    }
+    return moment(dateStr).format('MM-DD-YYYY');
   };
 
   useEffect(() => {
@@ -32,6 +44,7 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
       setAttachment(null);
       setLogs([]);
       setEmployeeId("");
+      setDescriptionError(null);
     }
   }, [open]);
 
@@ -47,8 +60,6 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
   const fetchLogsForEmployeeDate = async (dateStr, userId) => {
     try {
       setFetchingLogs(true);
-      // Ensure timeLogApi.getEmployeeTimeLogs can accept a userId properly.
-      // E.g., /timelogs/my-logs?date=...&userId=... OR using axios
       const response = await timeLogApi.getEmployeeTimeLogs(dateStr, userId);
       const availableLogs = response.filter(log => !log.isAddedToTimesheet);
       setLogs(availableLogs);
@@ -61,16 +72,23 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
   };
 
   const handleBackdropClick = (e) => {
+    // If clicking inside the date picker portal, don't close the modal
+    if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
     if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
   };
 
   const isValid = employeeId && timesheetName.trim().length >= 3 &&
-    description.trim().length >= 5 &&
+    !validateDescription(description, { min: 10, max: 500, required: true }) &&
     logs.length > 0 &&
     selectedDate;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const descErr = validateDescription(description, { min: 10, max: 500, required: true });
+    if (descErr) {
+      setDescriptionError(descErr);
+      return;
+    }
     if (!isValid) return;
 
     setLoading(true);
@@ -105,7 +123,7 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
       if (onTimesheetCreated) onTimesheetCreated();
       onClose();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to create timesheet");
+      toast.error(getApiError(error, "Failed to create timesheet"));
     } finally {
       setLoading(false);
     }
@@ -153,21 +171,17 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              TIMESHEET DATE*
-            </label>
-            <input
-              type="date"
+          <div className="relative z-40">
+            <ModernDatePicker
+              label="TIMESHEET DATE"
+              name="selectedDate"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              max={getTodayString()}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
               required
             />
           </div>
 
-          <div>
+          <div className="relative z-30">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               AVAILABLE LOGS
             </label>
@@ -202,7 +216,7 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
             )}
           </div>
 
-          <div>
+          <div className="relative z-20">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               TIMESHEET NAME
             </label>
@@ -215,17 +229,26 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
             />
           </div>
 
-          <div>
+          <div className="relative z-10">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              SUMMARY DESCRIPTION*
+              SUMMARY DESCRIPTION* <span className="normal-case font-normal text-slate-300">(min 10, max 500 chars)</span>
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 min-h-[100px]"
-              placeholder="Describe work..."
-              required
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setDescriptionError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
+              }}
+              onBlur={() => setDescriptionError(validateDescription(description, { min: 10, max: 500, required: true }))}
+              className={`w-full bg-white border ${descriptionError ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 min-h-[100px]`}
+              placeholder="Describe work in detail (at least 3 meaningful words)..."
             />
+            <div className="flex justify-between items-center mt-1">
+              {descriptionError ? (
+                <p className="text-xs text-red-500">{descriptionError}</p>
+              ) : <span />}
+              <p className="text-xs text-slate-400 text-right">{description.length}/500</p>
+            </div>
           </div>
         </form>
 

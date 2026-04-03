@@ -26,6 +26,7 @@ import api from "../axios";
 import Toast from "../Components/Toast";
 import { toast } from "react-toastify"; // Import toast
 import { useSelector } from "react-redux";
+import { validateDescription } from "../utils/validationUtils";
 
 const ViewLeaveModal = ({
   isOpen,
@@ -45,6 +46,7 @@ const ViewLeaveModal = ({
   const [editingResponseId, setEditingResponseId] = useState(null);
   const [editContent, setEditContent] = useState("");
   const [attachment, setAttachment] = useState(null);
+  const [errors, setErrors] = useState({});
   console.log(user)
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -108,6 +110,7 @@ const ViewLeaveModal = ({
     setEditContent("");
     setAttachment(null);
     setToast(null);
+    setErrors({});
   };
 
   const handleStatusChange = async () => {
@@ -128,6 +131,13 @@ const ViewLeaveModal = ({
   };
 
   const handleSubmitResponse = async () => {
+    const error = validateDescription(newResponse, { min: 10, max: 500, required: true });
+    if (error) {
+      setErrors(prev => ({ ...prev, newResponse: error }));
+      return;
+    }
+    setErrors(prev => ({ ...prev, newResponse: null }));
+    
     if (!newResponse.trim() && !attachment) return;
 
     try {
@@ -149,6 +159,13 @@ const ViewLeaveModal = ({
   };
 
   const handleUpdateResponse = async (responseId) => {
+    const error = validateDescription(editContent, { min: 10, max: 500, required: true });
+    if (error) {
+      setErrors(prev => ({ ...prev, editContent: error }));
+      return;
+    }
+    setErrors(prev => ({ ...prev, editContent: null }));
+    
     if (!editContent.trim()) return;
 
     try {
@@ -519,9 +536,15 @@ const ViewLeaveModal = ({
                                   <textarea
                                     value={editContent}
                                     onChange={(e) => setEditContent(e.target.value)}
-                                    className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-100 min-h-[60px] resize-none"
+                                    className={`w-full border ${errors.editContent ? 'border-red-400' : 'border-slate-200'} rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-100 min-h-[60px] resize-none`}
                                     rows="3"
                                   />
+                                  <p className="text-[10px] text-slate-400 text-right">
+                                    {editContent.length}/500
+                                  </p>
+                                  {errors.editContent && (
+                                    <p className="text-xs text-red-500">{errors.editContent}</p>
+                                  )}
                                   <div className="flex gap-2">
                                     <button
                                       onClick={() => handleUpdateResponse(response._id)}
@@ -566,10 +589,16 @@ const ViewLeaveModal = ({
                       value={newResponse}
                       onChange={(e) => setNewResponse(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      className="w-full border border-slate-200 rounded-xl p-3 pr-24 text-sm focus:ring-2 focus:ring-blue-100 min-h-[80px] resize-none"
+                      className={`w-full border ${errors.newResponse ? 'border-red-400' : 'border-slate-200'} rounded-xl p-3 pr-24 text-sm focus:ring-2 focus:ring-blue-100 min-h-[80px] resize-none`}
                       placeholder="Type your response here..."
                       rows="3"
                     />
+                    <p className="text-[10px] text-slate-400 text-right mt-1">
+                      {newResponse.length}/500
+                    </p>
+                    {errors.newResponse && (
+                      <p className="text-xs text-red-500 mt-1">{errors.newResponse}</p>
+                    )}
 
                     {/* Attachment Button */}
                     <label className="absolute left-3 bottom-3 p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition cursor-pointer">

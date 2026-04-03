@@ -4,6 +4,8 @@ const multer = require("multer");
 const { userProfileStorage } = require("../../storageConfig");
 const upload = multer({ storage: userProfileStorage });
 const userController = require("../../controllers/userController");
+const { userUpdateSchema } = require("../../JoiSchema/UserJoiSchema");
+const validationMiddleware = require("../../middlewares/validationMiddleware");
 const { isLoggedIn } = require("../../middlewares/authMiddleware"); // <--- IMPORT THIS
 
 // User Routes
@@ -28,7 +30,7 @@ router.route("/search").get(isLoggedIn, userController.getUserById);
 router
   .route("/:id")
   .get(isLoggedIn, userController.getUserById)
-  .put(isLoggedIn, upload.single("profilePhoto"), userController.updateUser)
+  .put(isLoggedIn, upload.single("profilePhoto"), validationMiddleware(userUpdateSchema), userController.updateUser)
   .delete(isLoggedIn, userController.deleteUser);
 
 // Dashboard & Extras

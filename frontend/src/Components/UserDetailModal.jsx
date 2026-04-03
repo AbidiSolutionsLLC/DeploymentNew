@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import CreateDepartmentModal from "./CreateDepartmentModal";
 import ModernSelect from "./ui/ModernSelect";
 import ModernDatePicker from "./ui/ModernDatePicker";
+import { validateText, validateEmail, validatePhone, sanitizeText } from "../utils/validationUtils";
 
 const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, allManagers, allDepartments }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -19,8 +20,10 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
   // ================== INIT FORM ==================
   useEffect(() => {
     if (user) {
+      const [fName, ...lNameParts] = (user.name || "").split(" ");
       setFormData({
-        name: user.name || "",
+        firstName: fName || "",
+        lastName: lNameParts.join(" ") || "",
         email: user.email || "",
         designation: user.designation || "",
         department: user.department?._id || "",
@@ -42,22 +45,34 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
 
   // ================== VALIDATION ==================
   const validateField = (name, value) => {
+    let error = "";
     switch (name) {
-      case "name": return value.trim() ? "" : "Name is required";
-      case "email": return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "" : "Valid email is required";
-      case "phoneNumber": return value.trim() ? "" : "Phone number is required";
-      case "designation": return value.trim() ? "" : "Designation is required";
-      case "department": return value ? "" : "Department is required";
-      case "joiningDate": return value ? "" : "Joining date is required";
-      case "endDate": 
-        if (formData.empType === "Contractor" || formData.empType === "Intern") {
-          return value ? "" : "End date is required";
-        }
-        return "";
-      case "branch": return value.trim() ? "" : "Branch is required";
-      case "hourlyWage": return value !== "" && value >= 0 ? "" : "Valid hourly wage is required";
-      default: return "";
+      case "firstName":
+      case "lastName":
+        error = validateText(value);
+        if (!error && value.length < 2) error = "Min 2 characters";
+        if (!error && !/^[a-zA-Z\s'-]+$/.test(value)) error = "Only letters allowed.";
+        break;
+      case "email":
+        error = validateEmail(value);
+        break;
+      case "phoneNumber":
+        error = validatePhone(value, false); // Optional in edit? The rules said optional for phone.
+        break;
+      case "designation":
+        error = value.trim() ? "" : "Designation is required";
+        break;
+      case "branch":
+        error = value.trim() ? "" : "Branch is required";
+        break;
+      case "hourlyWage":
+        error = (value !== "" && value >= 0) ? "" : "Valid wage required";
+        break;
+      default:
+        break;
     }
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return error;
   };
 
   const handleChange = (e) => {
@@ -69,12 +84,13 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
       }
       return updated;
     });
-    setErrors(prev => ({ ...prev, [name]: validateField(name, value) }));
+    validateField(name, value);
   };
 
   const validateForm = () => {
+    const fieldsToValidate = ["firstName", "lastName", "email", "phoneNumber", "designation", "branch", "hourlyWage"];
     const newErrors = {};
-    ["name", "email", "phoneNumber", "designation", "department", "joiningDate", "endDate", "branch", "hourlyWage"].forEach(field => {
+    fieldsToValidate.forEach(field => {
       const error = validateField(field, formData[field]);
       if (error) newErrors[field] = error;
     });
@@ -102,6 +118,13 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
       Object.keys(formData).forEach(key => {
         let original = user[key];
         let current = formData[key];
+
+        if (key === "firstName" || key === "lastName") {
+          // Special handling for split name
+          const fullName = sanitizeText(`${formData.firstName} ${formData.lastName}`);
+          if (fullName !== user.name) changedFields.name = fullName;
+          return;
+        }
 
         if (key === "department") original = user.department?._id || "";
         if (key === "reportsTo") original = user.reportsTo?._id || "";
@@ -166,6 +189,8 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
   };
 
   const handleBackdropClick = (e) => {
+    // If clicking inside the date picker portal, don't close the modal
+    if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
     if (modalRef.current && !modalRef.current.contains(e.target)) {
       onClose();
       setIsEditing(false);
@@ -250,8 +275,15 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
 
             <div>
               <h3 className="font-bold text-slate-400 text-xs uppercase">Personal</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {renderField("Full Name", "name", formData.name)}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {isEditing ? (
+                  <>
+                    {renderField("First Name", "firstName", formData.firstName)}
+                    {renderField("Last Name", "lastName", formData.lastName)}
+                  </>
+                ) : (
+                  renderField("Full Name", "name", user.name)
+                )}
                 {renderField("Email", "email", formData.email, "email")}
                 {renderField("Phone", "phoneNumber", formData.phoneNumber)}
               </div>

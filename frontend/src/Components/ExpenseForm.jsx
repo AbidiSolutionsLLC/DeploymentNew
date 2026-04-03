@@ -3,6 +3,7 @@ import { Upload, X, FileText, Image, Wand2, CheckCircle, Loader } from "lucide-r
 import { toast } from "react-toastify";
 import api from "../axios";
 import ModernSelect from "./ui/ModernSelect";
+import { validateText, validateDescription, sanitizeText } from "../utils/validationUtils";
 
 const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
   // Step state: 'upload' or 'form'
@@ -24,22 +25,23 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.title.trim()) {
-      newErrors.title = "Title is required";
-    } else if (formData.title.length < 3) {
-      newErrors.title = "Title must be at least 3 characters";
-    }
+    // Title validation (min 5, max 100, letters & numbers)
+    const titleError = validateText(formData.title);
+    let customTitleError = titleError;
+    if (!titleError && formData.title.length < 5) customTitleError = "Must be at least 5 characters.";
+    if (!titleError && !/^[a-zA-Z0-9\s'-]+$/.test(formData.title)) customTitleError = "Only letters and numbers allowed.";
+    if (customTitleError) newErrors.title = customTitleError;
     
-    if (!formData.amount) {
-      newErrors.amount = "Amount is required";
-    } else if (isNaN(formData.amount) || parseFloat(formData.amount) <= 0) {
-      newErrors.amount = "Amount must be a positive number";
+    // Description validation
+    const descError = validateDescription(formData.description, { max: 500, required: false });
+    if (descError) newErrors.description = descError;
+
+    if (!formData.amount || isNaN(formData.amount) || parseFloat(formData.amount) <= 0) {
+      newErrors.amount = "Valid amount is required";
     }
     
     if (!receipt) {
       newErrors.receipt = "Receipt is required";
-    } else if (receipt.size > 5 * 1024 * 1024) {
-      newErrors.receipt = "File size must be less than 5MB";
     }
     
     setErrors(newErrors);
@@ -120,8 +122,8 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
     setLoading(true);
 
     const formDataToSend = new FormData();
-    formDataToSend.append("title", formData.title);
-    formDataToSend.append("description", formData.description);
+    formDataToSend.append("title", sanitizeText(formData.title));
+    formDataToSend.append("description", sanitizeText(formData.description));
     formDataToSend.append("amount", formData.amount);
     formDataToSend.append("category", formData.category);
     formDataToSend.append("receipt", receipt);
@@ -165,9 +167,25 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
+    
+    // Inline validation
+    if (name === "title") {
+        const error = validateText(value);
+        let customError = error;
+        if (!error && value.length < 5) customError = "Must be at least 5 characters.";
+        if (!error && !/^[a-zA-Z0-9\s'-]+$/.test(value)) customError = "Only letters and numbers allowed.";
+        setErrors(prev => ({ ...prev, title: customError }));
+    }
+    if (name === "description") {
+        const error = validateDescription(value, { max: 500, required: false });
+        setErrors(prev => ({ ...prev, description: error }));
+    }
+    if (name === "amount") {
+      if (!value || isNaN(value) || parseFloat(value) <= 0) {
+        setErrors(prev => ({ ...prev, amount: "Valid amount required" }));
+      } else {
+        setErrors(prev => ({ ...prev, amount: null }));
+      }
     }
   };
 
@@ -349,12 +367,15 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
               name="title"
               value={formData.title}
               onChange={handleChange}
-              className={`w-full bg-white border ${errors.title ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none transition-all text-slate-700 placeholder:text-slate-300`}
+              className={`w-full bg-white border ${errors.title ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none transition-all text-slate-700 placeholder:text-slate-300`}
               placeholder="e.g., Client Meeting Lunch"
             />
-            {errors.title && (
-              <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase tracking-tight">{errors.title}</p>
-            )}
+            <div className="flex justify-between items-center mt-1">
+              {errors.title ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.title}</p>
+              ) : <div />}
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{formData.title.length}/100</p>
+            </div>
           </div>
 
           {/* Description */}
@@ -367,9 +388,15 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
               value={formData.description}
               onChange={handleChange}
               rows="4"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none transition-all text-slate-700 placeholder:text-slate-300 resize-none"
+              className={`w-full bg-white border ${errors.description ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none transition-all text-slate-700 placeholder:text-slate-300 resize-none`}
               placeholder="Provide additional details about this expense..."
             />
+            <div className="flex justify-between items-center mt-1">
+              {errors.description ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.description}</p>
+              ) : <div />}
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{formData.description.length}/500</p>
+            </div>
           </div>
 
           {/* Amount and Category */}

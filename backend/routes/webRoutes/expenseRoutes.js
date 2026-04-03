@@ -4,6 +4,8 @@ const expenseController = require("../../controllers/expenseController");
 const { isLoggedIn, restrictTo } = require("../../middlewares/authMiddleware");
 const { expensesStorage } = require("../../storageConfig");
 const { commonFileFilter, handleUpload } = require("../../middlewares/uploadMiddleware");
+const validate = require("../../middlewares/validationMiddleware");
+const { expenseSchema, rejectExpenseSchema } = require("../../JoiSchema/ExpenseJoiSchema");
 const multer = require("multer");
 const path = require("path");
 
@@ -40,7 +42,7 @@ router.get("/pending", restrictTo("admin", "manager", "superadmin"), expenseCont
 // Main expense routes
 router
   .route("/")
-  .post(handleUpload(upload), expenseController.createExpense)
+  .post(validate(expenseSchema), handleUpload(upload), expenseController.createExpense)
   .get(expenseController.getAllExpenses);
 
 // Single expense routes
@@ -52,7 +54,7 @@ router
 
 // Approval/Rejection routes
 router.put("/:id/approve", restrictTo("admin", "manager", "superadmin"), expenseController.approveExpense);
-router.put("/:id/reject", restrictTo("admin", "manager", "superadmin"), expenseController.rejectExpense);
+router.put("/:id/reject", restrictTo("admin", "manager", "superadmin"), validate(rejectExpenseSchema), expenseController.rejectExpense);
 
 // Receipt processing route (for Azure Document Intelligence)
 router.post("/process-receipt", handleUpload(uploadForProcessing), expenseController.processReceipt);

@@ -1,8 +1,27 @@
 const Joi = require("joi");
 
 const userSchema = Joi.object({
-  name: Joi.string().min(2).max(50).required(),
-  email: Joi.string().email().required(),
+  name: Joi.string()
+    .trim()
+    .min(3)
+    .max(101)
+    .pattern(/^[a-zA-Z\s'-]+$/)
+    .required()
+    .messages({
+      'string.min': 'Name must be at least 3 characters.',
+      'string.max': 'Name cannot exceed 101 characters.',
+      'string.pattern.base': 'Name can only contain letters, spaces, hyphens, and apostrophes.',
+      'any.required': 'Name is required.'
+    }),
+  email: Joi.string()
+    .email()
+    .max(254)
+    .required()
+    .messages({
+      'string.email': 'Please enter a valid email address.',
+      'string.max': 'Email is too long.',
+      'any.required': 'Email is required.'
+    }),
   // Password removed as it is handled by Microsoft Auth / not required on creation
   password: Joi.string().min(6).optional(), 
   
@@ -20,11 +39,25 @@ const userSchema = Joi.object({
   
   joiningDate: Joi.date().required(),
   timeZone: Joi.string().required(),
-  phoneNumber: Joi.number().required(),
+  phoneNumber: Joi.string()
+    .pattern(/^\+?[0-9]{7,15}$/)
+    .allow(null, "")
+    .messages({
+      'string.pattern.base': 'Please enter a valid phone number (7–15 digits, optional + prefix).'
+    }),
   branch: Joi.string().required(),
   salary: Joi.number().allow(null),
   address: Joi.string().allow(""),
   about: Joi.string().allow(""),
+  maritalStatus: Joi.string().allow(null, ""),
+  DOB: Joi.date().allow(null, ""),
+  emergencyContact: Joi.array().items(
+    Joi.object({
+      name: Joi.string().allow("").optional(),
+      relation: Joi.string().allow("").optional(),
+      phone: Joi.string().allow("").optional()
+    })
+  ).optional(),
   
   experience: Joi.array().items(Joi.object().unknown(true)),
   education: Joi.array().items(Joi.object().unknown(true)),
@@ -35,7 +68,7 @@ const userSchema = Joi.object({
 });
 
 const userUpdateSchema = userSchema.fork(
-  ["email", "password", "role", "empType", "endDate", "joiningDate", "phoneNumber"],
+  ["name", "email", "empType", "designation", "joiningDate", "timeZone", "branch", "salary", "role"],
   (schema) => schema.optional()
 );
 

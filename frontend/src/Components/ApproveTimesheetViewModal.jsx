@@ -5,6 +5,7 @@ import timesheetApi from "../api/timesheetApi";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
 import { Paperclip } from "lucide-react";
+import { validateDescription } from "../utils/validationUtils";
 
 const ApproveTimesheetViewModal = ({ 
   timesheet, 
@@ -17,6 +18,7 @@ const ApproveTimesheetViewModal = ({
 }) => {
   const [approvedHours, setApprovedHours] = useState(timesheet?.submittedHours || 0);
   const [newComment, setNewComment] = useState("");
+  const [errors, setErrors] = useState({});
   const [sendingComment, setSendingComment] = useState(false);
   const [comments, setComments] = useState(timesheet?.comments || []);
   
@@ -35,7 +37,13 @@ const ApproveTimesheetViewModal = ({
   };
   
   const handleAddComment = async () => {
-    if (!newComment.trim()) return;
+    const error = validateDescription(newComment, { min: 5, max: 200, required: true });
+    if (error) {
+      setErrors(prev => ({ ...prev, comment: error }));
+      return;
+    }
+    setErrors(prev => ({ ...prev, comment: null }));
+
     try {
       setSendingComment(true);
       const updatedTimesheet = await timesheetApi.addTimesheetComment(timesheet._id, newComment);
@@ -215,10 +223,13 @@ const ApproveTimesheetViewModal = ({
             </label>
             
             {/* Comment Input */}
-            <div className="bg-slate-50 p-2 rounded-2xl border border-slate-200 flex items-center gap-2 focus-within:ring-2 focus-within:ring-blue-100 transition-all mb-6">
+            <div className={`bg-slate-50 p-2 rounded-2xl border ${errors.comment ? 'border-red-400' : 'border-slate-200'} flex items-center gap-2 focus-within:ring-2 focus-within:ring-blue-100 transition-all mb-1`}>
               <textarea 
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
+                onChange={(e) => {
+                  setNewComment(e.target.value);
+                  if (errors.comment) setErrors(prev => ({ ...prev, comment: null }));
+                }}
                 placeholder="Type your reply here..."
                 className="flex-1 bg-transparent border-none focus:ring-0 text-sm p-3 resize-none h-12 font-medium"
               ></textarea>
@@ -229,6 +240,12 @@ const ApproveTimesheetViewModal = ({
               >
                 {sendingComment ? <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"/> : <FaPaperPlane className="w-4 h-4" />}
               </button>
+            </div>
+            <div className="flex justify-between items-center mb-6 px-2">
+              {errors.comment ? (
+                <p className="text-[10px] text-red-500 font-bold">{errors.comment}</p>
+              ) : <div />}
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{newComment.length}/200</p>
             </div>
 
             {/* Comments List */}

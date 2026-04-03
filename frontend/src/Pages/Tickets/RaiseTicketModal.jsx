@@ -2,9 +2,11 @@ import React, { useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import api from "../../axios";
 import { toast } from "react-toastify";
+import { validateText, validateDescription, sanitizeText, getApiError } from "../../utils/validationUtils";
 
 const RaiseTicketModal = ({ onClose, onSubmit }) => {
   const [form, setForm] = useState({ subject: "", description: "", attachment: null });
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const modalRef = useRef(null);
   const user = useSelector((state) => state.auth.user);
@@ -15,28 +17,53 @@ const RaiseTicketModal = ({ onClose, onSubmit }) => {
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    setForm((prev) => ({ ...prev, [name]: files ? files[0] : value }));
+    const val = files ? files[0] : value;
+    setForm((prev) => ({ ...prev, [name]: val }));
+
+    // Inline validation
+    if (name === "subject") {
+      const error = validateText(val);
+      let customError = error;
+      if (!error && val.length < 5) customError = "Subject must be at least 5 characters.";
+      setErrors(prev => ({ ...prev, subject: customError }));
+    }
+    if (name === "description") {
+      const error = validateDescription(val, { min: 10, max: 1000, required: true });
+      setErrors(prev => ({ ...prev, description: error }));
+    }
   };
 
 const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Final validation
+    const subjectError = validateText(form.subject);
+    let customSubjectError = subjectError;
+    if (!subjectError && form.subject.length < 5) customSubjectError = "Subject must be at least 5 characters.";
+    
+    const descError = validateDescription(form.description, { min: 10, max: 1000, required: true });
+    
+    if (customSubjectError || descError) {
+      setErrors({ subject: customSubjectError, description: descError });
+      toast.error("PLEASE FIX VALIDATION ERRORS");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const ticketData = new FormData();
       ticketData.append("emailAddress", user?.user?.email);
-      ticketData.append("subject", form.subject);
-      ticketData.append("description", form.description);
+      ticketData.append("subject", sanitizeText(form.subject));
+      ticketData.append("description", sanitizeText(form.description));
       if (form.attachment) ticketData.append("attachment", form.attachment);
 
-      // --- FIX IS HERE: Removed headers object ---
       const response = await api.post("/tickets", ticketData); 
-      // ------------------------------------------
 
       onSubmit(response.data);
       onClose();
       toast.success("TICKET SUBMITTED SUCCESSFULLY");
     } catch (error) {
-      toast.error(error.response?.data?.message || "FAILED TO SUBMIT");
+      toast.error(getApiError(error, "FAILED TO SUBMIT"));
     } finally {
       setSubmitting(false);
     }
@@ -78,11 +105,17 @@ const handleSubmit = async (e) => {
             <input
               name="subject"
               placeholder="brief issue summary"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300"
+              className={`w-full bg-white border ${errors.subject ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300`}
               value={form.subject}
               onChange={handleChange}
               required
             />
+            <div className="flex justify-between items-center mt-1">
+              {errors.subject ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.subject}</p>
+              ) : <div />}
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.subject.length}/100</p>
+            </div>
           </div>
 
           {/* Description */}
@@ -92,11 +125,17 @@ const handleSubmit = async (e) => {
               name="description"
               placeholder="describe issue details"
               rows={4}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300 resize-none"
+              className={`w-full bg-white border ${errors.description ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300 resize-none`}
               value={form.description}
               onChange={handleChange}
               required
             />
+            <div className="flex justify-between items-center mt-1">
+              {errors.description ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.description}</p>
+              ) : <div />}
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.description.length}/1000</p>
+            </div>
           </div>
 
           {/* File Upload */}

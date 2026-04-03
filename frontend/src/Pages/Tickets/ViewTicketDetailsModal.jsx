@@ -6,6 +6,7 @@ import { FaPaperPlane } from "react-icons/fa";
 import { XMarkIcon, PaperClipIcon } from "@heroicons/react/24/solid";
 import { Paperclip } from "lucide-react";
 import { format } from "date-fns";
+import { validateDescription } from "../../utils/validationUtils";
 
 const DetailItem = ({ label, value }) => (
   <div className="space-y-1">
@@ -17,6 +18,7 @@ const DetailItem = ({ label, value }) => (
 const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
   const [ticket, setTicket] = useState(initialTicket);
   const [commentText, setCommentText] = useState("");
+  const [errors, setErrors] = useState({});
   const [sending, setSending] = useState(false);
   const modalRef = useRef(null);
 
@@ -30,7 +32,13 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
 
   // --- SEND RESPONSE FUNCTION ---
   const handleSendResponse = async () => {
-    if (!commentText.trim()) return;
+    const error = validateDescription(commentText, { min: 5, max: 500, required: true });
+    if (error) {
+      setErrors(prev => ({ ...prev, response: error }));
+      return;
+    }
+    setErrors(prev => ({ ...prev, response: null }));
+
     setSending(true);
     try {
       // Get current user info for optimistic update (optional) or just wait for server
@@ -148,10 +156,19 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
             <div className="relative">
               <textarea
                 value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
+                onChange={(e) => {
+                  setCommentText(e.target.value);
+                  if (errors.response) setErrors(prev => ({ ...prev, response: null }));
+                }}
                 placeholder="Type your reply..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none h-14"
+                className={`w-full bg-slate-50 border ${errors.response ? 'border-red-400' : 'border-slate-200'} rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none h-14 transition-all`}
               />
+              <div className="flex justify-between items-center mt-1 px-1">
+                {errors.response ? (
+                  <p className="text-[10px] text-red-500 font-bold">{errors.response}</p>
+                ) : <div />}
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest">{commentText.length}/500</p>
+              </div>
               <button
                 onClick={handleSendResponse}
                 disabled={sending || !commentText.trim()}

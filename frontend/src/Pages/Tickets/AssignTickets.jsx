@@ -6,6 +6,7 @@ import api from "../../axios";
 import Toast from "../../Components/Toast";
 import ModernSelect from "../../Components/ui/ModernSelect"; 
 import { downloadFile } from "../../utils/downloadFile";
+import { validateDescription, getApiError } from "../../utils/validationUtils";
 import {
   ArrowLeft, Trash2, ChevronDown, Flag, User,
   Clock, Check, UserPlus, Paperclip, Send
@@ -19,6 +20,7 @@ const AssignTicket = () => {
 
   const [ticket, setTicket] = useState(null);
   const [newResponse, setNewResponse] = useState("");
+  const [responseError, setResponseError] = useState(null);
   const [assignDropdownOpen, setAssignDropdownOpen] = useState(false);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState(null);
   
@@ -97,7 +99,12 @@ const AssignTicket = () => {
   };
 
   const handleSubmitResponse = async () => {
-    if (newResponse.trim() === "") return;
+    const err = validateDescription(newResponse, { min: 10, max: 500, required: true });
+    if (err) {
+      setResponseError(err);
+      return;
+    }
+    setResponseError(null);
     try {
       const res = await api.post(`/tickets/${ticketId}/response`, {
         content: newResponse,
@@ -107,7 +114,7 @@ const AssignTicket = () => {
       setNewResponse("");
       showToast("Response submitted");
     } catch (error) {
-      showToast(error.response?.data?.message || "Failed to submit response", "error");
+      showToast(getApiError(error, "Failed to submit response"), "error");
     }
   };
 
@@ -445,13 +452,20 @@ const AssignTicket = () => {
             <div className="relative">
                 <textarea 
                   value={newResponse} 
-                  onChange={e => setNewResponse(e.target.value)} 
-                  className="w-full border border-slate-200 rounded-xl p-3 pr-12 text-sm focus:ring-2 focus:ring-blue-100 min-h-[60px] resize-none" 
-                  placeholder="Type a reply..." 
+                  onChange={e => {
+                    setNewResponse(e.target.value);
+                    setResponseError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
+                  }}
+                  onBlur={() => setResponseError(validateDescription(newResponse, { min: 10, max: 500, required: true }))}
+                  className={`w-full border ${responseError ? "border-red-400" : "border-slate-200"} rounded-xl p-3 pr-12 text-sm focus:ring-2 focus:ring-blue-100 min-h-[60px] resize-none`} 
+                  placeholder="Type a reply (min 10 characters, at least 3 words)..." 
                 />
+                {responseError && (
+                  <p className="text-xs text-red-500 mt-1">{responseError}</p>
+                )}
                 <button 
                   onClick={handleSubmitResponse} 
-                  disabled={!newResponse.trim()} 
+                  disabled={!newResponse.trim() || !!responseError} 
                   className="absolute right-2 bottom-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all"
                 >
                   <Send size={16}/>

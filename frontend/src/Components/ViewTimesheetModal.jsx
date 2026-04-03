@@ -5,16 +5,24 @@ import { downloadFile } from "../utils/downloadFile";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
 import api from "../axios";
+import { validateDescription } from "../utils/validationUtils";
 
 const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdded }) => {
   const [timesheet, setTimesheet] = useState(initialTimesheet);
   const [commentText, setCommentText] = useState("");
+  const [errors, setErrors] = useState({});
   const [sending, setSending] = useState(false);
 
   if (!timesheet) return null;
 
   const handleSendComment = async () => {
-    if (!commentText.trim()) return;
+    const error = validateDescription(commentText, { min: 5, max: 200, required: true });
+    if (error) {
+      setErrors(prev => ({ ...prev, comment: error }));
+      return;
+    }
+    setErrors(prev => ({ ...prev, comment: null }));
+
     setSending(true);
     try {
       const { data: updatedTimesheet } = await api.post(`/timesheets/${timesheet._id}/comment`, {
@@ -23,6 +31,7 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
       
       setTimesheet(updatedTimesheet);
       setCommentText("");
+      setErrors({});
       toast.success("Comment sent!");
       if (onCommentAdded) onCommentAdded(updatedTimesheet);
     } catch (error) {
@@ -199,10 +208,19 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
             <div className="relative">
               <textarea
                 value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
+                onChange={(e) => {
+                  setCommentText(e.target.value);
+                  if (errors.comment) setErrors(prev => ({ ...prev, comment: null }));
+                }}
                 placeholder="Type your reply..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none h-14"
+                className={`w-full bg-slate-50 border ${errors.comment ? 'border-red-400' : 'border-slate-200'} rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none h-14 transition-all`}
               />
+              <div className="flex justify-between items-center mt-1 px-1">
+                {errors.comment ? (
+                  <p className="text-[10px] text-red-500 font-bold">{errors.comment}</p>
+                ) : <div />}
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest">{commentText.length}/200</p>
+              </div>
               <button
                 onClick={handleSendComment}
                 disabled={sending || !commentText.trim()}

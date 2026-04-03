@@ -2,20 +2,41 @@ import React, { useState, useRef } from "react";
 import api from "../axios";
 // FIX: Correct import path for components at the root of /Components/
 import ModernSelect from "./ui/ModernSelect"; 
+import { validateText, validateDescription, sanitizeText } from "../utils/validationUtils";
 
 const CreateDepartmentModal = ({ isOpen, onClose, onDepartmentCreated, potentialManagers = [] }) => {
   const [formData, setFormData] = useState({ name: "", description: "", manager: "" });
+  const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const modalRef = useRef(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate
+    const nameError = validateText(formData.name);
+    let customNameError = nameError;
+    if (!nameError && formData.name.length < 2) customNameError = "Must be at least 2 characters.";
+    if (!nameError && !/^[a-zA-Z\s'-]+$/.test(formData.name)) customNameError = "Only letters allowed.";
+    
+    const descError = validateDescription(formData.description, { max: 500, required: false });
+    
+    if (customNameError || descError) {
+      setErrors({ name: customNameError, description: descError });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await api.post("/departments", formData);
+      await api.post("/departments", {
+        ...formData,
+        name: sanitizeText(formData.name),
+        description: sanitizeText(formData.description)
+      });
       onDepartmentCreated();
       onClose();
       setFormData({ name: "", description: "", manager: "" });
+      setErrors({});
     } catch (error) {
       console.error("Failed to create department:", error);
     } finally {
@@ -26,6 +47,19 @@ const CreateDepartmentModal = ({ isOpen, onClose, onDepartmentCreated, potential
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Inline validation
+    if (name === "name") {
+        const error = validateText(value);
+        let customError = error;
+        if (!error && value.length < 2) customError = "Must be at least 2 characters.";
+        if (!error && !/^[a-zA-Z\s'-]+$/.test(value)) customError = "Only letters allowed.";
+        setErrors(prev => ({ ...prev, name: customError }));
+    }
+    if (name === "description") {
+        const error = validateDescription(value, { max: 500, required: false });
+        setErrors(prev => ({ ...prev, description: error }));
+    }
   };
 
   const handleBackdropClick = (e) => {
@@ -55,10 +89,11 @@ const CreateDepartmentModal = ({ isOpen, onClose, onDepartmentCreated, potential
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100"
+              className={`w-full bg-white border ${errors.name ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all`}
               placeholder="e.g. Engineering"
               required
             />
+            {errors.name && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.name}</p>}
           </div>
 
           <ModernSelect
@@ -81,10 +116,16 @@ const CreateDepartmentModal = ({ isOpen, onClose, onDepartmentCreated, potential
               name="description"
               value={formData.description}
               onChange={handleChange}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 resize-none"
+              className={`w-full bg-white border ${errors.description ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 resize-none transition-all`}
               placeholder="Brief description"
               rows="3"
             />
+            <div className="flex justify-between items-center mt-1">
+              {errors.description ? (
+                <p className="text-[10px] text-red-500 font-bold">{errors.description}</p>
+              ) : <div />}
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{formData.description.length}/500</p>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">

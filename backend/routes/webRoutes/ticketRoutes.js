@@ -9,6 +9,8 @@ const upload = multer({
   fileFilter: commonFileFilter
 });
 const ticketController = require("../../controllers/ticketController");
+const validate = require("../../middlewares/validationMiddleware");
+const { createTicketSchema, ticketResponseSchema } = require("../../JoiSchema/TicketJoiSchema");
 const { isLoggedIn } = require("../../middlewares/authMiddleware");
 
 // Base: /api/web/tickets
@@ -17,7 +19,7 @@ const { isLoggedIn } = require("../../middlewares/authMiddleware");
 router.get("/all", isLoggedIn, ticketController.getAllTickets); 
 
 router.route("/")
-  .post(isLoggedIn, handleUpload(upload.single("attachment")), ticketController.createTicket)
+  .post(isLoggedIn, handleUpload(upload.single("attachment")), validate(createTicketSchema), ticketController.createTicket)
   .get(isLoggedIn, ticketController.getAllTickets);
 
 // Specific Ticket Operations
@@ -32,7 +34,7 @@ router.patch("/:id/priority", isLoggedIn, ticketController.updateTicketPriority)
 
 // Assign & Respond
 router.patch("/:id/assign", isLoggedIn, ticketController.updateTicketAssignee);
-router.post("/:id/response", isLoggedIn, ticketController.addTicketResponse);
+router.post("/:id/response", isLoggedIn, validate(ticketResponseSchema), ticketController.addTicketResponse);
 
 // --- DOWNLOAD ROUTE ---
 router.get("/:id/attachment/:attachmentId", ticketController.downloadTicketAttachment);

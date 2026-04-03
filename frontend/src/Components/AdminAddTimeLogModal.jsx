@@ -1,19 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
 import api from "../axios";
 import { toast } from "react-toastify";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { X } from "lucide-react";
 import ModernSelect from "./ui/ModernSelect";
+import ModernDatePicker from "./ui/ModernDatePicker";
+import {
+  validateDescription,
+  validateText,
+  validateNumeric,
+  sanitizeText,
+  getApiError,
+} from "../utils/validationUtils";
 
 export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUsers }) {
   const [formData, setFormData] = useState({
     employeeId: "",
     job: "",
-    date: new Date(),
+    date: new Date().toISOString().split("T")[0],
     description: "",
-    hours: ""
+    hours: "",
   });
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const modalRef = useRef(null);
 
@@ -22,37 +29,88 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
       setFormData({
         employeeId: "",
         job: "",
-        date: new Date(),
+        date: new Date().toISOString().split("T")[0],
         description: "",
-        hours: ""
+        hours: "",
       });
+      setErrors({});
     }
   }, [open]);
 
   const handleBackdropClick = (e) => {
+    if (e.target.closest("#portal-root") || e.target.closest(".react-datepicker")) return;
     if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
   };
 
-  const isValid = formData.employeeId && formData.job && formData.date && formData.description && formData.hours > 0;
+  const validateField = (name, value) => {
+    switch (name) {
+      case "employeeId":
+        return value ? null : "Please select an employee.";
+      case "job":
+        return validateText(value);
+      case "date":
+        return value ? null : "Please select a valid date.";
+      case "hours": {
+        if (!value && value !== 0) return "Hours worked is required.";
+        const num = parseFloat(value);
+        if (isNaN(num) || num < 0.5) return "Hours must be at least 0.5.";
+        if (num > 24) return "Hours cannot exceed 24.";
+        return null;
+      }
+      case "description":
+        return validateDescription(value, { min: 10, max: 300, required: true });
+      default:
+        return null;
+    }
+  };
+
+  const validateAll = () => {
+    const newErrors = {
+      employeeId: validateField("employeeId", formData.employeeId),
+      job: validateField("job", formData.job),
+      date: validateField("date", formData.date),
+      hours: validateField("hours", formData.hours),
+      description: validateField("description", formData.description),
+    };
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(Boolean);
+  };
+
+  const isValid = !Object.values({
+    employeeId: validateField("employeeId", formData.employeeId),
+    job: validateField("job", formData.job),
+    date: validateField("date", formData.date),
+    hours: validateField("hours", formData.hours),
+    description: validateField("description", formData.description),
+  }).some(Boolean);
+
+  const handleChange = (name, value) => {
+    const updatedForm = { ...formData, [name]: value };
+    setFormData(updatedForm);
+    setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isValid) return;
+    if (!validateAll()) {
+      toast.error("Please fix validation errors before submitting.");
+      return;
+    }
 
     setLoading(true);
     try {
       await api.post("/time-logs", {
         employeeId: formData.employeeId,
-        job: formData.job,
-        date: formData.date.toISOString().split('T')[0],
-        description: formData.description,
-        hours: parseFloat(formData.hours)
+        job: sanitizeText(formData.job),
+        date: formData.date,
+        description: sanitizeText(formData.description),
+        hours: parseFloat(formData.hours),
       });
       toast.success("Time log created successfully");
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to create time log");
+      toast.error(getApiError(error, "Failed to create time log"));
     } finally {
       setLoading(false);
     }
@@ -78,57 +136,62 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
 
         <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
           <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
-            ADD TASK TIME LOG
+            ADD TIME LOG (ADMIN)
           </h2>
         </div>
 
         <form className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar" onSubmit={handleSubmit}>
+          {/* Employee Select */}
           <div className="relative z-50">
             <ModernSelect
-              label="Employee"
+              label="Select Employee"
               name="employeeId"
               value={formData.employeeId}
-              onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+              onChange={(e) => handleChange("employeeId", e.target.value)}
               required
               placeholder="Select Employee"
               options={[
                 { value: "", label: "Select Employee" },
-                ...allUsers.map((u) => ({ value: u._id, label: `${u.name} (${u.email})` }))
+                ...allUsers.map((u) => ({ value: u._id, label: `${u.name} (${u.email})` })),
               ]}
               className="w-full"
             />
+            {errors.employeeId && (
+              <p className="text-xs text-red-500 mt-1">{errors.employeeId}</p>
+            )}
           </div>
 
-          <div>
+          {/* Job/Task Name */}
+          <div className="relative z-40">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              JOB / TASK TITLE*
+              TASK/JOB NAME*
             </label>
             <input
               type="text"
+              name="job"
               value={formData.job}
-              onChange={(e) => setFormData({ ...formData, job: e.target.value })}
+              onChange={(e) => handleChange("job", e.target.value)}
+              onBlur={() => setErrors((prev) => ({ ...prev, job: validateField("job", formData.job) }))}
               placeholder="e.g. Website Overhaul"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
-              required
+              className={`w-full bg-white border ${errors.job ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium`}
             />
+            {errors.job && <p className="text-xs text-red-500 mt-1">{errors.job}</p>}
           </div>
 
-          <div className="relative z-40">
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              DATE*
-            </label>
-            <DatePicker
-              selected={formData.date}
-              onChange={(date) => setFormData({ ...formData, date: date })}
-              dateFormat="yyyy-MM-dd"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
-              popperProps={{ strategy: "fixed" }}
-              portalId="portal-root"
-              required
-            />
-          </div>
-
+          {/* Date */}
           <div className="relative z-30">
+            <ModernDatePicker
+              label="DATE"
+              name="date"
+              value={formData.date}
+              onChange={(e) => handleChange("date", e.target.value)}
+              required
+            />
+            {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
+          </div>
+
+          {/* Hours */}
+          <div className="relative z-20">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               HOURS WORKED*
             </label>
@@ -136,25 +199,38 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
               type="number"
               step="0.5"
               min="0.5"
+              max="24"
               value={formData.hours}
-              onChange={(e) => setFormData({ ...formData, hours: e.target.value })}
+              onChange={(e) => handleChange("hours", e.target.value)}
+              onBlur={() => setErrors((prev) => ({ ...prev, hours: validateField("hours", formData.hours) }))}
               placeholder="e.g. 4.5"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
-              required
+              className={`w-full bg-white border ${errors.hours ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium`}
             />
+            {errors.hours && <p className="text-xs text-red-500 mt-1">{errors.hours}</p>}
           </div>
-          
-          <div className="relative z-20">
+
+          {/* Description */}
+          <div className="relative z-10">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              DESCRIPTION*
+              DESCRIPTION* <span className="normal-case font-normal text-slate-300">(min 10, max 300 chars)</span>
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="What did this person work on?"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 min-h-[80px]"
-              required
+              onChange={(e) => handleChange("description", e.target.value)}
+              onBlur={() =>
+                setErrors((prev) => ({ ...prev, description: validateField("description", formData.description) }))
+              }
+              placeholder="Describe what this person worked on in detail..."
+              className={`w-full bg-white border ${errors.description ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 min-h-[80px]`}
             />
+            <div className="flex justify-between items-center mt-1">
+              {errors.description ? (
+                <p className="text-xs text-red-500">{errors.description}</p>
+              ) : (
+                <span />
+              )}
+              <p className="text-xs text-slate-400 text-right">{formData.description.length}/300</p>
+            </div>
           </div>
         </form>
 
