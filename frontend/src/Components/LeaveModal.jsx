@@ -194,6 +194,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
                 required
                 disabled={isSubmitting}
                 popperProps={{ strategy: "fixed" }}
+                portalId="portal-root"
               />
             </div>
 
@@ -211,6 +212,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
                 required
                 disabled={isSubmitting}
                 popperProps={{ strategy: "fixed" }}
+                portalId="portal-root"
               />
             </div>
           </div>

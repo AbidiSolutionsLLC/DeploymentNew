@@ -100,7 +100,7 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
             />
           </div>
 
-          <div>
+          <div className="relative z-40">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               CHECK IN TIME*
             </label>
@@ -111,11 +111,12 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
               dateFormat="Pp"
               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
               popperProps={{ strategy: "fixed" }}
+              portalId="portal-root"
               required
             />
           </div>
 
-          <div>
+          <div className="relative z-30">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               CHECK OUT TIME
             </label>
@@ -126,10 +127,11 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
               dateFormat="Pp"
               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
               popperProps={{ strategy: "fixed" }}
+              portalId="portal-root"
             />
           </div>
 
-          <div className="relative z-40">
+          <div className="relative z-20">
             <ModernSelect
               label="Status"
               name="status"
@@ -145,7 +147,7 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
             />
           </div>
           
-          <div>
+          <div className="relative z-10">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               NOTES
             </label>

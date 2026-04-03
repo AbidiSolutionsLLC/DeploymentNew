@@ -42,21 +42,26 @@ export const getNotificationIcon = (type) => {
  * Map a notification's relatedEntity to a navigation route.
  * Returns null if no route is applicable.
  */
-export const getRouteForNotification = (notif) => {
-  if (!notif?.relatedEntity?.entityType || !notif?.relatedEntity?.entityId) return null;
-  const { entityType, entityId } = notif.relatedEntity;
+export const getRouteForNotification = (notif, userRole = '') => {
+  if (!notif?.relatedEntity?.entityType) return null;
+  const { entityType } = notif.relatedEntity;
+  
+  // Normalize role
+  const role = userRole?.toLowerCase().replace(/\s+/g, '') || '';
+  const isAdminPortal = ['admin', 'superadmin', 'manager', 'hr'].includes(role);
 
   const routes = {
-    leave:       `/leave/summary`,
+    leave:       isAdminPortal ? `/admin/leaveTrackerAdmin` : `/leave/summary`,
     task:        `/project/projectDashboard`,
     timetracker: `/people/timetracker`,
-    ticket:      `/people/raise`,
+    ticket:      isAdminPortal ? `/admin/assign-ticket` : `/people/raise`,
     project:     `/project/projects`,
     user:        `/admin/userManagement`,
     department:  `/people/org-chart`,
     company:     `/admin/adminDashboard`,
     expense:     `/admin/ExpenseManagement`,
-    timesheet:   `/admin/approve`,
+    timesheet:   isAdminPortal ? `/admin/approve` : `/people/timetracker`,
+    timesheets:  isAdminPortal ? `/admin/approve` : `/people/timetracker`,
   };
 
   return routes[entityType] || null;

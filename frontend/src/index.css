@@ -547,3 +547,13 @@ input[type="text"]:focus, select:focus, textarea:focus {
   border-color: #3b82f6; /* blue-500 */
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
+
+/* --- PORTAL STYLES --- */
+#portal-root {
+  position: relative;
+  z-index: 10000;
+}
+
+.react-datepicker-popper {
+  z-index: 10001 !important;
+}

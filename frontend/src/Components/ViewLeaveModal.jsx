@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { 
-  FaCalendarAlt, 
-  FaUser, 
-  FaEnvelope, 
-  FaClock, 
+import {
+  FaCalendarAlt,
+  FaUser,
+  FaEnvelope,
+  FaClock,
   FaFileAlt,
   FaPaperclip,
   FaTrash,
@@ -12,9 +12,9 @@ import {
   FaTimes,
   FaComment
 } from "react-icons/fa";
-import { 
-  Send, 
-  ChevronDown, 
+import {
+  Send,
+  ChevronDown,
   User,
   Clock,
   Paperclip,
@@ -27,15 +27,15 @@ import Toast from "../Components/Toast";
 import { toast } from "react-toastify"; // Import toast
 import { useSelector } from "react-redux";
 
-const ViewLeaveModal = ({ 
-  isOpen, 
-  setIsOpen, 
-  leaveData, 
-  onStatusChange, 
+const ViewLeaveModal = ({
+  isOpen,
+  setIsOpen,
+  leaveData,
+  onStatusChange,
   fetchLeaveRequests,
 }) => {
-    const { user } = useSelector((state) => state.auth);
-  
+  const { user } = useSelector((state) => state.auth);
+
   const [selectedStatus, setSelectedStatus] = useState(leaveData?.status || "Pending");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [responses, setResponses] = useState([]);
@@ -45,7 +45,7 @@ const ViewLeaveModal = ({
   const [editingResponseId, setEditingResponseId] = useState(null);
   const [editContent, setEditContent] = useState("");
   const [attachment, setAttachment] = useState(null);
-console.log(user)
+  console.log(user)
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -84,7 +84,7 @@ console.log(user)
     try {
       setLoadingResponses(true);
       const response = await api.get(`/leaves/${leaveData.id}/responses`);
-      console.log(response,"wow");
+      console.log(response, "wow");
       setResponses(response.data.data || []);
     } catch (error) {
       console.error("Failed to fetch responses:", error);
@@ -112,7 +112,7 @@ console.log(user)
 
   const handleStatusChange = async () => {
     if (selectedStatus === leaveData.status || selectedStatus === "Pending") return;
-    
+
     setIsSubmitting(true);
     try {
       await onStatusChange(leaveData.id, selectedStatus);
@@ -134,13 +134,13 @@ console.log(user)
       const response = await api.post(`/leaves/${leaveData.id}/responses`, {
         content: newResponse.trim()
       });
-      console.log(response.data.data,"response")
-      console.log(responses,"local")
+      console.log(response.data.data, "response")
+      console.log(responses, "local")
 
       setResponses(prev => [...prev, response.data.data]);
       setNewResponse("");
       setAttachment(null);
-      
+
       showToast("Response submitted successfully");
     } catch (error) {
       console.error("Failed to submit response:", error);
@@ -155,15 +155,15 @@ console.log(user)
       const response = await api.patch(`/leaves/${leaveData.id}/responses/${responseId}`, {
         content: editContent.trim()
       });
-      
-      setResponses(prev => 
-        prev.map(res => 
-          res._id === responseId 
+
+      setResponses(prev =>
+        prev.map(res =>
+          res._id === responseId
             ? { ...res, ...response.data.data, isEdited: true, editedAt: new Date() }
             : res
         )
       );
-      
+
       setEditingResponseId(null);
       setEditContent("");
       showToast("Response updated successfully");
@@ -206,7 +206,7 @@ console.log(user)
   };
 
   const getStatusColor = (status) => {
-    switch(status) {
+    switch (status) {
       case "Approved": return "bg-green-100 text-green-800";
       case "Rejected": return "bg-red-100 text-red-800";
       default: return "bg-yellow-100 text-yellow-800";
@@ -235,17 +235,17 @@ console.log(user)
     if (response.author?._id === user.user?._id) {
       return true;
     }
-    
+
     // Check if response has author field that directly matches currentUser.id (string comparison)
     if (response.author === user?.user?._id) {
       return true;
     }
-    
+
     // Additional check for email if needed
     if (response.author?.email === user?.user?.email) {
       return true;
     }
-    
+
     return false;
   };
 
@@ -261,13 +261,13 @@ console.log(user)
         />
       )}
 
-      <div 
+      <div
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex justify-center items-center p-4 sm:p-6"
         onClick={handleBackdropClick}
       >
         <div className="w-full max-w-6xl bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden">
           {/* CLOSE BUTTON */}
-          <button 
+          <button
             onClick={() => !isSubmitting && (setIsOpen(false), resetState())}
             disabled={isSubmitting}
             className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10 disabled:opacity-50"
@@ -306,7 +306,7 @@ console.log(user)
                         {leaveData.employee?.department || "Department not specified"}
                       </p>
                     </div>
-                    
+
                     <div className="bg-slate-50 p-4 rounded-xl">
                       <div className="flex items-center gap-3 mb-2">
                         <FaEnvelope className="text-slate-400" />
@@ -327,7 +327,7 @@ console.log(user)
                         {new Date(leaveData.startDate).toLocaleDateString()}
                       </p>
                     </div>
-                    
+
                     <div className="bg-slate-50 p-4 rounded-xl">
                       <div className="flex items-center gap-3 mb-2">
                         <FaCalendarAlt className="text-slate-400" />
@@ -347,11 +347,11 @@ console.log(user)
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Duration</span>
                       </div>
                       <p className="text-sm font-medium text-slate-800">
-                        {leaveData.duration || 
+                        {leaveData.duration ||
                           `${Math.ceil((new Date(leaveData.endDate) - new Date(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1} days`}
                       </p>
                     </div>
-                    
+
                     <div className="bg-slate-50 p-4 rounded-xl">
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Leave Type</span>
@@ -391,7 +391,7 @@ console.log(user)
                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
                       Update Status
                     </h3>
-                    
+
                     <div className="space-y-4">
                       <ModernSelect
                         label="Select New Status"
@@ -422,13 +422,12 @@ console.log(user)
                           type="button"
                           onClick={handleStatusChange}
                           disabled={selectedStatus === "Pending" || selectedStatus === leaveData.status || isSubmitting}
-                          className={`flex-1 py-3 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
-                            selectedStatus === "Pending" || selectedStatus === leaveData.status || isSubmitting
+                          className={`flex-1 py-3 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${selectedStatus === "Pending" || selectedStatus === leaveData.status || isSubmitting
                               ? "bg-slate-300 cursor-not-allowed"
                               : selectedStatus === "Approved"
-                              ? "bg-green-600 hover:bg-green-700"
-                              : "bg-red-600 hover:bg-red-700"
-                          }`}
+                                ? "bg-green-600 hover:bg-green-700"
+                                : "bg-red-600 hover:bg-red-700"
+                            }`}
                         >
                           {isSubmitting ? (
                             <div className="flex items-center justify-center gap-2">
@@ -457,107 +456,107 @@ console.log(user)
                 {/* Responses List */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 space-y-3">
                   {
-                  // loadingResponses ? (
-                  //   <div className="flex items-center justify-center h-32">
-                  //     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
-                  //   </div>
-                  // ) : 
-                  responses.length > 0 ? (
-                    responses.map((response) => (
-                      <div key={response._id} className="bg-slate-50/80 rounded-xl p-3 border border-slate-100">
-                        <div className="flex items-start gap-3">
-                          {/* Avatar */}
-                          <div className="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-800 rounded-full text-sm font-bold shrink-0">
-                            {getAvatarContent(response)}
-                          </div>
-                          
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-start mb-1">
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-sm font-bold text-slate-800">
-                                  {response.author?.name || response.role || "Unknown User"}
-                                </h4>
-                                <span className="text-xs text-slate-400 uppercase">
-                                  {response.author?.role || response.role}
-                                </span>
-                                {response.isEdited && (
-                                  <span className="text-xs text-slate-400 italic">(edited)</span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-slate-500">
-                                  {formatDate(response.time || response.createdAt)}
-                                </span>
-                                {/* Action buttons - Only show for user's own responses */}
-                                {!response.isSystemNote && isUserResponse(response) && (
-                                  <div className="flex gap-1">
-                                    <button
-                                      onClick={() => {
-                                        setEditingResponseId(response._id);
-                                        setEditContent(response.content);
-                                      }}
-                                      className="p-1 text-slate-400 hover:text-blue-600 transition"
-                                      title="Edit"
-                                    >
-                                      <Edit2 size={12} />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteResponse(response._id)}
-                                      className="p-1 text-slate-400 hover:text-red-600 transition"
-                                      title="Delete"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
+                    // loadingResponses ? (
+                    //   <div className="flex items-center justify-center h-32">
+                    //     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
+                    //   </div>
+                    // ) : 
+                    responses.length > 0 ? (
+                      responses.map((response) => (
+                        <div key={response._id} className="bg-slate-50/80 rounded-xl p-3 border border-slate-100">
+                          <div className="flex items-start gap-3">
+                            {/* Avatar */}
+                            <div className="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-800 rounded-full text-sm font-bold shrink-0">
+                              {getAvatarContent(response)}
                             </div>
-                            
-                            {/* Edit Mode */}
-                            {editingResponseId === response._id ? (
-                              <div className="space-y-2">
-                                <textarea
-                                  value={editContent}
-                                  onChange={(e) => setEditContent(e.target.value)}
-                                  className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-100 min-h-[60px] resize-none"
-                                  rows="3"
-                                />
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleUpdateResponse(response._id)}
-                                    className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition"
-                                  >
-                                    Save
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setEditingResponseId(null);
-                                      setEditContent("");
-                                    }}
-                                    className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-300 transition"
-                                  >
-                                    Cancel
-                                  </button>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start mb-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-bold text-slate-800">
+                                    {response.author?.name || response.role || "Unknown User"}
+                                  </h4>
+                                  <span className="text-xs text-slate-400 uppercase">
+                                    {response.author?.role || response.role}
+                                  </span>
+                                  {response.isEdited && (
+                                    <span className="text-xs text-slate-400 italic">(edited)</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-slate-500">
+                                    {formatDate(response.time || response.createdAt)}
+                                  </span>
+                                  {/* Action buttons - Only show for user's own responses */}
+                                  {!response.isSystemNote && isUserResponse(response) && (
+                                    <div className="flex gap-1">
+                                      <button
+                                        onClick={() => {
+                                          setEditingResponseId(response._id);
+                                          setEditContent(response.content);
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-blue-600 transition"
+                                        title="Edit"
+                                      >
+                                        <Edit2 size={12} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteResponse(response._id)}
+                                        className="p-1 text-slate-400 hover:text-red-600 transition"
+                                        title="Delete"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                            ) : (
-                              /* Display Mode */
-                              <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
-                                {response.content}
-                              </p>
-                            )}
+
+                              {/* Edit Mode */}
+                              {editingResponseId === response._id ? (
+                                <div className="space-y-2">
+                                  <textarea
+                                    value={editContent}
+                                    onChange={(e) => setEditContent(e.target.value)}
+                                    className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-100 min-h-[60px] resize-none"
+                                    rows="3"
+                                  />
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleUpdateResponse(response._id)}
+                                      className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition"
+                                    >
+                                      Save
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditingResponseId(null);
+                                        setEditContent("");
+                                      }}
+                                      className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-300 transition"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                /* Display Mode */
+                                <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                                  {response.content}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <FaComment className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-sm text-slate-500 font-medium">No discussion yet</p>
+                        <p className="text-xs text-slate-400 mt-1">Start a conversation about this leave request</p>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <FaComment className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                      <p className="text-sm text-slate-500 font-medium">No discussion yet</p>
-                      <p className="text-xs text-slate-400 mt-1">Start a conversation about this leave request</p>
-                    </div>
-                  )}
+                    )}
                 </div>
 
                 {/* New Response Input */}
@@ -571,7 +570,7 @@ console.log(user)
                       placeholder="Type your response here..."
                       rows="3"
                     />
-                    
+
                     {/* Attachment Button */}
                     <label className="absolute left-3 bottom-3 p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition cursor-pointer">
                       <input
@@ -583,7 +582,7 @@ console.log(user)
                       />
                       <Paperclip size={16} />
                     </label>
-                    
+
                     {/* Attachment Preview */}
                     {attachment && (
                       <div className="absolute left-12 bottom-3 flex items-center gap-2 bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-xs">
@@ -600,7 +599,7 @@ console.log(user)
                         </button>
                       </div>
                     )}
-                    
+
                     {/* Send Button */}
                     <button
                       onClick={handleSubmitResponse}
@@ -611,7 +610,7 @@ console.log(user)
                       <Send size={16} />
                     </button>
                   </div>
-                  
+
                   <p className="text-xs text-slate-500 mt-2 px-1">
                     Press <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-xs">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-xs">Shift+Enter</kbd> for new line
                   </p>

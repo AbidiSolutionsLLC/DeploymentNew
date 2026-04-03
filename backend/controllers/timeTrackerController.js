@@ -317,7 +317,7 @@ exports.getAdminAttendanceSummary = catchAsync(async (req, res) => {
   const onLeaveUserIds = approvedLeaves.map(leave => leave.employee._id.toString());
 
   // 5. Categorize
-  const present = timeLogs; // Already populated
+  const present = timeLogs.filter(log => log.status !== 'Leave'); // Only actual presence records
   const onLeave = approvedLeaves.map(leave => ({
       user: leave.employee,
       status: 'On Leave',

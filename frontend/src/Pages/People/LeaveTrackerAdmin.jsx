@@ -42,6 +42,7 @@ const LeaveTrackerAdmin = () => {
       // FIX: Use /getAllLeaves as defined in allRoutes.js
       const response = await api.get("/getAllLeaves");
       const formatted = response.data.data.map((item) => ({
+        ...item, // Keep all raw data for the modal
         id: item._id,
         date: new Date(item.startDate).toLocaleDateString(),
         name: item.employeeName,

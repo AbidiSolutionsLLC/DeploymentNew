@@ -77,7 +77,7 @@ selected={
           showMonthDropdown
           showYearDropdown
           dropdownMode="select"
-          portalId="root" 
+          portalId="portal-root" 
         />
         
         {/* Calendar Icon */}

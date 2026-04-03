@@ -13,6 +13,8 @@ export default function NotificationBell() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { items, unreadCount, loading } = useSelector((s) => s.notifications);
+  const { user: authUser } = useSelector((s) => s.auth);
+  const userRole = authUser?.user?.role || authUser?.role || '';
   const [open, setOpen] = useState(false);
   const panelRef = useRef(null);
 
@@ -35,7 +37,7 @@ export default function NotificationBell() {
 
   const handleNotifClick = (notif) => {
     if (!notif.isRead) dispatch(markAsRead(notif._id));
-    const route = getRouteForNotification(notif);
+    const route = getRouteForNotification(notif, userRole);
     if (route) navigate(route);
     setOpen(false);
   };

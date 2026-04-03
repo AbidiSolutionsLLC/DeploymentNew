@@ -113,7 +113,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
             />
           </div>
 
-          <div>
+          <div className="relative z-40">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               DATE*
             </label>
@@ -123,11 +123,12 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
               dateFormat="yyyy-MM-dd"
               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
               popperProps={{ strategy: "fixed" }}
+              portalId="portal-root"
               required
             />
           </div>
 
-          <div>
+          <div className="relative z-30">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               HOURS WORKED*
             </label>
@@ -143,7 +144,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
             />
           </div>
           
-          <div>
+          <div className="relative z-20">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               DESCRIPTION*
             </label>

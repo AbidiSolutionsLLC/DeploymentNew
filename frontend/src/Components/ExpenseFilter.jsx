@@ -104,24 +104,6 @@ const ExpenseFilters = ({
           />
         </div>
 
-        {/* User Filter (Admin/Superadmin only) */}
-        {showUserFilter && (
-          <div className="min-w-[160px]">
-            <ModernSelect
-              value={selectedUser}
-              onChange={(e) => onUserChange(e.target.value)}
-              options={[
-                { value: "all", label: "All Employees" },
-                ...users.map(user => ({
-                  value: user._id,
-                  label: user.name
-                }))
-              ]}
-              placeholder="EMPLOYEE"
-              className="text-xs"
-            />
-          </div>
-        )}
 
         {/* Clear Filters */}
         {hasActiveFilters && (
