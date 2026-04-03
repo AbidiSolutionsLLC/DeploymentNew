@@ -30,8 +30,7 @@ const userSchema = Joi.object({
   endDate: Joi.date().allow(null, ""),
   empStatus: Joi.string().valid("Active", "Inactive"),
   
-  // empID removed from validation since backend generates it
-  // empID: Joi.string().required(), 
+  empID: Joi.string().allow(null, ""), 
   
   department: Joi.string().allow(null, ""),
   reportsTo: Joi.string().allow(null, ""), 
@@ -64,11 +63,14 @@ const userSchema = Joi.object({
   dashboardCards: Joi.array(),
   
   addedby: Joi.string(),
-  avatar: Joi.string().allow("")
+  avatar: Joi.string().allow(""),
+  isTechnician: Joi.boolean().default(false),
+  hourlyWage: Joi.number().min(0).default(0),
+  avalaibleLeaves: Joi.number().min(0).optional()
 });
 
 const userUpdateSchema = userSchema.fork(
-  ["name", "email", "empType", "designation", "joiningDate", "timeZone", "branch", "salary", "role"],
+  ["name", "email", "empType", "designation", "joiningDate", "timeZone", "branch", "salary", "role", "isTechnician", "hourlyWage", "avalaibleLeaves", "empID"],
   (schema) => schema.optional()
 );
 
