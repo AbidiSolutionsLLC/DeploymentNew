@@ -70,7 +70,8 @@ const ticketResponseSchema = Joi.object({
       'any.invalidSpaces': 'Please avoid excessive spaces.',
       'any.invalidSpam': 'Please enter a meaningful response.',
       'any.required': 'Response is required.'
-    })
+    }),
+  avatar: Joi.string().allow(null, "").optional()
 });
 
 module.exports = { createTicketSchema, ticketResponseSchema };

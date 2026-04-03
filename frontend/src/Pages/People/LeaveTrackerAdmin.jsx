@@ -8,6 +8,7 @@ import ViewLeaveModal from "../../Components/ViewLeaveModal";
 import ModernSelect from "../../Components/ui/ModernSelect";
 import { useSelector } from "react-redux";
 import TableWithPagination from "../../Components/TableWithPagination";
+import { getApiError } from "../../utils/validationUtils";
 
 const LeaveTrackerAdmin = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -80,9 +81,9 @@ const LeaveTrackerAdmin = () => {
         rawData: item,
       }));
       setDepartmentLeaveRecord(formatted);
-    } catch (err) {
-      console.error("Failed to fetch leaves:", err);
-      showToast("Failed to load leave records", "error");
+    } catch (error) {
+      console.error("Failed to load leave records:", error);
+      showToast(getApiError(error, "Failed to load leave records"), "error");
     } finally {
       setLoadingLeaves(false);
     }
@@ -103,7 +104,8 @@ const LeaveTrackerAdmin = () => {
 
       await fetchLeaves();
     } catch (error) {
-      console.error("Failed to update status:", error.response?.data || error.message);
+      console.error("Failed to update status:", error);
+      showToast(getApiError(error, "Failed to update status"), "error");
     }
   };
 
@@ -117,9 +119,9 @@ const LeaveTrackerAdmin = () => {
     try {
       const response = await api.get("/holidays");
       setHolidays(response.data);
-    } catch (err) {
-      console.error("Failed to fetch holidays:", err);
-      showToast("Failed to load holidays", "error");
+    } catch (error) {
+      console.error("Failed to fetch holidays:", error);
+      showToast(getApiError(error, "Failed to load holidays"), "error");
     } finally {
       setLoadingHolidays(false);
     }
@@ -142,9 +144,9 @@ const LeaveTrackerAdmin = () => {
       }
       setUsers(filtered);
       setHistoryUsers(filtered);
-    } catch (err) {
-      console.error("Failed to fetch users:", err);
-      showToast("Failed to load users", "error");
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      showToast(getApiError(error, "Failed to load users"), "error");
     } finally {
       setLoadingUsers(false);
     }
@@ -166,7 +168,7 @@ const LeaveTrackerAdmin = () => {
       });
     } catch (error) {
       console.error("Failed to fetch user leaves:", error);
-      showToast("Failed to fetch user leave balance", "error");
+      showToast(getApiError(error, "Failed to fetch user leave balance"), "error");
     }
   };
 
@@ -177,7 +179,7 @@ const LeaveTrackerAdmin = () => {
       showToast("User leave balance updated successfully");
     } catch (error) {
       console.error("Failed to update leaves:", error);
-      showToast("Failed to update leaves", "error");
+      showToast(getApiError(error, "Failed to update leaves"), "error");
     }
   };
 
@@ -196,7 +198,7 @@ const LeaveTrackerAdmin = () => {
       setLeaveHistory(response.data.data || []);
     } catch (error) {
       console.error("Failed to fetch leave history:", error);
-      showToast("Failed to fetch leave history", "error");
+      showToast(getApiError(error, "Failed to fetch leave history"), "error");
       setLeaveHistory([]);
     } finally {
       setLoadingHistory(false);
@@ -210,6 +212,124 @@ const LeaveTrackerAdmin = () => {
       default: return "bg-yellow-100 text-yellow-800";
     }
   };
+
+  const leaveColumns = [
+    {
+      key: "date",
+      label: "Date",
+      sortable: true,
+      render: (row) => <span className="text-slate-700">{row.date}</span>
+    },
+    {
+      key: "id",
+      label: "ID",
+      sortable: true,
+      render: (row) => <span className="text-slate-700 font-mono text-xs">{row.id.substring(0, 8)}...</span>
+    },
+    {
+      key: "name",
+      label: "Name",
+      sortable: true,
+      render: (row) => <span className="text-slate-700 font-medium">{row.name}</span>
+    },
+    {
+      key: "email",
+      label: "Email",
+      sortable: true,
+      render: (row) => <span className="text-slate-600">{row.email}</span>
+    },
+    {
+      key: "leaveType",
+      label: "Leave Type",
+      sortable: true,
+      render: (row) => (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 whitespace-nowrap">
+          {row.leaveType}
+        </span>
+      )
+    },
+    {
+      key: "reason",
+      label: "Reason",
+      sortable: false,
+      render: (row) => <div className="max-w-[150px] truncate text-slate-600" title={row.reason}>{row.reason}</div>
+    },
+    {
+      key: "duration",
+      label: "Duration",
+      sortable: true,
+      render: (row) => <span className="text-slate-700 font-medium whitespace-nowrap">{row.duration}</span>
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      render: (row) => (
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(row.status)}`}>
+          {row.status}
+        </span>
+      )
+    }
+  ];
+
+  const leaveActions = [
+    {
+      icon: <FaEye size={12} />,
+      title: "View",
+      className: "bg-slate-100 text-slate-700 hover:bg-slate-200",
+      onClick: (row) => handleViewLeave(row)
+    }
+  ];
+
+  const historyColumns = [
+    {
+      key: "leaveType",
+      label: "Leave Type",
+      sortable: true,
+      render: (row) => (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 whitespace-nowrap">
+          {row.leaveType}
+        </span>
+      )
+    },
+    {
+      key: "startDate",
+      label: "Start Date",
+      sortable: true,
+      render: (row) => <span className="text-slate-600 whitespace-nowrap">{new Date(row.startDate).toLocaleDateString()}</span>
+    },
+    {
+      key: "endDate",
+      label: "End Date",
+      sortable: true,
+      render: (row) => <span className="text-slate-600 whitespace-nowrap">{new Date(row.endDate).toLocaleDateString()}</span>
+    },
+    {
+      key: "duration",
+      label: "Duration",
+      sortable: true,
+      render: (row) => {
+        const duration = Math.ceil((new Date(row.endDate) - new Date(row.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+        return <span className="text-slate-700 font-medium">{duration} days</span>;
+      }
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      render: (row) => (
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(row.status)}`}>
+          {row.status}
+        </span>
+      )
+    },
+    {
+      key: "reason",
+      label: "Reason",
+      sortable: false,
+      render: (row) => <div className="max-w-[150px] truncate text-slate-600" title={row.reason}>{row.reason || "-"}</div>
+    }
+  ];
 
   // ==================== INITIAL FETCH ====================
   useEffect(() => {
@@ -287,68 +407,15 @@ const LeaveTrackerAdmin = () => {
             <p className="text-[10px] font-medium text-slate-500 mt-1">Leave requests awaiting approval</p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm border-separate border-spacing-0">
-              <thead>
-                <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                  {["Date", "ID", "Name", "Email", "Leave Type", "Reason", "Duration", "Status", "Actions"].map((heading) => (
-                    <th key={heading} className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left">
-                      {heading}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loadingLeaves ? (
-                  [...Array(5)].map((_, index) => (
-                    <tr key={index} className="border-b border-slate-100">
-                      {[...Array(9)].map((__, colIndex) => (
-                        <td key={colIndex} className="p-3">
-                          <div className="h-4 bg-slate-100 rounded animate-pulse"></div>
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                ) : departmentLeaveRecord.length > 0 ? (
-                  departmentLeaveRecord.map((task, index) => (
-                    <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                      <td className="p-3 text-slate-700">{task.date}</td>
-                      <td className="p-3 text-slate-700 font-mono text-xs">{task.id.substring(0, 8)}...</td>
-                      <td className="p-3 text-slate-700 font-medium">{task.name}</td>
-                      <td className="p-3 text-slate-600">{task.email}</td>
-                      <td className="p-3 text-slate-700">
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                          {task.leaveType}
-                        </span>
-                      </td>
-                      <td className="p-3 text-slate-600 max-w-xs truncate">{task.reason}</td>
-                      <td className="p-3 text-slate-700 font-medium">{task.duration}</td>
-                      <td className="p-3">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(task.status)}`}>
-                          {task.status}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <button
-                          onClick={() => handleViewLeave(task)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
-                        >
-                          <FaEye size={12} />
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={9} className="p-8 text-center text-slate-500 text-sm">
-                      <p className="text-sm font-medium text-slate-500">No leave requests found</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <TableWithPagination
+            columns={leaveColumns}
+            data={departmentLeaveRecord}
+            loading={loadingLeaves}
+            emptyMessage="No leave requests found"
+            actions={leaveActions}
+            rowsPerPage={10}
+            onRowClick={handleViewLeave}
+          />
         </div>
       )}
 
@@ -459,45 +526,13 @@ const LeaveTrackerAdmin = () => {
                 <p className="mt-2 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading leave history...</p>
               </div>
             ) : leaveHistory.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm border-separate border-spacing-0">
-                  <thead>
-                    <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                      {["Leave Type", "Start Date", "End Date", "Duration", "Status", "Reason"].map((heading) => (
-                        <th key={heading} className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left">
-                          {heading}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveHistory.map((leave, index) => {
-                      const startDate = new Date(leave.startDate);
-                      const endDate = new Date(leave.endDate);
-                      const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-
-                      return (
-                        <tr key={leave._id || index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                          <td className="p-3 text-slate-700">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                              {leave.leaveType}
-                            </span>
-                          </td>
-                          <td className="p-3 text-slate-600">{startDate.toLocaleDateString()}</td>
-                          <td className="p-3 text-slate-600">{endDate.toLocaleDateString()}</td>
-                          <td className="p-3 text-slate-700 font-medium">{duration} days</td>
-                          <td className="p-3">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(leave.status)}`}>
-                              {leave.status}
-                            </span>
-                          </td>
-                          <td className="p-3 text-slate-600 max-w-xs truncate">{leave.reason || "-"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <TableWithPagination
+                columns={historyColumns}
+                data={leaveHistory}
+                loading={loadingHistory}
+                emptyMessage="No leave history found for this employee"
+                rowsPerPage={10}
+              />
             ) : historySelectedUser ? (
               <div className="text-center p-8">
                 <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

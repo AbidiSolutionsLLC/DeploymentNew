@@ -7,7 +7,7 @@ import api from "../../axios";
 import { toast } from "react-toastify";
 import { Spin } from "antd";
 import { format } from "date-fns";
-import { validateText, validateDescription, sanitizeText } from "../../utils/validationUtils";
+import { validateText, validateDescription, sanitizeText, getApiError } from "../../utils/validationUtils";
 
 // IMPORT YOUR NEW MODERN COMPONENTS
 import ModernSelect from "../../Components/ui/ModernSelect";
@@ -67,7 +67,7 @@ export default function EditProfile() {
         });
       } catch (error) {
         console.error("Failed to load user profile", error);
-        toast.error("Failed to load profile");
+        toast.error(getApiError(error, "Failed to load profile"));
       } finally {
         setLoading(false);
       }
@@ -182,7 +182,7 @@ export default function EditProfile() {
       toast.success("Profile updated successfully!");
       navigate("/people/profile");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update profile");
+      toast.error(getApiError(err, "Failed to update profile"));
       console.error("Error updating profile:", err);
     } finally {
       setSaving(false);
@@ -217,7 +217,7 @@ export default function EditProfile() {
       setUser(prev => ({ ...prev, avatar: response.data.avatarUrl }));
       toast.success("Profile picture updated successfully!");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update profile picture");
+      toast.error(getApiError(err, "Failed to update profile picture"));
       console.error(err);
     } finally {
       setLoading(false);

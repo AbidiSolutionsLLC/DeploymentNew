@@ -12,12 +12,15 @@ const TableWithPagination = ({
   actions = []
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [localRowsPerPage, setLocalRowsPerPage] = useState(rowsPerPage);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
+  const effectiveRowsPerPage = localRowsPerPage;
+
   // Calculate pagination
-  const totalPages = Math.ceil(data.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const paginatedData = data.slice(startIndex, startIndex + rowsPerPage);
+  const totalPages = Math.ceil(data.length * 1.0 / effectiveRowsPerPage);
+  const startIndex = (currentPage - 1) * effectiveRowsPerPage;
+  const paginatedData = data.slice(startIndex, startIndex + effectiveRowsPerPage);
 
   // Handle sort
   const handleSort = (key) => {
@@ -124,7 +127,7 @@ const TableWithPagination = ({
         </thead>
         <tbody>
           {paginatedData.length > 0 ? (
-            sortedData.slice(startIndex, startIndex + rowsPerPage).map((row, rowIndex) => (
+            sortedData.slice(startIndex, startIndex + effectiveRowsPerPage).map((row, rowIndex) => (
               <tr
                 key={row._id || rowIndex}
                 className={`border-b border-slate-100 hover:bg-slate-50/80 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
@@ -172,10 +175,10 @@ const TableWithPagination = ({
       </table>
 
       {/* Pagination Controls */}
-      {data.length > rowsPerPage && (
+      {data.length > effectiveRowsPerPage && (
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-slate-100">
-          <div className="text-xs text-slate-500 font-medium">
-            Showing {startIndex + 1} to {Math.min(startIndex + rowsPerPage, data.length)} of {data.length} entries
+          <div className="text-xs text-slate-500 font-medium whitespace-nowrap">
+            Showing {startIndex + 1} to {Math.min(startIndex + effectiveRowsPerPage, data.length)} of {data.length} entries
           </div>
           
           <div className="flex items-center gap-2">
@@ -221,16 +224,17 @@ const TableWithPagination = ({
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Rows per page:</span>
+            <span className="text-[10px] uppercase tracking-widest font-black text-slate-400">Rows per page:</span>
             <select
-              value={rowsPerPage}
+              value={localRowsPerPage}
               onChange={(e) => {
                 const newRowsPerPage = parseInt(e.target.value);
+                setLocalRowsPerPage(newRowsPerPage);
                 setCurrentPage(1);
               }}
-              className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white"
+              className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white font-bold text-slate-700 outline-none focus:ring-2 focus:ring-slate-100 transition-all cursor-pointer"
             >
-              {[5, 10, 20, 50].map(num => (
+              {[5, 10, 20, 50, 100].map(num => (
                 <option key={num} value={num}>{num}</option>
               ))}
             </select>

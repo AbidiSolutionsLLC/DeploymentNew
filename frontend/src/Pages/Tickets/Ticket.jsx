@@ -123,8 +123,18 @@ const Ticket = () => {
       label: "Subject",
       sortable: true,
       render: (row) => (
-        <div className="font-medium text-slate-700 truncate max-w-[200px]" title={row.subject}>
+        <div className="font-bold text-slate-700 truncate max-w-[180px]" title={row.subject}>
           {row.subject}
+        </div>
+      )
+    },
+    {
+      key: "description",
+      label: "Description",
+      sortable: false,
+      render: (row) => (
+        <div className="text-slate-600 truncate max-w-[200px]" title={row.description}>
+          {row.description}
         </div>
       )
     },

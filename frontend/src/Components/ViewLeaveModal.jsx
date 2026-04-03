@@ -26,7 +26,7 @@ import api from "../axios";
 import Toast from "../Components/Toast";
 import { toast } from "react-toastify"; // Import toast
 import { useSelector } from "react-redux";
-import { validateDescription } from "../utils/validationUtils";
+import { validateDescription, getApiError } from "../utils/validationUtils";
  
 const ViewLeaveModal = ({
   isOpen,
@@ -128,7 +128,7 @@ console.log(user)
       resetState();
     } catch (error) {
       console.error("Failed to update status:", error);
-      // showToast(error.response?.data?.message || "Failed to update status", "error");
+      showToast(getApiError(error, "Failed to update status"), "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -158,7 +158,7 @@ console.log(user)
       showToast("Response submitted successfully");
     } catch (error) {
       console.error("Failed to submit response:", error);
-      showToast(error.response?.data?.message || "Failed to submit response", "error");
+      showToast(getApiError(error, "Failed to submit response"), "error");
     }
   };
  
@@ -190,7 +190,7 @@ console.log(user)
       showToast("Response updated successfully");
     } catch (error) {
       console.error("Failed to update response:", error);
-      showToast(error.response?.data?.message || "Failed to update response", "error");
+      showToast(getApiError(error, "Failed to update response"), "error");
     }
   };
  
@@ -203,7 +203,7 @@ console.log(user)
       showToast("Response deleted successfully");
     } catch (error) {
       console.error("Failed to delete response:", error);
-      showToast(error.response?.data?.message || "Failed to delete response", "error");
+      showToast(getApiError(error, "Failed to delete response"), "error");
     }
   };
  

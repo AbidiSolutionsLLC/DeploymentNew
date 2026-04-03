@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import timeLogApi from "../../api/timeLogApi";
 import { toast } from "react-toastify";
 import { moment, TIMEZONE } from "../../utils/dateUtils";
+import { getApiError } from "../../utils/validationUtils";
 
 const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUpdated }) => {
   const [date, setDate] = useState("");
@@ -52,7 +53,7 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
       onClose();
     } catch (error) {
       console.error("Failed to update time log:", error);
-      toast.error("Update failed");
+      toast.error(getApiError(error, "Update failed"));
     } finally {
       setIsLoading(false);
     }
