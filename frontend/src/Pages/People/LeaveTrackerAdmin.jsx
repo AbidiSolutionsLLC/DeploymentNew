@@ -403,6 +403,7 @@ const LeaveTrackerAdmin = () => {
           setIsOpen={setViewModalOpen}
           leaveData={selectedLeave}
           onStatusChange={handleStatusChange}
+          fetchLeaveRequests={fetchLeaves}
           isAdminPortal={true}
         />
       )}

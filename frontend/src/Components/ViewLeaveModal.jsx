@@ -125,7 +125,9 @@ console.log(user)
     setIsSubmitting(true);
     try {
       await onStatusChange(leaveData.id, selectedStatus);
-      await fetchLeaveRequests();
+      if (typeof fetchLeaveRequests === 'function') {
+        await fetchLeaveRequests();
+      }
       setIsOpen(false);
       resetState();
     } catch (error) {
