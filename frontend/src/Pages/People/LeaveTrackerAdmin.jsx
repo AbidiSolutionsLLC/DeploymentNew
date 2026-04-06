@@ -10,6 +10,7 @@ import ModernSelect from "../../Components/ui/ModernSelect";
 import { useSelector } from "react-redux";
 import TableWithPagination from "../../Components/TableWithPagination";
 import { getApiError } from "../../utils/validationUtils";
+import { parseISOToLocalDate, formatDisplayDate } from "../../utils/dateUtils";
 
 const LeaveTrackerAdmin = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -70,13 +71,13 @@ const LeaveTrackerAdmin = () => {
         startDate: item.startDate,
         endDate: item.endDate,
         appliedAt: item.appliedAt || item.createdAt,
-        date: new Date(item.startDate).toLocaleDateString(),
+        date: formatDisplayDate(item.startDate),
         name: item.employeeName,
         email: item.email,
         leaveType: item.leaveType,
         reason: item.reason || "-",
         duration: `${Math.ceil(
-          (new Date(item.endDate) - new Date(item.startDate)) /
+          (parseISOToLocalDate(item.endDate) - parseISOToLocalDate(item.startDate)) /
           (1000 * 60 * 60 * 24) +
           1
         )} days`,
@@ -143,7 +144,7 @@ const LeaveTrackerAdmin = () => {
         leaveType: fullLeaveData.leaveType,
         reason: fullLeaveData.reason || "-",
         duration: `${Math.ceil(
-          (new Date(fullLeaveData.endDate) - new Date(fullLeaveData.startDate)) / (1000 * 60 * 60 * 24) + 1
+          (parseISOToLocalDate(fullLeaveData.endDate) - parseISOToLocalDate(fullLeaveData.startDate)) / (1000 * 60 * 60 * 24) + 1
         )} days`,
         status: fullLeaveData.status,
       });
@@ -336,20 +337,20 @@ const LeaveTrackerAdmin = () => {
       key: "startDate",
       label: "Start Date",
       sortable: true,
-      render: (row) => <span className="text-slate-600 whitespace-nowrap">{new Date(row.startDate).toLocaleDateString()}</span>
+      render: (row) => <span className="text-slate-600 whitespace-nowrap">{formatDisplayDate(row.startDate)}</span>
     },
     {
       key: "endDate",
       label: "End Date",
       sortable: true,
-      render: (row) => <span className="text-slate-600 whitespace-nowrap">{new Date(row.endDate).toLocaleDateString()}</span>
+      render: (row) => <span className="text-slate-600 whitespace-nowrap">{formatDisplayDate(row.endDate)}</span>
     },
     {
       key: "duration",
       label: "Duration",
       sortable: true,
       render: (row) => {
-        const duration = Math.ceil((new Date(row.endDate) - new Date(row.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+        const duration = Math.ceil((parseISOToLocalDate(row.endDate) - parseISOToLocalDate(row.startDate)) / (1000 * 60 * 60 * 24)) + 1;
         return <span className="text-slate-700 font-medium">{duration} days</span>;
       }
     },
@@ -588,8 +589,8 @@ const LeaveTrackerAdmin = () => {
                   </thead>
                   <tbody>
                     {leaveHistory.map((leave, index) => {
-                      const startDate = new Date(leave.startDate);
-                      const endDate = new Date(leave.endDate);
+                      const startDate = parseISOToLocalDate(leave.startDate);
+                      const endDate = parseISOToLocalDate(leave.endDate);
                       const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
                       return (

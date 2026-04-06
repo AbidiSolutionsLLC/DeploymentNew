@@ -27,6 +27,7 @@ import Toast from "../Components/Toast";
 import { toast } from "react-toastify"; // Import toast
 import { useSelector } from "react-redux";
 import { validateDescription, getApiError } from "../utils/validationUtils";
+import { parseISOToLocalDate, formatDisplayDate } from "../utils/dateUtils";
  
 const ViewLeaveModal = ({
   isOpen,
@@ -346,7 +347,7 @@ console.log(user)
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Start Date</span>
                       </div>
                       <p className="text-sm font-medium text-slate-800">
-                        {new Date(leaveData.startDate).toLocaleDateString()}
+                        {formatDisplayDate(leaveData.startDate)}
                       </p>
                     </div>
                    
@@ -356,7 +357,7 @@ console.log(user)
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">End Date</span>
                       </div>
                       <p className="text-sm font-medium text-slate-800">
-                        {new Date(leaveData.endDate).toLocaleDateString()}
+                        {formatDisplayDate(leaveData.endDate)}
                       </p>
                     </div>
                   </div>
@@ -370,7 +371,7 @@ console.log(user)
                       </div>
                       <p className="text-sm font-medium text-slate-800">
                         {leaveData.duration ||
-                          `${Math.ceil((new Date(leaveData.endDate) - new Date(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1} days`}
+                          `${Math.ceil((parseISOToLocalDate(leaveData.endDate) - parseISOToLocalDate(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1} days`}
                       </p>
                     </div>
                    

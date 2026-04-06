@@ -7,6 +7,7 @@ import {
   FaFileAlt,
 } from "react-icons/fa";
 import { Clock } from "lucide-react";
+import { parseISOToLocalDate, formatDisplayDate } from "../utils/dateUtils";
 
 const HistoryViewLeaveModal = ({
   isOpen,
@@ -88,7 +89,7 @@ const HistoryViewLeaveModal = ({
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Start Date</span>
                 </div>
                 <p className="text-sm font-medium text-slate-800">
-                  {new Date(leaveData.startDate).toLocaleDateString()}
+                  {formatDisplayDate(leaveData.startDate)}
                 </p>
               </div>
 
@@ -98,7 +99,7 @@ const HistoryViewLeaveModal = ({
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">End Date</span>
                 </div>
                 <p className="text-sm font-medium text-slate-800">
-                  {new Date(leaveData.endDate).toLocaleDateString()}
+                  {formatDisplayDate(leaveData.endDate)}
                 </p>
               </div>
             </div>
@@ -112,7 +113,7 @@ const HistoryViewLeaveModal = ({
                 </div>
                 <p className="text-sm font-medium text-slate-800">
                   {leaveData.duration ||
-                    `${Math.ceil((new Date(leaveData.endDate) - new Date(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1} days`}
+                    `${Math.ceil((parseISOToLocalDate(leaveData.endDate) - parseISOToLocalDate(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1} days`}
                 </p>
               </div>
 
