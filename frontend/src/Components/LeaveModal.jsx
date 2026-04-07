@@ -190,7 +190,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
         >
           <div>
            
-            <div className="relative">
+            <div onClick={(e) => e.stopPropagation()} className="relative">
               <ModernSelect
                 label="Leave Type"
                 name="leaveType"
@@ -224,7 +224,13 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
               </label>
               <DatePicker
                 selected={startDate}
-                onChange={(date) => setStartDate(date)}
+                onChange={(date) => {
+                    if(endDate && date>endDate){
+                     toast.error("Start date should be less than end date.")
+                      return
+                    }
+                     setStartDate(date)
+                } }
                 className={`w-full bg-white border ${errors.startDate ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 cursor-pointer`}
                 placeholderText="Select Date"
                 dateFormat="yyyy-MM-dd"
@@ -245,11 +251,17 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
               </label>
               <DatePicker
                 selected={endDate}
-                onChange={(date) => setEndDate(date)}
+                onChange={(date) =>{
+                    if(startDate && date<startDate){
+                       toast.error("End date should be greate than start date.")
+                       return
+                    }
+                    setEndDate(date)
+                } }
                 className={`w-full bg-white border ${errors.endDate ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 cursor-pointer`}
                 placeholderText="Select Date"
                 dateFormat="yyyy-MM-dd"
-                minDate={startDate} 
+                // minDate={startDate} 
                 required
                 disabled={isSubmitting}
                 onBlur={() => validateField("endDate", endDate)}
