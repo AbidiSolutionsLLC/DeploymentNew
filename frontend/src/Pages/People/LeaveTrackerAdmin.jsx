@@ -483,7 +483,7 @@ const LeaveTrackerAdmin = () => {
 
       {/* ==================== TAB 2: MANAGE LEAVES ==================== */}
       {activeTab === 2 && (
-        <div className="space-y-4">
+        <div className="z-[9999] space-y-4 overflow-visible">
           {/* Update User Leave Balances */}
           <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
             <div className="mb-4">
@@ -549,7 +549,7 @@ const LeaveTrackerAdmin = () => {
           </div>
 
           {/* Employee Leave History */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
+          <div className="z-0 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
             <div className="mb-4">
               <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Employee Leave History</h2>
               <p className="text-[10px] font-medium text-slate-500 mt-1">View complete leave history for any employee</p>
