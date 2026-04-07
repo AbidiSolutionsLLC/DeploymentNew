@@ -153,7 +153,7 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
                       })}
                     </td>
                     <td className="p-3 text-slate-600" style={{ width: '15%' }}>{holiday.day}</td>
-                    <td className="p-3 text-slate-700 font-medium" style={{ width: '35%' }}>{holiday.holidayName}</td>
+                    <td className="p-3 text-slate-700 font-bold truncate max-w-[200px]" style={{ width: '35%' }} title={holiday.holidayName}>{holiday.holidayName}</td>
                     <td className="p-3" style={{ width: '15%' }}>
                       <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide bg-purple-100 text-purple-800">
                         {holiday.holidayType || "Holiday"}

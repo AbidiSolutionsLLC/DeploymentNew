@@ -206,7 +206,9 @@ const Timesheet = ({ refreshTrigger }) => {
       label: "Timesheet Name",
       sortable: true,
       render: (row) => (
-        <span className="text-slate-700 font-medium">{row.name || "Unnamed"}</span>
+        <span className="text-slate-700 font-medium truncate max-w-[150px] inline-block" title={row.name || "Unnamed"}>
+          {row.name || "Unnamed"}
+        </span>
       )
     },
     {

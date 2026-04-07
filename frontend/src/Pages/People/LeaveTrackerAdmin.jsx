@@ -9,6 +9,8 @@ import HistoryViewLeaveModal from "../../Components/HistoryViewLeaveModal";
 import ModernSelect from "../../Components/ui/ModernSelect";
 import { useSelector } from "react-redux";
 import TableWithPagination from "../../Components/TableWithPagination";
+import { getApiError } from "../../utils/validationUtils";
+import { parseISOToLocalDate, formatDisplayDate } from "../../utils/dateUtils";
 
 const LeaveTrackerAdmin = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -69,13 +71,13 @@ const LeaveTrackerAdmin = () => {
         startDate: item.startDate,
         endDate: item.endDate,
         appliedAt: item.appliedAt || item.createdAt,
-        date: new Date(item.startDate).toLocaleDateString(),
+        date: formatDisplayDate(item.startDate),
         name: item.employeeName,
         email: item.email,
         leaveType: item.leaveType,
         reason: item.reason || "-",
         duration: `${Math.ceil(
-          (new Date(item.endDate) - new Date(item.startDate)) /
+          (parseISOToLocalDate(item.endDate) - parseISOToLocalDate(item.startDate)) /
           (1000 * 60 * 60 * 24) +
           1
         )} days`,
@@ -83,9 +85,9 @@ const LeaveTrackerAdmin = () => {
         rawData: item,
       }));
       setDepartmentLeaveRecord(formatted);
-    } catch (err) {
-      console.error("Failed to fetch leaves:", err);
-      showToast("Failed to load leave records", "error");
+    } catch (error) {
+      console.error("Failed to load leave records:", error);
+      showToast(getApiError(error, "Failed to load leave records"), "error");
     } finally {
       setLoadingLeaves(false);
     }
@@ -106,7 +108,8 @@ const LeaveTrackerAdmin = () => {
 
       await fetchLeaves();
     } catch (error) {
-      console.error("Failed to update status:", error.response?.data || error.message);
+      console.error("Failed to update status:", error);
+      showToast(getApiError(error, "Failed to update status"), "error");
     }
   };
 
@@ -141,7 +144,7 @@ const LeaveTrackerAdmin = () => {
         leaveType: fullLeaveData.leaveType,
         reason: fullLeaveData.reason || "-",
         duration: `${Math.ceil(
-          (new Date(fullLeaveData.endDate) - new Date(fullLeaveData.startDate)) / (1000 * 60 * 60 * 24) + 1
+          (parseISOToLocalDate(fullLeaveData.endDate) - parseISOToLocalDate(fullLeaveData.startDate)) / (1000 * 60 * 60 * 24) + 1
         )} days`,
         status: fullLeaveData.status,
       });
@@ -157,9 +160,9 @@ const LeaveTrackerAdmin = () => {
     try {
       const response = await api.get("/holidays");
       setHolidays(response.data);
-    } catch (err) {
-      console.error("Failed to fetch holidays:", err);
-      showToast("Failed to load holidays", "error");
+    } catch (error) {
+      console.error("Failed to fetch holidays:", error);
+      showToast(getApiError(error, "Failed to load holidays"), "error");
     } finally {
       setLoadingHolidays(false);
     }
@@ -182,9 +185,9 @@ const LeaveTrackerAdmin = () => {
       }
       setUsers(filtered);
       setHistoryUsers(filtered);
-    } catch (err) {
-      console.error("Failed to fetch users:", err);
-      showToast("Failed to load users", "error");
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      showToast(getApiError(error, "Failed to load users"), "error");
     } finally {
       setLoadingUsers(false);
     }
@@ -206,7 +209,7 @@ const LeaveTrackerAdmin = () => {
       });
     } catch (error) {
       console.error("Failed to fetch user leaves:", error);
-      showToast("Failed to fetch user leave balance", "error");
+      showToast(getApiError(error, "Failed to fetch user leave balance"), "error");
     }
   };
 
@@ -217,7 +220,7 @@ const LeaveTrackerAdmin = () => {
       showToast("User leave balance updated successfully");
     } catch (error) {
       console.error("Failed to update leaves:", error);
-      showToast("Failed to update leaves", "error");
+      showToast(getApiError(error, "Failed to update leaves"), "error");
     }
   };
 
@@ -236,7 +239,7 @@ const LeaveTrackerAdmin = () => {
       setLeaveHistory(response.data.data || []);
     } catch (error) {
       console.error("Failed to fetch leave history:", error);
-      showToast("Failed to fetch leave history", "error");
+      showToast(getApiError(error, "Failed to fetch leave history"), "error");
       setLeaveHistory([]);
     } finally {
       setLoadingHistory(false);
@@ -250,6 +253,124 @@ const LeaveTrackerAdmin = () => {
       default: return "bg-yellow-100 text-yellow-800";
     }
   };
+
+  const leaveColumns = [
+    {
+      key: "date",
+      label: "Date",
+      sortable: true,
+      render: (row) => <span className="text-slate-700">{row.date}</span>
+    },
+    {
+      key: "id",
+      label: "ID",
+      sortable: true,
+      render: (row) => <span className="text-slate-700 font-mono text-xs">{row.id.substring(0, 8)}...</span>
+    },
+    {
+      key: "name",
+      label: "Name",
+      sortable: true,
+      render: (row) => <span className="text-slate-700 font-medium">{row.name}</span>
+    },
+    {
+      key: "email",
+      label: "Email",
+      sortable: true,
+      render: (row) => <span className="text-slate-600">{row.email}</span>
+    },
+    {
+      key: "leaveType",
+      label: "Leave Type",
+      sortable: true,
+      render: (row) => (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 whitespace-nowrap">
+          {row.leaveType}
+        </span>
+      )
+    },
+    {
+      key: "reason",
+      label: "Reason",
+      sortable: false,
+      render: (row) => <div className="max-w-[150px] truncate text-slate-600" title={row.reason}>{row.reason}</div>
+    },
+    {
+      key: "duration",
+      label: "Duration",
+      sortable: true,
+      render: (row) => <span className="text-slate-700 font-medium whitespace-nowrap">{row.duration}</span>
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      render: (row) => (
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(row.status)}`}>
+          {row.status}
+        </span>
+      )
+    }
+  ];
+
+  const leaveActions = [
+    {
+      icon: <FaEye size={12} />,
+      title: "View",
+      className: "bg-slate-100 text-slate-700 hover:bg-slate-200",
+      onClick: (row) => handleViewLeave(row)
+    }
+  ];
+
+  const historyColumns = [
+    {
+      key: "leaveType",
+      label: "Leave Type",
+      sortable: true,
+      render: (row) => (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 whitespace-nowrap">
+          {row.leaveType}
+        </span>
+      )
+    },
+    {
+      key: "startDate",
+      label: "Start Date",
+      sortable: true,
+      render: (row) => <span className="text-slate-600 whitespace-nowrap">{formatDisplayDate(row.startDate)}</span>
+    },
+    {
+      key: "endDate",
+      label: "End Date",
+      sortable: true,
+      render: (row) => <span className="text-slate-600 whitespace-nowrap">{formatDisplayDate(row.endDate)}</span>
+    },
+    {
+      key: "duration",
+      label: "Duration",
+      sortable: true,
+      render: (row) => {
+        const duration = Math.ceil((parseISOToLocalDate(row.endDate) - parseISOToLocalDate(row.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+        return <span className="text-slate-700 font-medium">{duration} days</span>;
+      }
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      render: (row) => (
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(row.status)}`}>
+          {row.status}
+        </span>
+      )
+    },
+    {
+      key: "reason",
+      label: "Reason",
+      sortable: false,
+      render: (row) => <div className="max-w-[150px] truncate text-slate-600" title={row.reason}>{row.reason || "-"}</div>
+    }
+  ];
 
   // ==================== INITIAL FETCH ====================
   useEffect(() => {
@@ -282,6 +403,7 @@ const LeaveTrackerAdmin = () => {
           setIsOpen={setViewModalOpen}
           leaveData={selectedLeave}
           onStatusChange={handleStatusChange}
+          fetchLeaveRequests={fetchLeaves}
           isAdminPortal={true}
         />
       )}
@@ -328,68 +450,15 @@ const LeaveTrackerAdmin = () => {
             <p className="text-[10px] font-medium text-slate-500 mt-1">Leave requests awaiting approval</p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm border-separate border-spacing-0">
-              <thead>
-                <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                  {["Date", "ID", "Name", "Email", "Leave Type", "Reason", "Duration", "Status", "Actions"].map((heading) => (
-                    <th key={heading} className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left">
-                      {heading}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loadingLeaves ? (
-                  [...Array(5)].map((_, index) => (
-                    <tr key={index} className="border-b border-slate-100">
-                      {[...Array(9)].map((__, colIndex) => (
-                        <td key={colIndex} className="p-3">
-                          <div className="h-4 bg-slate-100 rounded animate-pulse"></div>
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                ) : departmentLeaveRecord.length > 0 ? (
-                  departmentLeaveRecord.map((task, index) => (
-                    <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                      <td className="p-3 text-slate-700">{task.date}</td>
-                      <td className="p-3 text-slate-700 font-mono text-xs">{task.id.substring(0, 8)}...</td>
-                      <td className="p-3 text-slate-700 font-medium">{task.name}</td>
-                      <td className="p-3 text-slate-600">{task.email}</td>
-                      <td className="p-3 text-slate-700">
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                          {task.leaveType}
-                        </span>
-                      </td>
-                      <td className="p-3 text-slate-600 max-w-xs truncate">{task.reason}</td>
-                      <td className="p-3 text-slate-700 font-medium">{task.duration}</td>
-                      <td className="p-3">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(task.status)}`}>
-                          {task.status}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <button
-                          onClick={() => handleViewLeave(task)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
-                        >
-                          <FaEye size={12} />
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={9} className="p-8 text-center text-slate-500 text-sm">
-                      <p className="text-sm font-medium text-slate-500">No leave requests found</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <TableWithPagination
+            columns={leaveColumns}
+            data={departmentLeaveRecord}
+            loading={loadingLeaves}
+            emptyMessage="No leave requests found"
+            actions={leaveActions}
+            rowsPerPage={10}
+            onRowClick={handleViewLeave}
+          />
         </div>
       )}
 
@@ -521,8 +590,8 @@ const LeaveTrackerAdmin = () => {
                   </thead>
                   <tbody>
                     {leaveHistory.map((leave, index) => {
-                      const startDate = new Date(leave.startDate);
-                      const endDate = new Date(leave.endDate);
+                      const startDate = parseISOToLocalDate(leave.startDate);
+                      const endDate = parseISOToLocalDate(leave.endDate);
                       const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
                       return (

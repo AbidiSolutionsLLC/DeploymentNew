@@ -7,6 +7,7 @@ import ApplyLeaveModal from "../../Components/LeaveModal";
 import HolidayTable from "../../Components/HolidayTable";
 import ViewLeaveModal from "../../Components/ViewLeaveModal";
 import api from "../../axios";
+import { parseISOToLocalDate, formatDisplayDate } from "../../utils/dateUtils";
 
 
 const LeaveSummary = () => {
@@ -87,14 +88,14 @@ const LeaveSummary = () => {
     const formatAppliedLeaves = () => {
         return leaveHistory.map(leave => ({
             id: leave.leaveId,
-            date: new Date(leave.startDate || leave.date || Date.now()).toLocaleDateString(),
+            date: formatDisplayDate(leave.startDate || leave.date),
             startDate: leave.startDate,
             endDate: leave.endDate,
             appliedAt: leave.appliedAt,
             leaveType: leave.leaveType || leave.type || "-",
             reason: leave.reason || "-",
             duration: leave.duration || `${Math.ceil(
-                (new Date(leave.endDate) - new Date(leave.startDate)) / (1000 * 60 * 60 * 24) + 1
+                (parseISOToLocalDate(leave.endDate) - parseISOToLocalDate(leave.startDate)) / (1000 * 60 * 60 * 24) + 1
             )} days`,
             status: leave.status || "Pending",
         }));

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../axios";
 import Toast from "../../Components/Toast";
-import ModernSelect from "../../Components/ui/ModernSelect"; 
+import ModernSelect from "../../Components/ui/ModernSelect";
 import { downloadFile } from "../../utils/downloadFile";
 import { validateDescription, getApiError } from "../../utils/validationUtils";
 import {
@@ -23,15 +23,15 @@ const AssignTicket = () => {
   const [responseError, setResponseError] = useState(null);
   const [assignDropdownOpen, setAssignDropdownOpen] = useState(false);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState(null);
-  
+
   const [technician, setTechnician] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [addTechnicianModal, setAddTechnicianModal] = useState(false);
   const [selectedUserToPromote, setSelectedUserToPromote] = useState(null);
   const [promoting, setPromoting] = useState(false);
-  
+
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = "success") => {
@@ -46,7 +46,7 @@ const AssignTicket = () => {
         setTicket(res.data);
         setSelectedAssigneeId(res.data.assignedTo?._id || null);
       } catch (error) {
-        showToast(error.response?.data?.message || "Failed to fetch ticket", "error");
+        showToast(getApiError(error, "Failed to fetch ticket"), "error");
       } finally {
         setLoading(false);
       }
@@ -55,27 +55,27 @@ const AssignTicket = () => {
     const fetchUsersData = async () => {
       try {
         const res = await api.get("/users?status=Active");
-        
+
         const safeUsers = res.data.filter(u => u.role !== "SuperAdmin");
 
         // 1. Identify Technicians
-        const techList = safeUsers.filter(user => 
-          user.role === 'Technician' || 
+        const techList = safeUsers.filter(user =>
+          user.role === 'Technician' ||
           user.isTechnician === true ||
           (user.designation && user.designation.toLowerCase() === 'technician')
         );
         setTechnician(techList);
 
         // 2. Identify Promotable Users
-        const promotableList = safeUsers.filter(user => 
-          user.role !== 'Technician' && 
+        const promotableList = safeUsers.filter(user =>
+          user.role !== 'Technician' &&
           user.isTechnician !== true &&
           (user.designation && user.designation.toLowerCase() !== 'technician')
         );
         setAllUsers(promotableList);
 
       } catch (error) {
-        showToast(error.response?.data?.message || "Failed to fetch users", "error");
+        showToast(getApiError(error, "Failed to fetch users"), "error");
       }
     };
 
@@ -92,7 +92,7 @@ const AssignTicket = () => {
       setSelectedAssigneeId(userId);
       showToast("Ticket assigned successfully");
     } catch (error) {
-      showToast("Failed to assign ticket", "error");
+      showToast(getApiError(error, "Failed to assign ticket"), "error");
     } finally {
       setAssignDropdownOpen(false);
     }
@@ -124,7 +124,7 @@ const AssignTicket = () => {
       showToast("Ticket deleted");
       setTimeout(() => navigate("/admin/assign-ticket"), 1000);
     } catch (error) {
-      showToast(error.response?.data?.message || "Failed to delete ticket", "error");
+      showToast(getApiError(error, "Failed to delete ticket"), "error");
     }
   };
 
@@ -137,9 +137,9 @@ const AssignTicket = () => {
     setPromoting(true);
     try {
       const response = await api.put(`/users/${selectedUserToPromote._id}`, {
-        isTechnician: true 
+        isTechnician: true
       });
-      
+
       const updatedUser = response.data;
 
       setTechnician(prev => {
@@ -148,14 +148,14 @@ const AssignTicket = () => {
         }
         return prev;
       });
-      
+
       setAllUsers(prev => prev.filter(u => u._id !== updatedUser._id));
-      
+
       showToast(`${updatedUser.name} added to Technician list`);
       setAddTechnicianModal(false);
       setSelectedUserToPromote(null);
     } catch (error) {
-      showToast(error.response?.data?.message || "Failed to update user", "error");
+      showToast(getApiError(error, "Failed to update user"), "error");
     } finally {
       setPromoting(false);
     }
@@ -202,7 +202,7 @@ const AssignTicket = () => {
 
       {/* Add Technician Modal */}
       {addTechnicianModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4 sm:p-6"
           onClick={(e) => {
             if (e.target === e.currentTarget && !promoting) {
@@ -212,7 +212,7 @@ const AssignTicket = () => {
           }}
         >
           <div className="w-full max-w-md bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col overflow-hidden">
-            <button 
+            <button
               onClick={() => {
                 setAddTechnicianModal(false);
                 setSelectedUserToPromote(null);
@@ -265,7 +265,7 @@ const AssignTicket = () => {
                     <div>
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ACTION</p>
                       <p className="text-xs text-slate-600">
-                        This user will be added to the <strong>Technician List</strong>. <br/>
+                        This user will be added to the <strong>Technician List</strong>. <br />
                         Their existing Role ({selectedUserToPromote.role}) and Designation will remain unchanged.
                       </p>
                     </div>
@@ -275,7 +275,7 @@ const AssignTicket = () => {
             </div>
 
             <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
-              <button 
+              <button
                 type="button"
                 onClick={() => {
                   setAddTechnicianModal(false);
@@ -286,7 +286,7 @@ const AssignTicket = () => {
               >
                 CANCEL
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={handlePromoteToTechnician}
                 disabled={!selectedUserToPromote || promoting}
@@ -353,11 +353,10 @@ const AssignTicket = () => {
               <div className="relative z-30">
                 <button
                   onClick={() => setAssignDropdownOpen(!assignDropdownOpen)}
-                  className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm ${
-                    selectedAssignee 
-                      ? "bg-green-100 text-green-800 border border-green-200" 
+                  className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm ${selectedAssignee
+                      ? "bg-green-100 text-green-800 border border-green-200"
                       : "bg-blue-100 text-blue-800 border border-blue-200"
-                  } hover:brightness-95`}
+                    } hover:brightness-95`}
                 >
                   <User size={16} />
                   <span className="text-sm font-medium">
@@ -378,9 +377,8 @@ const AssignTicket = () => {
                             <button
                               key={user._id}
                               onClick={() => assignToUser(user._id)}
-                              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 transition ${
-                                selectedAssigneeId === user._id ? "bg-blue-50 text-blue-700" : "text-slate-700"
-                              }`}
+                              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 transition ${selectedAssigneeId === user._id ? "bg-blue-50 text-blue-700" : "text-slate-700"
+                                }`}
                             >
                               <User className="w-4 h-4 text-slate-500" />
                               <div className="flex flex-col truncate">
@@ -413,7 +411,7 @@ const AssignTicket = () => {
 
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 relative z-0">
-        
+
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-4">
           {/* Description */}
@@ -428,48 +426,48 @@ const AssignTicket = () => {
           <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 relative z-10">
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4">Discussion</h3>
             <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto custom-scrollbar">
-                {ticket.responses?.map((res, i) => (
-                    <div key={i} className="bg-slate-50/80 rounded-xl p-3 border border-slate-100">
-                        <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-800 rounded-full text-sm font-bold shrink-0">
-                                {res.avatar && res.avatar !== "👤" && !res.avatar.includes("Unknown") ? 
-                                  <img src={res.avatar} alt="av" className="w-full h-full rounded-full object-cover"/> : 
-                                  res.author?.charAt(0)}
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex justify-between mb-1">
-                                    <h4 className="text-sm font-bold text-slate-800">{res.author}</h4>
-                                    <span className="text-xs text-slate-500">{new Date(res.time).toLocaleString()}</span>
-                                </div>
-                                <p className="text-sm text-slate-700 whitespace-pre-wrap">{res.content}</p>
-                            </div>
-                        </div>
+              {ticket.responses?.map((res, i) => (
+                <div key={i} className="bg-slate-50/80 rounded-xl p-3 border border-slate-100">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-800 rounded-full text-sm font-bold shrink-0">
+                      {res.avatar && res.avatar !== "👤" && !res.avatar.includes("Unknown") ?
+                        <img src={res.avatar} alt="av" className="w-full h-full rounded-full object-cover" /> :
+                        res.author?.charAt(0)}
                     </div>
-                ))}
-                {(!ticket.responses || ticket.responses.length === 0) && <p className="text-center text-xs text-slate-400 italic">No messages yet.</p>}
+                    <div className="flex-1">
+                      <div className="flex justify-between mb-1">
+                        <h4 className="text-sm font-bold text-slate-800">{res.author}</h4>
+                        <span className="text-xs text-slate-500">{new Date(res.time).toLocaleString()}</span>
+                      </div>
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{res.content}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!ticket.responses || ticket.responses.length === 0) && <p className="text-center text-xs text-slate-400 italic">No messages yet.</p>}
             </div>
-            
+
             <div className="relative">
-                <textarea 
-                  value={newResponse} 
-                  onChange={e => {
-                    setNewResponse(e.target.value);
-                    setResponseError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
-                  }}
-                  onBlur={() => setResponseError(validateDescription(newResponse, { min: 10, max: 500, required: true }))}
-                  className={`w-full border ${responseError ? "border-red-400" : "border-slate-200"} rounded-xl p-3 pr-12 text-sm focus:ring-2 focus:ring-blue-100 min-h-[60px] resize-none`} 
-                  placeholder="Type a reply (min 10 characters, at least 3 words)..." 
-                />
-                {responseError && (
-                  <p className="text-xs text-red-500 mt-1">{responseError}</p>
-                )}
-                <button 
-                  onClick={handleSubmitResponse} 
-                  disabled={!newResponse.trim() || !!responseError} 
-                  className="absolute right-2 bottom-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all"
-                >
-                  <Send size={16}/>
-                </button>
+              <textarea
+                value={newResponse}
+                onChange={e => {
+                  setNewResponse(e.target.value);
+                  setResponseError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
+                }}
+                onBlur={() => setResponseError(validateDescription(newResponse, { min: 10, max: 500, required: true }))}
+                className={`w-full border ${responseError ? "border-red-400" : "border-slate-200"} rounded-xl p-3 pr-12 text-sm focus:ring-2 focus:ring-blue-100 min-h-[60px] resize-none`}
+                placeholder="Type a reply (min 10 characters, at least 3 words)..."
+              />
+              {responseError && (
+                <p className="text-xs text-red-500 mt-1">{responseError}</p>
+              )}
+              <button
+                onClick={handleSubmitResponse}
+                disabled={!newResponse.trim() || !!responseError}
+                className="absolute right-2 bottom-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all"
+              >
+                <Send size={16} />
+              </button>
             </div>
           </div>
         </div>
@@ -503,7 +501,7 @@ const AssignTicket = () => {
             {ticket.attachments && ticket.attachments.length > 0 ? (
               <div className="space-y-2">
                 {ticket.attachments.map((file, idx) => (
-                  <button 
+                  <button
                     key={idx}
                     onClick={() => {
                       downloadFile(file.blobName || file.url, file.name);
@@ -517,7 +515,7 @@ const AssignTicket = () => {
                       <span className="text-xs font-bold text-slate-700 truncate">{file.name}</span>
                     </div>
                     <div className="text-slate-400 group-hover:text-blue-600">
-                      <Paperclip size={16}/>
+                      <Paperclip size={16} />
                     </div>
                   </button>
                 ))}

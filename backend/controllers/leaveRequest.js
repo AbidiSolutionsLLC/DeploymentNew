@@ -87,25 +87,7 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
  
   await User.findByIdAndUpdate(user._id, updateObj);
  
-  const timeTrackerEntries = [];
-  const curr = start.clone();
-  while (curr.isSameOrBefore(end)) {
-    const dateStart = curr.toDate();
-    const existingEntry = await TimeTracker.findOne({ user: user._id, date: dateStart });
-    if (existingEntry) {
-      existingEntry.status = 'Leave';
-      await existingEntry.save();
-    } else {
-      timeTrackerEntries.push({
-        user: user._id,
-        date: dateStart,
-        status: 'Leave',
-        notes: `Leave: ${leaveType} - ${reason || 'No reason provided'}`
-      });
-    }
-    curr.add(1, 'days');
-  }
-  if (timeTrackerEntries.length > 0) await TimeTracker.insertMany(timeTrackerEntries);
+  // TimeTracker entries will be created only when the leave is APPROVED in updateLeaveStatus
  
   // Send notification to HR/Managers about new leave request
   sendLeaveCreationNotification(savedLeaveRequest).catch(console.error);
@@ -546,6 +528,37 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
     }
   } catch (notifErr) {
     console.error('[Notification] Leave status update:', notifErr.message);
+  }
+
+  // --- ADDED: TIMETRACKER SYNC ---
+  if (status === "Approved" && oldStatus !== "Approved") {
+    const timeTrackerEntries = [];
+    const curr = start.clone();
+    while (curr.isSameOrBefore(end)) {
+      const dateStart = curr.toDate();
+      const existingEntry = await TimeTracker.findOne({ user: leaveRequest.employee, date: dateStart });
+      if (existingEntry) {
+        existingEntry.status = 'Leave';
+        existingEntry.notes = `Leave Request Approved: ${leaveRequest.leaveType}`;
+        await existingEntry.save();
+      } else {
+        timeTrackerEntries.push({
+          user: leaveRequest.employee,
+          date: dateStart,
+          status: 'Leave',
+          notes: `Leave: ${leaveRequest.leaveType} - ${leaveRequest.reason || 'No reason provided'}`
+        });
+      }
+      curr.add(1, 'days');
+    }
+    if (timeTrackerEntries.length > 0) await TimeTracker.insertMany(timeTrackerEntries);
+  } else if (status !== "Approved" && oldStatus === "Approved") {
+    // If it was already approved but now it's rejected/pending, remove those entries
+    await TimeTracker.deleteMany({
+      user: leaveRequest.employee,
+      date: { $gte: start.toDate(), $lte: end.toDate() },
+      status: 'Leave'
+    });
   }
 
   res.status(200).json({
