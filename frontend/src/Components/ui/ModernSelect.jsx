@@ -49,7 +49,9 @@ const ModernSelect = ({
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setIsOpen(false);
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -80,12 +82,14 @@ const ModernSelect = ({
           left: `${dropdownPosition.left}px`,
           width: `${dropdownPosition.width}px`,
         }}
+        onMouseDown={(e) => e.stopPropagation()} // Prevent mousedown from closing dropdown
       >
         {options.length > 0 ? (
           options.map((opt) => (
             <div
               key={opt.value}
               onClick={() => handleSelect(opt.value)}
+              onMouseDown={(e) => e.stopPropagation()} // Prevent mousedown on options
               className={`px-4 py-2.5 text-sm cursor-pointer transition-colors text-left
                 ${
                   opt.value === value
@@ -98,7 +102,7 @@ const ModernSelect = ({
             </div>
           ))
         ) : (
-          <div className="px-4 py-3 text-xs text-slate-400 text-center">
+          <div className="px-4 py-3 text-xs text-slate-400 text-center" onMouseDown={(e) => e.stopPropagation()}>
             No options available
           </div>
         )}

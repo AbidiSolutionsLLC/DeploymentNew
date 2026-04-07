@@ -2,7 +2,7 @@ const LeaveRequest = require("../models/leaveRequestSchema");
 const User = require("../models/userSchema");
 const TimeTracker = require("../models/timeTrackerSchema");
 const catchAsync = require("../utils/catchAsync");
-const { moment, TIMEZONE } = require("../utils/dateUtils");
+const { moment, TIMEZONE, calculateBusinessDays } = require("../utils/dateUtils");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
 const sendEmail = require('../utils/emailService');
 const mongoose = require("mongoose");
@@ -28,11 +28,11 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
   if (!user) throw new NotFoundError("User not found");
  
   if (!leaveType || !startDate || !endDate) throw new BadRequestError("Missing required fields");
- 
+
   const start = moment(startDate).tz(TIMEZONE).startOf('day');
   const end = moment(endDate).tz(TIMEZONE).startOf('day');
-  const daysDiff = end.diff(start, 'days') + 1;
- 
+  const daysDiff = calculateBusinessDays(startDate, endDate);
+
   const userLeaveBalance = user.leaves[leaveType.toLowerCase()] || 0;
   if (userLeaveBalance < daysDiff) throw new BadRequestError(`Not enough ${leaveType} leaves available`);
  
@@ -272,27 +272,49 @@ exports.getLeaveRequestById = catchAsync(async (req, res) => {
 exports.updateLeaveRequest = catchAsync(async (req, res) => {
   const leaveRequest = await LeaveRequest.findById(req.params.id);
   if (!leaveRequest) throw new NotFoundError("Leave request");
- 
+
   // Check if user has permission to update
   const currentUserId = req.user.id || req.user._id;
   const isOwner = leaveRequest.employee.toString() === currentUserId.toString();
- 
+
   // Only the employee who created the leave request can update it (when pending)
   if (!isOwner && leaveRequest.status === 'Pending') {
     throw new ForbiddenError("Only the requester can update a pending leave request");
   }
- 
+
   // If leave is already approved/rejected, no updates allowed
   if (leaveRequest.status !== 'Pending') {
     throw new BadRequestError("Cannot update leave request after it has been processed");
   }
- 
+
   const updatedLeaveRequest = await LeaveRequest.findByIdAndUpdate(
     req.params.id,
     req.body,
-    { new: true }
+    { new: true, runValidators: true }
   ).populate('employee', 'name email avatar');
- 
+
+  // Also update the user's leaveHistory embedded document
+  if (isOwner && updatedLeaveRequest.employee) {
+    const userId = updatedLeaveRequest.employee._id || updatedLeaveRequest.employee;
+    
+    await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          'leaveHistory.$[elem].leaveType': updatedLeaveRequest.leaveType,
+          'leaveHistory.$[elem].startDate': updatedLeaveRequest.startDate,
+          'leaveHistory.$[elem].endDate': updatedLeaveRequest.endDate,
+          'leaveHistory.$[elem].reason': updatedLeaveRequest.reason,
+          'leaveHistory.$[elem].status': updatedLeaveRequest.status,
+        }
+      },
+      {
+        runValidators: true,
+        arrayFilters: [{ 'elem.leaveId': updatedLeaveRequest._id }]
+      }
+    );
+  }
+
   res.json({ success: true, data: updatedLeaveRequest });
 });
  
@@ -460,7 +482,7 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
  
   const start = moment(leaveRequest.startDate).tz(TIMEZONE).startOf('day');
   const end = moment(leaveRequest.endDate).tz(TIMEZONE).startOf('day');
-  const daysDiff = end.diff(start, 'days') + 1;
+  const daysDiff = calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate);
  
   const updateObj = { $set: { "leaveHistory.$[elem].status": status } };
   const oldStatus = leaveRequest.status;
@@ -557,7 +579,7 @@ exports.deleteLeaveRequest = catchAsync(async (req, res) => {
   if (isSuperAdminOrHR || isOwner) {
     const start = moment(leaveRequest.startDate).tz(TIMEZONE).startOf('day');
     const end = moment(leaveRequest.endDate).tz(TIMEZONE).startOf('day');
-    const daysDiff = end.diff(start, 'days') + 1;
+    const daysDiff = calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate);
    
     await User.findByIdAndUpdate(leaveRequest.employee, {
       $inc: {

@@ -40,6 +40,31 @@ exports.isESTWeekend = (date = new Date()) => {
 };
 
 /**
+ * Calculate business days between two dates (excluding weekends)
+ * @param {string|Date} startDate - Start date
+ * @param {string|Date} endDate - End date
+ * @returns {number} Number of business days (excluding weekends)
+ */
+exports.calculateBusinessDays = (startDate, endDate) => {
+    const start = moment.tz(startDate, TIMEZONE).startOf('day');
+    const end = moment.tz(endDate, TIMEZONE).startOf('day');
+    
+    let businessDays = 0;
+    let currentDate = start.clone();
+    
+    while (currentDate.isSameOrBefore(end, 'day')) {
+        const dayOfWeek = currentDate.day();
+        // Count only weekdays (Monday=1 to Friday=5)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+            businessDays++;
+        }
+        currentDate.add(1, 'day');
+    }
+    
+    return businessDays;
+};
+
+/**
  * Export raw moment and TIMEZONE string for use in controller validation logic.
  * Needed for exports like moment(date).tz(TIMEZONE).format('YYYY-MM-DD').
  */

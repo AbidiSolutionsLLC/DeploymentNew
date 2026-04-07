@@ -414,7 +414,7 @@ const LeaveTrackerAdmin = () => {
 
       {/* ==================== TAB 2: MANAGE LEAVES ==================== */}
       {activeTab === 2 && (
-        <div className="z-[9999] space-y-4 overflow-visible">
+        <div className="space-y-4 overflow-visible">
           {/* Update User Leave Balances */}
           <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
             <div className="mb-4">
