@@ -40,7 +40,7 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
     employee: user._id,
     status: { $in: ["Pending", "Approved"] }
   });
- 
+
   const overlappingLeaves = existingLeaves.filter(leave => {
     const existingStart = new Date(leave.startDate);
     const existingEnd = new Date(leave.endDate);
@@ -48,8 +48,10 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
     const newEnd = new Date(endDate);
     return (existingStart <= newEnd && newStart <= existingEnd);
   });
- 
-  if (overlappingLeaves.length > 0) throw new BadRequestError(`Overlap detected with existing leave.`);
+
+  if (overlappingLeaves.length > 0) {
+    throw new BadRequestError('Leave dates overlap with an existing application');
+  }
  
   const leaveRequest = new LeaveRequest({
     employee: user._id,
@@ -65,7 +67,7 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
   });
  
   const savedLeaveRequest = await leaveRequest.save();
- 
+
   const updateObj = {
     $push: {
       leaveHistory: {
@@ -75,7 +77,9 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
         endDate: end,
         status: 'Pending',
         daysTaken: daysDiff,
-        reason: reason
+        reason: reason,
+        appliedAt: savedLeaveRequest.appliedAt,
+        createdAt: savedLeaveRequest.createdAt || new Date()
       }
     },
     $inc: {

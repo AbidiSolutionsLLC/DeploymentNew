@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { refreshUserData } from "../../slices/userSlice";
-import { FaMoneyBillWave, FaHospital, FaEye } from "react-icons/fa";
+import { FaMoneyBillWave, FaHospital, FaEye, FaEdit } from "react-icons/fa";
 import { MdEventAvailable } from "react-icons/md";
 import ApplyLeaveModal from "../../Components/LeaveModal";
+import EditLeaveModal from "../../Components/EditLeaveModal";
 import HolidayTable from "../../Components/HolidayTable";
 import ViewLeaveModal from "../../Components/ViewLeaveModal";
 import api from "../../axios";
-import { parseISOToLocalDate, formatDisplayDate } from "../../utils/dateUtils";
+import { parseISOToLocalDate, formatDisplayDate, calculateWorkingDays } from "../../utils/dateUtils";
+import { toast } from "react-toastify";
 
 
 const LeaveSummary = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
+    const [editModalOpen, setEditModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState(null);
+    const [editingLeave, setEditingLeave] = useState(null);
     const dispatch = useDispatch();
     const [holidays, setHolidays] = useState([]);
     const [loading, setLoading] = useState({
@@ -88,14 +92,14 @@ const LeaveSummary = () => {
     const formatAppliedLeaves = () => {
         return leaveHistory.map(leave => ({
             id: leave.leaveId,
-            date: formatDisplayDate(leave.startDate || leave.date),
-            startDate: leave.startDate,
+            startDate: formatDisplayDate(leave.startDate),
             endDate: leave.endDate,
-            appliedAt: leave.appliedAt,
+            appliedAt: leave.appliedAt ? formatDisplayDate(leave.appliedAt) : (leave.createdAt ? formatDisplayDate(leave.createdAt) : '-'),
             leaveType: leave.leaveType || leave.type || "-",
             reason: leave.reason || "-",
-            duration: leave.duration || `${Math.ceil(
-                (parseISOToLocalDate(leave.endDate) - parseISOToLocalDate(leave.startDate)) / (1000 * 60 * 60 * 24) + 1
+            duration: leave.duration || `${calculateWorkingDays(
+                parseISOToLocalDate(leave.startDate), 
+                parseISOToLocalDate(leave.endDate)
             )} days`,
             status: leave.status || "Pending",
         }));
@@ -109,7 +113,7 @@ const LeaveSummary = () => {
             // Fetch full leave details from API
             const response = await api.get(`/leaves/${leave.id}`);
             const fullLeaveData = response.data.data;
-            
+
             setSelectedLeave({
                 id: fullLeaveData._id,
                 startDate: fullLeaveData.startDate,
@@ -133,6 +137,31 @@ const LeaveSummary = () => {
             });
             setViewModalOpen(true);
         }
+    };
+
+    // Handle edit leave
+    const handleEditLeave = async (leave) => {
+        try {
+            // Fetch full leave details from API
+            const response = await api.get(`/leaves/${leave.id}`);
+            const fullLeaveData = response.data.data;
+
+            setEditingLeave(fullLeaveData);
+            setEditModalOpen(true);
+        } catch (error) {
+            console.error("Failed to fetch leave details for editing:", error);
+            toast.error("Failed to load leave for editing");
+        }
+    };
+
+    // Handle leave edit submission
+    const handleLeaveEdited = () => {
+        // Refresh user data when a leave is edited
+        if (userData?._id) {
+            dispatch(refreshUserData(userData._id));
+        }
+        setEditModalOpen(false);
+        setEditingLeave(null);
     };
 
     // Handle leave addition callback
@@ -257,11 +286,11 @@ const LeaveSummary = () => {
                         <table className="min-w-full text-sm border-separate border-spacing-0">
                             <thead>
                                 <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                                    {["Date", "Leave Type", "Reason", "Duration", "Status", "Actions"].map((header, index) => (
+                                    {["Start Date", "End Date", "Leave Type", "Reason", "Duration", "Status", "Applied Date", "Actions"].map((header, index) => (
                                         <th
                                             key={index}
                                             className={`p-4 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left ${index === 0 ? "rounded-tl-lg" : ""
-                                                } ${index === 5 ? "rounded-tr-lg" : ""
+                                                } ${index === 7 ? "rounded-tr-lg" : ""
                                                 }`}
                                         >
                                             {header}
@@ -272,7 +301,8 @@ const LeaveSummary = () => {
                             <tbody>
                                 {appliedLeaves.map((item, index) => (
                                     <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                                        <td className="p-4 text-slate-700 font-medium">{item.date}</td>
+                                        <td className="p-4 text-slate-700 font-medium">{item.startDate}</td>
+                                        <td className="p-4 text-slate-700 font-medium">{formatDisplayDate(item.endDate)}</td>
                                         <td className="p-4 text-slate-600">{item.leaveType}</td>
                                         <td className="p-4 text-slate-600">{item.reason}</td>
                                         <td className="p-4 text-slate-700 font-medium">{item.duration}</td>
@@ -286,14 +316,26 @@ const LeaveSummary = () => {
                                                 {item.status}
                                             </span>
                                         </td>
+                                        <td className="p-4 text-slate-700 font-medium">{item.appliedAt}</td>
                                         <td className="p-4">
-                                            <button
-                                                onClick={() => handleViewLeave(item)}
-                                                className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
-                                            >
-                                                <FaEye size={12} />
-                                                View
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleViewLeave(item)}
+                                                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
+                                                >
+                                                    <FaEye size={12} />
+                                                    View
+                                                </button>
+                                                {item.status === 'Pending' && (
+                                                    <button
+                                                        onClick={() => handleEditLeave(item)}
+                                                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition-colors"
+                                                    >
+                                                        <FaEdit size={12} />
+                                                        Edit
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -323,6 +365,15 @@ const LeaveSummary = () => {
                 setIsOpen={setIsOpen}
                 onLeaveAdded={handleLeaveAdded}
             />
+            
+            {editingLeave && (
+                <EditLeaveModal
+                    isOpen={editModalOpen}
+                    setIsOpen={setEditModalOpen}
+                    leaveData={editingLeave}
+                    onLeaveEdited={handleLeaveEdited}
+                />
+            )}
         </div>
     );
 };

@@ -6,6 +6,7 @@ import {
   FiMoreVertical,
   FiCheckSquare,
 } from "react-icons/fi";
+import { toast } from "react-toastify";
 
 import EmptyCardState from "./EmptyCardState";
 
@@ -18,12 +19,36 @@ const ToDoCard = ({ onDelete }) => {
   const [newDesc, setNewDesc] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
   const [editing, setEditing] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editDueDate, setEditDueDate] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [errors, setErrors] = useState({});
   const menuRef = useRef();
 
   useEffect(() => {
-    setTasks(defaultTasks);
+    // Load tasks from localStorage on mount
+    const savedTasks = localStorage.getItem('todoTasks');
+    if (savedTasks) {
+      try {
+        setTasks(JSON.parse(savedTasks));
+      } catch (e) {
+        console.error('Failed to parse saved tasks:', e);
+        setTasks(defaultTasks);
+      }
+    } else {
+      setTasks(defaultTasks);
+    }
   }, []);
+
+  useEffect(() => {
+    // Save tasks to localStorage whenever they change
+    if (tasks.length > 0) {
+      localStorage.setItem('todoTasks', JSON.stringify(tasks));
+    } else {
+      localStorage.removeItem('todoTasks');
+    }
+  }, [tasks]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -36,22 +61,39 @@ const ToDoCard = ({ onDelete }) => {
   }, []);
 
   const addTask = () => {
-    if (newTitle.trim()) {
-      setTasks([
-        ...tasks,
-        {
-          id: Date.now(),
-          title: newTitle.trim(),
-          description: newDesc.trim(),
-          dueDate: newDueDate || null,
-          completed: false,
-        },
-      ]);
-      setNewTitle("");
-      setNewDesc("");
-      setNewDueDate("");
-      setShowAddForm(false);
+    const titleTrimmed = newTitle.trim();
+    const descTrimmed = newDesc.trim();
+    
+    // Validation
+    const newErrors = {};
+    if (!titleTrimmed) {
+      newErrors.title = 'Task name is required';
     }
+    if (!newDueDate) {
+      newErrors.date = 'Date is required';
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error('Please fix validation errors');
+      return;
+    }
+    
+    setTasks([
+      ...tasks,
+      {
+        id: Date.now(),
+        title: titleTrimmed,
+        description: descTrimmed,
+        dueDate: newDueDate || null,
+        completed: false,
+      },
+    ]);
+    setNewTitle("");
+    setNewDesc("");
+    setNewDueDate("");
+    setShowAddForm(false);
+    setErrors({});
   };
 
   const toggleComplete = (id) => {
@@ -59,11 +101,47 @@ const ToDoCard = ({ onDelete }) => {
   };
 
   const removeTask = (id) => {
-    setTasks(tasks.filter((t) => t.id !== id));
+    const confirmed = window.confirm('Delete this task?');
+    if (confirmed) {
+      setTasks(tasks.filter((t) => t.id !== id));
+    }
   };
 
   const handleFieldChange = (id, field, value) => {
     setTasks(tasks.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
+  };
+
+  const handleEditClick = (task) => {
+    setEditing(task.id);
+    setEditTitle(task.title);
+    setEditDesc(task.description || "");
+    setEditDueDate(task.dueDate || "");
+  };
+
+  const handleEditSave = (id) => {
+    const titleTrimmed = editTitle.trim();
+    
+    // Validation
+    if (!titleTrimmed) {
+      toast.error('Task name is required');
+      return;
+    }
+    
+    setTasks(tasks.map((t) => (t.id === id ? { 
+      ...t, 
+      title: titleTrimmed,
+      description: editDesc.trim(),
+      dueDate: editDueDate || null
+    } : t)));
+    setEditing(null);
+    setErrors({});
+  };
+
+  const handleEditCancel = () => {
+    setEditing(null);
+    setEditTitle("");
+    setEditDesc("");
+    setEditDueDate("");
   };
 
   const handleBlur = () => setEditing(null);
@@ -137,13 +215,21 @@ const ToDoCard = ({ onDelete }) => {
             </button>
           ) : (
             <div className="flex flex-col gap-2 mb-4 p-2 bg-slate-50 rounded-lg border border-slate-100">
-              <input
-                type="text"
-                placeholder="Task name"
-                className="border border-slate-300 px-3 py-2 rounded-lg text-xs w-full bg-white"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-              />
+              <div>
+                <input
+                  type="text"
+                  placeholder="Task name"
+                  className={`border px-3 py-2 rounded-lg text-xs w-full bg-white ${errors.title ? 'border-red-400' : 'border-slate-300'}`}
+                  value={newTitle}
+                  onChange={(e) => {
+                    setNewTitle(e.target.value);
+                    if (errors.title) setErrors(prev => ({ ...prev, title: null }));
+                  }}
+                />
+                {errors.title && (
+                  <p className="text-[9px] text-red-500 mt-1">{errors.title}</p>
+                )}
+              </div>
               <input
                 type="text"
                 placeholder="Task description"
@@ -151,15 +237,26 @@ const ToDoCard = ({ onDelete }) => {
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
               />
-              <input
-                type="date"
-                className="border border-slate-300 px-3 py-2 rounded-lg text-xs w-full bg-white"
-                value={newDueDate}
-                onChange={(e) => setNewDueDate(e.target.value)}
-              />
+              <div>
+                <input
+                  type="date"
+                  className={`border px-3 py-2 rounded-lg text-xs w-full bg-white ${errors.date ? 'border-red-400' : 'border-slate-300'}`}
+                  value={newDueDate}
+                  onChange={(e) => {
+                    setNewDueDate(e.target.value);
+                    if (errors.date) setErrors(prev => ({ ...prev, date: null }));
+                  }}
+                />
+                {errors.date && (
+                  <p className="text-[9px] text-red-500 mt-1">{errors.date}</p>
+                )}
+              </div>
               <div className="flex justify-end gap-2">
                 <button
-                  onClick={() => setShowAddForm(false)}
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setErrors({});
+                  }}
                   className="text-[10px] text-slate-500 font-medium"
                 >
                   Cancel
@@ -194,20 +291,39 @@ const ToDoCard = ({ onDelete }) => {
                     />
                     <div className="min-w-0 flex-1">
                       {editing === task.id ? (
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <input
                             autoFocus
                             className="font-semibold bg-white px-2 py-1 rounded border border-slate-300 w-full text-xs"
-                            value={task.title}
-                            onChange={(e) => handleFieldChange(task.id, "title", e.target.value)}
-                            onBlur={handleBlur}
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
                           />
                           <input
                             className="text-[10px] text-slate-600 bg-white px-2 py-1 rounded border border-slate-300 w-full"
-                            value={task.description}
-                            onChange={(e) => handleFieldChange(task.id, "description", e.target.value)}
-                            onBlur={handleBlur}
+                            value={editDesc}
+                            onChange={(e) => setEditDesc(e.target.value)}
+                            placeholder="Description"
                           />
+                          <input
+                            type="date"
+                            className="text-[10px] bg-white px-2 py-1 rounded border border-slate-300 w-full"
+                            value={editDueDate}
+                            onChange={(e) => setEditDueDate(e.target.value)}
+                          />
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => handleEditSave(task.id)}
+                              className="flex-1 bg-green-500 text-white px-2 py-1 rounded text-[10px] font-medium hover:bg-green-600 transition"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={handleEditCancel}
+                              className="flex-1 bg-slate-200 text-slate-700 px-2 py-1 rounded text-[10px] font-medium hover:bg-slate-300 transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <>
@@ -235,9 +351,9 @@ const ToDoCard = ({ onDelete }) => {
                   </div>
 
                   <div className="flex flex-col gap-1.5 items-end shrink-0">
-                    {!task.completed && (
+                    {!task.completed && editing !== task.id && (
                       <button
-                        onClick={() => setEditing(task.id)}
+                        onClick={() => handleEditClick(task)}
                         className="bg-green-100 text-green-700 p-1.5 rounded-md hover:bg-green-200"
                       >
                         <FiEdit2 className="h-3 w-3" />
