@@ -12,7 +12,34 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
   const [attachmentName, setAttachmentName] = useState("");
   const [newAttachment, setNewAttachment] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const modalRef = useRef(null);
+
+  // Validate hours field
+  const validateHours = (value) => {
+    if (!value && value !== 0) return "Hours worked is required.";
+    
+    const valueStr = String(value).trim();
+    if (valueStr && isNaN(valueStr)) {
+      return "Please enter a valid number";
+    }
+    
+    const num = parseFloat(valueStr);
+    
+    if (!isNaN(num) && num < 0) {
+      return "Hours cannot be negative";
+    }
+    
+    if (!isNaN(num) && num < 0.5) {
+      return "Hours must be at least 0.5.";
+    }
+    
+    if (!isNaN(num) && num > 24) {
+      return "Hours cannot exceed 24.";
+    }
+    
+    return null;
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -32,11 +59,20 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
     if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
   };
 
-  const isCurrentInputValid = Boolean(date) && Number(hours) > 0 && description.trim().length >= 5;
+  const isCurrentInputValid = Boolean(date) && 
+    description.trim().length >= 5 && 
+    !validateHours(hours) && 
+    Number(hours) >= 0.5;
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!isCurrentInputValid || !timeLogId) return;
+    
+    // Validate before saving
+    const hoursError = validateHours(hours);
+    if (hoursError || !isCurrentInputValid || !timeLogId) {
+      setErrors({ hours: hoursError });
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -109,10 +145,17 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
                 type="number"
                 step="0.1"
                 value={hours}
-                onChange={(e) => setHours(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100"
+                onChange={(e) => {
+                  setHours(e.target.value);
+                  setErrors((prev) => ({ ...prev, hours: validateHours(e.target.value) }));
+                }}
+                onBlur={() => setErrors((prev) => ({ ...prev, hours: validateHours(hours) }))}
+                className={`w-full bg-white border ${errors.hours ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100`}
                 required
               />
+              {errors.hours && (
+                <p className="text-xs text-red-500 mt-1">{errors.hours}</p>
+              )}
             </div>
           </div>
 

@@ -11,11 +11,11 @@ const { createNotification } = require('../utils/notificationService');
 // --- 1. CREATE TICKET ---
 exports.createTicket = catchAsync(async (req, res) => {
   const { emailAddress, subject, description } = req.body;
- 
+
   const timestamp = Date.now();
   const random = Math.floor(Math.random() * 1000);
   const ticketID = `TKT-${timestamp}-${random}`;
- 
+
   const newTicket = {
     emailAddress,
     subject,
@@ -25,12 +25,14 @@ exports.createTicket = catchAsync(async (req, res) => {
     closedBy: req.user?.id,
     assignedTo: null
   };
- 
-  if (req.file) {
-    newTicket.attachments.push({
-      name: req.file.originalname,
-      url: req.file.url || req.file.path,
-      blobName: req.file.blobName
+
+  if (req.files && req.files.length > 0) {
+    req.files.forEach(file => {
+      newTicket.attachments.push({
+        name: file.originalname,
+        url: file.url || file.path,
+        blobName: file.blobName
+      });
     });
   }
  

@@ -35,6 +35,7 @@ const TimeTracker = () => {
   const [isCreateTimesheetModalOpen, setIsCreateTimesheetModalOpen] = useState(false);
   const [timesheets, setTimesheets] = useState([]);
   const [refreshTimesheetTrigger, setRefreshTimesheetTrigger] = useState(0);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ show: false, logId: null });
 
   const tabs = [
     { title: "Time Logs" },
@@ -174,7 +175,14 @@ const TimeTracker = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteClick = (id) => {
+    setDeleteConfirmDialog({ show: true, logId: id });
+  };
+
+  const handleConfirmDelete = async () => {
+    const id = deleteConfirmDialog.logId;
+    if (!id) return;
+
     try {
       await timeLogApi.deleteTimeLog(id);
       fetchTimeLogs();
@@ -182,7 +190,13 @@ const TimeTracker = () => {
     } catch (error) {
       console.error("Failed to delete time log:", error);
       toast.error(error.response?.data?.message || "Failed to delete time log");
+    } finally {
+      setDeleteConfirmDialog({ show: false, logId: null });
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmDialog({ show: false, logId: null });
   };
 
   const handleViewLog = (log) => {
@@ -293,7 +307,7 @@ const TimeTracker = () => {
       icon: <IoTrash size={16} />,
       title: "Delete",
       className: "bg-red-50 text-red-600 hover:bg-red-100",
-      onClick: (row) => handleDelete(row._id)
+      onClick: (row) => handleDeleteClick(row._id)
     }
   ];
 
@@ -488,6 +502,41 @@ const TimeTracker = () => {
           log={viewingLog}
           onClose={() => setViewingLog(null)}
         />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmDialog.show && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-fadeIn">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-base font-black text-slate-800 uppercase tracking-wider mb-2">
+                Delete Time Log
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mb-6">
+                Are you sure you want to delete this time log? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelDelete}
+                  className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

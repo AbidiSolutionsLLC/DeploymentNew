@@ -6,11 +6,20 @@ const {
   UnauthorizedError,
 } = require("../utils/ExpressError");
 
+// Maximum file size constant (25MB)
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB limit (Cloudinary's max for unsigned uploads)
+
 // Allowed file types with extensions
 const ALLOWED_FILE_TYPES = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/jpg': 'jpg',
+  'image/bmp': 'bmp',
+  'video/mp4': 'mp4',
+  'audio/mpeg': 'mp3',
+  'audio/mpeg3': 'mp3',
+  'audio/x-mpeg': 'mp3',
+  'audio/x-mpeg-3': 'mp3',
   'application/pdf': 'pdf',
   'application/msword': 'doc',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
@@ -22,7 +31,7 @@ const ALLOWED_FILE_TYPES = {
 
 const commonFileFilter = (req, file, cb) => {
   if (!ALLOWED_FILE_TYPES[file.mimetype]) {
-    return cb(new BadRequestError(400, `File type not allowed. Please upload DOC, PDF, EXCEL, PNG, JPG, TXT, or CSV.`), false);
+    return cb(new BadRequestError(400, `File type not allowed. Please upload BMP, MP4, MP3, DOC, PDF, EXCEL, PNG, JPG, TXT, or CSV.`), false);
   }
   cb(null, true);
 };
@@ -30,8 +39,8 @@ const commonFileFilter = (req, file, cb) => {
 // File upload middleware
 const uploadFile = multer({
   storage: fileStorage,
-  limits: { 
-    fileSize: 25 * 1024 * 1024, // 25MB limit (Cloudinary's max for unsigned uploads)
+  limits: {
+    fileSize: MAX_FILE_SIZE, // 25MB limit (Cloudinary's max for unsigned uploads)
     files: 1
   },
   fileFilter: commonFileFilter
@@ -59,7 +68,8 @@ const handleUpload = (uploadFunction) => {
       if (err) {
         if (err instanceof multer.MulterError) {
           if (err.code === 'LIMIT_FILE_SIZE') {
-            return next(new BadRequestError(400, 'File too large'));
+            const limitMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+            return next(new BadRequestError(400, `File size exceeds ${limitMB} MB limit`));
           }
           if (err.code === 'LIMIT_FILE_COUNT') {
             return next(new BadRequestError(400, 'Only one file allowed per upload'));
@@ -68,12 +78,12 @@ const handleUpload = (uploadFunction) => {
         }
         return next(err);
       }
-      
+
       // Additional validation for successful upload
       if (req.fileValidationError) {
         return next(new BadRequestError(400, req.fileValidationError));
       }
-      
+
       next();
     });
   };
@@ -84,5 +94,6 @@ module.exports = {
   uploadFolderThumbnail: handleUpload(uploadFolderThumbnail),
   ALLOWED_FILE_TYPES,
   commonFileFilter,
-  handleUpload
+  handleUpload,
+  MAX_FILE_SIZE
 };

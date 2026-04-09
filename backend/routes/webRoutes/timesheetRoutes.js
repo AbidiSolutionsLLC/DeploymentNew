@@ -31,9 +31,11 @@ router.get("/weekly", isLoggedIn, timesheetController.getWeeklyTimesheets);
 router
     .route("/:id")
     .get(isLoggedIn, timesheetController.getTimesheetById)
-    .put(isLoggedIn, validate(updateTimesheetStatusSchema), handleUpload(upload.array("attachments", 5)), timesheetController.updateTimesheetStatus);
+    .put(isLoggedIn, validate(updateTimesheetStatusSchema), handleUpload(upload.array("attachments", 5)), timesheetController.updateTimesheetStatus)
+    .delete(isLoggedIn, timesheetController.deleteTimesheet);
 
 router.put("/:id/status", isLoggedIn, validate(updateTimesheetStatusSchema), timesheetController.updateTimesheetStatus);
+router.put("/:id/edit", isLoggedIn, handleUpload(upload.array("attachments", 5)), timesheetController.updateTimesheet);
 
 router.post("/:id/comment", isLoggedIn, validate(timesheetCommentSchema), timesheetController.addTimesheetComment);
 

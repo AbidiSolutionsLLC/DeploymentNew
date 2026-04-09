@@ -198,10 +198,21 @@ const Ticket = () => {
               <input
                 type="text"
                 placeholder="Search tickets..."
-                className="w-full pl-10 pr-3 py-2.5 rounded-lg shadow-sm text-sm bg-white/80 backdrop-blur-sm text-slate-700 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
+                className="w-full pl-10 pr-10 py-2.5 rounded-lg shadow-sm text-sm bg-white/80 backdrop-blur-sm text-slate-700 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  title="Clear search"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             <button
