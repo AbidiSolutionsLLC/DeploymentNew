@@ -7,6 +7,7 @@ import {
     UsersIcon
 } from "@heroicons/react/24/solid";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { checkInNow, checkOutNow, fetchCurrentStatus } from "../slices/attendanceTimer";
 import { toast } from "react-toastify";
 import { refreshUserData } from "../slices/userSlice";
@@ -14,6 +15,7 @@ import api from "../axios"; // Import API for direct status checks
 
 const RightSidebar = ({ isOpen, toggleSidebar }) => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const [elapsedTime, setElapsedTime] = useState({ hours: 0, minutes: 0, seconds: 0 });
     const [timerInterval, setTimerInterval] = useState(null);
 
@@ -293,6 +295,7 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
                             teamMembers.map((member) => (
                                 <div
                                     key={member._id}
+                                    onClick={() => navigate(`/people/profile/${member._id}`)}
                                     className="flex items-center gap-1 hover:bg-slate-50 p-2 rounded-lg transition-colors cursor-pointer"
                                 >
                                     <Avatar url={member.avatar} name={member.name} />

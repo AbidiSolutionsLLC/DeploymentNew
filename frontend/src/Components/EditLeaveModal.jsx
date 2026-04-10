@@ -131,8 +131,17 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
   const handleBackdropClick = (e) => {
     if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
     if (!isSubmitting && e.target === e.currentTarget) {
-      setIsOpen(false);
+      handleCancel();
     }
+  };
+
+  const handleCancel = () => {
+    const hasData = leaveType || startDate || endDate || reason;
+    if (hasData) {
+      const confirmed = window.confirm('Are you sure? Unsaved changes will be lost.');
+      if (!confirmed) return;
+    }
+    setIsOpen(false);
   };
 
   if (!isOpen) return null;
@@ -295,7 +304,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
         <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
           <button
             type="button"
-            onClick={() => !isSubmitting && setIsOpen(false)}
+            onClick={handleCancel}
             disabled={isSubmitting}
             className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors disabled:opacity-50"
           >

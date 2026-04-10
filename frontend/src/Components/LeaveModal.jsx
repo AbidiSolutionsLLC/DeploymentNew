@@ -43,8 +43,28 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
     // If clicking inside the date picker portal, don't close the modal
     if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
     if (!isSubmitting && modalRef.current && !modalRef.current.contains(e.target)) {
-      setIsOpen(false);
+      handleCancel();
     }
+  };
+
+  const handleCancel = () => {
+    const hasData = leaveType || startDate || endDate || reason;
+    if (hasData) {
+      const confirmed = window.confirm('Are you sure? Unsaved changes will be lost.');
+      if (!confirmed) return;
+    }
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setLeaveType("");
+    setStartDate(null);
+    setEndDate(null);
+    setReason("");
+    setQuotaError("");
+    setDaysRequested(0);
+    setErrors({});
+    setIsOpen(false);
   };
 
   useEffect(() => {
@@ -312,9 +332,9 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
         </form>
 
         <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
-          <button 
-            type="button" 
-            onClick={() => !isSubmitting && setIsOpen(false)} 
+          <button
+            type="button"
+            onClick={handleCancel}
             disabled={isSubmitting}
             className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors disabled:opacity-50"
           >
