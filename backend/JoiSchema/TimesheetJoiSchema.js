@@ -25,11 +25,27 @@ const timesheetCommentSchema = Joi.object({
 });
 
 const createTimesheetSchema = Joi.object({
-  name: Joi.string().trim().min(3).max(150).required().messages({
-    'string.empty': 'Timesheet name is required.',
-    'string.min': 'Timesheet name must be at least 3 characters.',
-    'any.required': 'Timesheet name is required.'
-  }),
+  name: Joi.string()
+    .trim()
+    .min(3)
+    .max(150)
+    .pattern(/^[a-zA-Z0-9\s\-'.,&()]+$/)
+    .required()
+    .custom((value, helpers) => {
+      // Check for numbers-only input
+      if (/^\d+$/.test(value)) {
+        return helpers.error('string.numbersOnly');
+      }
+      return value;
+    })
+    .messages({
+      'string.empty': 'Timesheet Name is required.',
+      'string.min': 'Timesheet name must be at least 3 characters.',
+      'string.max': 'Timesheet name cannot exceed 150 characters.',
+      'string.pattern.base': 'Timesheet name contains invalid characters.',
+      'string.numbersOnly': 'Numbers-only names are not allowed.',
+      'any.required': 'Timesheet Name is required.'
+    }),
   date: Joi.date().required().messages({
     'date.base': 'Please select a valid date.',
     'any.required': 'Date is required.'

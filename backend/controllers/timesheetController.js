@@ -329,3 +329,70 @@ exports.addTimesheetComment = catchAsync(async (req, res) => {
 
   res.status(200).json(timesheet);
 });
+
+// --- 8. UPDATE TIMESHEET (Employee can edit only if status is Pending) ---
+exports.updateTimesheet = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { name, description, date } = req.body;
+
+  const timesheet = await Timesheet.findById(id);
+  if (!timesheet) throw new NotFoundError("Timesheet");
+
+  // Only allow employee to edit if status is Pending
+  if (timesheet.status !== 'Pending') {
+    throw new ForbiddenError("You can only edit timesheets that are in Pending status");
+  }
+
+  // Verify ownership
+  if (timesheet.employee.toString() !== (req.user.id || req.user._id).toString()) {
+    throw new ForbiddenError("You can only edit your own timesheets");
+  }
+
+  if (name) timesheet.name = name;
+  if (description) timesheet.description = description;
+  if (date) timesheet.date = moment.tz(date, TIMEZONE).startOf('day').toDate();
+
+  // Handle new attachments if uploaded
+  if (req.files && req.files.length > 0) {
+    const attachmentData = req.files.map(file => ({
+      public_id: file.public_id,
+      url: file.path,
+      originalname: file.originalname,
+      format: file.format,
+      size: file.size
+    }));
+    timesheet.attachments.push(...attachmentData);
+  }
+
+  await timesheet.save();
+  res.status(200).json(timesheet);
+});
+
+// --- 9. DELETE TIMESHEET (Employee can delete only if status is Pending) ---
+exports.deleteTimesheet = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const timesheet = await Timesheet.findById(id);
+  if (!timesheet) throw new NotFoundError("Timesheet");
+
+  // Only allow employee to delete if status is Pending
+  if (timesheet.status !== 'Pending') {
+    throw new ForbiddenError("You can only delete timesheets that are in Pending status");
+  }
+
+  // Verify ownership
+  if (timesheet.employee.toString() !== (req.user.id || req.user._id).toString()) {
+    throw new ForbiddenError("You can only delete your own timesheets");
+  }
+
+  // Reset time logs to not be added to timesheet
+  if (timesheet.timeLogs && timesheet.timeLogs.length > 0) {
+    await TimeLog.updateMany(
+      { _id: { $in: timesheet.timeLogs } },
+      { $set: { isAddedToTimesheet: false, timesheet: null } }
+    );
+  }
+
+  await timesheet.deleteOne();
+  res.status(200).json({ message: "Timesheet deleted successfully" });
+});

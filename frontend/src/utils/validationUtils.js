@@ -46,58 +46,122 @@ export const validateText = (value) => {
 
 /**
  * Validates description fields (reason, notes, details, etc.)
- * Rules: Min-Max (default 20-500), trimmed, max 2 consecutive spaces, 
+ * Rules: Min-Max (default 20-500), trimmed, max 2 consecutive spaces,
  * restricted special chars, no spam patterns, at least 3 distinct words.
- * @param {string} value 
+ * @param {string} value
  * @param {object} options { min: 20, max: 500, required: true }
  * @returns {string|null} Error message or null if valid
+ * @deprecated Use validateDescriptionAllErrors instead for multi-error support
  */
 export const validateDescription = (value, options = {}) => {
   const { min = 20, max = 500, required = true } = options;
   const sanitized = value?.trim() || '';
-  
+
   if (!sanitized) {
     return required ? "Description is required." : null;
   }
-  
+
   if (sanitized.length < min) {
     return `Description must be at least ${min} characters. Please provide a meaningful description.`;
   }
-  
+
   if (sanitized.length > max) {
     return `Description cannot exceed ${max} characters.`;
   }
-  
+
   // Consecutive spaces check (max 2 allowed)
   if (/\s{3,}/.test(sanitized)) {
     return "Please avoid excessive spaces.";
   }
-  
+
   // Restricted characters check
   // Block: @, #, $, %, ^, *, {, }, [, ], |, \, <, >, /, ~, `
   const allowedRegex = /^[a-zA-Z0-9\s.,!?'\-"():;]+$/;
   if (!allowedRegex.test(sanitized)) {
     return "Special characters like @, #, $, %, ^ are not allowed in the description.";
   }
-  
+
   // Spam: Repeated characters (e.g. "aaaaa" or ".....")
   if (/(.)\1{4,}/.test(sanitized)) {
     return "Please enter a meaningful description.";
   }
-  
+
   // Spam: All-caps longer than 10 characters
   const capsMatch = sanitized.match(/[A-Z]{11,}/);
   if (capsMatch) {
     return "Please enter a meaningful description.";
   }
-  
+
   // Spam: Min 3 words
   const words = sanitized.split(/\s+/).filter(w => w.length > 0);
   if (words.length < 3) {
     return "Description must contain at least 3 words.";
   }
-  
+
   return null;
+};
+
+/**
+ * Validates description fields - RETURNS ALL ERRORS simultaneously
+ * Rules: Min-Max, trimmed, max 2 consecutive spaces,
+ * restricted special chars, no spam patterns, at least 3 distinct words, no emojis.
+ * @param {string} value
+ * @param {object} options { min: 20, max: 500, required: true }
+ * @returns {string[]} Array of error messages (empty if valid)
+ */
+export const validateDescriptionAllErrors = (value, options = {}) => {
+  const { min = 20, max = 500, required = true } = options;
+  const errors = [];
+  const sanitized = value?.trim() || '';
+
+  if (!sanitized) {
+    if (required) errors.push("Description is required.");
+    return errors; // no need for further checks
+  }
+
+  // Check for emojis first (before other validations)
+  const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F700}-\u{1F77F}]|[\u{1F780}-\u{1F7FF}]|[\u{1F800}-\u{1F8FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F170}-\u{1F1FF}]|[\u{200D}]|[\u{20E3}]|[\u{E0020}-\u{E007F}]/u;
+  if (emojiRegex.test(sanitized)) {
+    errors.push("Emojis are not allowed.");
+    return errors; // return early if emojis detected
+  }
+
+  if (sanitized.length < min) {
+    errors.push(`Description must be at least ${min} characters.`);
+  }
+
+  if (sanitized.length > max) {
+    errors.push(`Description cannot exceed ${max} characters.`);
+  }
+
+  // Consecutive spaces check (max 2 allowed)
+  if (/\s{3,}/.test(sanitized)) {
+    errors.push("Please avoid excessive spaces.");
+  }
+
+  // Restricted characters check
+  const allowedRegex = /^[a-zA-Z0-9\s.,!?'\-"():;]+$/;
+  if (!allowedRegex.test(sanitized)) {
+    errors.push("Special characters like @, #, $, %, ^ are not allowed.");
+  }
+
+  // Spam: Repeated characters (e.g. "aaaaa" or ".....")
+  if (/(.)\1{4,}/.test(sanitized)) {
+    errors.push("Please enter a meaningful description.");
+  }
+
+  // Spam: All-caps longer than 10 characters
+  if (/[A-Z]{11,}/.test(sanitized)) {
+    errors.push("Please enter a meaningful description.");
+  }
+
+  // Min 3 words check
+  const words = sanitized.split(/\s+/).filter(w => w.length > 0);
+  if (words.length < 3) {
+    errors.push("Description must contain at least 3 words.");
+  }
+
+  return errors;
 };
 
 /**

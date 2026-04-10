@@ -148,7 +148,7 @@ const TableWithPagination = ({
                             e.stopPropagation();
                             action.onClick(row);
                           }}
-                          className={`p-2 rounded-lg transition ${action.className || 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+                          className={`p-2 rounded-lg transition ${typeof action.className === 'function' ? action.className(row) : (action.className || 'bg-slate-50 text-slate-600 hover:bg-slate-100')}`}
                           title={action.title}
                         >
                           {action.icon}

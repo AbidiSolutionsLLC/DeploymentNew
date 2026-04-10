@@ -51,6 +51,16 @@ const downloadAttachment = async (timesheetId, attachmentId) => {
   return response.data;
 }
 
+const updateTimesheet = async (id, timesheetData) => {
+  const response = await api.put(`/timesheets/${id}/edit`, timesheetData);
+  return response.data;
+};
+
+const deleteTimesheet = async (id) => {
+  const response = await api.delete(`/timesheets/${id}`);
+  return response.data;
+};
+
 export default {
   getEmployeeTimesheets,
   getWeeklyTimesheets, // Add this
@@ -59,5 +69,7 @@ export default {
   getAllTimesheets,
   updateTimesheetStatus,
   addTimesheetComment,
-  downloadAttachment // Add this
+  downloadAttachment, // Add this
+  updateTimesheet,
+  deleteTimesheet
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { IoCalendarNumberOutline, IoDownloadOutline } from "react-icons/io5";
+import { IoCalendarNumberOutline, IoDownloadOutline, IoPencil, IoTrash } from "react-icons/io5";
 import { FaAngleLeft, FaAngleRight, FaEye, FaCommentDots } from "react-icons/fa";
 import { downloadFile } from "../../utils/downloadFile";
 import DatePicker from "react-datepicker";
@@ -9,12 +9,16 @@ import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
 import TableWithPagination from "../../Components/TableWithPagination";
 import ViewTimesheetModal from "../../Components/ViewTimesheetModal";
+import EditTimesheetModal from "../../Components/EditTimesheetModal";
 import { moment, TIMEZONE } from "../../utils/dateUtils";
 
 const Timesheet = ({ refreshTrigger }) => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedTimesheet, setSelectedTimesheet] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [editingTimesheet, setEditingTimesheet] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ show: false, timesheetId: null });
   
   function getMonday(date) {
     const d = new Date(date);
@@ -172,10 +176,53 @@ const Timesheet = ({ refreshTrigger }) => {
     // Update the timesheet in the list
     setWeeklyData(prev => ({
       ...prev,
-      timesheets: prev.timesheets.map(ts => 
+      timesheets: prev.timesheets.map(ts =>
         ts._id === updatedTimesheet._id ? updatedTimesheet : ts
       )
     }));
+  };
+
+  const handleEditClick = (timesheet) => {
+    if (timesheet.status !== 'Pending') {
+      toast.error("You can only edit timesheets that are in Pending status");
+      return;
+    }
+    setEditingTimesheet(timesheet);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteClick = (timesheet) => {
+    if (timesheet.status !== 'Pending') {
+      toast.error("You can only delete timesheets that are in Pending status");
+      return;
+    }
+    setDeleteConfirmDialog({ show: true, timesheetId: timesheet._id });
+  };
+
+  const handleConfirmDelete = async () => {
+    const id = deleteConfirmDialog.timesheetId;
+    if (!id) return;
+
+    try {
+      await timesheetApi.deleteTimesheet(id);
+      toast.success("Timesheet deleted successfully");
+      fetchWeeklyTimesheets();
+    } catch (error) {
+      console.error("Failed to delete timesheet:", error);
+      toast.error(error.response?.data?.message || "Failed to delete timesheet");
+    } finally {
+      setDeleteConfirmDialog({ show: false, timesheetId: null });
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmDialog({ show: false, timesheetId: null });
+  };
+
+  const handleTimesheetUpdated = () => {
+    fetchWeeklyTimesheets();
+    setShowEditModal(false);
+    setEditingTimesheet(null);
   };
 
   // FIX: Display date as UTC to match backend storage
@@ -273,6 +320,18 @@ const Timesheet = ({ refreshTrigger }) => {
       title: "View Details",
       className: "bg-blue-50 text-blue-600 hover:bg-blue-100",
       onClick: (row) => handleViewDetails(row)
+    },
+    {
+      icon: <IoPencil size={14} />,
+      title: "Edit",
+      className: (row) => `hover:bg-green-100 ${row.status === 'Pending' ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`,
+      onClick: (row) => handleEditClick(row)
+    },
+    {
+      icon: <IoTrash size={14} />,
+      title: "Delete",
+      className: (row) => `hover:bg-red-100 ${row.status === 'Pending' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`,
+      onClick: (row) => handleDeleteClick(row)
     }
   ];
 
@@ -429,6 +488,54 @@ const Timesheet = ({ refreshTrigger }) => {
           }}
           onCommentAdded={handleCommentAdded}
         />
+      )}
+
+      {/* Edit Timesheet Modal */}
+      {showEditModal && editingTimesheet && (
+        <EditTimesheetModal
+          open={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingTimesheet(null);
+          }}
+          timesheet={editingTimesheet}
+          onTimesheetUpdated={handleTimesheetUpdated}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmDialog.show && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-fadeIn">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-base font-black text-slate-800 uppercase tracking-wider mb-2">
+                Delete Timesheet
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mb-6">
+                Are you sure you want to delete this timesheet? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelDelete}
+                  className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

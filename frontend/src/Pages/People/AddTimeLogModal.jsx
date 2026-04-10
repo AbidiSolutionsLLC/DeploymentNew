@@ -16,19 +16,22 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
   const [date, setDate] = useState(null);
   const [hours, setHours] = useState("");
   const [description, setDescription] = useState("");
-  const [attachment, setAttachment] = useState(null);
+  const [attachments, setAttachments] = useState([]);
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
   const modalRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB limit
+  const MAX_FILES = 5;
 
   const resetForm = () => {
     setJobTitle("");
     setDate(null);
     setHours("");
     setDescription("");
-    setAttachment(null);
+    setAttachments([]);
     setLogs([]);
     setErrors({});
   };
@@ -64,9 +67,30 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
         return value ? null : "Please select a valid date.";
       case "hours": {
         if (!value && value !== 0) return "Hours worked is required.";
-        const num = parseFloat(value);
-        if (isNaN(num) || num < 0.5) return "Hours must be at least 0.5.";
-        if (num > 24) return "Hours cannot exceed 24.";
+        
+        // Check for text/letters input
+        const valueStr = String(value).trim();
+        if (valueStr && isNaN(valueStr)) {
+          return "Please enter a valid number";
+        }
+        
+        const num = parseFloat(valueStr);
+        
+        // Check for negative numbers
+        if (!isNaN(num) && num < 0) {
+          return "Hours cannot be negative";
+        }
+        
+        // Check for zero or too small
+        if (!isNaN(num) && num < 0.5) {
+          return "Hours must be at least 0.5.";
+        }
+        
+        // Check for too large
+        if (!isNaN(num) && num > 24) {
+          return "Hours cannot exceed 24.";
+        }
+        
         return null;
       }
       case "description":
@@ -93,6 +117,76 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
     !validateField("hours", hours) &&
     !validateField("description", description);
 
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    const validFiles = [];
+    const duplicates = [];
+    const oversized = [];
+
+    // Check each file
+    for (const file of files) {
+      // Check for duplicates
+      const isDuplicate = attachments.some(
+        existing => existing.name === file.name && existing.size === file.size
+      );
+      if (isDuplicate) {
+        duplicates.push(file.name);
+        continue;
+      }
+
+      // Check file size
+      if (file.size > MAX_FILE_SIZE) {
+        oversized.push(file.name);
+        continue;
+      }
+
+      validFiles.push(file);
+    }
+
+    // Check total file count
+    if (attachments.length + validFiles.length > MAX_FILES) {
+      setErrors(prev => ({
+        ...prev,
+        attachments: `Maximum ${MAX_FILES} files allowed. You can add ${MAX_FILES - attachments.length} more file(s).`
+      }));
+      return;
+    }
+
+    // Show errors
+    if (duplicates.length > 0) {
+      setErrors(prev => ({
+        ...prev,
+        attachments: `File(s) already attached: ${duplicates.join(", ")}`
+      }));
+    } else if (oversized.length > 0) {
+      const limitMB = MAX_FILE_SIZE / (1024 * 1024);
+      setErrors(prev => ({
+        ...prev,
+        attachments: `File size exceeds ${limitMB} MB limit: ${oversized.join(", ")}`
+      }));
+    } else {
+      setErrors(prev => ({ ...prev, attachments: null }));
+    }
+
+    // Add valid files to attachments
+    if (validFiles.length > 0) {
+      setAttachments(prev => [...prev, ...validFiles]);
+    }
+
+    // Clear the file input
+    e.target.value = null;
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+    setErrors(prev => ({ ...prev, attachments: null }));
+    
+    // Clear the file input to allow re-selecting the same file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = null;
+    }
+  };
+
   const handleAddAnother = () => {
     if (!validateAll()) return;
     const newLog = {
@@ -100,15 +194,15 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
       date: formatDateForApi(date),
       hours: parseFloat(hours),
       description: sanitizeText(description),
-      attachmentName: attachment ? attachment.name : null,
-      attachmentFile: attachment,
+      attachmentNames: attachments.map(f => f.name),
+      attachmentFiles: attachments,
     };
     setLogs([...logs, newLog]);
     setJobTitle("");
     setDate(null);
     setHours("");
     setDescription("");
-    setAttachment(null);
+    setAttachments([]);
     setErrors({});
   };
 
@@ -126,7 +220,7 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
                 date: formatDateForApi(date),
                 hours: parseFloat(hours),
                 description: sanitizeText(description),
-                attachmentFile: attachment,
+                attachmentFiles: attachments,
               },
             ];
 
@@ -136,8 +230,10 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
         formData.append("date", log.date);
         formData.append("hours", log.hours);
         formData.append("description", log.description);
-        if (log.attachmentFile) {
-          formData.append("attachments", log.attachmentFile);
+        if (log.attachmentFiles && log.attachmentFiles.length > 0) {
+          log.attachmentFiles.forEach(file => {
+            formData.append("attachments", file);
+          });
         }
         await timeLogApi.createTimeLog(formData);
       }
@@ -286,23 +382,53 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
           {/* ATTACHMENT */}
           <div className="flex flex-col gap-2">
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              ATTACHMENT
+              ATTACHMENT {attachments.length > 0 && `(${attachments.length}/${MAX_FILES})`}
             </label>
             <div className="flex items-center justify-center w-full">
               <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-200 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
-                    {attachment ? attachment.name : "click to upload file"}
+                    {attachments.length > 0 ? `${attachments.length} file(s) selected` : "click to upload file(s)"}
                   </p>
                 </div>
                 <input
+                  ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg,.bmp,.mp4,.mp3"
                   className="hidden"
-                  onChange={(e) => setAttachment(e.target.files[0])}
+                  onChange={handleFileChange}
+                  disabled={attachments.length >= MAX_FILES}
                 />
               </label>
             </div>
+            {errors.attachments && (
+              <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.attachments}</p>
+            )}
+            
+            {/* Display attached files with remove buttons */}
+            {attachments.length > 0 && (
+              <div className="space-y-2 mt-2">
+                {attachments.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-[10px] font-bold text-slate-700 truncate">{file.name}</span>
+                      <span className="text-[9px] text-slate-400">({(file.size / 1024).toFixed(1)} KB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(index)}
+                      className="text-slate-400 hover:text-red-500 transition-colors text-sm font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* PREVIEW OF QUEUED LOGS */}
