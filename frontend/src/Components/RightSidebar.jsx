@@ -213,10 +213,11 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
                     <button
                         onClick={buttonState.onClick}
                         disabled={buttonState.disabled || loading}
-                        className={`${buttonState.bgColor} text-white text-xs font-bold py-2 px-8 rounded-full shadow-md transition-all active:scale-95 mb-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className={`${buttonState.bgColor} hide-on-mobile-device text-white text-xs font-bold py-2 px-8 rounded-full shadow-md transition-all active:scale-95 mb-2 disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                         {loading ? "Processing..." : buttonState.text}
                     </button>
+
 
                     {/* Timer Display - Only show when checked in (using activeLog) */}
                     {(activeLog?.checkInTime && !activeLog?.checkOutTime) && (

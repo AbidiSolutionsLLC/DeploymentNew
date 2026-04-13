@@ -557,3 +557,10 @@ input[type="text"]:focus, select:focus, textarea:focus {
 .react-datepicker-popper {
   z-index: 10001 !important;
 }
+
+/* --- MOBILE DEVICE HIDING (DETECTS TOUCH/COARSE POINTER) --- */
+@media (pointer: coarse) {
+  .hide-on-mobile-device {
+    display: none !important;
+  }
+}

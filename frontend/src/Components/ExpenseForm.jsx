@@ -33,7 +33,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
     if (customTitleError) newErrors.title = customTitleError;
     
     // Description validation
-    const descError = validateDescription(formData.description, { max: 500, required: false });
+    const descError = validateDescription(formData.description, { required: false });
     if (descError) newErrors.description = descError;
 
     if (!formData.amount || isNaN(formData.amount) || parseFloat(formData.amount) <= 0) {
@@ -177,7 +177,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
         setErrors(prev => ({ ...prev, title: customError }));
     }
     if (name === "description") {
-        const error = validateDescription(value, { max: 500, required: false });
+        const error = validateDescription(value, { required: false });
         setErrors(prev => ({ ...prev, description: error }));
     }
     if (name === "amount") {
@@ -395,7 +395,6 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
               {errors.description ? (
                 <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.description}</p>
               ) : <div />}
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{formData.description.length}/500</p>
             </div>
           </div>
 

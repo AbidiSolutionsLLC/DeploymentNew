@@ -196,6 +196,7 @@ export default function NotificationsPage() {
                   </div>
                 </div>
               </div>
+              {/* Hiding Deep Link button for now per request
               <button
                 onClick={() => {
                   const route = getRouteForNotification(selectedNotif);
@@ -205,6 +206,7 @@ export default function NotificationsPage() {
               >
                 Deep Link →
               </button>
+              */}
             </div>
 
             {/* Detail Body */}
@@ -220,10 +222,11 @@ export default function NotificationsPage() {
                 
                 {/* Specific Action Buttons for Leave/Tickets etc. - REMOVED per user request */}
                 
-                {/* Example of a generic secondary action info */}
+                {/* Reference to Deep Link button hidden as well
                 <div className="mt-12 pt-10 border-t border-gray-100 italic text-sm text-gray-400 font-medium leading-relaxed">
                   Use the "Deep Link" button above to view full context and take actions in the relevant module.
                 </div>
+                */}
               </div>
             </div>
           </div>

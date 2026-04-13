@@ -31,9 +31,7 @@ const expenseSchema = Joi.object({
     }),
   description: Joi.string()
     .trim()
-    .max(500)
     .allow("", null)
-    .pattern(/^[a-zA-Z0-9\s.,!?'\-"():;]+$/)
     .custom((value, helpers) => {
         if (!value) return value;
         if (/\s{3,}/.test(value)) return helpers.error('any.invalidSpaces');
@@ -42,8 +40,6 @@ const expenseSchema = Joi.object({
         return value;
     })
     .messages({
-        'string.max': 'Description cannot exceed 500 characters.',
-        'string.pattern.base': 'Description contains invalid characters.',
         'any.invalidSpaces': 'Please avoid excessive spaces.',
         'any.invalidSpam': 'Please enter a meaningful description.'
     }),
