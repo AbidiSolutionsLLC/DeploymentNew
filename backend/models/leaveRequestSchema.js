@@ -76,6 +76,8 @@ const leaveRequestSchema = new mongoose.Schema({
     type: Date,
     default: () => Date.now(),
   },
+}, {
+  timestamps: true // This adds createdAt and updatedAt automatically
 });
- 
+
 module.exports = mongoose.model("LeaveRequest", leaveRequestSchema);

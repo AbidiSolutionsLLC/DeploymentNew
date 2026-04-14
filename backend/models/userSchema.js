@@ -134,6 +134,8 @@ const userSchema = new mongoose.Schema(
         status: String,
         daysTaken: Number,
         reason: String,
+        appliedAt: Date,
+        createdAt: Date,
       },
     ],
     leaves: {
