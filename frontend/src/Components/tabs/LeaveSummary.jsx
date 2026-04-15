@@ -304,7 +304,19 @@ const LeaveSummary = () => {
                                         <td className="p-4 text-slate-700 font-medium">{item.startDate}</td>
                                         <td className="p-4 text-slate-700 font-medium">{formatDisplayDate(item.endDate)}</td>
                                         <td className="p-4 text-slate-600">{item.leaveType}</td>
-                                        <td className="p-4 text-slate-600">{item.reason}</td>
+                                        <td className="p-4 text-slate-600" title={item.reason}>
+                                            <span
+                                                className="block max-w-[220px]"
+                                                style={{
+                                                    display: "-webkit-box",
+                                                    WebkitLineClamp: 2,
+                                                    WebkitBoxOrient: "vertical",
+                                                    overflow: "hidden",
+                                                }}
+                                            >
+                                                {item.reason}
+                                            </span>
+                                        </td>
                                         <td className="p-4 text-slate-700 font-medium">{item.duration}</td>
                                         <td className="p-4">
                                             <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${item.status === "Approved"

@@ -293,7 +293,20 @@ const LeaveTrackerAdmin = () => {
       key: "reason",
       label: "Reason",
       sortable: false,
-      render: (row) => <div className="max-w-[150px] truncate text-slate-600" title={row.reason}>{row.reason}</div>
+      render: (row) => (
+        <div className="max-w-[220px] text-slate-600" title={row.reason}>
+          <span
+            style={{
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {row.reason}
+          </span>
+        </div>
+      )
     },
     {
       key: "duration",
