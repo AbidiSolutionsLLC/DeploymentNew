@@ -66,7 +66,7 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
   const pastHolidays = holidays
     .filter(h => extractDate(h.date) < today)
     .filter(isMatch)
-    .sort((a, b) => extractDate(b.date) - extractDate(a.date))
+    .sort((a, b) => extractDate(a.date) - extractDate(b.date))
     .slice(0, 5);
 
   const renderTable = (title, data, isUpcoming = true) => {

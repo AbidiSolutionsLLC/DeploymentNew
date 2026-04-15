@@ -313,9 +313,9 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
           <button
             type="submit"
             form="editLeaveForm"
-            disabled={quotaError !== "" || Object.values(errors).some(Boolean) || !leaveType || !startDate || !endDate || isSubmitting}
+            disabled={quotaError !== "" || Object.values(errors).some(Boolean) || isSubmitting}
             className={`flex-1 py-3 sm:py-4 text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg transition-all ${
-              quotaError !== "" || Object.values(errors).some(Boolean) || !leaveType || !startDate || !endDate || isSubmitting
+              quotaError !== "" || Object.values(errors).some(Boolean) || isSubmitting
                 ? "bg-slate-300 shadow-none cursor-not-allowed"
                 : "bg-[#64748b] shadow-slate-100 hover:brightness-110 active:scale-95"
             }`}

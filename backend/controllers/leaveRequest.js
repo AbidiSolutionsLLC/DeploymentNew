@@ -32,6 +32,9 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
   const start = moment(startDate).tz(TIMEZONE).startOf('day');
   const end = moment(endDate).tz(TIMEZONE).startOf('day');
   const daysDiff = calculateBusinessDays(startDate, endDate);
+  if (daysDiff < 1) {
+    throw new BadRequestError("Selected date range includes only weekends/holidays. Please choose at least one working day.");
+  }
 
   const userLeaveBalance = user.leaves[leaveType.toLowerCase()] || 0;
   if (userLeaveBalance < daysDiff) throw new BadRequestError(`Not enough ${leaveType} leaves available`);
@@ -271,6 +274,13 @@ exports.updateLeaveRequest = catchAsync(async (req, res) => {
   // If leave is already approved/rejected, no updates allowed
   if (leaveRequest.status !== 'Pending') {
     throw new BadRequestError("Cannot update leave request after it has been processed");
+  }
+
+  const updatedStartDate = req.body.startDate || leaveRequest.startDate;
+  const updatedEndDate = req.body.endDate || leaveRequest.endDate;
+  const updatedBusinessDays = calculateBusinessDays(updatedStartDate, updatedEndDate);
+  if (updatedBusinessDays < 1) {
+    throw new BadRequestError("Selected date range includes only weekends/holidays. Please choose at least one working day.");
   }
 
   const updatedLeaveRequest = await LeaveRequest.findByIdAndUpdate(
