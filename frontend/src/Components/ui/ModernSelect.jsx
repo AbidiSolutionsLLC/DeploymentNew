@@ -77,6 +77,7 @@ const ModernSelect = ({
     return (
       <div
         ref={dropdownRef}
+        data-modern-select-dropdown="true"
         className="fixed z-[99999] bg-white border border-slate-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar animate-fadeIn text-left"
         style={{
           top: `${dropdownPosition.top}px`,

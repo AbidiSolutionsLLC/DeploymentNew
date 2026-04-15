@@ -59,8 +59,10 @@ const leaveSchema = Joi.object({
     })
     .required(),
   
-  userId: Joi.string().required(),
-  days: Joi.number().min(1).required()
+  // Optional compatibility fields sent by older apply-leave forms.
+  // Controller uses authenticated user and recalculates days server-side.
+  userId: Joi.string().optional(),
+  days: Joi.number().optional()
 });
 
 const leaveResponseSchema = Joi.object({
