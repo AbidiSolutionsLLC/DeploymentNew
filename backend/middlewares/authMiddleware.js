@@ -11,9 +11,30 @@ const client = jwksClient({
 });
 
 function getKey(header, callback) {
+  if (!header || !header.kid) {
+    console.error("JWT header or kid is missing");
+    return callback(new Error("JWT header or kid is missing"));
+  }
+
   client.getSigningKey(header.kid, function (err, key) {
-    const signingKey = key.getPublicKey();
-    callback(null, signingKey);
+    if (err) {
+      console.error("JWKS error:", err.message || err);
+      return callback(err);
+    }
+    
+    if (!key) {
+      const errorMsg = `Signing key not found for kid: ${header.kid}`;
+      console.error(errorMsg);
+      return callback(new Error(errorMsg));
+    }
+
+    try {
+      const signingKey = key.getPublicKey();
+      callback(null, signingKey);
+    } catch (keyError) {
+      console.error("Error getting public key from signing key object:", keyError.message || keyError);
+      callback(keyError);
+    }
   });
 }
 

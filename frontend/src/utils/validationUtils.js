@@ -54,31 +54,16 @@ export const validateText = (value) => {
  * @deprecated Use validateDescriptionAllErrors instead for multi-error support
  */
 export const validateDescription = (value, options = {}) => {
-  const { min = 20, max = 500, required = true } = options;
+  const { required = true } = options;
   const sanitized = value?.trim() || '';
 
   if (!sanitized) {
     return required ? "Description is required." : null;
   }
 
-  if (sanitized.length < min) {
-    return `Description must be at least ${min} characters. Please provide a meaningful description.`;
-  }
-
-  if (sanitized.length > max) {
-    return `Description cannot exceed ${max} characters.`;
-  }
-
   // Consecutive spaces check (max 2 allowed)
   if (/\s{3,}/.test(sanitized)) {
     return "Please avoid excessive spaces.";
-  }
-
-  // Restricted characters check
-  // Block: @, #, $, %, ^, *, {, }, [, ], |, \, <, >, /, ~, `
-  const allowedRegex = /^[a-zA-Z0-9\s.,!?'\-"():;]+$/;
-  if (!allowedRegex.test(sanitized)) {
-    return "Special characters like @, #, $, %, ^ are not allowed in the description.";
   }
 
   // Spam: Repeated characters (e.g. "aaaaa" or ".....")
@@ -110,7 +95,7 @@ export const validateDescription = (value, options = {}) => {
  * @returns {string[]} Array of error messages (empty if valid)
  */
 export const validateDescriptionAllErrors = (value, options = {}) => {
-  const { min = 20, max = 500, required = true } = options;
+  const { required = true } = options;
   const errors = [];
   const sanitized = value?.trim() || '';
 
@@ -126,23 +111,9 @@ export const validateDescriptionAllErrors = (value, options = {}) => {
     return errors; // return early if emojis detected
   }
 
-  if (sanitized.length < min) {
-    errors.push(`Description must be at least ${min} characters.`);
-  }
-
-  if (sanitized.length > max) {
-    errors.push(`Description cannot exceed ${max} characters.`);
-  }
-
   // Consecutive spaces check (max 2 allowed)
   if (/\s{3,}/.test(sanitized)) {
     errors.push("Please avoid excessive spaces.");
-  }
-
-  // Restricted characters check
-  const allowedRegex = /^[a-zA-Z0-9\s.,!?'\-"():;]+$/;
-  if (!allowedRegex.test(sanitized)) {
-    errors.push("Special characters like @, #, $, %, ^ are not allowed.");
   }
 
   // Spam: Repeated characters (e.g. "aaaaa" or ".....")

@@ -47,17 +47,43 @@ import AdminAttendance from "./Pages/Admin/AdminAttendance";
 import ExpenseManagement from "./Pages/Admin/ExpenseManagement";
 import NotificationsPage from "./Pages/Notifications/NotificationsPage";
 import { useNotificationSSE } from "./Hooks/useNotificationSSE";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-
+import MobileBlock from "./Components/MobileBlock";
 
 function App() {
   useAutoLogin();
+
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      // 1. Check for pointer: coarse (Primary indicator for touch devices)
+      const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      
+      // 2. Check for touch points (survives "Desktop site" mode)
+      const hasTouchPoints = navigator.maxTouchPoints > 0;
+
+      // Only block if BOTH or either? User said "all mobile devices".
+      // Coarse pointer is the most accurate for "Mobile UI being used".
+      setIsMobileDevice(isCoarsePointer || hasTouchPoints);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Activate real-time notification stream (uses MSAL token internally)
   const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
   useNotificationSSE(isAuthenticated);
 
+  if (isMobileDevice) {
+    return <MobileBlock />;
+  }
+
   return (
+
     <>
       <ToastContainer
         position="top-right"

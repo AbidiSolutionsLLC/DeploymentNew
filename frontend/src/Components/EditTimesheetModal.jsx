@@ -127,17 +127,13 @@ export default function EditTimesheetModal({ open, onClose, timesheet, onTimeshe
     const nameErr = validateName(timesheetName);
     const descErr = validateDescription(description, { min: 10, max: 500, required: true });
 
-    if (nameErr) {
-      setNameError(nameErr);
-      return;
-    }
-    
-    if (descErr) {
-      setDescriptionError(descErr);
-      return;
-    }
+    setNameError(nameErr);
+    setDescriptionError(descErr);
 
-    if (!isValid) return;
+    if (nameErr || descErr) {
+      toast.error("Please fix validation errors");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -305,7 +301,7 @@ export default function EditTimesheetModal({ open, onClose, timesheet, onTimeshe
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!isValid || loading}
+            disabled={loading}
             className="flex-[2] py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-50"
           >
             {loading ? "UPDATING..." : "UPDATE TIMESHEET"}

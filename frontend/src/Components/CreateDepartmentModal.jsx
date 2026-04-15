@@ -106,6 +106,7 @@ const CreateDepartmentModal = ({ isOpen, onClose, onDepartmentCreated, potential
               value: mgr._id,
               label: `${mgr.name.toUpperCase()} (${mgr.designation || "NO TITLE"})`
             }))}
+            error={errors.manager}
           />
 
           <div>

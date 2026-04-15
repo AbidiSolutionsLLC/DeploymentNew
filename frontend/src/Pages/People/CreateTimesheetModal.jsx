@@ -191,16 +191,22 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
     const descErr = validateDescription(description, { min: 10, max: 500, required: true });
 
     // Show all validation errors simultaneously
-    if (nameErr) {
-      setNameError(nameErr);
-    }
+    if (nameErr) setNameError(nameErr);
+    if (descErr) setDescriptionError(descErr);
     
-    if (descErr) {
-      setDescriptionError(descErr);
+    if (!selectedDate) {
+      toast.error("Please select a timesheet date");
+      return;
     }
 
-    // Prevent API call if any validation fails
-    if (nameErr || descErr || !isValid) {
+    if (logs.length === 0) {
+      toast.error("No time logs available for this date. Cannot create timesheet.");
+      return;
+    }
+
+    // Prevent API call if validation fails
+    if (nameErr || descErr) {
+      toast.error("Please fix validation errors");
       return;
     }
 
@@ -419,7 +425,7 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!isValid || loading || fetchingLogs}
+            disabled={loading || fetchingLogs}
             className="flex-[2] py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-50"
           >
             {loading ? "CREATING..." : "CREATE TIMESHEET"}

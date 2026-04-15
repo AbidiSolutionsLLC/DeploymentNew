@@ -42,7 +42,7 @@ router.get("/pending", restrictTo("admin", "manager", "superadmin"), expenseCont
 // Main expense routes
 router
   .route("/")
-  .post(validate(expenseSchema), handleUpload(upload), expenseController.createExpense)
+  .post(handleUpload(upload), validate(expenseSchema), expenseController.createExpense)
   .get(expenseController.getAllExpenses);
 
 // Single expense routes

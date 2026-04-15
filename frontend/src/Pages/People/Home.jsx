@@ -272,11 +272,12 @@ const userName =
       <button
         onClick={buttonState.onClick}
         disabled={buttonState.disabled || reduxLoading}
-        className={`sm:hidden text-white text-[10px] font-bold px-3 py-2 rounded-full shadow-md transition-all active:scale-95
+        className={`sm:hidden hide-on-mobile-device text-white text-[10px] font-bold px-3 py-2 rounded-full shadow-md transition-all active:scale-95
         ${buttonState.className} disabled:opacity-50`}
       >
         {buttonState.text}
       </button>
+
 
     </div>
   </div>

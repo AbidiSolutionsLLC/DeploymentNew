@@ -128,8 +128,13 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
     const endError = validateField("endDate", endDate);
     const reasonError = validateField("reason", reason);
 
-    if (typeError || startError || endError || reasonError || quotaError) {
+    if (typeError || startError || endError || reasonError || quotaError || !leaveType || !startDate || !endDate) {
       toast.error("PLEASE FIX VALIDATION ERRORS BEFORE SUBMITTING.");
+      // Ensure all fields are marked as touched
+      validateField("leaveType", leaveType);
+      validateField("startDate", startDate);
+      validateField("endDate", endDate);
+      validateField("reason", reason);
       return;
     }
     
@@ -218,6 +223,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
                 ]}
                 className="w-full"
                 disabled={isSubmitting}
+                error={errors.leaveType}
               />
               {errors.leaveType && (
                 <p className="text-xs text-red-500 mt-1">{errors.leaveType}</p>

@@ -11,6 +11,7 @@ const ModernSelect = ({
   placeholder = "Select Option",
   required = false,
   className = "",
+  error = null,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -127,7 +128,7 @@ const ModernSelect = ({
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             className={`w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium outline-none flex justify-between items-center transition-all shadow-sm text-left
-              ${isOpen ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200 hover:border-slate-300"}
+              ${isOpen ? "border-blue-400 ring-2 ring-blue-100" : (error ? "border-red-400" : "border-slate-200 hover:border-slate-300")}
               ${!selectedOption ? "text-slate-400" : "text-slate-700"}
             `}
           >

@@ -244,7 +244,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!isValid || loading}
+            disabled={loading}
             className="flex-[2] py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-50"
           >
             {loading ? "SAVING..." : "CREATE LOG"}
