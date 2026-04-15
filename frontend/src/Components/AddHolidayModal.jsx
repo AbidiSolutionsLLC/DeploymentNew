@@ -58,8 +58,14 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
     if (!nameError && formData.holidayName.length < 2) finalNameError = "Must be at least 2 characters.";
     if (!nameError && !/^[a-zA-Z\s'-]+$/.test(formData.holidayName)) finalNameError = "Only letters allowed.";
     
-    if (finalNameError || !formData.holidayType || !formData.date) {
-      setErrors(prev => ({ ...prev, holidayName: finalNameError }));
+    const newErrors = {};
+    if (finalNameError) newErrors.holidayName = finalNameError;
+    if (!formData.holidayType) newErrors.holidayType = "Holiday type is required.";
+    if (!formData.date) newErrors.date = "Date is required.";
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error("PLEASE FIX VALIDATION ERRORS");
       return;
     }
 
@@ -150,6 +156,7 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
             onChange={handleChange}
             required
             placeholder="SELECT TYPE"
+            error={errors.holidayType}
             options={["National", "Regional", "Religious", "Company-Specific"].map(type => ({
               value: type,
               label: type.toUpperCase()
@@ -163,6 +170,7 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
             onChange={handleChange}
             required
             placeholder="Select Date"
+            error={errors.date}
           />
 
           <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">

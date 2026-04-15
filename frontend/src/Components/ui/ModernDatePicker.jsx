@@ -36,6 +36,7 @@ const ModernDatePicker = ({
   placeholder = "Select Date",
   required = false,
   className = "",
+  error = null,
 }) => {
   // Handle Date Change (Convert standard JS Date to Event-like object for your forms)
   const handleDateChange = (date) => {
@@ -70,10 +71,10 @@ selected={
     : null
 }          onChange={handleDateChange}
           dateFormat="yyyy-MM-dd"
-          placeholderText={placeholder}
-          required={required}
-          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 pl-10 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-300 transition-all shadow-sm hover:border-slate-300"
-          popperClassName="z-[99999]" // Ensure it pops over modals
+           placeholderText={placeholder}
+           required={required}
+           className={`w-full bg-white border ${error ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 pl-10 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-300 transition-all shadow-sm hover:border-slate-300`}
+           popperClassName="z-[99999]" // Ensure it pops over modals
           showMonthDropdown
           showYearDropdown
           dropdownMode="select"

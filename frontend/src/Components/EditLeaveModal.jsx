@@ -95,8 +95,13 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
     const endError = validateField("endDate", endDate);
     const reasonError = validateField("reason", reason);
 
-    if (typeError || startError || endError || reasonError || quotaError) {
+    if (typeError || startError || endError || reasonError || quotaError || !leaveType || !startDate || !endDate) {
       toast.error("PLEASE FIX VALIDATION ERRORS BEFORE SUBMITTING.");
+      // Ensure all fields are marked as touched
+      validateField("leaveType", leaveType);
+      validateField("startDate", startDate);
+      validateField("endDate", endDate);
+      validateField("reason", reason);
       return;
     }
 
@@ -190,6 +195,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
                 ]}
                 className="w-full"
                 disabled={isSubmitting}
+                error={errors.leaveType}
               />
               {errors.leaveType && (
                 <p className="text-xs text-red-500 mt-1">{errors.leaveType}</p>
@@ -313,9 +319,9 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
           <button
             type="submit"
             form="editLeaveForm"
-            disabled={quotaError !== "" || Object.values(errors).some(Boolean) || !leaveType || !startDate || !endDate || isSubmitting}
+            disabled={isSubmitting}
             className={`flex-1 py-3 sm:py-4 text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg transition-all ${
-              quotaError !== "" || Object.values(errors).some(Boolean) || !leaveType || !startDate || !endDate || isSubmitting
+              isSubmitting
                 ? "bg-slate-300 shadow-none cursor-not-allowed"
                 : "bg-[#64748b] shadow-slate-100 hover:brightness-110 active:scale-95"
             }`}

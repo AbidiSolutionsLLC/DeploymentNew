@@ -22,6 +22,7 @@ const AddTaskModal = ({ isOpen, onClose }) => {
     startDate: "",
     endDate: ""
   });
+  const [errors, setErrors] = useState({});
 
   const modalRef = useRef(null);
 
@@ -38,6 +39,33 @@ const AddTaskModal = ({ isOpen, onClose }) => {
   const handleModernChange = (e) => {
     const { name, value } = e.target;
     setTaskData(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: value ? null : `${name} is required.` }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    if (!e.target.taskName.value) newErrors.taskName = "Task name is required.";
+    if (!taskData.startDate) newErrors.startDate = "Start date is required.";
+    if (!taskData.endDate) newErrors.endDate = "End date is required.";
+    if (!taskData.priority) newErrors.priority = "Priority is required.";
+    if (!taskData.status) newErrors.status = "Status is required.";
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      // toast.error("Please fix validation errors"); // Import toast if needed, but for now just highlight
+      return;
+    }
+    
+    console.log("Submitting task:", { 
+      taskName: e.target.taskName.value,
+      ...taskData,
+      assignTo,
+      assignBy,
+      description: e.target.description.value
+    });
+    // Add API call here
+    onClose();
   };
 
   const filteredUsersTo = users.filter((user) => user.toLowerCase().includes(queryTo.toLowerCase()));
@@ -54,17 +82,24 @@ const AddTaskModal = ({ isOpen, onClose }) => {
           <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">ADD NEW TASK</h2>
         </div>
 
-        <form id="taskForm" className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar" onSubmit={(e) => { e.preventDefault(); /* Add submit logic */ }}>
+        <form id="taskForm" className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar" onSubmit={handleSubmit}>
           {/* Task Name */}
           <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">TASK NAME*</label>
-            <input type="text" placeholder="Task name" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300" required />
+            <input 
+              type="text" 
+              name="taskName"
+              placeholder="Task name" 
+              className={`w-full bg-white border ${errors.taskName ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300`} 
+              required 
+              onChange={(e) => setErrors(prev => ({ ...prev, taskName: e.target.value ? null : "Task name is required." }))}
+            />
+            {errors.taskName && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.taskName}</p>}
           </div>
 
           {/* Dates Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ModernDatePicker label="Start Date" name="startDate" value={taskData.startDate} onChange={handleModernChange} placeholder="Select Start Date" />
-            <ModernDatePicker label="End Date" name="endDate" value={taskData.endDate} onChange={handleModernChange} placeholder="Select End Date" />
+            <ModernDatePicker label="Start Date" name="startDate" value={taskData.startDate} onChange={handleModernChange} placeholder="Select Start Date" error={errors.startDate} />
+            <ModernDatePicker label="End Date" name="endDate" value={taskData.endDate} onChange={handleModernChange} placeholder="Select End Date" error={errors.endDate} />
           </div>
 
           {/* Description */}
@@ -122,6 +157,7 @@ const AddTaskModal = ({ isOpen, onClose }) => {
               value={taskData.priority} 
               onChange={handleModernChange}
               options={[{value: "Low", label: "LOW"}, {value: "Medium", label: "MEDIUM"}, {value: "High", label: "HIGH"}]} 
+              error={errors.priority}
             />
             <ModernSelect 
               label="Status" 
@@ -129,6 +165,7 @@ const AddTaskModal = ({ isOpen, onClose }) => {
               value={taskData.status} 
               onChange={handleModernChange}
               options={[{value: "Pending", label: "PENDING"}, {value: "In Progress", label: "IN PROGRESS"}, {value: "Completed", label: "COMPLETED"}]} 
+              error={errors.status}
             />
           </div>
         </form>

@@ -18,6 +18,8 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingLogs, setFetchingLogs] = useState(false);
+  const [nameError, setNameError] = useState(null);
+  const [employeeError, setEmployeeError] = useState(null);
   const modalRef = useRef(null);
 
   const getTodayString = () => moment().tz(TIMEZONE).format('YYYY-MM-DD');
@@ -45,6 +47,8 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
       setLogs([]);
       setEmployeeId("");
       setDescriptionError(null);
+      setNameError(null);
+      setEmployeeError(null);
     }
   }, [open]);
 
@@ -85,11 +89,27 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
   const handleSubmit = async (e) => {
     e.preventDefault();
     const descErr = validateDescription(description, { min: 10, max: 500, required: true });
-    if (descErr) {
-      setDescriptionError(descErr);
+    const nameErr = timesheetName.trim().length < 3 ? "Timesheet name must be at least 3 characters." : null;
+    const empErr = !employeeId ? "Please select an employee." : null;
+
+    setDescriptionError(descErr);
+    setNameError(nameErr);
+    setEmployeeError(empErr);
+
+    if (descErr || nameErr || empErr) {
+      toast.error("Please fix validation errors");
       return;
     }
-    if (!isValid) return;
+
+    if (logs.length === 0) {
+      toast.error("No logs available for this date. Cannot create timesheet.");
+      return;
+    }
+
+    if (!selectedDate) {
+      toast.error("Please select a date");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -160,15 +180,19 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
               label="Employee"
               name="employeeId"
               value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
+              onChange={(e) => {
+                setEmployeeId(e.target.value);
+                setEmployeeError(e.target.value ? null : "Please select an employee.");
+              }}
               required
               placeholder="Select Employee"
               options={[
                 { value: "", label: "Select Employee" },
                 ...allUsers.map((u) => ({ value: u._id, label: `${u.name} (${u.email})` }))
               ]}
-              className="w-full"
+              className={`w-full ${employeeError ? "border-red-400" : ""}`}
             />
+            {employeeError && <p className="text-xs text-red-500 mt-1">{employeeError}</p>}
           </div>
 
           <div className="relative z-40">
@@ -223,10 +247,14 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
             <input
               type="text"
               value={timesheetName}
-              onChange={(e) => setTimesheetName(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
+              onChange={(e) => {
+                setTimesheetName(e.target.value);
+                setNameError(e.target.value.trim().length < 3 ? "Timesheet name must be at least 3 characters." : null);
+              }}
+              className={`w-full bg-white border ${nameError ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium`}
               required
             />
+            {nameError && <p className="text-xs text-red-500 mt-1">{nameError}</p>}
           </div>
 
           <div className="relative z-10">
@@ -258,7 +286,7 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!isValid || loading || fetchingLogs}
+            disabled={loading || fetchingLogs}
             className="flex-[2] py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-50"
           >
             {loading ? "CREATING..." : "CREATE TIMESHEET"}

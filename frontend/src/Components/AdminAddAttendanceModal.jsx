@@ -14,6 +14,7 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
     status: "Present",
     notes: ""
   });
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const modalRef = useRef(null);
 
@@ -26,6 +27,7 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
         status: "Present",
         notes: ""
       });
+      setErrors({});
     }
   }, [open]);
 
@@ -39,7 +41,15 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isValid) return;
+    const newErrors = {};
+    if (!formData.user) newErrors.user = "Employee is required.";
+    if (!formData.checkInTime) newErrors.checkInTime = "Check-in time is required.";
+    
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("Please fix validation errors");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -91,15 +101,19 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
               label="Employee"
               name="user"
               value={formData.user}
-              onChange={(e) => setFormData({ ...formData, user: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, user: e.target.value });
+                setErrors(prev => ({ ...prev, user: e.target.value ? null : "Employee is required." }));
+              }}
               required
               placeholder="Select Employee"
               options={[
                 { value: "", label: "Select Employee" },
                 ...allUsers.map((u) => ({ value: u._id, label: `${u.name} (${u.email})` }))
               ]}
-              className="w-full"
+              className={`w-full ${errors.user ? "border-red-400" : ""}`}
             />
+            {errors.user && <p className="text-xs text-red-500 mt-1">{errors.user}</p>}
           </div>
 
           <div className="relative z-40">
@@ -108,14 +122,18 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
             </label>
             <DatePicker
               selected={formData.checkInTime}
-              onChange={(date) => setFormData({ ...formData, checkInTime: date })}
+              onChange={(date) => {
+                setFormData({ ...formData, checkInTime: date });
+                setErrors(prev => ({ ...prev, checkInTime: date ? null : "Check-in time is required." }));
+              }}
               showTimeSelect
               dateFormat="Pp"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium"
+              className={`w-full bg-white border ${errors.checkInTime ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium`}
               popperProps={{ strategy: "fixed" }}
               portalId="portal-root"
               required
             />
+            {errors.checkInTime && <p className="text-xs text-red-500 mt-1">{errors.checkInTime}</p>}
           </div>
 
           <div className="relative z-30">
@@ -173,7 +191,7 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!isValid || loading}
+            disabled={loading}
             className="flex-[2] py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-50"
           >
             {loading ? "SAVING..." : "CREATE RECORD"}

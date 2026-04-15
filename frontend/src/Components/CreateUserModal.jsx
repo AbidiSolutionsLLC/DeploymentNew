@@ -63,6 +63,12 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
       case "phoneNumber":
         error = validatePhone(value, true);
         break;
+      case "department":
+        error = value ? null : "Department is required.";
+        break;
+      case "reportsTo":
+        error = value ? null : "Reporting manager is required.";
+        break;
       default:
         break;
     }
@@ -99,7 +105,10 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
     const passError = validateField("password", formData.password);
     const phoneError = validateField("phoneNumber", formData.phoneNumber);
 
-    if (fNameError || lNameError || emailError || passError || phoneError) {
+    const deptError = validateField("department", formData.department);
+    const reportsToError = validateField("reportsTo", formData.reportsTo);
+
+    if (fNameError || lNameError || emailError || passError || phoneError || deptError || reportsToError) {
       toast.error("Please fix errors before submitting.");
       return;
     }
@@ -187,7 +196,7 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
 
             {/* Role + Designation + Technician */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <ModernSelect label="Role" name="role" value={formData.role} onChange={handleChange} options={filteredRoles} />
+              <ModernSelect label="Role" name="role" value={formData.role} onChange={handleChange} options={filteredRoles} error={errors.role} />
 
               <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="Senior Developer" />
 
@@ -218,6 +227,7 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
                   value={formData.department}
                   onChange={handleChange}
                   options={allDepartments.map((d) => ({ value: d._id, label: d.name }))}
+                  error={errors.department}
                 />
                 <button type="button" onClick={() => setIsDeptModalOpen(true)} className="h-[46px] px-4 bg-blue-50 rounded-xl text-blue-600">
                   <FaPlus />
@@ -230,6 +240,7 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
                 value={formData.reportsTo}
                 onChange={handleChange}
                 options={allManagers.map((m) => ({ value: m._id, label: m.name }))}
+                error={errors.reportsTo}
               />
 
               <Input label="Hourly Wage" name="hourlyWage" type="number" value={formData.hourlyWage} onChange={handleChange} placeholder="25.50" />
