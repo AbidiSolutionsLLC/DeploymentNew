@@ -40,7 +40,10 @@ const RaiseTicketModal = ({ onClose, onSubmit }) => {
   };
 
   const handleBackdropClick = (e) => {
-    if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
+    if (showConfirmDialog) return;
+    if (modalRef.current && !modalRef.current.contains(e.target)) {
+      handleCancelClick();
+    }
   };
 
   const handleChange = (e) => {
@@ -55,8 +58,7 @@ const RaiseTicketModal = ({ onClose, onSubmit }) => {
         setErrors(prev => ({ ...prev, subject: validateText(value) }));
       }
       if (name === "description") {
-        const errors = validateDescriptionAllErrors(value, { min: 10, max: 1000, required: true });
-        setErrors(prev => ({ ...prev, description: errors.length > 0 ? errors : null }));
+        setErrors(prev => ({ ...prev, description: validateDescription(value, { required: true }) }));
       }
       return;
     }
@@ -144,12 +146,12 @@ const handleSubmit = async (e) => {
 
     // Final validation
     const subjectError = validateText(form.subject);
-    const descErrors = validateDescriptionAllErrors(form.description, { min: 10, max: 1000, required: true });
+    const descError = validateDescription(form.description, { required: true });
 
-    if (subjectError || descErrors.length > 0) {
+    if (subjectError || descError) {
       setErrors({ 
         subject: subjectError, 
-        description: descErrors.length > 0 ? descErrors : null 
+        description: descError 
       });
       toast.error("PLEASE FIX VALIDATION ERRORS");
       return;
@@ -189,7 +191,7 @@ const handleSubmit = async (e) => {
       >
         {/* Close Button */}
         <button 
-          onClick={onClose} 
+          onClick={handleCancelClick} 
           className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
         >
           &times;
@@ -241,12 +243,8 @@ const handleSubmit = async (e) => {
               required
             />
             <div className="flex justify-between items-center mt-1">
-              {errors.description && errors.description.length > 0 ? (
-                <div className="space-y-1">
-                  {errors.description.map((err, i) => (
-                    <p key={i} className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{err}</p>
-                  ))}
-                </div>
+              {errors.description ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.description}</p>
               ) : <div />}
               <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.description.length}/1000</p>
             </div>
@@ -319,7 +317,10 @@ const handleSubmit = async (e) => {
 
       {/* Unsaved Changes Confirmation Dialog */}
       {showConfirmDialog && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4">
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-fadeIn">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 bg-amber-50 rounded-full flex items-center justify-center">
