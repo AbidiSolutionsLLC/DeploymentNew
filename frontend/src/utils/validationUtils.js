@@ -35,7 +35,15 @@ export const sanitizeText = (value) => {
 export const validateText = (value) => {
   const sanitized = sanitizeText(value);
   if (!sanitized) return "This field is required.";
-  if (sanitized.length < 3) return "Must be at least 3 characters.";
+
+  // Check for emojis
+  const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F700}-\u{1F77F}]|[\u{1F780}-\u{1F7FF}]|[\u{1F800}-\u{1F8FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F170}-\u{1F1FF}]|[\u{200D}]|[\u{20E3}]|[\u{E0020}-\u{E007F}]/u;
+  if (emojiRegex.test(sanitized)) return "Emojis are not allowed.";
+
+  // Check for numbers only
+  if (/^\d+$/.test(sanitized)) return "Numbers are not allowed.";
+
+  if (sanitized.length < 5) return "Must be at least 5 characters.";
   if (sanitized.length > 100) return "Cannot exceed 100 characters.";
   
   const regex = /^[a-zA-Z0-9\s\-'.,&]+$/;
@@ -46,12 +54,11 @@ export const validateText = (value) => {
 
 /**
  * Validates description fields (reason, notes, details, etc.)
- * Rules: Min-Max (default 20-500), trimmed, max 2 consecutive spaces,
- * restricted special chars, no spam patterns, at least 3 distinct words.
+ * Rules: Required, min 3 words, trimmed, max 2 consecutive spaces,
+ * restricted special chars, no spam patterns, no emojis.
  * @param {string} value
- * @param {object} options { min: 20, max: 500, required: true }
+ * @param {object} options { required: true }
  * @returns {string|null} Error message or null if valid
- * @deprecated Use validateDescriptionAllErrors instead for multi-error support
  */
 export const validateDescription = (value, options = {}) => {
   const { required = true } = options;
@@ -61,27 +68,24 @@ export const validateDescription = (value, options = {}) => {
     return required ? "Description is required." : null;
   }
 
+  // Check for emojis first
+  const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F700}-\u{1F77F}]|[\u{1F780}-\u{1F7FF}]|[\u{1F800}-\u{1F8FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F170}-\u{1F1FF}]|[\u{200D}]|[\u{20E3}]|[\u{E0020}-\u{E007F}]/u;
+  if (emojiRegex.test(sanitized)) return "Emojis are not allowed.";
+
+  // Min 3 words check
+  const words = sanitized.split(/\s+/).filter(w => w.length > 0);
+  if (words.length < 3) {
+    return "3 words are required.";
+  }
+
   // Consecutive spaces check (max 2 allowed)
   if (/\s{3,}/.test(sanitized)) {
     return "Please avoid excessive spaces.";
   }
 
-  // Spam: Repeated characters (e.g. "aaaaa" or ".....")
-  if (/(.)\1{4,}/.test(sanitized)) {
-    return "Please enter a meaningful description.";
-  }
-
-  // Spam: All-caps longer than 10 characters
-  const capsMatch = sanitized.match(/[A-Z]{11,}/);
-  if (capsMatch) {
-    return "Please enter a meaningful description.";
-  }
-
-  // Spam: Min 3 words
-  const words = sanitized.split(/\s+/).filter(w => w.length > 0);
-  if (words.length < 3) {
-    return "Description must contain at least 3 words.";
-  }
+  // Spam checks
+  if (/(.)\1{4,}/.test(sanitized)) return "Please enter a meaningful description.";
+  if (/[A-Z]{11,}/.test(sanitized)) return "Please enter a meaningful description.";
 
   return null;
 };
@@ -95,20 +99,24 @@ export const validateDescription = (value, options = {}) => {
  * @returns {string[]} Array of error messages (empty if valid)
  */
 export const validateDescriptionAllErrors = (value, options = {}) => {
-  const { required = true } = options;
+  const { required = true, min = 10 } = options;
   const errors = [];
   const sanitized = value?.trim() || '';
 
   if (!sanitized) {
     if (required) errors.push("Description is required.");
-    return errors; // no need for further checks
+    return errors;
   }
 
-  // Check for emojis first (before other validations)
+  // Check for emojis
   const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F700}-\u{1F77F}]|[\u{1F780}-\u{1F7FF}]|[\u{1F800}-\u{1F8FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F170}-\u{1F1FF}]|[\u{200D}]|[\u{20E3}]|[\u{E0020}-\u{E007F}]/u;
   if (emojiRegex.test(sanitized)) {
     errors.push("Emojis are not allowed.");
-    return errors; // return early if emojis detected
+  }
+
+  // Length check
+  if (sanitized.length < min) {
+    errors.push(`Must be at least ${min} characters.`);
   }
 
   // Consecutive spaces check (max 2 allowed)
@@ -129,7 +137,7 @@ export const validateDescriptionAllErrors = (value, options = {}) => {
   // Min 3 words check
   const words = sanitized.split(/\s+/).filter(w => w.length > 0);
   if (words.length < 3) {
-    errors.push("Description must contain at least 3 words.");
+    errors.push("Must contain at least 3 words.");
   }
 
   return errors;

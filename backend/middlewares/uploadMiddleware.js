@@ -7,7 +7,7 @@ const {
 } = require("../utils/ExpressError");
 
 // Maximum file size constant (25MB)
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB limit (Cloudinary's max for unsigned uploads)
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
 
 // Allowed file types with extensions
 const ALLOWED_FILE_TYPES = {

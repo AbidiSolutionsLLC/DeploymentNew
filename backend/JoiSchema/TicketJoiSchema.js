@@ -37,6 +37,14 @@ const createTicketSchema = Joi.object({
     .pattern(/^[a-zA-Z0-9\s.,!?'\-"():;]+$/)
     .required()
     .custom((value, helpers) => {
+        // Emoji check
+        const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F700}-\u{1F77F}]|[\u{1F780}-\u{1F7FF}]|[\u{1F800}-\u{1F8FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F170}-\u{1F1FF}]|[\u{200D}]|[\u{20E3}]|[\u{E0020}-\u{E007F}]/u;
+        if (emojiRegex.test(value)) return helpers.error('string.emoji');
+
+        // Word count check
+        const words = value.trim().split(/\s+/).filter(w => w.length > 0);
+        if (words.length < 3) return helpers.error('string.words');
+
         if (/\s{3,}/.test(value)) return helpers.error('any.invalidSpaces');
         if (/(.)\1{4,}/.test(value)) return helpers.error('any.invalidSpam');
         if (/[A-Z]{11,}/.test(value)) return helpers.error('any.invalidSpam');
@@ -47,6 +55,8 @@ const createTicketSchema = Joi.object({
       'string.min': 'Description must be at least 10 characters.',
       'string.max': 'Description cannot exceed 1000 characters.',
       'string.pattern.base': 'Description contains invalid characters.',
+      'string.emoji': 'Emojis are not allowed.',
+      'string.words': 'Must contain at least 3 words.',
       'any.invalidSpaces': 'Please avoid excessive spaces.',
       'any.invalidSpam': 'Please enter a meaningful description.',
       'any.required': 'Description is required.'

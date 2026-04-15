@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { FaTimes, FaPaperPlane } from "react-icons/fa";
+import { FaTimes, FaPaperPlane, FaEye, FaDownload } from "react-icons/fa";
 import { downloadFile } from "../utils/downloadFile";
 import timesheetApi from "../api/timesheetApi";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
 import { Paperclip } from "lucide-react";
-import { validateDescription } from "../utils/validationUtils";
+import { validateDescription, getApiError } from "../utils/validationUtils";
 
 const ApproveTimesheetViewModal = ({ 
   timesheet, 
@@ -52,7 +52,7 @@ const ApproveTimesheetViewModal = ({
       onCommentAdded(); // Refresh parent if needed
       toast.success("Comment added");
     } catch (err) {
-      toast.error("Failed to add comment");
+      toast.error(getApiError(err, "Failed to add comment"));
     } finally {
       setSendingComment(false);
     }
@@ -180,6 +180,48 @@ const ApproveTimesheetViewModal = ({
                       </span>
                     </div>
                     <p className="text-slate-600 text-sm">{log.description}</p>
+                    
+                    {/* Time Log Attachments */}
+                    {log.attachments?.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-slate-200/50">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                          LOG ATTACHMENTS
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {log.attachments.map((file, fIdx) => (
+                            <div 
+                              key={file._id || fIdx}
+                              className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-100 group"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-6 h-6 bg-slate-100 text-slate-500 rounded flex items-center justify-center text-[8px] font-bold shrink-0">
+                                  {file.originalname?.split('.').pop().toUpperCase() || "FILE"}
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-600 truncate">
+                                  {file.originalname || "Attachment"}
+                                </span>
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => window.open(file.url, '_blank')}
+                                  className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"
+                                  title="Preview"
+                                >
+                                  <FaEye size={12} />
+                                </button>
+                                <button
+                                  onClick={() => downloadFile(file.blobName || file.url, file.originalname)}
+                                  className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded"
+                                  title="Download"
+                                >
+                                  <FaDownload size={10} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

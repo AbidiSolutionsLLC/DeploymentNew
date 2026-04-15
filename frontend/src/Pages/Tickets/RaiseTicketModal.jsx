@@ -12,7 +12,7 @@ const RaiseTicketModal = ({ onClose, onSubmit }) => {
   const modalRef = useRef(null);
   const fileInputRef = useRef(null);
   const user = useSelector((state) => state.auth.user);
-  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB limit
+  const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
   const MAX_FILES = 5;
 
   // Check if form has unsaved changes
@@ -40,25 +40,30 @@ const RaiseTicketModal = ({ onClose, onSubmit }) => {
   };
 
   const handleBackdropClick = (e) => {
-    if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
+    if (showConfirmDialog) return;
+    if (modalRef.current && !modalRef.current.contains(e.target)) {
+      handleCancelClick();
+    }
   };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    const val = files ? files[0] : value;
-    setForm((prev) => ({ ...prev, [name]: val }));
+    
+    // For text inputs
+    if (!files) {
+      setForm((prev) => ({ ...prev, [name]: value }));
+      
+      // Inline validation
+      if (name === "subject") {
+        setErrors(prev => ({ ...prev, subject: validateText(value) }));
+      }
+      if (name === "description") {
+        setErrors(prev => ({ ...prev, description: validateDescription(value, { required: true }) }));
+      }
+      return;
+    }
 
-    // Inline validation
-    if (name === "subject") {
-      const error = validateText(val);
-      let customError = error;
-      if (!error && val.length < 5) customError = "Subject must be at least 5 characters.";
-      setErrors(prev => ({ ...prev, subject: customError }));
-    }
-    if (name === "description") {
-      const errors = validateDescriptionAllErrors(val, { min: 10, max: 1000, required: true });
-      setErrors(prev => ({ ...prev, description: errors.length > 0 ? errors : null }));
-    }
+    // For file inputs
     if (name === "attachment" && files && files.length > 0) {
       const newFiles = Array.from(files);
       const validFiles = [];
@@ -141,13 +146,13 @@ const handleSubmit = async (e) => {
 
     // Final validation
     const subjectError = validateText(form.subject);
-    let customSubjectError = subjectError;
-    if (!subjectError && form.subject.length < 5) customSubjectError = "Subject must be at least 5 characters.";
+    const descError = validateDescription(form.description, { required: true });
 
-    const descErrors = validateDescriptionAllErrors(form.description, { min: 10, max: 1000, required: true });
-
-    if (customSubjectError || descErrors.length > 0) {
-      setErrors({ subject: customSubjectError, description: descErrors.length > 0 ? descErrors : null });
+    if (subjectError || descError) {
+      setErrors({ 
+        subject: subjectError, 
+        description: descError 
+      });
       toast.error("PLEASE FIX VALIDATION ERRORS");
       return;
     }
@@ -186,7 +191,7 @@ const handleSubmit = async (e) => {
       >
         {/* Close Button */}
         <button 
-          onClick={onClose} 
+          onClick={handleCancelClick} 
           className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
         >
           &times;
@@ -238,12 +243,8 @@ const handleSubmit = async (e) => {
               required
             />
             <div className="flex justify-between items-center mt-1">
-              {errors.description && errors.description.length > 0 ? (
-                <div className="space-y-1">
-                  {errors.description.map((err, i) => (
-                    <p key={i} className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{err}</p>
-                  ))}
-                </div>
+              {errors.description ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.description}</p>
               ) : <div />}
               <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.description.length}/1000</p>
             </div>
@@ -259,7 +260,7 @@ const handleSubmit = async (e) => {
               name="attachment"
               type="file"
               multiple
-              accept=".bmp,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg,image/bmp,video/mp4,audio/mpeg,audio/mpeg3,audio/x-mpeg,audio/x-mpeg-3"
+              accept=".bmp,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*,video/mp4,audio/mpeg"
               className="text-[10px] text-slate-400 font-bold file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-slate-200 file:text-slate-600 hover:file:bg-slate-300 cursor-pointer"
               onChange={handleChange}
               disabled={form.attachments.length >= MAX_FILES}
@@ -316,7 +317,10 @@ const handleSubmit = async (e) => {
 
       {/* Unsaved Changes Confirmation Dialog */}
       {showConfirmDialog && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4">
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-fadeIn">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 bg-amber-50 rounded-full flex items-center justify-center">
