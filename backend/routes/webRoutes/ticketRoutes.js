@@ -5,7 +5,7 @@ const { ticketsAttachmentsStorage } = require("../../storageConfig");
 const { commonFileFilter, handleUpload } = require("../../middlewares/uploadMiddleware");
 const upload = multer({
   storage: ticketsAttachmentsStorage,
-  limits: { fileSize: 25 * 1024 * 1024, files: 5 },
+  limits: { fileSize: 100 * 1024 * 1024, files: 5 },
   fileFilter: commonFileFilter
 });
 const ticketController = require("../../controllers/ticketController");

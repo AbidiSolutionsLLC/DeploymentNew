@@ -456,10 +456,11 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
   }
  
   // --- SECURITY: Hierarchy & Self-Approval Block ---
+  if (leaveRequest.employee.toString() === currentUserId.toString()) {
+     throw new ForbiddenError("You cannot update the status of your own leave request.");
+  }
+
   if (roleKey === 'admin') {
-     if (leaveRequest.employee.toString() === currentUserId.toString()) {
-        throw new ForbiddenError("You cannot update the status of your own leave request.");
-     }
      const adminTeam = await getTeamIds(currentUserId);
      if (!adminTeam.includes(leaveRequest.employee.toString())) {
         throw new ForbiddenError("Admins can only manage leaves for their own team hierarchy.");

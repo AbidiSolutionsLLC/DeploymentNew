@@ -194,6 +194,11 @@ exports.updateTimesheetStatus = catchAsync(async (req, res) => {
   const timesheet = await Timesheet.findById(id).populate('employee', 'name email');
   if (!timesheet) throw new NotFoundError("Timesheet");
 
+  const currentUserId = (req.user.id || req.user._id).toString();
+  if (timesheet.employee._id.toString() === currentUserId) {
+    throw new ForbiddenError("You cannot approve your own timesheet.");
+  }
+
   timesheet.status = status;
   if (approvedHours !== undefined) timesheet.approvedHours = approvedHours;
   

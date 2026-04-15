@@ -54,8 +54,17 @@ export default function NotificationsPage() {
         
         {/* Sidebar Header */}
         <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Notifications</h1>
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all"
+              title="Go back"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight flex-1">Notifications</h1>
             {unreadCount > 0 && (
               <button
                 onClick={() => dispatch(markAllAsRead())}
@@ -190,8 +199,19 @@ export default function NotificationsPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-4 mb-1">
                   <span className="text-4xl p-3 bg-gray-50 rounded-2xl">{getNotificationIcon(selectedNotif.type)}</span>
-                  <div>
-                    <h2 className="text-xl font-extrabold text-gray-900 leading-tight">{selectedNotif.title}</h2>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-extrabold text-gray-900 leading-tight">{selectedNotif.title}</h2>
+                      <button 
+                        onClick={handleBackToList}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                        title="Close detail"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-1">{formatNotifDate(selectedNotif.createdAt)}</p>
                   </div>
                 </div>

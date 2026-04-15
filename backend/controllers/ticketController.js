@@ -187,11 +187,20 @@ exports.updateTicketStatus = catchAsync(async (req, res) => {
     return res.status(400).json({ message: "Invalid status. Use: Open, In Progress, or Closed" });
   }
  
-  const ticket = await Ticket.findByIdAndUpdate(
-    id,
-    { status: normalizedStatus },
-    { new: true }
-  ).populate('closedBy', '_id');
+  const ticket = await Ticket.findById(id).populate('closedBy', '_id');
+  
+  if (!ticket) {
+    return res.status(404).json({ message: "Ticket not found" });
+  }
+
+  // Self-approval restriction
+  const currentUserId = (req.user.id || req.user._id).toString();
+  if (ticket.closedBy && ticket.closedBy._id.toString() === currentUserId) {
+    throw new ForbiddenError("You cannot update the status of your own ticket.");
+  }
+
+  ticket.status = normalizedStatus;
+  await ticket.save();
  
   if (!ticket) {
     return res.status(404).json({ message: "Ticket not found" });
@@ -270,7 +279,18 @@ exports.updateTicketAssignee = catchAsync(async (req, res) => {
     return res.status(404).json({ message: "User not found" });
   }
  
-  const ticket = await Ticket.findByIdAndUpdate(
+  const ticket = await Ticket.findById(id);
+  if (!ticket) {
+    return res.status(404).json({ message: "Ticket not found" });
+  }
+
+  // Self-assignment restriction
+  const currentUserId = (req.user.id || req.user._id).toString();
+  if (ticket.closedBy && ticket.closedBy.toString() === currentUserId) {
+    throw new ForbiddenError("You cannot assign or be assigned to your own ticket.");
+  }
+
+  const ticketUpdated = await Ticket.findByIdAndUpdate(
     id,
     { assignedTo },
     { new: true }

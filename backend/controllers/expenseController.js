@@ -245,12 +245,11 @@ exports.approveExpense = catchAsync(async (req, res, next) => {
   }
 
   // --- HIERARCHY & SELF-APPROVAL CHECK ---
-  if (userRole !== "superadmin") {
-    // Check if user is approving their own expense
-    if (expense.submittedBy.toString() === currentUserId.toString()) {
-      throw new ForbiddenError("You cannot approve your own expense request.");
-    }
+  if (expense.submittedBy.toString() === currentUserId.toString()) {
+    throw new ForbiddenError("You cannot approve your own expense request.");
+  }
 
+  if (userRole !== "superadmin") {
     // Check if the submitter is in the user's hierarchy
     const teamIds = await getTeamIds(currentUserId);
     if (!teamIds.includes(expense.submittedBy.toString())) {
@@ -308,12 +307,11 @@ exports.rejectExpense = catchAsync(async (req, res, next) => {
   }
 
   // --- HIERARCHY & SELF-REJECTION CHECK ---
-  if (userRole !== "superadmin") {
-    // Check if user is rejecting their own expense
-    if (expense.submittedBy.toString() === currentUserId.toString()) {
-      throw new ForbiddenError("You cannot reject your own expense request.");
-    }
+  if (expense.submittedBy.toString() === currentUserId.toString()) {
+    throw new ForbiddenError("You cannot reject your own expense request.");
+  }
 
+  if (userRole !== "superadmin") {
     // Check if the submitter is in the user's hierarchy
     const teamIds = await getTeamIds(currentUserId);
     if (!teamIds.includes(expense.submittedBy.toString())) {
