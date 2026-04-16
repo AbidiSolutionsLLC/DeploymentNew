@@ -181,6 +181,7 @@ userSchema.pre("findOneAndDelete", async function (next) {
       $or: [{ closedBy: userId }, { assignedTo: userId }],
     }),
     mongoose.model("LeaveRequest").deleteMany({ employee: userId }),
+    mongoose.model("Todo").deleteMany({ user: userId }),
     mongoose.model("TimeLog").deleteMany({ employee: userId }),
     mongoose.model("Timesheet").deleteMany({ employee: userId }),
     mongoose.model("TimeTracker").deleteMany({ user: userId }),

@@ -205,7 +205,7 @@ const userName =
       case "feeds": return <FeedsCard key={card.id} onDelete={onDelete} />;
       case "attendance": return <AttendanceCard key={card.id} onDelete={onDelete} />;
       case "holidays": return <HolidaysCard key={card.id} onDelete={onDelete} />;
-      case "todo": return <ToDoCard key={card.id} onDelete={onDelete} />;
+      case "todo": return <ToDoCard key={card.id} onDelete={onDelete} userId={userId} />;
       case "notes": return <NotesCard key={card.id} onDelete={onDelete} />;
       case "recent activities": return <RecentActivitiesCard key={card.id} onDelete={onDelete} />;
       case "birthdays": return <UpcomingBirthdaysCard key={card.id} onDelete={onDelete} />;

@@ -4,7 +4,12 @@ const multer = require("multer");
 const { userProfileStorage } = require("../../storageConfig");
 const upload = multer({ storage: userProfileStorage });
 const userController = require("../../controllers/userController");
+const todoController = require("../../controllers/todoController");
 const { userUpdateSchema } = require("../../JoiSchema/UserJoiSchema");
+const {
+  createTodoSchema,
+  updateTodoSchema,
+} = require("../../JoiSchema/TodoJoiSchema");
 const validationMiddleware = require("../../middlewares/validationMiddleware");
 const { isLoggedIn } = require("../../middlewares/authMiddleware"); // <--- IMPORT THIS
 
@@ -37,6 +42,14 @@ router
 router.route('/:id/dashboard-cards').get(isLoggedIn, userController.getDashboardCards);
 router.route('/:id/dashboard-cards/add').post(isLoggedIn, userController.addDashboardCard);
 router.route('/:id/dashboard-cards/:cardId').delete(isLoggedIn, userController.removeDashboardCard);
+router
+  .route("/:id/todos")
+  .get(isLoggedIn, todoController.getUserTodos)
+  .post(isLoggedIn, validationMiddleware(createTodoSchema), todoController.createTodo);
+router
+  .route("/:id/todos/:todoId")
+  .put(isLoggedIn, validationMiddleware(updateTodoSchema), todoController.updateTodo)
+  .delete(isLoggedIn, todoController.deleteTodo);
 router.route('/:id/leaves').get(isLoggedIn, userController.getUserLeaves).put(isLoggedIn, userController.updateUserLeaves);
 router.route('/:id/leaves/history').get(isLoggedIn, userController.getUserLeaveHistory);
 
