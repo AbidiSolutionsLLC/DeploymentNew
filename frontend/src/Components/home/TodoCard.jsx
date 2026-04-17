@@ -27,7 +27,8 @@ const formatDateInput = (value) => {
 
 const getToday = () => new Date().toISOString().split("T")[0];
 
-const validateTodo = ({ title, description, dueDate }) => {
+const validateTodo = ({ title, description, dueDate }, options = {}) => {
+  const { allowPastDue = false } = options;
   const nextErrors = {};
   const titleValue = title.trim();
   const descriptionValue = description.trim();
@@ -41,7 +42,7 @@ const validateTodo = ({ title, description, dueDate }) => {
   else if (descriptionValue.length > 500) nextErrors.description = "Task description cannot exceed 500 characters";
 
   if (!dueDate) nextErrors.dueDate = "Due date is required";
-  else if (dueDate < getToday()) nextErrors.dueDate = "Due date cannot be in the past";
+  else if (!allowPastDue && dueDate < getToday()) nextErrors.dueDate = "Due date cannot be in the past";
 
   return nextErrors;
 };
@@ -52,22 +53,26 @@ const ToDoCard = ({ onDelete, userId }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newTask, setNewTask] = useState(EMPTY_FORM);
-  const [editing, setEditing] = useState(null);
-  const [editTask, setEditTask] = useState(EMPTY_FORM);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addModalForm, setAddModalForm] = useState(EMPTY_FORM);
+  const [addModalTouched, setAddModalTouched] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
-  const [addTouched, setAddTouched] = useState({});
-  const [editTouched, setEditTouched] = useState({});
+  const [modalTouched, setModalTouched] = useState({});
   const [deleteDialog, setDeleteDialog] = useState({ open: false, task: null });
+  const [detailModal, setDetailModal] = useState({ open: false, task: null });
+  const [modalForm, setModalForm] = useState({ ...EMPTY_FORM, completed: false });
   const menuRef = useRef();
   const pendingDeleteRef = useRef({});
 
   const resolvedUserId = userId || user?.user?._id || user?.user?.id;
-  const addErrors = useMemo(() => validateTodo(newTask), [newTask]);
-  const editErrors = useMemo(() => validateTodo(editTask), [editTask]);
+  const addErrors = useMemo(() => validateTodo(addModalForm), [addModalForm]);
+  const modalErrors = useMemo(
+    () => validateTodo(modalForm, { allowPastDue: true }),
+    [modalForm]
+  );
   const addDisabled = saving || Object.keys(addErrors).length > 0;
-  const editDisabled = updatingTaskId === editing || Object.keys(editErrors).length > 0;
+  const modalSaveDisabled =
+    Object.keys(modalErrors).length > 0;
   const sortedTasks = useMemo(() => {
     return [...tasks].sort((a, b) => {
       const firstDate = a?.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
@@ -125,31 +130,33 @@ const ToDoCard = ({ onDelete, userId }) => {
     };
   }, [resolvedUserId]);
 
-  const resetAddForm = () => {
-    setNewTask(EMPTY_FORM);
-    setAddTouched({});
-    setShowAddForm(false);
+  const resetAddModal = () => {
+    setAddModalForm(EMPTY_FORM);
+    setAddModalTouched({});
+    setAddModalOpen(false);
   };
 
-  const resetEditForm = () => {
-    setEditing(null);
-    setEditTask(EMPTY_FORM);
-    setEditTouched({});
+  const openAddModal = () => {
+    setAddModalForm(EMPTY_FORM);
+    setAddModalTouched({});
+    setAddModalOpen(true);
+  };
+
+  const closeAddModal = () => {
+    resetAddModal();
   };
 
   const handleAddFieldChange = (field, value) => {
-    setNewTask((prev) => ({ ...prev, [field]: value }));
-    setAddTouched((prev) => ({ ...prev, [field]: true }));
+    setAddModalForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleEditFieldChange = (field, value) => {
-    setEditTask((prev) => ({ ...prev, [field]: value }));
-    setEditTouched((prev) => ({ ...prev, [field]: true }));
+  const handleAddFieldBlur = (field) => {
+    setAddModalTouched((prev) => ({ ...prev, [field]: true }));
   };
 
   const addTask = async () => {
     if (addDisabled || !resolvedUserId) {
-      setAddTouched({
+      setAddModalTouched({
         title: true,
         description: true,
         dueDate: true,
@@ -160,9 +167,9 @@ const ToDoCard = ({ onDelete, userId }) => {
     try {
       setSaving(true);
       const payload = {
-        title: newTask.title.trim(),
-        description: newTask.description.trim(),
-        dueDate: newTask.dueDate,
+        title: addModalForm.title.trim(),
+        description: addModalForm.description.trim(),
+        dueDate: addModalForm.dueDate,
       };
       const { data } = await api.post(`/users/${resolvedUserId}/todos`, payload);
       setTasks((prev) => [
@@ -172,7 +179,7 @@ const ToDoCard = ({ onDelete, userId }) => {
         },
         ...prev,
       ]);
-      resetAddForm();
+      resetAddModal();
       toast.success("Task added");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to add task");
@@ -199,6 +206,7 @@ const ToDoCard = ({ onDelete, userId }) => {
             : task
         )
       );
+      return data;
     } catch (error) {
       setTasks(previousTasks);
       toast.error(error.response?.data?.message || "Failed to update task");
@@ -223,53 +231,6 @@ const ToDoCard = ({ onDelete, userId }) => {
     }
   };
 
-  const handleEditClick = (task) => {
-    setEditing(task._id);
-    setEditTask({
-      title: task.title || "",
-      description: task.description || "",
-      dueDate: task.dueDate || "",
-    });
-    setEditTouched({});
-  };
-
-  const handleEditSave = async (taskId) => {
-    if (editDisabled || !resolvedUserId) {
-      setEditTouched({
-        title: true,
-        description: true,
-        dueDate: true,
-      });
-      return;
-    }
-
-    try {
-      await persistTaskUpdate(
-        taskId,
-        {
-          title: editTask.title.trim(),
-          description: editTask.description.trim(),
-          dueDate: editTask.dueDate,
-        },
-        (prev) =>
-          prev.map((task) =>
-            task._id === taskId
-              ? {
-                  ...task,
-                  title: editTask.title.trim(),
-                  description: editTask.description.trim(),
-                  dueDate: editTask.dueDate,
-                }
-              : task
-          )
-      );
-      resetEditForm();
-      toast.success("Task updated");
-    } catch {
-      return;
-    }
-  };
-
   const undoDelete = (todoId) => {
     const pendingDelete = pendingDeleteRef.current[todoId];
     if (!pendingDelete) return;
@@ -288,13 +249,90 @@ const ToDoCard = ({ onDelete, userId }) => {
     setDeleteDialog({ open: true, task });
   };
 
+  const closeDetailModal = () => {
+    setDetailModal({ open: false, task: null });
+    setModalForm({ ...EMPTY_FORM, completed: false });
+    setModalTouched({});
+  };
+
+  const openDetailModal = (task) => {
+    if (!task) return;
+    setDetailModal({ open: true, task });
+    setModalForm({
+      title: task.title || "",
+      description: task.description || "",
+      dueDate: task.dueDate || "",
+      completed: !!task.completed,
+    });
+    setModalTouched({});
+  };
+
+  const handleModalFieldChange = (field, value) => {
+    setModalForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleModalFieldBlur = (field) => {
+    setModalTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleModalSave = async () => {
+    const task = detailModal.task;
+    if (!task?._id || !resolvedUserId) return;
+    if (modalSaveDisabled) {
+      setModalTouched({ title: true, description: true, dueDate: true, completed: true });
+      return;
+    }
+
+    try {
+      const data = await persistTaskUpdate(
+        task._id,
+        {
+          title: modalForm.title.trim(),
+          description: modalForm.description.trim(),
+          dueDate: modalForm.dueDate,
+          completed: modalForm.completed,
+        },
+        (prev) =>
+          prev.map((t) =>
+            t._id === task._id
+              ? {
+                  ...t,
+                  title: modalForm.title.trim(),
+                  description: modalForm.description.trim(),
+                  dueDate: modalForm.dueDate,
+                  completed: modalForm.completed,
+                }
+              : t
+          )
+      );
+      const merged = {
+        ...task,
+        ...data,
+        dueDate: formatDateInput(data.dueDate),
+      };
+      setDetailModal((prev) => ({ ...prev, task: merged }));
+      setModalForm({
+        title: merged.title || "",
+        description: merged.description || "",
+        dueDate: merged.dueDate || "",
+        completed: !!merged.completed,
+      });
+      toast.success("Task updated");
+      closeDetailModal();
+    } catch {
+      return;
+    }
+  };
+
   const removeTask = () => {
     const task = deleteDialog.task;
     if (!task || !resolvedUserId) return;
 
     const index = tasks.findIndex((item) => item._id === task._id);
     setTasks((prev) => prev.filter((item) => item._id !== task._id));
-    if (editing === task._id) resetEditForm();
+    if (detailModal.open && detailModal.task?._id === task._id) {
+      closeDetailModal();
+    }
     setDeleteDialog({ open: false, task: null });
 
     const timeoutId = window.setTimeout(async () => {
@@ -393,71 +431,15 @@ const ToDoCard = ({ onDelete, userId }) => {
           </div>
         </div>
 
-        {/* Add Task Form Section - shrink-0 ensures it doesn't scroll away */}
-        <div className="shrink-0">
-          {!showAddForm ? (
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="mb-3 text-xs text-green-600 hover:text-green-800 flex items-center gap-1.5 font-medium"
-            >
-              <FiPlus className="h-3.5 w-3.5" />
-              Add Task
-            </button>
-          ) : (
-            <div className="flex flex-col gap-2 mb-4 p-2 bg-slate-50 rounded-lg border border-slate-100">
-              <div>
-                <input
-                  type="text"
-                  placeholder="Task name"
-                  className={`border px-3 py-2 rounded-lg text-xs w-full bg-white ${addTouched.title && addErrors.title ? "border-red-400" : "border-slate-300"}`}
-                  value={newTask.title}
-                  onChange={(e) => handleAddFieldChange("title", e.target.value)}
-                />
-                {addTouched.title && addErrors.title && (
-                  <p className="text-[9px] text-red-500 mt-1">{addErrors.title}</p>
-                )}
-              </div>
-              <div>
-                <input
-                  type="text"
-                  placeholder="Task description"
-                  className={`border px-3 py-2 rounded-lg text-xs w-full bg-white ${addTouched.description && addErrors.description ? "border-red-400" : "border-slate-300"}`}
-                  value={newTask.description}
-                  onChange={(e) => handleAddFieldChange("description", e.target.value)}
-                />
-                {addTouched.description && addErrors.description && (
-                  <p className="text-[9px] text-red-500 mt-1">{addErrors.description}</p>
-                )}
-              </div>
-              <div>
-                <input
-                  type="date"
-                  min={getToday()}
-                  className={`border px-3 py-2 rounded-lg text-xs w-full bg-white ${addTouched.dueDate && addErrors.dueDate ? "border-red-400" : "border-slate-300"}`}
-                  value={newTask.dueDate}
-                  onChange={(e) => handleAddFieldChange("dueDate", e.target.value)}
-                />
-                {addTouched.dueDate && addErrors.dueDate && (
-                  <p className="text-[9px] text-red-500 mt-1">{addErrors.dueDate}</p>
-                )}
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={resetAddForm}
-                  className="text-[10px] text-slate-500 font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={addTask}
-                  disabled={addDisabled}
-                  className="bg-green-500 text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-green-600 transition disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
-              </div>
-            </div>
-          )}
+        {/* Add Task Button */}
+        <div className="shrink-0 mb-3">
+          <button
+            onClick={openAddModal}
+            className="text-xs text-green-600 hover:text-green-800 flex items-center gap-1.5 font-medium"
+          >
+            <FiPlus className="h-3.5 w-3.5" />
+            Add Task
+          </button>
         </div>
 
         {/* Scrollable Task List Section */}
@@ -481,92 +463,39 @@ const ToDoCard = ({ onDelete, userId }) => {
                       className="mt-0.5 shrink-0 w-4 h-4 cursor-pointer accent-green-600"
                     />
                     <div className="min-w-0 flex-1">
-                      {editing === task._id ? (
-                        <div className="space-y-2">
-                          <div>
-                            <input
-                              autoFocus
-                              className={`font-semibold bg-white px-2 py-1 rounded border w-full text-xs ${editTouched.title && editErrors.title ? "border-red-400" : "border-slate-300"}`}
-                              value={editTask.title}
-                              onChange={(e) => handleEditFieldChange("title", e.target.value)}
-                            />
-                            {editTouched.title && editErrors.title && (
-                              <p className="text-[9px] text-red-500 mt-1">{editErrors.title}</p>
-                            )}
-                          </div>
-                          <div>
-                            <input
-                              className={`text-[10px] text-slate-600 bg-white px-2 py-1 rounded border w-full ${editTouched.description && editErrors.description ? "border-red-400" : "border-slate-300"}`}
-                              value={editTask.description}
-                              onChange={(e) => handleEditFieldChange("description", e.target.value)}
-                              placeholder="Description"
-                            />
-                            {editTouched.description && editErrors.description && (
-                              <p className="text-[9px] text-red-500 mt-1">{editErrors.description}</p>
-                            )}
-                          </div>
-                          <div>
-                            <input
-                              type="date"
-                              min={getToday()}
-                              className={`text-[10px] bg-white px-2 py-1 rounded border w-full ${editTouched.dueDate && editErrors.dueDate ? "border-red-400" : "border-slate-300"}`}
-                              value={editTask.dueDate}
-                              onChange={(e) => handleEditFieldChange("dueDate", e.target.value)}
-                            />
-                            {editTouched.dueDate && editErrors.dueDate && (
-                              <p className="text-[9px] text-red-500 mt-1">{editErrors.dueDate}</p>
-                            )}
-                          </div>
-                          <div className="flex gap-2 pt-1">
-                            <button
-                              onClick={() => handleEditSave(task._id)}
-                              disabled={editDisabled}
-                              className="flex-1 bg-green-500 text-white px-2 py-1 rounded text-[10px] font-medium hover:bg-green-600 transition disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {updatingTaskId === task._id ? "Saving..." : "Save"}
-                            </button>
-                            <button
-                              onClick={resetEditForm}
-                              className="flex-1 bg-slate-200 text-slate-700 px-2 py-1 rounded text-[10px] font-medium hover:bg-slate-300 transition"
-                            >
-                              Cancel
-                            </button>
-                          </div>
+                      <div
+                        className={`font-semibold cursor-pointer truncate ${task.completed ? "line-through text-slate-400" : "text-slate-700"
+                          }`}
+                        onClick={() => openDetailModal(task)}
+                      >
+                        {task.title}
+                      </div>
+                      <div
+                        className="text-[9px] text-slate-500 cursor-pointer whitespace-pre-wrap break-words"
+                        onClick={() => openDetailModal(task)}
+                      >
+                        {task.description}
+                      </div>
+                      {task.dueDate && (
+                        <div
+                          className="text-[9px] text-slate-400 mt-1 italic cursor-pointer"
+                          onClick={() => openDetailModal(task)}
+                        >
+                          Due: {task.dueDate}
                         </div>
-                      ) : (
-                        <>
-                          <div
-                            className={`font-semibold cursor-pointer truncate ${task.completed ? "line-through text-slate-400" : "text-slate-700"
-                              }`}
-                            onClick={() => handleEditClick(task)}
-                          >
-                            {task.title}
-                          </div>
-                          <div
-                            className="text-[9px] text-slate-500 cursor-pointer whitespace-pre-wrap break-words"
-                            onClick={() => handleEditClick(task)}
-                          >
-                            {task.description}
-                          </div>
-                          {task.dueDate && (
-                            <div className="text-[9px] text-slate-400 mt-1 italic">
-                              Due: {task.dueDate}
-                            </div>
-                          )}
-                        </>
                       )}
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-1.5 items-end shrink-0">
-                    {!task.completed && editing !== task._id && (
-                      <button
-                        onClick={() => handleEditClick(task)}
-                        className="bg-green-100 text-green-700 p-1.5 rounded-md hover:bg-green-200"
-                      >
-                        <FiEdit2 className="h-3 w-3" />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => openDetailModal(task)}
+                      className="bg-green-100 text-green-700 p-1.5 rounded-md hover:bg-green-200"
+                      title="View / edit"
+                    >
+                      <FiEdit2 className="h-3 w-3" />
+                    </button>
                     <button
                       onClick={() => confirmDeleteTask(task)}
                       className="bg-red-100 text-red-600 p-1.5 rounded-md hover:bg-red-200"
@@ -582,6 +511,231 @@ const ToDoCard = ({ onDelete, userId }) => {
           )}
         </div>
       </div>
+      {detailModal.open && detailModal.task && (
+        <div
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4 sm:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeDetailModal();
+          }}
+        >
+          <div className="w-full max-w-3xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="shrink-0 flex items-start justify-between gap-4 px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-black text-slate-800 uppercase tracking-wider">
+                  Todo
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-1 font-medium">
+                  View and update this task
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeDetailModal}
+                className="shrink-0 text-xs text-slate-500 hover:text-slate-800 font-semibold px-3 py-1.5 rounded-lg hover:bg-slate-100 transition"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 sm:px-8 py-6">
+              <div className="space-y-5 text-sm">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    className={`w-full border rounded-xl px-4 py-3 text-sm text-slate-800 bg-white ${
+                      modalTouched.title && modalErrors.title ? "border-red-400" : "border-slate-200"
+                    }`}
+                    value={modalForm.title}
+                    onChange={(e) => handleModalFieldChange("title", e.target.value)}
+                    onBlur={() => handleModalFieldBlur("title")}
+                  />
+                  {modalTouched.title && modalErrors.title && (
+                    <p className="text-[11px] text-red-500 mt-1.5">{modalErrors.title}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                    Description
+                  </label>
+                  <textarea
+                    rows={8}
+                    className={`w-full border rounded-xl px-4 py-3 text-sm text-slate-700 bg-white resize-y min-h-[140px] ${
+                      modalTouched.description && modalErrors.description ? "border-red-400" : "border-slate-200"
+                    }`}
+                    value={modalForm.description}
+                    onChange={(e) => handleModalFieldChange("description", e.target.value)}
+                    onBlur={() => handleModalFieldBlur("description")}
+                    placeholder="Describe the task..."
+                  />
+                  {modalTouched.description && modalErrors.description && (
+                    <p className="text-[11px] text-red-500 mt-1.5">{modalErrors.description}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                      Due date
+                    </label>
+                    <input
+                      type="date"
+                      className={`w-full border rounded-xl px-4 py-3 text-sm text-slate-800 bg-white ${
+                        modalTouched.dueDate && modalErrors.dueDate ? "border-red-400" : "border-slate-200"
+                      }`}
+                      value={modalForm.dueDate}
+                      onChange={(e) => handleModalFieldChange("dueDate", e.target.value)}
+                      onBlur={() => handleModalFieldBlur("dueDate")}
+                    />
+                    {modalTouched.dueDate && modalErrors.dueDate && (
+                      <p className="text-[11px] text-red-500 mt-1.5">{modalErrors.dueDate}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-slate-200 px-4 py-3 bg-slate-50/80 hover:bg-slate-50 transition">
+                      <input
+                        type="checkbox"
+                        checked={modalForm.completed}
+                        onChange={(e) => handleModalFieldChange("completed", e.target.checked)}
+                        className="w-4 h-4 rounded accent-green-600"
+                      />
+                      <span className="text-sm font-semibold text-slate-700">Mark as completed</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 flex flex-col-reverse sm:flex-row justify-end gap-3 px-6 sm:px-8 py-5 border-t border-slate-100 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={closeDetailModal}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleModalSave}
+                disabled={modalSaveDisabled}
+                className="w-full sm:w-auto px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-green-600 hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {updatingTaskId === detailModal.task._id ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {addModalOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4 sm:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeAddModal();
+          }}
+        >
+          <div className="w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="shrink-0 flex items-start justify-between gap-4 px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-black text-slate-800 uppercase tracking-wider">
+                  Add Todo
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-1 font-medium">
+                  Enter task details and save to your todo list.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeAddModal}
+                className="shrink-0 text-xs text-slate-500 hover:text-slate-800 font-semibold px-3 py-1.5 rounded-lg hover:bg-slate-100 transition"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 sm:px-8 py-6">
+              <div className="space-y-5 text-sm">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    className={`w-full border rounded-xl px-4 py-3 text-sm text-slate-800 bg-white ${
+                      addModalTouched.title && addErrors.title ? "border-red-400" : "border-slate-200"
+                    }`}
+                    value={addModalForm.title}
+                    onChange={(e) => handleAddFieldChange("title", e.target.value)}
+                    onBlur={() => handleAddFieldBlur("title")}
+                    placeholder="Task name"
+                  />
+                  {addModalTouched.title && addErrors.title && (
+                    <p className="text-[11px] text-red-500 mt-1.5">{addErrors.title}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                    Description
+                  </label>
+                  <textarea
+                    rows={5}
+                    className={`w-full border rounded-xl px-4 py-3 text-sm text-slate-700 bg-white resize-y min-h-[120px] ${
+                      addModalTouched.description && addErrors.description ? "border-red-400" : "border-slate-200"
+                    }`}
+                    value={addModalForm.description}
+                    onChange={(e) => handleAddFieldChange("description", e.target.value)}
+                    onBlur={() => handleAddFieldBlur("description")}
+                    placeholder="Describe the task..."
+                  />
+                  {addModalTouched.description && addErrors.description && (
+                    <p className="text-[11px] text-red-500 mt-1.5">{addErrors.description}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                    Due date
+                  </label>
+                  <input
+                    type="date"
+                    min={getToday()}
+                    className={`w-full border rounded-xl px-4 py-3 text-sm text-slate-800 bg-white ${
+                      addModalTouched.dueDate && addErrors.dueDate ? "border-red-400" : "border-slate-200"
+                    }`}
+                    value={addModalForm.dueDate}
+                    onChange={(e) => handleAddFieldChange("dueDate", e.target.value)}
+                    onBlur={() => handleAddFieldBlur("dueDate")}
+                  />
+                  {addModalTouched.dueDate && addErrors.dueDate && (
+                    <p className="text-[11px] text-red-500 mt-1.5">{addErrors.dueDate}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 flex flex-col-reverse sm:flex-row justify-end gap-3 px-6 sm:px-8 py-5 border-t border-slate-100 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={closeAddModal}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={addTask}
+                disabled={addDisabled}
+                className="w-full sm:w-auto px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-green-600 hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? "Saving..." : "Save task"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {deleteDialog.open && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4">
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6">
