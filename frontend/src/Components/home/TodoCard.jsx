@@ -11,6 +11,7 @@ import { toast } from "react-toastify";
 
 import api from "../../axios";
 import EmptyCardState from "./EmptyCardState";
+import ModernDatePicker from "../ui/ModernDatePicker";
 
 const EMPTY_FORM = {
   title: "",
@@ -402,7 +403,7 @@ const ToDoCard = ({ onDelete, userId }) => {
               <h3 className="text-xs font-bold text-slate-800 uppercase tracking-tight">To-Do</h3>
             </div>
             <p className="text-[10px] font-medium text-slate-500">
-              Enter Your to do list here
+              Enter your to-do list here
             </p>
           </div>
 
@@ -578,21 +579,15 @@ const ToDoCard = ({ onDelete, userId }) => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
-                      Due date
-                    </label>
-                    <input
-                      type="date"
-                      className={`w-full border rounded-xl px-4 py-3 text-sm text-slate-800 bg-white ${
-                        modalTouched.dueDate && modalErrors.dueDate ? "border-red-400" : "border-slate-200"
-                      }`}
+                    <ModernDatePicker
+                      label="Due Date"
+                      name="dueDate"
                       value={modalForm.dueDate}
                       onChange={(e) => handleModalFieldChange("dueDate", e.target.value)}
-                      onBlur={() => handleModalFieldBlur("dueDate")}
+                      required
+                      placeholder="Select Date"
+                      error={modalTouched.dueDate && modalErrors.dueDate ? modalErrors.dueDate : null}
                     />
-                    {modalTouched.dueDate && modalErrors.dueDate && (
-                      <p className="text-[11px] text-red-500 mt-1.5">{modalErrors.dueDate}</p>
-                    )}
                   </div>
                   <div className="flex flex-col justify-end">
                     <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-slate-200 px-4 py-3 bg-slate-50/80 hover:bg-slate-50 transition">
@@ -621,7 +616,7 @@ const ToDoCard = ({ onDelete, userId }) => {
                 type="button"
                 onClick={handleModalSave}
                 disabled={modalSaveDisabled}
-                className="w-full sm:w-auto px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-green-600 hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white bg-[#64748b] shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {updatingTaskId === detailModal.task._id ? "Saving..." : "Save changes"}
               </button>
@@ -640,10 +635,10 @@ const ToDoCard = ({ onDelete, userId }) => {
             <div className="shrink-0 flex items-start justify-between gap-4 px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-black text-slate-800 uppercase tracking-wider">
-                  Add Todo
+                  Add To-Do
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-1 font-medium">
-                  Enter task details and save to your todo list.
+                  Enter task details and save to your to-do list.
                 </p>
               </div>
               <button
@@ -696,22 +691,15 @@ const ToDoCard = ({ onDelete, userId }) => {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
-                    Due date
-                  </label>
-                  <input
-                    type="date"
-                    min={getToday()}
-                    className={`w-full border rounded-xl px-4 py-3 text-sm text-slate-800 bg-white ${
-                      addModalTouched.dueDate && addErrors.dueDate ? "border-red-400" : "border-slate-200"
-                    }`}
+                  <ModernDatePicker
+                    label="Due Date"
+                    name="dueDate"
                     value={addModalForm.dueDate}
                     onChange={(e) => handleAddFieldChange("dueDate", e.target.value)}
-                    onBlur={() => handleAddFieldBlur("dueDate")}
+                    required
+                    placeholder="Select Date"
+                    error={addModalTouched.dueDate && addErrors.dueDate ? addErrors.dueDate : null}
                   />
-                  {addModalTouched.dueDate && addErrors.dueDate && (
-                    <p className="text-[11px] text-red-500 mt-1.5">{addErrors.dueDate}</p>
-                  )}
                 </div>
               </div>
             </div>
@@ -728,7 +716,7 @@ const ToDoCard = ({ onDelete, userId }) => {
                 type="button"
                 onClick={addTask}
                 disabled={addDisabled}
-                className="w-full sm:w-auto px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-green-600 hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white bg-[#64748b] shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? "Saving..." : "Save task"}
               </button>
