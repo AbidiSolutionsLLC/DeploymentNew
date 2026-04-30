@@ -78,8 +78,9 @@ const AdminAttendance = () => {
     }
   };
 
+  // --- FETCH USER INFO ON MOUNT ---
   useEffect(() => {
-    const initData = async () => {
+    const fetchUserInfo = async () => {
       try {
         const userRes = await api.get("/auth/me");
         const role = userRes.data.user.role || "";
@@ -90,13 +91,18 @@ const AdminAttendance = () => {
             const allUsersRes = await api.get("/users");
             setAllUsers(allUsersRes.data);
         }
-        await fetchSummary(filterDate);
       } catch (error) {
-        console.error("Init Error:", error);
-        toast.error("Failed to initialize data");
+        console.error("User Init Error:", error);
       }
     };
-    initData();
+    fetchUserInfo();
+  }, []);
+
+  // --- FETCH SUMMARY ON DATE CHANGE ---
+  useEffect(() => {
+    if (filterDate) {
+      fetchSummary(filterDate);
+    }
   }, [filterDate]);
 
   const canEdit = currentUserRole === 'superadmin';
@@ -170,13 +176,17 @@ const AdminAttendance = () => {
         updates.checkOutTime = null;
         updates.totalHours = 0;
       } else {
+        const now = new Date();
+        if (updates.checkInTime && new Date(updates.checkInTime) > now) {
+          return toast.error("Check-in time cannot be in the future");
+        }
+        if (updates.checkOutTime && new Date(updates.checkOutTime) > now) {
+          return toast.error("Check-out time cannot be in the future");
+        }
+
         if (updates.checkInTime && updates.checkOutTime) {
           if (new Date(updates.checkOutTime) <= new Date(updates.checkInTime)) {
             return toast.error("Check-out cannot be before check-in");
-          }
-          const now = new Date();
-          if (new Date(updates.checkInTime) > now) {
-            return toast.error("Check-in time cannot be in the future");
           }
         }
         if (!updates.checkInTime && updates.checkOutTime) {
@@ -298,7 +308,11 @@ const AdminAttendance = () => {
               selected={filterDate}
               onChange={(date) => {
                 setFilterDate(date);
-                localStorage.setItem('admin_attendance_date', date.toISOString());
+                if (date) {
+                  localStorage.setItem('admin_attendance_date', date.toISOString());
+                } else {
+                  localStorage.removeItem('admin_attendance_date');
+                }
               }}
               dateFormat="yyyy-MM-dd"
               wrapperClassName="w-full h-full" // Ensure the wrapper fills the div

@@ -46,9 +46,25 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
     if (!formData.user) newErrors.user = "Employee is required.";
     if (!formData.checkInTime) newErrors.checkInTime = "Check-in time is required.";
     
+    if (formData.checkInTime && formData.checkOutTime) {
+      if (new Date(formData.checkOutTime) <= new Date(formData.checkInTime)) {
+        newErrors.checkOutTime = "Check-out cannot be before check-in";
+      }
+    }
+
+    const now = new Date();
+    if (formData.checkInTime && new Date(formData.checkInTime) > now) {
+      newErrors.checkInTime = "Check-in time cannot be in the future";
+    }
+    if (formData.checkOutTime && new Date(formData.checkOutTime) > now) {
+      newErrors.checkOutTime = "Check-out time cannot be in the future";
+    }
+    
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
-      toast.error("Please fix validation errors");
+      // Find the first error message to display in toast
+      const firstError = Object.values(newErrors)[0];
+      toast.error(firstError);
       return;
     }
 
