@@ -271,7 +271,16 @@ exports.getAllTimesheets = catchAsync(async (req, res) => {
     };
   }
 
-  // 2. RBAC: Who sees what?
+  // 2. Additional Filters: Status & Employee
+  const { status, employeeId } = req.query;
+  if (status && status !== 'All') {
+    query.status = status;
+  }
+  if (employeeId && employeeId !== 'All') {
+    query.employee = employeeId;
+  }
+
+  // 3. RBAC: Who sees what?
   if (role === 'Super Admin' || role === 'HR') {
      // See ALL
   } 
@@ -280,7 +289,15 @@ exports.getAllTimesheets = catchAsync(async (req, res) => {
      const subordinates = await User.find({ reportsTo: req.user.id || req.user._id }).select('_id');
      const validIds = subordinates.map(u => u._id);
      validIds.push(req.user.id || req.user._id);
-     query.employee = { $in: validIds };
+     
+     if (query.employee) {
+       // If employeeId filter is already set, ensure it's within subordinates
+       if (!validIds.map(id => id.toString()).includes(query.employee.toString())) {
+         query.employee = { $in: [] }; // No access
+       }
+     } else {
+       query.employee = { $in: validIds };
+     }
   } 
   else {
      // Fallback: See Self

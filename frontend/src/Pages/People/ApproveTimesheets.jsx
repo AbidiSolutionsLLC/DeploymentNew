@@ -64,11 +64,19 @@ const ApproveTimesheets = () => {
     return parseInt(localStorage.getItem('approve_timesheets_rows_per_page')) || 10;
   });
 
+  // Filters for "All Timesheets" tab
+  const [filterEmployee, setFilterEmployee] = useState("All");
+  const [filterDate, setFilterDate] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [allTimesheets, setAllTimesheets] = useState([]);
+  const [allLoading, setAllLoading] = useState(false);
+
 
   const tabs = [
     { title: "Pending Timesheets", status: "Pending", count: 0 },
     { title: "Approved Timesheets", status: "Approved", count: 0 },
-    { title: "Rejected Timesheets", status: "Rejected", count: 0 }
+    { title: "Rejected Timesheets", status: "Rejected", count: 0 },
+    { title: "All Timesheets", status: "All", count: 0 }
   ];
 
   const ensureDate = (date) => {
@@ -122,8 +130,33 @@ const ApproveTimesheets = () => {
   }, []);
 
   useEffect(() => {
-    fetchWeeklyTimesheets();
-  }, [selectedWeekStart]);
+    if (activeTab === 3) {
+      fetchAllTimesheets();
+    } else {
+      fetchWeeklyTimesheets();
+    }
+  }, [selectedWeekStart, activeTab, filterEmployee, filterDate, filterStatus]);
+
+  const fetchAllTimesheets = async () => {
+    setAllLoading(true);
+    try {
+      const params = {};
+      if (filterEmployee !== "All") params.employeeId = filterEmployee;
+      if (filterStatus !== "All") params.status = filterStatus;
+      if (filterDate) {
+        params.startDate = filterDate.toISOString().split('T')[0];
+        params.endDate = filterDate.toISOString().split('T')[0];
+      }
+      
+      const response = await timesheetApi.getAllTimesheets(params);
+      setAllTimesheets(Array.isArray(response) ? response : []);
+    } catch (error) {
+      console.error("Error loading all timesheets:", error);
+      toast.error("Failed to load all timesheets");
+    } finally {
+      setAllLoading(false);
+    }
+  };
 
   const fetchWeeklyTimesheets = async () => {
     setLoading(true);
@@ -266,6 +299,7 @@ const ApproveTimesheets = () => {
   tabs[0].count = weeklyData.timesheets?.length || 0;
   tabs[1].count = weeklyData.approvedTimesheets?.length || 0;
   tabs[2].count = weeklyData.rejectedTimesheets?.length || 0;
+  tabs[3].count = allTimesheets.length || 0;
 
   const getFilteredData = () => {
     let data = [];
@@ -273,6 +307,7 @@ const ApproveTimesheets = () => {
       case 0: data = weeklyData.timesheets || []; break;
       case 1: data = weeklyData.approvedTimesheets || []; break;
       case 2: data = weeklyData.rejectedTimesheets || []; break;
+      case 3: data = allTimesheets || []; break;
       default: data = [];
     }
 
@@ -379,6 +414,7 @@ const ApproveTimesheets = () => {
   };
 
   const getEmptyMessage = () => {
+    if (activeTab === 3) return "No timesheets found matching the filters";
     const weekRange = formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd);
     if (activeTab === 0) return `No pending timesheets for ${weekRange}`;
     if (activeTab === 1) return `No approved timesheets for ${weekRange}`;
@@ -495,19 +531,21 @@ const ApproveTimesheets = () => {
 
   return (
     <div className="font-sans text-slate-600">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-        <div className="bg-white/80 backdrop-blur-sm p-3 rounded-xl shadow-sm inline-flex">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 pr-4">
+        <div className="bg-white/80 backdrop-blur-sm p-2 rounded-2xl shadow-sm inline-flex border border-white/50">
           {tabs.map((item, index) => (
             <button
               key={index}
               onClick={() => setActiveTab(index)}
-              className={`px-6 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                activeTab === index ? "bg-white text-slate-900 shadow-[0_2px_8px_rgba(0,0,0,0.1)]" : "text-slate-500 hover:bg-slate-50"
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                activeTab === index 
+                ? "bg-white text-blue-600 shadow-md transform scale-[1.02]" 
+                : "text-slate-500 hover:bg-white/50 hover:text-slate-700"
               }`}
             >
-              {item.title}
+              {item.title.split(' ')[0]} {/* Shorter titles for tabs */}
               {item.count > 0 && (
-                <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === index ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}`}>
+                <span className={`ml-2 px-2 py-0.5 rounded-lg text-[10px] ${activeTab === index ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
                   {item.count}
                 </span>
               )}
@@ -516,109 +554,171 @@ const ApproveTimesheets = () => {
         </div>
 
         <div className="flex items-center gap-3">
-            <div className="relative">
+            <div className="relative group">
               <input
                 type="text"
-                placeholder="Search timesheets..."
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all w-64"
+                className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-400 transition-all w-48 md:w-64"
               />
-              <svg className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg className="absolute left-3.5 top-3 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            {activeTab === 0 && selectedIds.length > 0 && (
-              <button
-                onClick={handleBulkApprove}
-                disabled={updating}
-                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 text-[11px] font-black uppercase tracking-wide disabled:opacity-50"
-              >
-                Approve Selected ({selectedIds.length})
-              </button>
-            )}
+            
             <button
               onClick={() => setIsAddTimeLogOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-[11px] font-black uppercase tracking-wide"
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 text-[11px] font-black uppercase tracking-widest active:scale-95"
             >
-              <Plus size={16} /> Time Log
+              <Plus size={16} strokeWidth={3} /> Time Log
             </button>
             <button
               onClick={() => setIsCreateTimesheetOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 text-[11px] font-black uppercase tracking-wide"
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 text-[11px] font-black uppercase tracking-widest active:scale-95"
             >
-              <Plus size={16} /> Timesheet
+              <Plus size={16} strokeWidth={3} /> Timesheet
             </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 p-3 mb-4 flex flex-col lg:flex-row items-center justify-between gap-4">
-        <div className="pl-4">
-            <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">{tabs[activeTab].title}</h2>
-        </div>
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-4 mb-6 transition-all">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 px-2">
+          <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-0.5">Management</span>
+              <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight leading-none">{tabs[activeTab].title}</h2>
+            </div>
 
-        <div className="flex items-center gap-3 bg-slate-50/50 p-1 rounded-xl">
-          <button onClick={navigateToPreviousWeek} disabled={loading} className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors">
-            <FaAngleLeft size={16} />
-          </button>
+            {activeTab === 3 ? (
+              <div className="flex flex-wrap items-center gap-3 pl-0 md:pl-6 md:border-l border-slate-100">
+                {/* Employee Filter */}
+                <div className="relative">
+                   <select
+                    value={filterEmployee}
+                    onChange={(e) => setFilterEmployee(e.target.value)}
+                    className="h-10 pl-3 pr-8 bg-slate-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-100 transition-all min-w-[160px] text-slate-700 appearance-none cursor-pointer hover:bg-slate-100"
+                  >
+                    <option value="All">All Employees</option>
+                    {allUsers.map(user => (
+                      <option key={user._id} value={user._id}>{user.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
 
-          <div className="relative" ref={calendarRef}>
-            <button onClick={() => setShowCalendar(!showCalendar)} disabled={loading} className="h-10 px-4 flex items-center gap-2 bg-blue-100 text-blue-700 rounded-xl font-semibold text-sm hover:bg-blue-200 transition-colors min-w-[180px] justify-center">
-              <IoCalendarNumberOutline size={18} />
-              <span>{formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}</span>
-            </button>
-            <AnimatePresence>
-              {showCalendar && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                          className="absolute z-50 mt-2    rounded-xl"
-                >
+                {/* Date Filter */}
+                <div className="relative group">
                   <DatePicker
-                    selected={ensureDate(selectedWeekStart)}
-                    onChange={handleWeekSelect}
-                    maxDate={new Date()}
-                    inline
+                    selected={filterDate}
+                    onChange={(date) => setFilterDate(date)}
+                    placeholderText="Select Date"
+                    isClearable
+                    className="h-10 pl-9 pr-3 bg-slate-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-100 transition-all min-w-[140px] text-slate-700 w-full cursor-pointer hover:bg-slate-100"
                   />
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <IoCalendarNumberOutline size={16} />
+                  </div>
+                </div>
+
+                {/* Status Filter */}
+                <div className="relative">
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="h-10 pl-3 pr-8 bg-slate-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-100 transition-all min-w-[130px] text-slate-700 appearance-none cursor-pointer hover:bg-slate-100"
+                  >
+                    <option value="All">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={() => {
+                    setFilterEmployee("All");
+                    setFilterDate(null);
+                    setFilterStatus("All");
+                  }}
+                  className="h-10 px-4 text-[10px] font-black text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl uppercase tracking-widest transition-all"
+                >
+                  Reset
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 pl-0 md:pl-6 md:border-l border-slate-100">
+                <button onClick={navigateToPreviousWeek} disabled={loading} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all border border-slate-100">
+                  <FaAngleLeft size={14} />
+                </button>
+
+                <div className="relative" ref={calendarRef}>
+                  <button onClick={() => setShowCalendar(!showCalendar)} disabled={loading} className="h-9 px-4 flex items-center gap-2 bg-white border border-slate-100 text-slate-700 rounded-xl font-bold text-xs hover:border-blue-200 hover:bg-blue-50/30 transition-all min-w-[180px] justify-center shadow-sm">
+                    <IoCalendarNumberOutline size={16} className="text-blue-500" />
+                    <span>{formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}</span>
+                  </button>
+                  <AnimatePresence>
+                    {showCalendar && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                                className="absolute z-50 mt-2 rounded-2xl shadow-2xl"
+                      >
+                        <DatePicker
+                          selected={ensureDate(selectedWeekStart)}
+                          onChange={handleWeekSelect}
+                          maxDate={new Date()}
+                          inline
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <button onClick={navigateToNextWeek} disabled={loading} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all border border-slate-100">
+                  <FaAngleRight size={14} />
+                </button>
+              </div>
+            )}
           </div>
 
-          <button onClick={navigateToNextWeek} disabled={loading} className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors">
-            <FaAngleRight size={16} />
-          </button>
-          
+          <div className="flex items-center gap-4">
+              <button
+                onClick={handleExportCSV}
+                className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 text-white rounded-2xl hover:bg-slate-900 transition-all shadow-lg shadow-slate-100 text-[11px] font-black uppercase tracking-widest active:scale-95"
+              >
+                <Download size={16} /> Export CSV
+              </button>
 
-        </div>
-
-        <div className="pr-1 flex items-center gap-3">
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200 text-[11px] font-black uppercase tracking-wide"
-            >
-              <Download size={16} /> Export CSV
-            </button>
-
-            <div className="bg-blue-50 text-blue-900 px-5 py-2.5 rounded-xl flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wide opacity-70">
-                    {activeTab === 0 ? "Submitted Hours:" : "Approved Hours:"}
-                </span>
-                <span className="text-sm font-extrabold">
-                    {activeTab === 0 
-                        ? (weeklyData.weeklySubmitted || 0).toFixed(2) 
-                        : (weeklyData.approvedTimesheets?.reduce((sum, ts) => sum + (ts.approvedHours || 0), 0) || 0).toFixed(2)
-                    }
-                </span>
-            </div>
+              <div className="bg-slate-50 border border-slate-100 px-5 py-2.5 rounded-2xl flex flex-col items-end">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                      {activeTab === 0 ? "Total Submitted" : "Total Approved"}
+                  </span>
+                  <span className="text-sm font-black text-slate-800">
+                      {activeTab === 0 
+                          ? (weeklyData.weeklySubmitted || 0).toFixed(2) 
+                          : (activeTab === 3 
+                              ? (allTimesheets.reduce((sum, ts) => sum + (ts.approvedHours || 0), 0) || 0).toFixed(2)
+                              : (weeklyData.approvedTimesheets?.reduce((sum, ts) => sum + (ts.approvedHours || 0), 0) || 0).toFixed(2)
+                            )
+                      }
+                      <span className="ml-1 text-[10px] text-slate-400">HRS</span>
+                  </span>
+              </div>
+          </div>
         </div>
       </div>
 
       <div className="rounded-[1.5rem] shadow-sm border border-slate-100 overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div key={`${activeTab}-${selectedWeekStart}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }}>
-            {loading ? (
+            {loading || allLoading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
                 <p className="text-sm font-medium text-slate-500">Loading data...</p>
@@ -627,7 +727,7 @@ const ApproveTimesheets = () => {
               <TableWithPagination
                 columns={timesheetColumns}
                 data={getCurrentData()}
-                loading={loading}
+                loading={loading || allLoading}
                 emptyMessage={getEmptyMessage()}
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={(newVal) => {

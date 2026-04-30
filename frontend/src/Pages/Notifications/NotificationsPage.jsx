@@ -245,19 +245,8 @@ export default function NotificationsPage() {
                   </div>
                 </div>
               </div>
-              {/* Deep Link button enabled */}
-              <button
-                onClick={() => {
-                  const route = getRouteForNotification(selectedNotif);
-                  if (route) navigate(route);
-                }}
-                className="px-5 py-2.5 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 hover:shadow-xl hover:shadow-teal-100 transition-all active:scale-95 flex items-center gap-2"
-              >
-                View Module 
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </button>
+              {/* View Module button removed per user request */}
+
             </div>
 
             {/* Detail Body */}
