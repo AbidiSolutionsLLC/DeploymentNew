@@ -8,6 +8,7 @@ const TableWithPagination = ({
   error,
   emptyMessage = "No data found",
   rowsPerPage = 5,
+  onRowsPerPageChange,
   onRowClick,
   actions = []
 }) => {
@@ -231,6 +232,7 @@ const TableWithPagination = ({
                 const newRowsPerPage = parseInt(e.target.value);
                 setLocalRowsPerPage(newRowsPerPage);
                 setCurrentPage(1);
+                if (onRowsPerPageChange) onRowsPerPageChange(newRowsPerPage);
               }}
               className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white font-bold text-slate-700 outline-none focus:ring-2 focus:ring-slate-100 transition-all cursor-pointer"
             >

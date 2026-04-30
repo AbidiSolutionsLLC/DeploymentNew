@@ -58,6 +58,11 @@ const ApproveTimesheets = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const calendarRef = useRef(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [rowsPerPage, setRowsPerPage] = useState(() => {
+    return parseInt(localStorage.getItem('approve_timesheets_rows_per_page')) || 10;
+  });
 
 
   const tabs = [
@@ -181,6 +186,45 @@ const ApproveTimesheets = () => {
     setShowCalendar(false);
   };
 
+  const handleClearDateRange = () => {
+    setSelectedWeekStart(getMonday(new Date()));
+  };
+
+  const handleSelectAll = (e) => {
+    const currentData = getFilteredData();
+    if (e.target.checked) {
+      setSelectedIds(currentData.map(ts => ts._id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectRow = (id) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to approve ${selectedIds.length} timesheets?`)) return;
+    
+    setUpdating(true);
+    try {
+      await Promise.all(selectedIds.map(id => 
+        timesheetApi.updateTimesheetStatus(id, { status: "Approved" })
+      ));
+      toast.success(`Successfully approved ${selectedIds.length} timesheets`);
+      setSelectedIds([]);
+      fetchWeeklyTimesheets();
+    } catch (error) {
+      console.error("Bulk approval failed:", error);
+      toast.error("Failed to approve some timesheets");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleViewDetails = async (timesheet) => {
     try {
       const detailedTimesheet = await timesheetApi.getTimesheetById(timesheet._id);
@@ -223,14 +267,26 @@ const ApproveTimesheets = () => {
   tabs[1].count = weeklyData.approvedTimesheets?.length || 0;
   tabs[2].count = weeklyData.rejectedTimesheets?.length || 0;
 
-  const getCurrentData = () => {
+  const getFilteredData = () => {
+    let data = [];
     switch (activeTab) {
-      case 0: return weeklyData.timesheets || [];
-      case 1: return weeklyData.approvedTimesheets || [];
-      case 2: return weeklyData.rejectedTimesheets || [];
-      default: return [];
+      case 0: data = weeklyData.timesheets || []; break;
+      case 1: data = weeklyData.approvedTimesheets || []; break;
+      case 2: data = weeklyData.rejectedTimesheets || []; break;
+      default: data = [];
     }
+
+    if (!searchTerm) return data;
+    
+    const lowerSearch = searchTerm.toLowerCase();
+    return data.filter(ts => 
+      (ts.employee?.name || ts.employeeName || "").toLowerCase().includes(lowerSearch) ||
+      (ts.name || "").toLowerCase().includes(lowerSearch) ||
+      (ts.status || "").toLowerCase().includes(lowerSearch)
+    );
   };
+
+  const getCurrentData = () => getFilteredData();
 
   const handleExportCSV = () => {
     const dataToExport = getCurrentData();
@@ -330,6 +386,27 @@ const ApproveTimesheets = () => {
   };
 
   const timesheetColumns = [
+    {
+      key: "select",
+      label: (
+        <input 
+          type="checkbox" 
+          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          onChange={handleSelectAll}
+          checked={selectedIds.length > 0 && selectedIds.length === getFilteredData().length}
+        />
+      ),
+      sortable: false,
+      render: (row) => (
+        <input 
+          type="checkbox" 
+          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          checked={selectedIds.includes(row._id)}
+          onChange={() => handleSelectRow(row._id)}
+          onClick={(e) => e.stopPropagation()}
+        />
+      )
+    },
     {
       key: "employeeName",
       label: "Employee",
@@ -439,6 +516,27 @@ const ApproveTimesheets = () => {
         </div>
 
         <div className="flex items-center gap-3">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search timesheets..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all w-64"
+              />
+              <svg className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            {activeTab === 0 && selectedIds.length > 0 && (
+              <button
+                onClick={handleBulkApprove}
+                disabled={updating}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 text-[11px] font-black uppercase tracking-wide disabled:opacity-50"
+              >
+                Approve Selected ({selectedIds.length})
+              </button>
+            )}
             <button
               onClick={() => setIsAddTimeLogOpen(true)}
               className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-[11px] font-black uppercase tracking-wide"
@@ -480,6 +578,7 @@ const ApproveTimesheets = () => {
                   <DatePicker
                     selected={ensureDate(selectedWeekStart)}
                     onChange={handleWeekSelect}
+                    maxDate={new Date()}
                     inline
                   />
                 </motion.div>
@@ -489,6 +588,15 @@ const ApproveTimesheets = () => {
 
           <button onClick={navigateToNextWeek} disabled={loading} className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors">
             <FaAngleRight size={16} />
+          </button>
+          
+          <button 
+            onClick={handleClearDateRange} 
+            disabled={loading} 
+            className="px-3 h-10 flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest"
+            title="Reset to current week"
+          >
+            <span>✕ Clear</span>
           </button>
         </div>
 
@@ -528,7 +636,11 @@ const ApproveTimesheets = () => {
                 data={getCurrentData()}
                 loading={loading}
                 emptyMessage={getEmptyMessage()}
-                rowsPerPage={10}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(newVal) => {
+                  setRowsPerPage(newVal);
+                  localStorage.setItem('approve_timesheets_rows_per_page', newVal);
+                }}
                 actions={getCurrentActions()}
                 onRowClick={(row) => handleViewDetails(row)}
               />

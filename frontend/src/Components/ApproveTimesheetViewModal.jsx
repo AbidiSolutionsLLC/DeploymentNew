@@ -25,6 +25,14 @@ const ApproveTimesheetViewModal = ({
   if (!timesheet) return null;
 
   const handleApprove = () => {
+    if (approvedHours <= 0) {
+      toast.error("Approved hours must be greater than 0");
+      return;
+    }
+    if (approvedHours > timesheet.submittedHours) {
+      toast.error(`Approved hours cannot exceed submitted hours (${timesheet.submittedHours}h)`);
+      return;
+    }
     if (onApprove) {
       onApprove(timesheet._id, approvedHours, "");
     }

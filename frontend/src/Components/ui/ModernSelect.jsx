@@ -90,8 +90,11 @@ const ModernSelect = ({
           options.map((opt) => (
             <div
               key={opt.value}
-              onClick={() => handleSelect(opt.value)}
-              onMouseDown={(e) => e.stopPropagation()} // Prevent mousedown on options
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSelect(opt.value);
+              }}
               className={`px-4 py-2.5 text-sm cursor-pointer transition-colors text-left
                 ${
                   opt.value === value

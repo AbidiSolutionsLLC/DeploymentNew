@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import api from "../../axios";
 import {
   Search, Calendar, Clock, User, CheckCircle,
-  AlertCircle, XCircle, Download, Edit2, Save, X
+  AlertCircle, XCircle, Download, Edit2, Save, X, Trash2
 } from "lucide-react";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
@@ -46,8 +46,13 @@ const AdminAttendance = () => {
   const [summaryData, setSummaryData] = useState({ present: [], absent: [], onLeave: [], counts: { present: 0, absent: 0, onLeave: 0, total: 0 } });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterDate, setFilterDate] = useState(new Date());
-  const [activeTab, setActiveTab] = useState("present");
+  const [filterDate, setFilterDate] = useState(() => {
+    const savedDate = localStorage.getItem('admin_attendance_date');
+    return savedDate ? new Date(savedDate) : new Date();
+  });
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('admin_attendance_tab') || "present";
+  });
   const [allUsers, setAllUsers] = useState([]);
   const [isAddAttendanceOpen, setIsAddAttendanceOpen] = useState(false);
 
@@ -158,6 +163,27 @@ const AdminAttendance = () => {
     try {
       let updates = { ...editFormData };
 
+      // VALIDATION
+      // Auto-clear times for Absent/Leave
+      if (updates.status === 'Absent' || updates.status === 'On Leave' || updates.status === 'Leave') {
+        updates.checkInTime = null;
+        updates.checkOutTime = null;
+        updates.totalHours = 0;
+      } else {
+        if (updates.checkInTime && updates.checkOutTime) {
+          if (new Date(updates.checkOutTime) <= new Date(updates.checkInTime)) {
+            return toast.error("Check-out cannot be before check-in");
+          }
+          const now = new Date();
+          if (new Date(updates.checkInTime) > now) {
+            return toast.error("Check-in time cannot be in the future");
+          }
+        }
+        if (!updates.checkInTime && updates.checkOutTime) {
+          return toast.error("Check-in is required if check-out is provided");
+        }
+      }
+
       // Auto-calc duration if times changed
       if (updates.checkInTime && updates.checkOutTime) {
         const start = new Date(updates.checkInTime);
@@ -173,6 +199,17 @@ const AdminAttendance = () => {
       await fetchSummary(filterDate);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update record");
+    }
+  };
+
+  const handleDeleteRecord = async (logId) => {
+    if (!window.confirm("Delete this attendance record permanently?")) return;
+    try {
+      await api.delete(`/timetrackers/${logId}`);
+      toast.success("Record deleted");
+      await fetchSummary(filterDate);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete record");
     }
   };
 
@@ -203,7 +240,7 @@ const AdminAttendance = () => {
 
   const getActiveTabData = () => {
     switch (activeTab) {
-      case "present": return summaryData.present;
+      case "present": return summaryData.present.filter(log => log.status !== 'Absent' && log.status !== 'On Leave' && log.status !== 'Leave');
       case "absent": return summaryData.absent;
       case "leave": return summaryData.onLeave;
       default: return [];
@@ -259,7 +296,10 @@ const AdminAttendance = () => {
           <div className="relative sm:w-48">
             <DatePicker
               selected={filterDate}
-              onChange={(date) => setFilterDate(date)}
+              onChange={(date) => {
+                setFilterDate(date);
+                localStorage.setItem('admin_attendance_date', date.toISOString());
+              }}
               dateFormat="yyyy-MM-dd"
               wrapperClassName="w-full h-full" // Ensure the wrapper fills the div
               className="w-full h-full bg-slate-50 border border-slate-100 rounded-lg px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all text-slate-600 cursor-pointer"
@@ -274,21 +314,30 @@ const AdminAttendance = () => {
             <p className="text-xl font-black text-slate-700">{summaryData.counts.total}</p>
           </div>
           <div 
-            onClick={() => setActiveTab("present")}
+            onClick={() => {
+              setActiveTab("present");
+              localStorage.setItem('admin_attendance_tab', 'present');
+            }}
             className={`px-2 py-3 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'present' ? 'bg-emerald-100/50' : 'bg-emerald-50/30 hover:bg-emerald-50'}`}
           >
             <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">PRESENT</p>
             <p className="text-xl font-black text-emerald-700">{summaryData.counts.present}</p>
           </div>
           <div 
-            onClick={() => setActiveTab("absent")}
+            onClick={() => {
+              setActiveTab("absent");
+              localStorage.setItem('admin_attendance_tab', 'absent');
+            }}
             className={`px-2 py-3 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'absent' ? 'bg-rose-100/50' : 'bg-rose-50/30 hover:bg-rose-50'}`}
           >
             <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">ABSENT</p>
             <p className="text-xl font-black text-rose-700">{summaryData.counts.absent}</p>
           </div>
           <div 
-            onClick={() => setActiveTab("leave")}
+            onClick={() => {
+              setActiveTab("leave");
+              localStorage.setItem('admin_attendance_tab', 'leave');
+            }}
             className={`px-2 py-3 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'leave' ? 'bg-blue-100/50' : 'bg-blue-50/30 hover:bg-blue-50'}`}
           >
             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">LEAVE</p>
@@ -301,7 +350,10 @@ const AdminAttendance = () => {
         {["present", "absent", "leave"].map((t) => (
           <button
             key={t}
-            onClick={() => setActiveTab(t)}
+            onClick={() => {
+              setActiveTab(t);
+              localStorage.setItem('admin_attendance_tab', t);
+            }}
             className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${
               activeTab === t 
                 ? "bg-slate-800 text-white border-slate-800 shadow-lg shadow-slate-200" 
@@ -328,7 +380,7 @@ const AdminAttendance = () => {
                   </>
                 )}
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                {activeTab === "present" && canEdit && (
+                {canEdit && (
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                 )}
               </tr>
@@ -366,21 +418,31 @@ const AdminAttendance = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 text-sm font-medium">
-                          {log.checkOutTime ? (
+                          {log.checkInTime && log.checkOutTime ? (
                             <span className="text-slate-600">{log.totalHours} hrs</span>
                           ) : (
-                            log.checkInTime ? <LiveTimer startTime={log.checkInTime} /> : "--"
+                            log.checkInTime ? <LiveTimer startTime={log.checkInTime} /> : <span className="text-slate-400 text-xs italic">N/A</span>
                           )}
                         </td>
                       </>
                     )}
                     <td className="px-6 py-4">{getStatusBadge(log.status)}</td>
-                    {activeTab === "present" && canEdit && (
-                      <td className="px-6 py-4 text-right">
-                        {log._id && (
-                          <button onClick={() => handleEditClick(log)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Record">
-                            <Edit2 size={16} />
-                          </button>
+                    {canEdit && (
+                      <td className="px-6 py-4 text-right flex justify-end gap-1">
+                        {log._id ? (
+                          <>
+                            <button onClick={() => handleEditClick(log)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Record">
+                              <Edit2 size={16} />
+                            </button>
+                            <button onClick={() => handleDeleteRecord(log._id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete Record">
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        ) : (
+                           /* For absent/leave virtual records without _id, we can still allow "Add" behavior via edit modal */
+                           <button onClick={() => handleEditClick(log)} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Add/Update Record">
+                             <Edit2 size={16} />
+                           </button>
                         )}
                       </td>
                     )}
@@ -440,6 +502,8 @@ const AdminAttendance = () => {
                   <option value="Half Day">Half Day</option>
                   <option value="Absent">Absent</option>
                   <option value="Late">Late</option>
+                  <option value="Leave">Leave</option>
+                  <option value="On Leave">On Leave</option>
                 </select>
               </div>
             </div>

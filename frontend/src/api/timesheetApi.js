@@ -27,9 +27,9 @@ const getTimesheetById = async (id) => {
   return response.data;
 };
 
-const getAllTimesheets = async (month, year) => {
+const getAllTimesheets = async (params) => {
   const response = await api.get(`${API_URL}/all`, {
-    params: { month, year }
+    params
   });
   return response.data;
 };

@@ -37,6 +37,7 @@ const ModernDatePicker = ({
   required = false,
   className = "",
   error = null,
+  maxDate = null,
 }) => {
   // Handle Date Change (Convert standard JS Date to Event-like object for your forms)
   const handleDateChange = (date) => {
@@ -79,6 +80,7 @@ selected={
           showYearDropdown
           dropdownMode="select"
           portalId="portal-root" 
+          maxDate={maxDate}
         />
         
         {/* Calendar Icon */}

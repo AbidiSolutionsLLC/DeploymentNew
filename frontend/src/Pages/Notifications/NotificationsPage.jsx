@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   fetchNotifications,
   markAsRead,
@@ -9,26 +9,41 @@ import {
 } from '../../slices/notificationSlice';
 import { getNotificationIcon, getRouteForNotification, formatNotifDate } from '../../utils/notificationUtils';
 
-const TABS = ['All', 'Unread'];
+const TABS = ['All', 'Attendance', 'Timesheets', 'Leave', 'Lifecycle', 'Organization', 'Security'];
+
+const TAB_MAPPING = {
+  'Attendance': 'timetracker',
+  'Timesheets': 'timesheet',
+  'Leave': 'leave',
+  'Lifecycle': 'user',
+  'Organization': 'department',
+  'Security': 'security'
+};
 
 export default function NotificationsPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { items, pagination, unreadCount, loading } = useSelector((s) => s.notifications);
 
-  const [activeTab, setActiveTab] = useState(0); // 0 = All, 1 = Unread
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const tabParam = searchParams.get('tab');
+  const initialTabIdx = tabParam ? TABS.indexOf(tabParam) : 0;
+  const [activeTab, setActiveTab] = useState(initialTabIdx !== -1 ? initialTabIdx : 0);
   const [page, setPage] = useState(1);
   const [selectedNotif, setSelectedNotif] = useState(null);
   const limit = 20;
 
   useEffect(() => {
     const params = { page, limit };
-    if (activeTab === 1) params.isRead = false;
+    const mappedType = TAB_MAPPING[TABS[activeTab]];
+    if (mappedType) params.entityType = mappedType;
     dispatch(fetchNotifications(params));
   }, [activeTab, page, dispatch]);
 
   const handleTabChange = (idx) => {
     setActiveTab(idx);
+    setSearchParams({ tab: TABS[idx] });
     setPage(1);
   };
 
@@ -76,24 +91,19 @@ export default function NotificationsPage() {
             )}
           </div>
 
-          {/* Filtering Tabs */}
-          <div className="flex bg-gray-50 p-1 rounded-lg">
+          {/* Filtering Tabs - Multi-Category */}
+          <div className="flex flex-wrap gap-1 bg-gray-50 p-1 rounded-xl mb-1">
             {TABS.map((tab, idx) => (
               <button
                 key={tab}
                 onClick={() => handleTabChange(idx)}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${
                   activeTab === idx
                     ? 'bg-white text-teal-600 shadow-sm border border-gray-100'
-                    : 'text-gray-500 hover:text-gray-700'
+                    : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
                 {tab}
-                {tab === 'Unread' && unreadCount > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-teal-100 text-teal-700 rounded-full text-[10px]">
-                    {unreadCount}
-                  </span>
-                )}
               </button>
             ))}
           </div>
@@ -109,7 +119,7 @@ export default function NotificationsPage() {
 
           {!loading && items.length === 0 && (
             <div className="py-20 px-8 text-center">
-              <p className="text-sm text-gray-400">No {activeTab === 1 ? 'unread ' : ''}notifications.</p>
+              <p className="text-sm text-gray-400">No {TABS[activeTab] !== 'All' ? TABS[activeTab] : ''} notifications.</p>
             </div>
           )}
 
@@ -216,17 +226,19 @@ export default function NotificationsPage() {
                   </div>
                 </div>
               </div>
-              {/* Hiding Deep Link button for now per request
+              {/* Deep Link button enabled */}
               <button
                 onClick={() => {
                   const route = getRouteForNotification(selectedNotif);
                   if (route) navigate(route);
                 }}
-                className="px-5 py-2.5 text-sm font-bold bg-gray-900 text-white rounded-xl hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-100 transition-all active:scale-95"
+                className="px-5 py-2.5 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 hover:shadow-xl hover:shadow-teal-100 transition-all active:scale-95 flex items-center gap-2"
               >
-                Deep Link →
+                View Module 
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
               </button>
-              */}
             </div>
 
             {/* Detail Body */}

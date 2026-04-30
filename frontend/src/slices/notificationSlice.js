@@ -5,9 +5,10 @@ import api from '../axios';
 
 export const fetchNotifications = createAsyncThunk(
   'notifications/fetch',
-  async ({ page = 1, limit = 20, isRead } = {}) => {
+  async ({ page = 1, limit = 20, isRead, entityType } = {}) => {
     const params = { page, limit };
     if (isRead !== undefined) params.isRead = isRead;
+    if (entityType) params.entityType = entityType;
     const { data } = await api.get('/notifications', { params });
     return data;
   }

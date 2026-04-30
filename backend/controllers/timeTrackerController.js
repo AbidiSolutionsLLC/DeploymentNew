@@ -274,9 +274,15 @@ exports.getTimeLogById = catchAsync(async (req, res) => {
 // --- 4. GET ADMIN ATTENDANCE SUMMARY (NEW) ---
 exports.getAdminAttendanceSummary = catchAsync(async (req, res) => {
   const { date } = req.query;
-  const targetDateMoment = date ? moment.tz(date, TIMEZONE) : getCurrentESTTime();
+  const nowEST = getCurrentESTTime();
+  const targetDateMoment = date ? moment.tz(date, TIMEZONE) : nowEST;
+  
+  // GUARD: If target date is in the future, return empty
+  if (targetDateMoment.isAfter(nowEST, 'day')) {
+    return res.status(200).json({ present: [], absent: [], onLeave: [], counts: { present: 0, absent: 0, onLeave: 0, total: 0 } });
+  }
+
   const targetDateStart = targetDateMoment.clone().startOf('day').toDate();
-  const targetDateEnd = targetDateMoment.clone().endOf('day').toDate();
   const targetDateStr = targetDateMoment.format('YYYY-MM-DD');
 
   const { id } = req.user;
@@ -292,8 +298,8 @@ exports.getAdminAttendanceSummary = catchAsync(async (req, res) => {
     return res.status(200).json({ present: [], absent: [], onLeave: [], counts: { present: 0, absent: 0, onLeave: 0, total: 0 } });
   }
 
-  // 2. Fetch all relevant users in scope (exclude Super Admin if necessary based on your policy, usually they are included)
-  const usersInScope = await User.find(userQuery).select('name email designation department avatar empID');
+  // 2. Fetch all relevant users in scope
+  const usersInScope = await User.find(userQuery).select('name email designation department avatar empID joiningDate');
   const userIds = usersInScope.map(u => u._id.toString());
 
   // 3. Fetch TimeTracker logs for the specific date
@@ -325,8 +331,19 @@ exports.getAdminAttendanceSummary = catchAsync(async (req, res) => {
       date: targetDateStart
   }));
 
-  const absentUserIds = userIds.filter(id => !presentUserIds.includes(id) && !onLeaveUserIds.includes(id));
-  const absentUsers = usersInScope.filter(u => absentUserIds.includes(u._id.toString())).map(u => ({
+  // ABSENT Logic: Filter out those who haven't joined yet
+  const absentUsers = usersInScope.filter(u => {
+      const isPresent = presentUserIds.includes(u._id.toString());
+      const isOnLeave = onLeaveUserIds.includes(u._id.toString());
+      if (isPresent || isOnLeave) return false;
+
+      // Check joining date
+      if (u.joiningDate) {
+          const joinDate = moment.tz(u.joiningDate, TIMEZONE);
+          if (targetDateMoment.isBefore(joinDate, 'day')) return false;
+      }
+      return true;
+  }).map(u => ({
       user: u,
       status: 'Absent',
       date: targetDateStart

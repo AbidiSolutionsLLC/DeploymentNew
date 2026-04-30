@@ -39,7 +39,17 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
 
   const handleBackdropClick = (e) => {
     if (e.target.closest("#portal-root") || e.target.closest(".react-datepicker")) return;
-    if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
+    if (e.target.closest('[data-modern-select-dropdown]')) return;
+    if (modalRef.current && !modalRef.current.contains(e.target)) handleCancel();
+  };
+
+  const handleCancel = () => {
+    const isDirty = formData.employeeId || formData.job || formData.description || formData.hours;
+    if (isDirty) {
+      if (window.confirm("Are you sure? Unsaved data will be lost.")) onClose();
+    } else {
+      onClose();
+    }
   };
 
   const validateField = (name, value) => {
@@ -49,7 +59,10 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
       case "job":
         return validateText(value);
       case "date":
-        return value ? null : "Please select a valid date.";
+        if (!value) return "Please select a valid date.";
+        const today = new Date().toISOString().split("T")[0];
+        if (value > today) return "Date cannot be in the future.";
+        return null;
       case "hours": {
         if (!value && value !== 0) return "Hours worked is required.";
         const num = parseFloat(value);
@@ -128,7 +141,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
         className="w-full max-w-lg bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
       >
         <button
-          onClick={onClose}
+          onClick={handleCancel}
           className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
         >
           &times;
@@ -186,6 +199,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
               value={formData.date}
               onChange={(e) => handleChange("date", e.target.value)}
               required
+              maxDate={new Date()}
             />
             {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
           </div>
@@ -237,7 +251,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
         <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCancel}
             className="flex-1 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest"
           >
             CANCEL

@@ -78,7 +78,17 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
   const handleBackdropClick = (e) => {
     // If clicking inside the date picker portal, don't close the modal
     if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
-    if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
+    if (e.target.closest('[data-modern-select-dropdown]')) return;
+    if (modalRef.current && !modalRef.current.contains(e.target)) handleCancel();
+  };
+
+  const handleCancel = () => {
+    const isDirty = employeeId || description || attachment || (timesheetName && !timesheetName.startsWith("Timesheet ("));
+    if (isDirty) {
+      if (window.confirm("Are you sure? Unsaved data will be lost.")) onClose();
+    } else {
+      onClose();
+    }
   };
 
   const isValid = employeeId && timesheetName.trim().length >= 3 &&
@@ -89,7 +99,13 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
   const handleSubmit = async (e) => {
     e.preventDefault();
     const descErr = validateDescription(description, { min: 10, max: 500, required: true });
-    const nameErr = timesheetName.trim().length < 3 ? "Timesheet name must be at least 3 characters." : null;
+    const nameErr = timesheetName.trim().length < 3 
+      ? "Timesheet name must be at least 3 characters." 
+      : timesheetName.length > 50 
+        ? "Maximum 50 characters allowed."
+        : !/^[a-zA-Z0-9 \-_]+$/.test(timesheetName)
+          ? "Only letters, numbers, spaces, hyphens, and underscores allowed."
+          : null;
     const empErr = !employeeId ? "Please select an employee." : null;
 
     setDescriptionError(descErr);
@@ -161,7 +177,7 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
         className="w-full max-w-lg bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
       >
         <button
-          onClick={onClose}
+          onClick={handleCancel}
           className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
         >
           &times;
@@ -202,6 +218,7 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               required
+              maxDate={new Date()}
             />
           </div>
 
@@ -247,9 +264,18 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
             <input
               type="text"
               value={timesheetName}
+              maxLength={50}
               onChange={(e) => {
                 setTimesheetName(e.target.value);
-                setNameError(e.target.value.trim().length < 3 ? "Timesheet name must be at least 3 characters." : null);
+                setNameError(
+                  e.target.value.trim().length < 3 
+                    ? "Timesheet name must be at least 3 characters." 
+                    : e.target.value.length > 50 
+                      ? "Maximum 50 characters allowed."
+                      : !/^[a-zA-Z0-9 \-_]+$/.test(e.target.value)
+                        ? "Only letters, numbers, spaces, hyphens, and underscores allowed."
+                        : null
+                );
               }}
               className={`w-full bg-white border ${nameError ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 font-medium`}
               required
@@ -263,6 +289,7 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
             </label>
             <textarea
               value={description}
+              maxLength={500}
               onChange={(e) => {
                 setDescription(e.target.value);
                 setDescriptionError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
@@ -281,7 +308,7 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
         </form>
 
         <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
-          <button onClick={onClose} className="flex-1 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+          <button onClick={handleCancel} className="flex-1 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest">
             CANCEL
           </button>
           <button

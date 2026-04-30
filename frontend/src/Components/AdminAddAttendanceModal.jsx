@@ -34,6 +34,7 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
   const handleBackdropClick = (e) => {
     // If clicking inside the date picker portal, don't close the modal
     if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
+    if (e.target.closest('[data-modern-select-dropdown]')) return;
     if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
   };
 
@@ -161,7 +162,8 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
                 { value: "Present", label: "Present" },
                 { value: "Half Day", label: "Half Day" },
                 { value: "Absent", label: "Absent" },
-                { value: "Late", label: "Late" }
+                { value: "Late", label: "Late" },
+                { value: "On Leave", label: "On Leave" }
               ]}
               className="w-full"
             />

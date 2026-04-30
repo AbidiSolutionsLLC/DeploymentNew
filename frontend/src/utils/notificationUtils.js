@@ -64,7 +64,14 @@ export const getRouteForNotification = (notif, userRole = '') => {
     timesheets:  isAdminPortal ? `/admin/approve` : `/people/timetracker`,
   };
 
-  return routes[entityType] || null;
+  const baseRoute = routes[entityType];
+  if (!baseRoute) return null;
+  
+  if (notif.relatedEntity.entityId) {
+    return `${baseRoute}?id=${notif.relatedEntity.entityId}`;
+  }
+  
+  return baseRoute;
 };
 
 /**
