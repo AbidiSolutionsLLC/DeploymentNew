@@ -76,10 +76,7 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
   };
 
   const handleBackdropClick = (e) => {
-    // If clicking inside the date picker portal, don't close the modal
-    if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
-    if (e.target.closest('[data-modern-select-dropdown]')) return;
-    if (modalRef.current && !modalRef.current.contains(e.target)) handleCancel();
+    if (e.target === e.currentTarget) handleCancel();
   };
 
   const handleCancel = () => {
@@ -98,22 +95,32 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const descErr = validateDescription(description, { min: 10, max: 500, required: true });
-    const nameErr = timesheetName.trim().length < 3 
-      ? "Timesheet name must be at least 3 characters." 
-      : timesheetName.length > 50 
-        ? "Maximum 50 characters allowed."
-        : !/^[a-zA-Z0-9 \-_]+$/.test(timesheetName)
-          ? "Only letters, numbers, spaces, hyphens, and underscores allowed."
-          : null;
+    const descWords = description.trim().split(/\s+/).filter(word => word.length > 0);
+    const descErr = validateDescription(description, { min: 10, max: 500, required: true }) || 
+                   (descWords.length < 3 ? "Please enter a meaningful description (at least 3 words)." : null);
+                   
+    const nameErr = !timesheetName.trim()
+      ? "Timesheet name is required."
+      : timesheetName.trim().length < 3 
+        ? "Timesheet name must be at least 3 characters." 
+        : timesheetName.length > 50 
+          ? "Maximum 50 characters allowed."
+          : !/^[a-zA-Z0-9 \-_]+$/.test(timesheetName)
+            ? "Only letters, numbers, spaces, hyphens, and underscores allowed."
+            : null;
+            
     const empErr = !employeeId ? "Please select an employee." : null;
+    
+    const dateErr = !selectedDate 
+      ? "Please select a date." 
+      : (selectedDate > getTodayString() ? "Timesheet date cannot be in the future." : null);
 
     setDescriptionError(descErr);
     setNameError(nameErr);
     setEmployeeError(empErr);
 
-    if (descErr || nameErr || empErr) {
-      toast.error("Please fix validation errors");
+    if (descErr || nameErr || empErr || dateErr) {
+      toast.error(dateErr || "Please fix validation errors");
       return;
     }
 
@@ -219,7 +226,9 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
               onChange={(e) => setSelectedDate(e.target.value)}
               required
               maxDate={new Date()}
+              error={selectedDate > getTodayString() ? "Timesheet date cannot be in the future." : null}
             />
+            {selectedDate > getTodayString() && <p className="text-xs text-red-500 mt-1">Timesheet date cannot be in the future.</p>}
           </div>
 
           <div className="relative z-30">
@@ -292,9 +301,19 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
               maxLength={500}
               onChange={(e) => {
                 setDescription(e.target.value);
-                setDescriptionError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
+                const words = e.target.value.trim().split(/\s+/).filter(word => word.length > 0);
+                setDescriptionError(
+                  validateDescription(e.target.value, { min: 10, max: 500, required: true }) ||
+                  (words.length > 0 && words.length < 3 ? "Please enter a meaningful description (at least 3 words)." : null)
+                );
               }}
-              onBlur={() => setDescriptionError(validateDescription(description, { min: 10, max: 500, required: true }))}
+              onBlur={() => {
+                const words = description.trim().split(/\s+/).filter(word => word.length > 0);
+                setDescriptionError(
+                  validateDescription(description, { min: 10, max: 500, required: true }) ||
+                  (description.length > 0 && words.length < 3 ? "Please enter a meaningful description (at least 3 words)." : null)
+                );
+              }}
               className={`w-full bg-white border ${descriptionError ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 min-h-[100px]`}
               placeholder="Describe work in detail (at least 3 meaningful words)..."
             />

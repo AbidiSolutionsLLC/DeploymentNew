@@ -38,9 +38,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
   }, [open]);
 
   const handleBackdropClick = (e) => {
-    if (e.target.closest("#portal-root") || e.target.closest(".react-datepicker")) return;
-    if (e.target.closest('[data-modern-select-dropdown]')) return;
-    if (modalRef.current && !modalRef.current.contains(e.target)) handleCancel();
+    if (e.target === e.currentTarget) handleCancel();
   };
 
   const handleCancel = () => {
@@ -57,12 +55,23 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
       case "employeeId":
         return value ? null : "Please select an employee.";
       case "job":
+        if (!value) return "Task/Job name is required.";
+        if (value.length > 50) return "Maximum 50 characters allowed.";
         return validateText(value);
-      case "date":
+      case "date": {
         if (!value) return "Please select a valid date.";
-        const today = new Date().toISOString().split("T")[0];
-        if (value > today) return "Date cannot be in the future.";
+        const selectedDate = new Date(value);
+        const today = new Date();
+        const todayStr = today.toISOString().split("T")[0];
+        
+        if (value > todayStr) return "Date cannot be in the future.";
+        
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(today.getFullYear() - 1);
+        if (selectedDate < oneYearAgo) return "Cannot set date older than 1 year.";
+        
         return null;
+      }
       case "hours": {
         if (!value && value !== 0) return "Hours worked is required.";
         const num = parseFloat(value);
@@ -183,6 +192,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
               type="text"
               name="job"
               value={formData.job}
+              maxLength={50}
               onChange={(e) => handleChange("job", e.target.value)}
               onBlur={() => setErrors((prev) => ({ ...prev, job: validateField("job", formData.job) }))}
               placeholder="e.g. Website Overhaul"

@@ -14,6 +14,11 @@ const TableWithPagination = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [localRowsPerPage, setLocalRowsPerPage] = useState(rowsPerPage);
+  
+  React.useEffect(() => {
+    setLocalRowsPerPage(rowsPerPage);
+  }, [rowsPerPage]);
+
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const effectiveRowsPerPage = localRowsPerPage;

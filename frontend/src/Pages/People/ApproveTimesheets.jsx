@@ -6,7 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, X } from "lucide-react";
 import api from "../../axios";
 import TableWithPagination from "../../Components/TableWithPagination";
 import ApproveTimesheetViewModal from "../../Components/ApproveTimesheetViewModal";
@@ -59,6 +59,7 @@ const ApproveTimesheets = () => {
 
   const calendarRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [rowsPerPage, setRowsPerPage] = useState(() => {
     return parseInt(localStorage.getItem('approve_timesheets_rows_per_page')) || 10;
@@ -164,6 +165,22 @@ const ApproveTimesheets = () => {
       const weekStartObj = ensureDate(selectedWeekStart);
       const weekEndObj = getSunday(weekStartObj);
 
+      // Validation: If future date range selected and no data, we will handle it in the UI
+      if (weekStartObj > new Date()) {
+        setWeeklyData({
+          weekStart: weekStartObj.toISOString(),
+          weekEnd: weekEndObj.toISOString(),
+          timesheets: [],
+          approvedTimesheets: [],
+          rejectedTimesheets: [],
+          weeklyTotal: 0,
+          weeklySubmitted: 0,
+          weeklyApproved: 0
+        });
+        setLoading(false);
+        return;
+      }
+
       // FIX: Use YYYY-MM-DD for the query
       const startStr = weekStartObj.toISOString().split('T')[0];
       const endStr = weekEndObj.toISOString().split('T')[0];
@@ -175,9 +192,17 @@ const ApproveTimesheets = () => {
       // The Admin endpoint returns an ARRAY, not an object.
       const allTimesheets = Array.isArray(response) ? response : (response.timesheets || []);
       
-      const pendingTimesheets = allTimesheets.filter(ts => ts.status === "Pending");
-      const approvedTimesheets = allTimesheets.filter(ts => ts.status === "Approved");
-      const rejectedTimesheets = allTimesheets.filter(ts => ts.status === "Rejected");
+      // Safety filter for date range (TC_PT_002)
+      const filteredInRange = allTimesheets.filter(ts => {
+        if (!ts.date) return true;
+        const tsDate = new Date(ts.date);
+        tsDate.setHours(0,0,0,0);
+        return tsDate >= weekStartObj && tsDate <= weekEndObj;
+      });
+      
+      const pendingTimesheets = filteredInRange.filter(ts => ts.status === "Pending");
+      const approvedTimesheets = filteredInRange.filter(ts => ts.status === "Approved");
+      const rejectedTimesheets = filteredInRange.filter(ts => ts.status === "Rejected");
 
       const processedResponse = {
         weekStart: weekStartObj,
@@ -286,7 +311,8 @@ const ApproveTimesheets = () => {
       toast.success(`Timesheet ${status.toLowerCase()} successfully`);
     } catch (error) {
       console.error("Failed to update timesheet:", error);
-      toast.error("Failed to update timesheet");
+      const errorMessage = error.response?.data?.message || "Failed to update timesheet";
+      toast.error(errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -314,11 +340,15 @@ const ApproveTimesheets = () => {
     if (!searchTerm) return data;
     
     const lowerSearch = searchTerm.toLowerCase();
-    return data.filter(ts => 
-      (ts.employee?.name || ts.employeeName || "").toLowerCase().includes(lowerSearch) ||
-      (ts.name || "").toLowerCase().includes(lowerSearch) ||
-      (ts.status || "").toLowerCase().includes(lowerSearch)
-    );
+    return data.filter(ts => {
+      const employeeName = (ts.employee?.name || ts.employeeName || "").toLowerCase();
+      const tsName = (ts.name || "").toLowerCase();
+      const tsStatus = (ts.status || "").toLowerCase();
+      
+      return employeeName.includes(lowerSearch) ||
+             tsName.includes(lowerSearch) ||
+             tsStatus.includes(lowerSearch);
+    });
   };
 
   const getCurrentData = () => getFilteredData();
@@ -560,13 +590,31 @@ const ApproveTimesheets = () => {
                 placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-400 transition-all w-48 md:w-64"
+                className="pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-400 transition-all w-48 md:w-64"
               />
               <svg className="absolute left-3.5 top-3 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
             
+            {selectedIds.length > 0 && (
+              <button
+                onClick={handleBulkApprove}
+                disabled={updating}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 text-[11px] font-black uppercase tracking-widest active:scale-95 disabled:opacity-50"
+              >
+                Bulk Approve ({selectedIds.length})
+              </button>
+            )}
+
             <button
               onClick={() => setIsAddTimeLogOpen(true)}
               className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 text-[11px] font-black uppercase tracking-widest active:scale-95"
@@ -683,6 +731,14 @@ const ApproveTimesheets = () => {
 
                 <button onClick={navigateToNextWeek} disabled={loading} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all border border-slate-100">
                   <FaAngleRight size={14} />
+                </button>
+
+                <button 
+                  onClick={handleClearDateRange}
+                  title="Reset to current week"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-slate-100"
+                >
+                  <X size={14} />
                 </button>
               </div>
             )}
