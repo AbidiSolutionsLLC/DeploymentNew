@@ -29,10 +29,22 @@ export default function NotificationsPage() {
   
   const tabParam = searchParams.get('tab');
   const initialTabIdx = tabParam ? TABS.indexOf(tabParam) : 0;
+  const notifId = searchParams.get('id');
+  
   const [activeTab, setActiveTab] = useState(initialTabIdx !== -1 ? initialTabIdx : 0);
   const [page, setPage] = useState(1);
   const [selectedNotif, setSelectedNotif] = useState(null);
   const limit = 20;
+
+  // Sync selectedNotif with URL 'id'
+  useEffect(() => {
+    if (notifId && items.length > 0) {
+      const found = items.find(n => n._id === notifId);
+      if (found) setSelectedNotif(found);
+    } else if (!notifId) {
+      setSelectedNotif(null);
+    }
+  }, [notifId, items]);
 
   useEffect(() => {
     const params = { page, limit };
@@ -43,17 +55,18 @@ export default function NotificationsPage() {
 
   const handleTabChange = (idx) => {
     setActiveTab(idx);
-    setSearchParams({ tab: TABS[idx] });
+    setSearchParams({ tab: TABS[idx] }, { replace: true });
     setPage(1);
   };
 
   const handleClick = (notif) => {
-    setSelectedNotif(notif);
+    setSearchParams({ tab: TABS[activeTab], id: notif._id });
     if (!notif.isRead) dispatch(markAsRead(notif._id));
-    // NOTE: Removed immediate navigation to allow viewing in the master-detail layout.
   };
 
-  const handleBackToList = () => setSelectedNotif(null);
+  const handleBackToList = () => {
+    setSearchParams({ tab: TABS[activeTab] });
+  };
 
   const handleDelete = (e, id) => {
     e.stopPropagation();
@@ -71,7 +84,13 @@ export default function NotificationsPage() {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center gap-3 mb-4">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (window.history.state && window.history.state.idx > 0) {
+                  navigate(-1);
+                } else {
+                  navigate('/');
+                }
+              }}
               className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all"
               title="Go back"
             >
@@ -79,7 +98,7 @@ export default function NotificationsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight flex-1">Notifications</h1>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight flex-1 truncate">Notifications</h1>
             {unreadCount > 0 && (
               <button
                 onClick={() => dispatch(markAllAsRead())}

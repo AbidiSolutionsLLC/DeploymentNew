@@ -370,26 +370,26 @@ const AdminAttendance = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100">
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap w-[30%] min-w-[200px]">Employee</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap w-[15%] min-w-[120px]">Date</th>
                 {activeTab === "present" && (
                   <>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Check In</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Check Out</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap w-[12%] min-w-[100px]">Check In</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap w-[12%] min-w-[100px]">Check Out</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap w-[12%] min-w-[100px]">Duration</th>
                   </>
                 )}
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap w-[12%] min-w-[100px]">Status</th>
                 {canEdit && (
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right whitespace-nowrap w-[7%] min-w-[100px]">Actions</th>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan="7" className="px-6 py-12 text-center text-slate-400">Loading...</td></tr>
+                <tr><td colSpan={activeTab === 'present' ? (canEdit ? 7 : 6) : (canEdit ? 4 : 3)} className="px-6 py-12 text-center text-slate-400 italic font-medium">Loading attendance data...</td></tr>
               ) : activeTabLogs.length === 0 ? (
-                <tr><td colSpan="7" className="px-6 py-12 text-center text-slate-400">No records found.</td></tr>
+                <tr><td colSpan={activeTab === 'present' ? (canEdit ? 7 : 6) : (canEdit ? 4 : 3)} className="px-6 py-12 text-center text-slate-400 italic font-medium">No records found for this category.</td></tr>
               ) : (
                 activeTabLogs.map((log) => (
                   <tr key={log._id || log.user?._id} className="hover:bg-slate-50/50 transition-colors">
@@ -404,7 +404,7 @@ const AdminAttendance = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
+                    <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
                       {new Date(log.date || filterDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </td>
                     {activeTab === "present" && (

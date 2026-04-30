@@ -590,14 +590,7 @@ const ApproveTimesheets = () => {
             <FaAngleRight size={16} />
           </button>
           
-          <button 
-            onClick={handleClearDateRange} 
-            disabled={loading} 
-            className="px-3 h-10 flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest"
-            title="Reset to current week"
-          >
-            <span>✕ Clear</span>
-          </button>
+
         </div>
 
         <div className="pr-1 flex items-center gap-3">

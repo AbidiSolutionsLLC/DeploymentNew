@@ -9,6 +9,9 @@ exports.getNotifications = async (req, res) => {
   const userId = req.user._id || req.user.id;
   const filter = { recipient: userId };
   if (isRead !== undefined) filter.isRead = isRead === 'true';
+  if (req.query.entityType) {
+    filter['relatedEntity.entityType'] = req.query.entityType;
+  }
 
   const [notifications, total] = await Promise.all([
     Notification.find(filter)
