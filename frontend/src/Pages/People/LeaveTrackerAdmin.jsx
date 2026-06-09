@@ -8,7 +8,8 @@ import ViewLeaveModal from "../../Components/ViewLeaveModal";
 import HistoryViewLeaveModal from "../../Components/HistoryViewLeaveModal";
 import ModernSelect from "../../Components/ui/ModernSelect";
 import { useSelector } from "react-redux";
-import TableWithPagination from "../../Components/TableWithPagination";
+import DataTable from "../../Components/DataTable";
+import FilterBar from "../../Components/FilterBar";
 import { getApiError } from "../../utils/validationUtils";
 import { parseISOToLocalDate, formatDisplayDate } from "../../utils/dateUtils";
 
@@ -400,8 +401,9 @@ const LeaveTrackerAdmin = () => {
   }, [activeTab]);
 
   // ==================== RENDER ====================
+  // ==================== RENDER ====================
   return (
-    <div className="min-h-screen bg-transparent p-2">
+    <div className="flex-1 min-w-0 overflow-hidden w-full bg-transparent min-h-screen p-4 flex flex-col">
       {toast && (
         <Toast
           message={toast.message}
@@ -421,241 +423,212 @@ const LeaveTrackerAdmin = () => {
         />
       )}
 
-      {/* Tab Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
-        <div className="inline-flex flex-row flex-wrap items-center justify-center bg-white/90 backdrop-blur-sm p-1.5 rounded-[1.2rem] shadow-sm border border-white/50">
-          {tabs.map((item, index) => (
-            <div key={item.title} className="flex items-center">
+      {/* Header */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">
+              Leave Management
+            </h2>
+            <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">
+              Track, approve, and manage employee leaves
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {activeTab === 1 && (
               <button
-                className={`px-5 py-2.5 text-sm font-medium transition-all duration-200 rounded-xl
-                  ${activeTab === index
-                    ? "text-slate-800 bg-white shadow-sm font-bold"
-                    : "text-slate-600 hover:text-slate-800 hover:bg-slate-50/80"
-                  }`}
-                onClick={() => setActiveTab(index)}
+                onClick={() => setIsOpen(true)}
+                className="btn btn-primary gap-2 shadow-lg shadow-blue-100"
               >
-                {item.title}
+                <FaPlus size={14} /> Add Holiday
               </button>
-              {index !== tabs.length - 1 && (
-                <span className="w-px h-5 bg-slate-200 mx-1.5"></span>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Dynamic Action Button */}
-        {activeTab === 1 && (
-          <button
-            onClick={() => setIsOpen(true)}
-            className="w-full sm:w-auto px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <FaPlus size={14} />
-            Add Holidays
-          </button>
-        )}
-      </div>
-
-      {/* ==================== TAB 0: LEAVE REQUESTS ==================== */}
-      {activeTab === 0 && (
-        <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
-          <div className="mb-4">
-            <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Applied Leave</h2>
-            <p className="text-[10px] font-medium text-slate-500 mt-1">Leave requests awaiting approval</p>
-          </div>
-
-          <TableWithPagination
-            columns={leaveColumns}
-            data={departmentLeaveRecord}
-            loading={loadingLeaves}
-            emptyMessage="No leave requests found"
-            actions={leaveActions}
-            rowsPerPage={10}
-            onRowClick={handleViewLeave}
-          />
-        </div>
-      )}
-
-      {/* ==================== TAB 1: HOLIDAYS & LEAVES ==================== */}
-      {activeTab === 1 && (
-        <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
-          <div className="mb-4">
-            <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Upcoming Holidays & Leaves</h2>
-            <p className="text-[10px] font-medium text-slate-500 mt-1">Company holidays and scheduled leaves</p>
-          </div>
-
-          {loadingHolidays ? (
-            <div className="text-center p-6">
-              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
-              <p className="mt-2 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading holidays...</p>
-            </div>
-          ) : (
-            <HolidayTable holidays={holidays} key={refreshHolidayKey} />
-          )}
-        </div>
-      )}
-
-      {/* ==================== TAB 2: MANAGE LEAVES ==================== */}
-      {activeTab === 2 && (
-        <div className="space-y-4 overflow-visible">
-          {/* Update User Leave Balances */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
-            <div className="mb-4">
-              <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Update User Leave Balances</h2>
-              <p className="text-[10px] font-medium text-slate-500 mt-1">Adjust leave balances for employees</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div className="col-span-1 md:col-span-2">
-                <ModernSelect
-                  label="Select Employee"
-                  name="employee"
-                  value={selectedUser}
-                  onChange={handleUserSelect}
-                  placeholder="Select an employee..."
-                  options={users.map(user => ({
-                    value: user._id,
-                    label: `${user.name} (${user.role})`
-                  }))}
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">PTO Balance</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={leaveBalances.pto}
-                  onChange={(e) => {
-                    const val = Math.max(0, Number(e.target.value));
-                    setLeaveBalances(prev => ({ ...prev, pto: val }));
-                  }}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
-                  disabled={!selectedUser}
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Sick Leaves</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={leaveBalances.sick}
-                  onChange={(e) => {
-                    const val = Math.max(0, Number(e.target.value));
-                    setLeaveBalances(prev => ({ ...prev, sick: val }));
-                  }}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium"
-                  disabled={!selectedUser}
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={handleUpdateLeaves}
-                disabled={!selectedUser}
-                className="px-6 py-3 bg-[#64748b] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-100"
-              >
-                Update Balances
-              </button>
-            </div>
-          </div>
-
-          {/* Employee Leave History */}
-          <div className="z-0 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
-            <div className="mb-4">
-              <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Employee Leave History</h2>
-              <p className="text-[10px] font-medium text-slate-500 mt-1">View complete leave history for any employee</p>
-            </div>
-
-            {/* Employee Selector */}
-            <div className="mb-6">
-              <ModernSelect
-                label="Select Employee"
-                name="historyEmployee"
-                value={historySelectedUser}
-                onChange={handleHistoryUserSelect}
-                placeholder="Select an employee..."
-                options={users.map(user => ({
-                  value: user._id,
-                  label: `${user.name} (${user.role})`
-                }))}
-              />
-            </div>
-
-            {/* Leave History Table */}
-            {loadingHistory ? (
-              <div className="text-center p-6">
-                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
-                <p className="mt-2 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading leave history...</p>
-              </div>
-            ) : leaveHistory.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm border-separate border-spacing-0">
-                  <thead>
-                    <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                      {["Leave Type", "Start Date", "End Date", "Duration", "Status", "Reason", "Actions"].map((heading) => (
-                        <th key={heading} className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left">
-                          {heading}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveHistory.map((leave, index) => {
-                      const startDate = parseISOToLocalDate(leave.startDate);
-                      const endDate = parseISOToLocalDate(leave.endDate);
-                      const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-
-                      return (
-                        <tr key={leave._id || index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                          <td className="p-3 text-slate-700">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                              {leave.leaveType}
-                            </span>
-                          </td>
-                          <td className="p-3 text-slate-600">{startDate.toLocaleDateString()}</td>
-                          <td className="p-3 text-slate-600">{endDate.toLocaleDateString()}</td>
-                          <td className="p-3 text-slate-700 font-medium">{duration} days</td>
-                          <td className="p-3">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(leave.status)}`}>
-                              {leave.status}
-                            </span>
-                          </td>
-                          <td className="p-3 text-slate-600 max-w-xs truncate">{leave.reason || "-"}</td>
-                          <td className="p-3">
-                            <button
-                              onClick={() => handleViewHistoryLeave(leave)}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
-                            >
-                              <FaEye size={12} />
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : historySelectedUser ? (
-              <div className="text-center p-8">
-                <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-sm font-medium text-slate-500">No leave history found for this employee</p>
-              </div>
-            ) : (
-              <div className="text-center p-8">
-                <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <p className="text-sm font-medium text-slate-500">Select an employee to view their leave history</p>
-              </div>
             )}
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-1 p-1 bg-slate-100/50 backdrop-blur-sm rounded-xl w-fit mb-4 flex-shrink-0 border border-slate-200/50">
+        {tabs.map((item, index) => (
+          <button
+            key={item.title}
+            onClick={() => setActiveTab(index)}
+            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              activeTab === index
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            {item.title}
+          </button>
+        ))}
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 overflow-hidden">
+        {/* ==================== TAB 0: LEAVE REQUESTS ==================== */}
+        {activeTab === 0 && (
+          <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 h-full flex flex-col overflow-hidden p-4">
+            <div className="mb-4 flex-shrink-0">
+              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Applied Leaves</h2>
+              <p className="text-[10px] font-medium text-slate-500 mt-1 uppercase tracking-wide">Leave requests awaiting approval</p>
+            </div>
+
+            <div className="flex-1 overflow-hidden">
+              <DataTable
+                columns={leaveColumns}
+                data={departmentLeaveRecord}
+                loading={loadingLeaves}
+                emptyMessage="No leave requests found"
+                rowActions={leaveActions}
+                onRowClick={handleViewLeave}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB 1: HOLIDAYS & LEAVES ==================== */}
+        {activeTab === 1 && (
+          <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 h-full flex flex-col overflow-hidden p-4">
+            <div className="mb-4 flex-shrink-0">
+              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Upcoming Holidays</h2>
+              <p className="text-[10px] font-medium text-slate-500 mt-1 uppercase tracking-wide">Company holidays and scheduled events</p>
+            </div>
+
+            <div className="flex-1 overflow-hidden">
+              {loadingHolidays ? (
+                <div className="flex flex-col items-center justify-center h-full gap-3">
+                  <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Loading holidays...</p>
+                </div>
+              ) : (
+                <HolidayTable holidays={holidays} key={refreshHolidayKey} />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB 2: MANAGE LEAVES ==================== */}
+        {activeTab === 2 && (
+          <div className="h-full overflow-y-auto custom-scrollbar space-y-4 pb-8">
+            {/* Update User Leave Balances */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-6">
+              <div className="mb-6">
+                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Update Leave Balances</h2>
+                <p className="text-[10px] font-medium text-slate-500 mt-1 uppercase tracking-wide">Adjust employee time-off allocations</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="col-span-1 md:col-span-2">
+                  <ModernSelect
+                    label="Select Employee"
+                    name="employee"
+                    value={selectedUser}
+                    onChange={handleUserSelect}
+                    placeholder="Select an employee..."
+                    options={users.map(user => ({
+                      value: user._id,
+                      label: `${user.name} (${user.role})`
+                    }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">PTO Balance</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={leaveBalances.pto}
+                    onChange={(e) => {
+                      const val = Math.max(0, Number(e.target.value));
+                      setLeaveBalances(prev => ({ ...prev, pto: val }));
+                    }}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:bg-white transition-all text-sm font-medium text-slate-700"
+                    disabled={!selectedUser}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Sick Leaves</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={leaveBalances.sick}
+                    onChange={(e) => {
+                      const val = Math.max(0, Number(e.target.value));
+                      setLeaveBalances(prev => ({ ...prev, sick: val }));
+                    }}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:bg-white transition-all text-sm font-medium text-slate-700"
+                    disabled={!selectedUser}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={handleUpdateLeaves}
+                  disabled={!selectedUser}
+                  className="btn btn-primary px-8 py-3 shadow-lg shadow-blue-100"
+                >
+                  Update Balances
+                </button>
+              </div>
+            </div>
+
+            {/* Employee Leave History */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-6">
+              <div className="mb-6 flex justify-between items-end">
+                <div>
+                  <h2 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Leave History</h2>
+                  <p className="text-[10px] font-medium text-slate-500 mt-1 uppercase tracking-wide">View historical leave records</p>
+                </div>
+                
+                <div className="w-full max-w-xs">
+                  <ModernSelect
+                    label="Select Employee"
+                    name="historyEmployee"
+                    value={historySelectedUser}
+                    onChange={handleHistoryUserSelect}
+                    placeholder="Select an employee..."
+                    options={users.map(user => ({
+                      value: user._id,
+                      label: `${user.name} (${user.role})`
+                    }))}
+                  />
+                </div>
+              </div>
+
+              {/* Leave History Table */}
+              {!historySelectedUser ? (
+                <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm text-slate-300">
+                    <FaEye size={20} />
+                  </div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Select an employee to view history</p>
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <DataTable
+                    columns={historyColumns}
+                    data={leaveHistory}
+                    loading={loadingHistory}
+                    emptyMessage={leaveHistory.length === 0 ? "No records found" : undefined}
+                    rowActions={[
+                      {
+                        icon: <FaEye size={12} />,
+                        label: "View",
+                        onClick: (row) => handleViewHistoryLeave(row)
+                      }
+                    ]}
+                    onRowClick={handleViewHistoryLeave}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       <AddHolidayModal
         isOpen={isOpen}

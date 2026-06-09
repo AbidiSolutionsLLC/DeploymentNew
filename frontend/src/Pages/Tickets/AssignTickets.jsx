@@ -201,36 +201,26 @@ const AssignTicket = () => {
       )}
 
       {/* Add Technician Modal */}
-      {addTechnicianModal && (
-        <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4 sm:p-6"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !promoting) {
-              setAddTechnicianModal(false);
-              setSelectedUserToPromote(null);
-            }
-          }}
-        >
-          <div className="w-full max-w-md bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col overflow-hidden">
-            <button
-              onClick={() => {
-                setAddTechnicianModal(false);
-                setSelectedUserToPromote(null);
-              }}
-              className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
-              disabled={promoting}
-            >
-              &times;
-            </button>
-
-            <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4">
+          <div className="modal-container-sm">
+            <div className="px-6 py-6 border-b border-slate-50 text-center flex-shrink-0 bg-white sticky top-0 z-10">
               <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
                 ADD TECHNICIAN
               </h2>
               <p className="text-[9px] text-slate-400 font-black tracking-[0.2em] mt-1 uppercase">Grant Technician Privileges</p>
+              <button
+                onClick={() => {
+                  setAddTechnicianModal(false);
+                  setSelectedUserToPromote(null);
+                }}
+                className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light"
+                disabled={promoting}
+              >
+                &times;
+              </button>
             </div>
 
-            <div className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar min-h-[400px]">
+            <div className="modal-body-scroll space-y-5 sm:space-y-6">
               <ModernSelect
                 label="SELECT USER"
                 name="userSelect"
@@ -261,20 +251,18 @@ const AssignTicket = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ACTION</p>
-                      <p className="text-xs text-slate-600">
-                        This user will be added to the <strong>Technician List</strong>. <br />
-                        Their existing Role ({selectedUserToPromote.role}) and Designation will remain unchanged.
-                      </p>
-                    </div>
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ACTION</p>
+                    <p className="text-xs text-slate-600">
+                      This user will be added to the <strong>Technician List</strong>. <br />
+                      Their existing Role ({selectedUserToPromote.role}) and Designation will remain unchanged.
+                    </p>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
+            <div className="px-10 py-8 border-t border-slate-100 flex gap-4 bg-slate-50/50">
               <button
                 type="button"
                 onClick={() => {
@@ -282,7 +270,7 @@ const AssignTicket = () => {
                   setSelectedUserToPromote(null);
                 }}
                 disabled={promoting}
-                className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors disabled:opacity-50"
+                className="flex-1 py-3.5 font-black text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
               >
                 CANCEL
               </button>
@@ -290,21 +278,13 @@ const AssignTicket = () => {
                 type="button"
                 onClick={handlePromoteToTechnician}
                 disabled={!selectedUserToPromote || promoting}
-                className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[10px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn btn-primary flex-1 shadow-lg shadow-blue-100"
               >
-                {promoting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    UPDATING...
-                  </span>
-                ) : (
-                  "GRANT PERMISSION"
-                )}
+                {promoting ? "UPDATING..." : "GRANT PERMISSION"}
               </button>
             </div>
           </div>
         </div>
-      )}
 
       {/* Main Ticket Interface */}
       <div className="relative z-[99]">

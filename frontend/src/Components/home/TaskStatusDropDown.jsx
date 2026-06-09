@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const TaskStatusDropDown = ({ status, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const statuses = ['InProgress', 'Hold', 'UnderReview', 'Completed'];
+  const statuses = ['To Do', 'InProgress', 'Hold', 'UnderReview', 'Completed'];
 
   const toggleDropdown = () => setIsOpen(!isOpen);
 
@@ -12,11 +12,15 @@ const TaskStatusDropDown = ({ status, onChange }) => {
   };
 
   const statusColor = {
+    'To Do': 'bg-slate-100 text-slate-800',
+    Hold: 'bg-slate-100 text-slate-800', // Treated as gray/To Do
+    InProgress: 'bg-amber-100 text-amber-800',
+    UnderReview: 'bg-purple-100 text-purple-800',
     Completed: 'bg-green-100 text-green-800',
-    InProgress: 'bg-slate-200 text-slate-800',
-    Hold: 'bg-red-100 text-red-800',
-    UnderReview: 'bg-amber-100 text-amber-800',
   };
+
+  // Map generic values or missing keys to gray
+  const colorClass = statusColor[status] || 'bg-slate-100 text-slate-800';
 
   return (
     <div className="relative w-full h-full text-left">
@@ -26,7 +30,7 @@ const TaskStatusDropDown = ({ status, onChange }) => {
           e.stopPropagation();
           toggleDropdown();
         }}
-        className={`w-full h-full flex items-center justify-center whitespace-nowrap cursor-pointer px-2 py-1 rounded-[0.4rem] text-[9px] font-medium ${statusColor[status] || 'bg-slate-200 text-slate-800'}`}
+        className={`w-full h-full flex items-center justify-center whitespace-nowrap cursor-pointer px-2 py-1 rounded-[0.4rem] text-[9px] font-medium ${colorClass}`}
       >
         {status}
       </div>

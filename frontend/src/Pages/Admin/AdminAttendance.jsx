@@ -287,14 +287,14 @@ const AdminAttendance = () => {
           {canEdit && (
             <button
               onClick={() => setIsAddAttendanceOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 text-[11px] font-black uppercase tracking-wide"
+              className="btn btn-primary gap-2 shadow-lg shadow-blue-200"
             >
               + Check In/Out
             </button>
           )}
           <button
             onClick={handleDownload}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200 text-[11px] font-black uppercase tracking-wide"
+            className="btn btn-secondary gap-2 shadow-lg shadow-slate-200"
           >
             <Download size={16} /> Export CSV
           </button>
@@ -380,7 +380,7 @@ const AdminAttendance = () => {
               setActiveTab(t);
               localStorage.setItem('admin_attendance_tab', t);
             }}
-            className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${
+            className={`btn px-6 py-2 border transition-all ${
               activeTab === t 
                 ? "bg-slate-800 text-white border-slate-800 shadow-lg shadow-slate-200" 
                 : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
@@ -482,13 +482,13 @@ const AdminAttendance = () => {
 
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Edit Attendance</h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-red-500"><X size={20} /></button>
+          <div className="modal-container-sm">
+            <div className="px-6 py-6 border-b border-slate-50 flex justify-between items-center bg-white">
+              <h3 className="text-base font-black text-slate-800 uppercase tracking-widest">Edit Attendance</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-red-500 transition-colors"><X size={20} /></button>
             </div>
 
-            <div className="p-6 space-y-4 ">
+            <div className="modal-body-scroll space-y-5">
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Check In Time</label>
                 <DatePicker
@@ -497,7 +497,7 @@ const AdminAttendance = () => {
                   showTimeSelect
                   dateFormat="Pp"
                   wrapperClassName="w-full"
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none"
                   popperProps={{ strategy: "fixed" }}
                   portalId="portal-root"
                 />
@@ -511,7 +511,7 @@ const AdminAttendance = () => {
                   showTimeSelect
                   dateFormat="Pp"
                   wrapperClassName="w-full"
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none"
                   popperProps={{ strategy: "fixed" }}
                   portalId="portal-root"
                 />
@@ -520,7 +520,7 @@ const AdminAttendance = () => {
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Status</label>
                 <select
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none bg-white"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none bg-white"
                   value={editFormData.status}
                   onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
                 >
@@ -534,18 +534,18 @@ const AdminAttendance = () => {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 flex gap-3 bg-slate-50/50">
+            <div className="px-10 py-8 border-t border-slate-100 flex gap-4 bg-slate-50/50">
               <button
                 onClick={() => setIsEditModalOpen(false)}
-                className="flex-1 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 uppercase tracking-wider"
+                className="flex-1 py-3.5 font-black text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
               >
-                Cancel
+                CANCEL
               </button>
               <button
                 onClick={handleSaveChanges}
-                className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-700 shadow-md shadow-blue-200 flex justify-center items-center gap-2"
+                className="btn btn-primary flex-1 shadow-lg shadow-blue-100 gap-2"
               >
-                <Save size={14} /> Save Changes
+                <Save size={14} /> SAVE CHANGES
               </button>
             </div>
           </div>

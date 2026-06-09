@@ -13,6 +13,7 @@ import ApproveTimesheetViewModal from "../../Components/ApproveTimesheetViewModa
 import AdminAddTimeLogModal from "../../Components/AdminAddTimeLogModal";
 import AdminCreateTimesheetModal from "../../Components/AdminCreateTimesheetModal";
 import ExportSelectionModal from "../../Components/ExportSelectionModal";
+import FilterBar from "../../Components/FilterBar";
 
 
 const ApproveTimesheets = () => {
@@ -66,9 +67,14 @@ const ApproveTimesheets = () => {
   });
 
   // Filters for "All Timesheets" tab
-  const [filterEmployee, setFilterEmployee] = useState("All");
-  const [filterDate, setFilterDate] = useState(null);
-  const [filterStatus, setFilterStatus] = useState("All");
+  const [filterValues, setFilterValues] = useState({
+    search: '',
+    employee: 'All',
+    status: 'All',
+    dateRangeStart: null,
+    dateRangeEnd: null
+  });
+  
   const [allTimesheets, setAllTimesheets] = useState([]);
   const [allLoading, setAllLoading] = useState(false);
 
@@ -136,18 +142,16 @@ const ApproveTimesheets = () => {
     } else {
       fetchWeeklyTimesheets();
     }
-  }, [selectedWeekStart, activeTab, filterEmployee, filterDate, filterStatus]);
+  }, [selectedWeekStart, activeTab, filterValues.employee, filterValues.status, filterValues.dateRangeStart, filterValues.dateRangeEnd]);
 
   const fetchAllTimesheets = async () => {
     setAllLoading(true);
     try {
       const params = {};
-      if (filterEmployee !== "All") params.employeeId = filterEmployee;
-      if (filterStatus !== "All") params.status = filterStatus;
-      if (filterDate) {
-        params.startDate = filterDate.toISOString().split('T')[0];
-        params.endDate = filterDate.toISOString().split('T')[0];
-      }
+      if (filterValues.employee !== "All") params.employeeId = filterValues.employee;
+      if (filterValues.status !== "All") params.status = filterValues.status;
+      if (filterValues.dateRangeStart) params.startDate = filterValues.dateRangeStart.toISOString().split('T')[0];
+      if (filterValues.dateRangeEnd) params.endDate = filterValues.dateRangeEnd.toISOString().split('T')[0];
       
       const response = await timesheetApi.getAllTimesheets(params);
       setAllTimesheets(Array.isArray(response) ? response : []);
@@ -337,9 +341,9 @@ const ApproveTimesheets = () => {
       default: data = [];
     }
 
-    if (!searchTerm) return data;
+    if (!searchTerm && !filterValues.search) return data;
     
-    const lowerSearch = searchTerm.toLowerCase();
+    const lowerSearch = (searchTerm || filterValues.search).toLowerCase();
     return data.filter(ts => {
       const employeeName = (ts.employee?.name || ts.employeeName || "").toLowerCase();
       const tsName = (ts.name || "").toLowerCase();
@@ -583,8 +587,9 @@ const ApproveTimesheets = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
-            <div className="relative group">
+        {activeTab !== 3 && (
+          <div className="flex items-center gap-3">
+              <div className="relative group">
               <input
                 type="text"
                 placeholder="Search..."
@@ -627,7 +632,8 @@ const ApproveTimesheets = () => {
             >
               <Plus size={16} strokeWidth={3} /> Timesheet
             </button>
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-4 mb-6 transition-all">
@@ -639,65 +645,8 @@ const ApproveTimesheets = () => {
             </div>
 
             {activeTab === 3 ? (
-              <div className="flex flex-wrap items-center gap-3 pl-0 md:pl-6 md:border-l border-slate-100">
-                {/* Employee Filter */}
-                <div className="relative">
-                   <select
-                    value={filterEmployee}
-                    onChange={(e) => setFilterEmployee(e.target.value)}
-                    className="h-10 pl-3 pr-8 bg-slate-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-100 transition-all min-w-[160px] text-slate-700 appearance-none cursor-pointer hover:bg-slate-100"
-                  >
-                    <option value="All">All Employees</option>
-                    {allUsers.map(user => (
-                      <option key={user._id} value={user._id}>{user.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-                  </div>
-                </div>
-
-                {/* Date Filter */}
-                <div className="relative group">
-                  <DatePicker
-                    selected={filterDate}
-                    onChange={(date) => setFilterDate(date)}
-                    placeholderText="Select Date"
-                    isClearable
-                    className="h-10 pl-9 pr-3 bg-slate-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-100 transition-all min-w-[140px] text-slate-700 w-full cursor-pointer hover:bg-slate-100"
-                  />
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <IoCalendarNumberOutline size={16} />
-                  </div>
-                </div>
-
-                {/* Status Filter */}
-                <div className="relative">
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="h-10 pl-3 pr-8 bg-slate-50 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-100 transition-all min-w-[130px] text-slate-700 appearance-none cursor-pointer hover:bg-slate-100"
-                  >
-                    <option value="All">All Status</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Rejected">Rejected</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => {
-                    setFilterEmployee("All");
-                    setFilterDate(null);
-                    setFilterStatus("All");
-                  }}
-                  className="h-10 px-4 text-[10px] font-black text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl uppercase tracking-widest transition-all"
-                >
-                  Reset
-                </button>
+              <div className="w-full">
+                {/* Handled by FilterBar below */}
               </div>
             ) : (
               <div className="flex items-center gap-2 pl-0 md:pl-6 md:border-l border-slate-100">
@@ -770,6 +719,20 @@ const ApproveTimesheets = () => {
           </div>
         </div>
       </div>
+
+      {activeTab === 3 && (
+        <FilterBar 
+          filters={[
+            { type: 'search', key: 'search', placeholder: 'Search timesheets...' },
+            { type: 'select', key: 'employee', label: 'Employee', options: [{value: 'All', label: 'All Employees'}, ...allUsers.map(u => ({value: u._id, label: u.name}))] },
+            { type: 'select', key: 'status', label: 'Status', options: ['All', 'Pending', 'Approved', 'Rejected'] },
+            { type: 'dateRange', key: 'dateRange', label: 'Date Range' }
+          ]}
+          values={filterValues}
+          onChange={(k, v) => setFilterValues(prev => ({ ...prev, [k]: v }))}
+          onReset={() => setFilterValues({ search: '', employee: 'All', status: 'All', dateRangeStart: null, dateRangeEnd: null })}
+        />
+      )}
 
       <div className="rounded-[1.5rem] shadow-sm border border-slate-100 overflow-hidden">
         <AnimatePresence mode="wait">

@@ -102,29 +102,30 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6" 
+      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex justify-center items-center p-4 sm:p-6" 
       onClick={handleBackdropClick}
     >
       <div 
         ref={modalRef} 
-        className="w-full max-w-md bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
+        className="modal-container-sm"
       >
-        <button 
-          onClick={handleClose} 
-          className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
-        >
-          &times;
-        </button>
-
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
-          <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
+        {/* Header */}
+        <div className="px-6 py-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+          <h2 className="text-base font-black text-slate-800 tracking-widest uppercase">
             ADD HOLIDAY
           </h2>
+          <button 
+            onClick={handleClose} 
+            className="text-slate-400 hover:text-rose-500 transition-colors"
+          >
+            <FaTimes size={20} />
+          </button>
         </div>
 
+        {/* Form Body */}
         <form 
           id="holidayForm" 
-          className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar" 
+          className="modal-body-scroll p-6 sm:p-8 space-y-6" 
           onSubmit={handleSubmit}
         >
           <div>
@@ -137,7 +138,7 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
               placeholder="Enter holiday name"
               value={formData.holidayName}
               onChange={handleChange}
-              className={`w-full bg-white border ${errors.holidayName ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm sm:text-base text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300`}
+              className={`w-full bg-slate-50 border ${errors.holidayName ? 'border-red-400' : 'border-slate-100'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-4 focus:ring-blue-50/50 focus:bg-white transition-all placeholder:text-slate-300`}
               required
             />
             {errors.holidayName && (
@@ -180,7 +181,7 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
               id="isRecurring"
               checked={formData.isRecurring}
               onChange={(e) => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
-              className="w-4 h-4 rounded border-slate-300 text-[#64748b] focus:ring-[#64748b]"
+              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
             <label htmlFor="isRecurring" className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer select-none">
               RECURRING EVERY YEAR
@@ -188,11 +189,12 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
           </div>
         </form>
 
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
+        {/* Footer */}
+        <div className="px-6 py-6 border-t border-slate-100 flex gap-3 bg-white flex-shrink-0">
           <button 
             type="button" 
             onClick={handleClose} 
-            className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+            className="btn btn-ghost flex-1 py-3 text-[10px]"
           >
             CANCEL
           </button>
@@ -200,7 +202,7 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
             type="submit" 
             form="holidayForm"
             disabled={loading}
-            className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn btn-primary flex-1 py-3 text-[10px] shadow-lg shadow-blue-100"
           >
             {loading ? "SUBMITTING..." : "SAVE HOLIDAY"}
           </button>

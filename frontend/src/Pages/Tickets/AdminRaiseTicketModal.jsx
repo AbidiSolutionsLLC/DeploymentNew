@@ -177,161 +177,158 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
       className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6"
       onClick={handleBackdropClick}
     >
-      <div
-        ref={modalRef}
-        className="w-full max-w-md bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
-      >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
-        >
-          &times;
-        </button>
-
+      <div className="modal-container-sm">
         {/* Header */}
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
+        <div className="px-6 py-6 border-b border-slate-50 text-center flex-shrink-0 bg-white sticky top-0 z-10">
           <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
             RAISE A TICKET
           </h2>
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light"
+          >
+            &times;
+          </button>
         </div>
 
         {/* Form Body */}
-        <form
-          id="ticketForm"
-          className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar"
-          onSubmit={handleSubmit}
-        >
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              TICKET ID*
-            </label>
-            <input
-              name="id"
-              placeholder="ticket id"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300"
-              value={form.id}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              EMAIL*
-            </label>
-            <input
-              name="email"
-              type="email"
-              placeholder="user@example.com"
-              className={`w-full bg-white border ${errors.email ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300`}
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-            {errors.email && (
-              <p className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.email}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              SUBJECT*
-            </label>
-            <input
-              name="subject"
-              placeholder="issue subject"
-              className={`w-full bg-white border ${errors.subject ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300`}
-              value={form.subject}
-              onChange={handleChange}
-              required
-            />
-            <div className="flex justify-between items-center mt-1">
-              {errors.subject ? (
-                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.subject}</p>
-              ) : <div />}
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.subject.length}/100</p>
+        <div className="modal-body-scroll">
+          <form
+            id="ticketForm"
+            className="p-6 sm:p-10 space-y-5 sm:space-y-6"
+            onSubmit={handleSubmit}
+          >
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
+                TICKET ID*
+              </label>
+              <input
+                name="id"
+                placeholder="ticket id"
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300"
+                value={form.id}
+                onChange={handleChange}
+                required
+              />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              DESCRIPTION*
-            </label>
-            <textarea
-              name="comment"
-              placeholder="describe the issue"
-              className={`w-full bg-white border ${errors.comment ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300 min-h-[100px] resize-none`}
-              value={form.comment}
-              onChange={handleChange}
-              rows={3}
-              required
-            />
-            <div className="flex justify-between items-center mt-1">
-              {errors.comment ? (
-                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.comment}</p>
-              ) : <div />}
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.comment.length}/1000</p>
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
+                EMAIL*
+              </label>
+              <input
+                name="email"
+                type="email"
+                placeholder="user@example.com"
+                className={`w-full bg-white border ${errors.email ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300`}
+                value={form.email}
+                onChange={handleChange}
+                required
+              />
+              {errors.email && (
+                <p className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.email}</p>
+              )}
             </div>
-          </div>
 
-          <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer select-none">
-              ATTACHMENT {form.attachments.length > 0 && `(${form.attachments.length}/${MAX_FILES})`}
-            </label>
-            <input
-              ref={fileInputRef}
-              name="attachment"
-              type="file"
-              multiple
-              accept=".bmp,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg,image/bmp,video/mp4,audio/mpeg,audio/mpeg3,audio/x-mpeg,audio/x-mpeg-3"
-              className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-slate-200 file:text-slate-600 hover:file:bg-slate-300 cursor-pointer"
-              onChange={handleChange}
-              disabled={form.attachments.length >= MAX_FILES}
-            />
-            {errors.attachment && (
-              <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.attachment}</p>
-            )}
-            
-            {/* Display attached files with remove buttons */}
-            {form.attachments.length > 0 && (
-              <div className="space-y-2 mt-2">
-                {form.attachments.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-[10px] font-bold text-slate-700 truncate">{file.name}</span>
-                      <span className="text-[9px] text-slate-400">({(file.size / 1024).toFixed(1)} KB)</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(index)}
-                      className="text-slate-400 hover:text-red-500 transition-colors text-sm font-bold"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
+                SUBJECT*
+              </label>
+              <input
+                name="subject"
+                placeholder="issue subject"
+                className={`w-full bg-white border ${errors.subject ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300`}
+                value={form.subject}
+                onChange={handleChange}
+                required
+              />
+              <div className="flex justify-between items-center mt-1">
+                {errors.subject ? (
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.subject}</p>
+                ) : <div />}
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.subject.length}/100</p>
               </div>
-            )}
-          </div>
-        </form>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
+                DESCRIPTION*
+              </label>
+              <textarea
+                name="comment"
+                placeholder="describe the issue"
+                className={`w-full bg-white border ${errors.comment ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300 min-h-[100px] resize-none`}
+                value={form.comment}
+                onChange={handleChange}
+                rows={3}
+                required
+              />
+              <div className="flex justify-between items-center mt-1">
+                {errors.comment ? (
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.comment}</p>
+                ) : <div />}
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.comment.length}/1000</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer select-none">
+                ATTACHMENT {form.attachments.length > 0 && `(${form.attachments.length}/${MAX_FILES})`}
+              </label>
+              <input
+                ref={fileInputRef}
+                name="attachment"
+                type="file"
+                multiple
+                accept=".bmp,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg,image/bmp,video/mp4,audio/mpeg,audio/mpeg3,audio/x-mpeg,audio/x-mpeg-3"
+                className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-slate-200 file:text-slate-600 hover:file:bg-slate-300 cursor-pointer"
+                onChange={handleChange}
+                disabled={form.attachments.length >= MAX_FILES}
+              />
+              {errors.attachment && (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.attachment}</p>
+              )}
+              
+              {/* Display attached files with remove buttons */}
+              {form.attachments.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  {form.attachments.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-[10px] font-bold text-slate-700 truncate">{file.name}</span>
+                        <span className="text-[9px] text-slate-400">({(file.size / 1024).toFixed(1)} KB)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(index)}
+                        className="text-slate-400 hover:text-red-500 transition-colors text-sm font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </form>
+        </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
+        <div className="px-10 py-8 border-t border-slate-100 flex gap-4 bg-slate-50/50">
           <button
             type="button"
             onClick={handleCancelClick}
-            className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+            className="flex-1 py-3.5 font-black text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
           >
             CANCEL
           </button>
           <button
             type="submit"
             form="ticketForm"
-            className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all"
+            className="btn btn-primary flex-1 shadow-lg shadow-blue-100"
           >
             SUBMIT TICKET
           </button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import holidayApi from '../api/holidayApi';
+import DataTable from './DataTable';
 
 const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 }) => {
   const [holidays, setHolidays] = useState(propHolidays || []);
@@ -95,6 +96,70 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
       );
     }
 
+    const columns = [
+      {
+        key: "date",
+        label: "Date",
+        sortable: true,
+        render: (val, row) => {
+          const holidayDate = extractDate(row.date);
+          return (
+            <span className="font-medium">
+              {holidayDate.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              })}
+            </span>
+          );
+        }
+      },
+      { key: "day", label: "Day", sortable: true },
+      { 
+        key: "holidayName", 
+        label: "Holiday Name", 
+        sortable: true,
+        render: (val) => <span className="font-bold max-w-[200px] block truncate" title={val}>{val}</span>
+      },
+      {
+        key: "holidayType",
+        label: "Type",
+        sortable: true,
+        render: (val) => (
+          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide bg-purple-100 text-purple-800">
+            {val || "Holiday"}
+          </span>
+        )
+      },
+      {
+        key: "daysCount",
+        label: isUpcoming ? "Days Until" : "Days Ago",
+        sortable: false,
+        render: (val, row) => {
+          const holidayDate = extractDate(row.date);
+          let daysCount;
+          let statusClass;
+
+          if (isUpcoming) {
+            daysCount = Math.ceil((holidayDate - today) / (1000 * 60 * 60 * 24));
+            statusClass = daysCount === 0
+              ? "bg-green-100 text-green-800"
+              : "bg-blue-100 text-blue-800";
+          } else {
+            daysCount = Math.ceil((today - holidayDate) / (1000 * 60 * 60 * 24));
+            statusClass = "bg-gray-100 text-gray-800";
+          }
+
+          return (
+            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${statusClass}`}>
+              {daysCount === 0 ? 'Today' : `${daysCount} day${daysCount !== 1 ? 's' : ''} ${isUpcoming ? '' : 'ago'}`}
+            </span>
+          );
+        }
+      }
+    ];
+
     return (
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -103,73 +168,12 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
             {title} ({data.length})
           </h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm border-separate border-spacing-0" style={{ tableLayout: 'fixed' }}>
-            <colgroup>
-              <col style={{ width: '20%' }} />
-              <col style={{ width: '15%' }} />
-              <col style={{ width: '35%' }} />
-              <col style={{ width: '15%' }} />
-              <col style={{ width: '15%' }} />
-            </colgroup>
-            <thead>
-              <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                {["Date", "Day", "Holiday Name", "Type", isUpcoming ? "Days Until" : "Days Ago"].map((header, index) => (
-                  <th
-                    key={index}
-                    className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left"
-                    style={{ width: ['20%', '15%', '35%', '15%', '15%'][index] }}
-                  >
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((holiday, index) => {
-                const holidayDate = extractDate(holiday.date);
-
-                let daysCount;
-                let statusClass;
-
-                if (isUpcoming) {
-                  daysCount = Math.ceil((holidayDate - today) / (1000 * 60 * 60 * 24));
-                  statusClass = daysCount === 0
-                    ? "bg-green-100 text-green-800"
-                    : "bg-blue-100 text-blue-800";
-                } else {
-                  daysCount = Math.ceil((today - holidayDate) / (1000 * 60 * 60 * 24));
-                  statusClass = "bg-gray-100 text-gray-800";
-                }
-
-                return (
-                  <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                    <td className="p-3 text-slate-700 font-medium" style={{ width: '20%' }}>
-                      {holidayDate.toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </td>
-                    <td className="p-3 text-slate-600" style={{ width: '15%' }}>{holiday.day}</td>
-                    <td className="p-3 text-slate-700 font-bold truncate max-w-[200px]" style={{ width: '35%' }} title={holiday.holidayName}>{holiday.holidayName}</td>
-                    <td className="p-3" style={{ width: '15%' }}>
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide bg-purple-100 text-purple-800">
-                        {holiday.holidayType || "Holiday"}
-                      </span>
-                    </td>
-                    <td className="p-3" style={{ width: '15%' }}>
-                      <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${statusClass}`}>
-                        {daysCount === 0 ? 'Today' : `${daysCount} day${daysCount !== 1 ? 's' : ''} ${isUpcoming ? '' : 'ago'}`}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <DataTable 
+          data={data}
+          columns={columns}
+          loading={false}
+          emptyMessage={`No ${title.toLowerCase()} available`}
+        />
       </div>
     );
   };

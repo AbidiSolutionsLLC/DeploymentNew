@@ -142,13 +142,17 @@ const OrgChartPage = () => {
   };
 
   return (
-    <div className="p-6 h-[calc(100vh-80px)] overflow-hidden flex flex-col bg-gray-50/50">
-      <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <FaNetworkWired className="text-blue-600" /> Organization Chart
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Interactive hierarchy of company leadership and teams</p>
+    <div className="p-4 h-full flex flex-col bg-transparent overflow-hidden">
+      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4 shrink-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight flex items-center gap-2">
+              <FaNetworkWired className="text-blue-600" /> Organization Chart
+            </h2>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">
+              Interactive hierarchy of company leadership and teams
+            </p>
+          </div>
         </div>
       </div>
 
@@ -166,14 +170,14 @@ const OrgChartPage = () => {
           {({ zoomIn, zoomOut, resetTransform }) => (
             <>
               {/* Zoom Controls */}
-              <div className="absolute top-4 right-4 z-40 flex flex-col gap-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-xl border border-gray-200 shadow-md">
-                <button onClick={() => zoomIn()} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Zoom In">
+              <div className="absolute top-4 right-4 z-40 flex flex-col gap-2 bg-white/90 backdrop-blur-sm p-2 rounded-2xl border border-white/50 shadow-xl shadow-slate-200/50">
+                <button onClick={() => zoomIn()} className="w-10 h-10 flex items-center justify-center hover:bg-blue-50 rounded-xl text-slate-400 hover:text-blue-600 transition-all" title="Zoom In">
                   <FaSearchPlus size={16} />
                 </button>
-                <button onClick={() => resetTransform()} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Reset Zoom">
+                <button onClick={() => resetTransform()} className="w-10 h-10 flex items-center justify-center hover:bg-blue-50 rounded-xl text-slate-400 hover:text-blue-600 transition-all" title="Reset Zoom">
                   <FaRedo size={14} />
                 </button>
-                <button onClick={() => zoomOut()} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Zoom Out">
+                <button onClick={() => zoomOut()} className="w-10 h-10 flex items-center justify-center hover:bg-blue-50 rounded-xl text-slate-400 hover:text-blue-600 transition-all" title="Zoom Out">
                   <FaSearchMinus size={16} />
                 </button>
               </div>

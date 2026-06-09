@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from "react";
-import TableWithPagination from "../../Components/TableWithPagination"; 
-import { FiTrash2, FiPlus } from "react-icons/fi";
-import { FaEye } from "react-icons/fa";
+import React, { useState, useEffect, useMemo } from "react";
+import { FiPlus } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import api from "../../axios";
 import RaiseTicketModal from "../../Pages/Tickets/RaiseTicketModal";
 import ViewTicketDetailsModal from "../../Pages/Tickets/ViewTicketDetailsModal";
 import { toast } from "react-toastify";
+import DataTable from "../../Components/DataTable";
+import FilterBar from "../../Components/FilterBar";
 
 const Ticket = () => {
   const [tickets, setTickets] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredTickets, setFilteredTickets] = useState([]);
+  const [filterValues, setFilterValues] = useState({
+    search: "",
+    status: "all",
+    priority: "all"
+  });
   const [showModal, setShowModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,18 +28,15 @@ const Ticket = () => {
         if (!user?.user?.email) return;
         const res = await api.get(`/tickets`);
         
-        // --- VISIBILITY FIX: Filter ONLY tickets created by ME ---
-        // Even if backend sends assigned tickets (for Technicians), we filter here.
         const currentUserId = user.user.id || user.user._id;
         const allTickets = res.data || [];
         
+        // Filter ONLY tickets created by ME
         const myCreatedTickets = allTickets.filter(ticket => 
           ticket.closedBy && (ticket.closedBy._id === currentUserId || ticket.closedBy === currentUserId)
         );
-        // --------------------------------------------------------
 
         setTickets(myCreatedTickets);
-        setFilteredTickets(myCreatedTickets);
       } catch (error) {
         console.error("Error fetching tickets:", error);
         toast.error("Failed to load tickets");
@@ -48,22 +48,28 @@ const Ticket = () => {
     fetchTickets();
   }, [user]);
 
-  useEffect(() => {
-    const results = tickets.filter(
-      (ticket) =>
-        ticket.ticketID?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredTickets(results);
-  }, [searchTerm, tickets]);
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      const matchesSearch = !filterValues.search || 
+        ticket.ticketID?.toLowerCase().includes(filterValues.search.toLowerCase()) ||
+        ticket.subject?.toLowerCase().includes(filterValues.search.toLowerCase()) ||
+        ticket.description?.toLowerCase().includes(filterValues.search.toLowerCase());
+      
+      const matchesStatus = filterValues.status === "all" || 
+        ticket.status?.toLowerCase() === filterValues.status.toLowerCase();
+      
+      const matchesPriority = filterValues.priority === "all" || 
+        ticket.priority?.toLowerCase().includes(filterValues.priority.toLowerCase());
+
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [tickets, filterValues]);
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this ticket?")) return;
     try {
       await api.delete(`/tickets/${id}`);
-      const updated = tickets.filter((ticket) => ticket._id !== id);
-      setTickets(updated);
-      setFilteredTickets(prev => prev.filter(t => t._id !== id));
+      setTickets(prev => prev.filter((ticket) => ticket._id !== id));
       toast.success("Ticket deleted successfully!");
     } catch (error) {
       console.error("Failed to delete ticket:", error);
@@ -71,40 +77,38 @@ const Ticket = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  const filterConfig = [
+    { name: "search", type: "search", placeholder: "Search ID, Subject..." },
+    { 
+      name: "status", 
+      type: "select", 
+      options: [
+        { value: "all", label: "ALL STATUS" },
+        { value: "opened", label: "OPEN" },
+        { value: "in progress", label: "IN PROGRESS" },
+        { value: "closed", label: "CLOSED" }
+      ] 
+    },
+    {
+      name: "priority",
+      type: "select",
+      options: [
+        { value: "all", label: "ALL PRIORITY" },
+        { value: "High Priority", label: "HIGH" },
+        { value: "Medium Priority", label: "MEDIUM" },
+        { value: "Low Priority", label: "LOW" }
+      ]
+    }
+  ];
 
-  const StatusBadge = ({ status }) => {
-    const statusConfig = {
-      open: { color: "bg-green-100 text-green-800", label: "Open" },
-      opened: { color: "bg-green-100 text-green-800", label: "Open" },
-      closed: { color: "bg-red-100 text-red-800", label: "Closed" },
-      "in progress": { color: "bg-blue-100 text-blue-800", label: "In Progress" }
-    };
-
-    const config = statusConfig[status?.toLowerCase()] || { color: "bg-slate-100 text-slate-800", label: status || "Unknown" };
-
-    return (
-      <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${config.color}`}>
-        {config.label}
-      </span>
-    );
-  };
-
-  const ticketColumns = [
+  const columns = [
     {
       key: "ticketID",
       label: "Ticket ID",
       sortable: true,
-      render: (row) => (
-        <span className="font-bold text-blue-600" title={row.ticketID || row._id}>
-          #{row.ticketID || row._id.slice(0, 8).toUpperCase()}
+      render: (_, row) => (
+        <span className="font-bold text-blue-600">
+          #{row.ticketID || row._id?.slice(0, 8).toUpperCase() || 'N/A'}
         </span>
       )
     },
@@ -112,9 +116,9 @@ const Ticket = () => {
       key: "createdAt",
       label: "Date",
       sortable: true,
-      render: (row) => (
+      render: (_, row) => (
         <span className="text-slate-600 whitespace-nowrap">
-          {formatDate(row.createdAt)}
+          {new Date(row.createdAt).toLocaleDateString()}
         </span>
       )
     },
@@ -122,19 +126,9 @@ const Ticket = () => {
       key: "subject",
       label: "Subject",
       sortable: true,
-      render: (row) => (
-        <div className="font-bold text-slate-700 truncate max-w-[180px]" title={row.subject}>
+      render: (_, row) => (
+        <div className="font-bold text-slate-700 truncate max-w-[200px]" title={row.subject}>
           {row.subject}
-        </div>
-      )
-    },
-    {
-      key: "description",
-      label: "Description",
-      sortable: false,
-      render: (row) => (
-        <div className="text-slate-600 truncate max-w-[200px]" title={row.description}>
-          {row.description}
         </div>
       )
     },
@@ -142,112 +136,97 @@ const Ticket = () => {
       key: "priority",
       label: "Priority",
       sortable: true,
-      render: (row) => (
-        <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${
-          row.priority?.toLowerCase().includes('high') ? 'bg-red-100 text-red-800' :
-          row.priority?.toLowerCase().includes('medium') ? 'bg-yellow-100 text-yellow-800' :
-          'bg-blue-100 text-blue-800'
+      render: (_, row) => (
+        <div className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest w-fit border ${
+          row.priority === "High Priority" ? "bg-rose-50 text-rose-600 border-rose-100" :
+          row.priority === "Medium Priority" ? "bg-amber-50 text-amber-600 border-amber-100" :
+          "bg-blue-50 text-blue-600 border-blue-100"
         }`}>
-          {row.priority?.replace(' Priority', '') || 'Normal'}
-        </span>
+          {row.priority?.split(' ')[0]}
+        </div>
       )
     },
     {
       key: "status",
       label: "Status",
       sortable: true,
-      render: (row) => <StatusBadge status={row.status} />
-    },
+      render: (_, row) => (
+        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest w-fit border ${
+          row.status === "closed" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+          row.status === "in progress" ? "bg-amber-50 text-amber-600 border-amber-100" :
+          "bg-blue-50 text-blue-600 border-blue-100"
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            row.status === "closed" ? "bg-emerald-500" :
+            row.status === "in progress" ? "bg-amber-500" :
+            "bg-blue-500"
+          }`} />
+          {row.status}
+        </div>
+      )
+    }
   ];
 
-  const ticketActions = [
+  const rowActions = [
     {
-      icon: <FaEye size={16} />,
-      title: "View Details",
-      className: "bg-blue-50 text-blue-600 hover:bg-blue-100",
+      label: "View",
+      icon: "eye",
       onClick: (row) => setSelectedTicket(row)
     },
     {
-      icon: <FiTrash2 size={16} />,
-      title: "Delete",
-      className: "bg-red-50 text-red-600 hover:bg-red-100",
+      label: "Delete",
+      icon: "trash",
+      variant: "danger",
       onClick: (row) => handleDelete(row._id)
     }
   ];
 
   return (
-    <div className="min-h-screen bg-transparent p-2">
+    <div className="min-h-screen bg-transparent p-4">
       {/* Header Card */}
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4">
+          <div>
             <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">My Tickets</h2>
-            <div className="text-xs text-slate-600 flex items-center gap-1">
-              <span className="font-medium">Total:</span>
-              <span className="font-bold text-slate-800">{filteredTickets.length}</span>
-            </div>
+            <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">
+              Track your support requests
+            </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex-grow sm:flex-grow-0 sm:w-56">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-4 w-4 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder="Search tickets..."
-                className="w-full pl-10 pr-10 py-2.5 rounded-lg shadow-sm text-sm bg-white/80 backdrop-blur-sm text-slate-700 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                  title="Clear search"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <FiPlus className="h-4 w-4" />
-              Raise Ticket
-            </button>
-          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <FiPlus className="h-4 w-4" />
+            Raise Ticket
+          </button>
         </div>
       </div>
 
-      <TableWithPagination
-        columns={ticketColumns}
-        data={filteredTickets}
-        loading={loading}
-        error={null}
-        emptyMessage={
-          searchTerm 
-            ? `No tickets found matching "${searchTerm}"`
-            : "You haven't raised any tickets yet. Click 'Raise Ticket' to get started."
-        }
-        onRowClick={(row) => setSelectedTicket(row)}
-        actions={ticketActions}
-        rowsPerPage={10}
+      <FilterBar
+        filters={filterConfig}
+        values={filterValues}
+        onChange={(name, value) => setFilterValues(prev => ({ ...prev, [name]: value }))}
+        onReset={() => setFilterValues({ search: "", status: "all", priority: "all" })}
+        totalResults={filteredTickets.length}
       />
+
+      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
+        <DataTable
+          columns={columns}
+          data={filteredTickets}
+          loading={loading}
+          rowActions={rowActions}
+          onRowClick={(row) => setSelectedTicket(row)}
+          emptyMessage="You haven't raised any tickets yet."
+        />
+      </div>
 
       {showModal && (
         <RaiseTicketModal
           onClose={() => setShowModal(false)}
           onSubmit={(newTicket) => {
-            // Optimistic update
             setTickets((prev) => [...prev, newTicket]);
-            setFilteredTickets((prev) => [...prev, newTicket]);
             setShowModal(false);
           }}
         />

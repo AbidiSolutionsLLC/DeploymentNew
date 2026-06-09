@@ -65,9 +65,9 @@ const ExpenseDetail = ({
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-[1.2rem] shadow-2xl w-full max-w-2xl my-8 overflow-hidden animate-fadeIn border border-white/50">
+      <div className="modal-container-standard">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0">
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest">
               Expense Details
@@ -85,7 +85,7 @@ const ExpenseDetail = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+        <div className="modal-body-scroll p-6">
           {/* Title & Amount */}
           <div className="flex justify-between items-start mb-8">
             <div>
@@ -206,25 +206,23 @@ const ExpenseDetail = ({
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-100 flex gap-3 bg-slate-50/50 mt-auto">
+        <div className="px-6 py-4 border-t border-slate-100 flex gap-3 bg-slate-50/50 sticky bottom-0">
           {expense.status === 'pending' && canApprove && (currentUser?.role?.toLowerCase() === 'superadmin' || !isOwner) && (
             <>
               <button
                 onClick={() => onApprove(expense._id)}
-                className="flex-1 px-4 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex justify-center items-center gap-2"
+                className="btn btn-primary flex-1 py-3.5 gap-2"
               >
                 <CheckCircle size={14} /> Approve
               </button>
               <button
                 onClick={() => onReject(expense)}
-                className="flex-1 px-4 py-3 bg-white text-rose-600 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-md border border-rose-100 hover:bg-rose-50 active:scale-95 transition-all flex justify-center items-center gap-2"
+                className="btn btn-outline flex-1 py-3.5 gap-2 text-rose-600 border-rose-100 hover:bg-rose-50"
               >
                 <XCircle size={14} /> Reject
               </button>
             </>
           )}
-
-
 
           {(canEdit || (isOwner && expense.status === 'pending')) && (
             <button
@@ -234,7 +232,7 @@ const ExpenseDetail = ({
                   onClose();
                 }
               }}
-              className="flex-1 px-4 py-3 bg-white text-rose-500 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-sm border border-rose-100 hover:bg-rose-50 active:scale-95 transition-all flex justify-center items-center gap-2"
+              className="btn btn-ghost flex-1 py-3.5 gap-2 text-rose-500 hover:bg-rose-50"
             >
               <Trash2 size={14} /> Delete
             </button>

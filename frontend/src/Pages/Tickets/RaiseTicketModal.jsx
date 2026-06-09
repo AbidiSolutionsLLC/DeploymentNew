@@ -185,122 +185,119 @@ const handleSubmit = async (e) => {
       className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6" 
       onClick={handleBackdropClick}
     >
-      <div 
-        ref={modalRef} 
-        className="w-full max-w-md bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
-      >
-        {/* Close Button */}
-        <button 
-          onClick={handleCancelClick} 
-          className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
-        >
-          &times;
-        </button>
-
+      <div className="modal-container-sm">
         {/* Header */}
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
+        <div className="px-6 py-6 border-b border-slate-50 text-center flex-shrink-0 bg-white sticky top-0 z-10">
           <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
             RAISE A TICKET
           </h2>
           <p className="text-[9px] text-slate-400 font-black tracking-[0.2em] mt-1 uppercase">Customer Support Portal</p>
+          <button 
+            onClick={handleCancelClick} 
+            className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light"
+          >
+            &times;
+          </button>
         </div>
 
         {/* Form Body */}
-        <form 
-          id="ticketForm" 
-          onSubmit={handleSubmit} 
-          className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar"
-        >
-          {/* Subject */}
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Subject*</label>
-            <input
-              name="subject"
-              placeholder="brief issue summary"
-              className={`w-full bg-white border ${errors.subject ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300`}
-              value={form.subject}
-              onChange={handleChange}
-              required
-            />
-            <div className="flex justify-between items-center mt-1">
-              {errors.subject ? (
-                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.subject}</p>
-              ) : <div />}
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.subject.length}/100</p>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Detailed Description*</label>
-            <textarea
-              name="description"
-              placeholder="describe issue details"
-              rows={4}
-              className={`w-full bg-white border ${errors.description && errors.description.length > 0 ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300 resize-none`}
-              value={form.description}
-              onChange={handleChange}
-              required
-            />
-            <div className="flex justify-between items-center mt-1">
-              {errors.description ? (
-                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.description}</p>
-              ) : <div />}
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.description.length}/1000</p>
-            </div>
-          </div>
-
-          {/* File Upload */}
-          <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-              Attachments {form.attachments.length > 0 && `(${form.attachments.length}/${MAX_FILES})`}
-            </label>
-            <input
-              ref={fileInputRef}
-              name="attachment"
-              type="file"
-              multiple
-              accept=".bmp,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*,video/mp4,audio/mpeg"
-              className="text-[10px] text-slate-400 font-bold file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-slate-200 file:text-slate-600 hover:file:bg-slate-300 cursor-pointer"
-              onChange={handleChange}
-              disabled={form.attachments.length >= MAX_FILES}
-            />
-            {errors.attachment && (
-              <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.attachment}</p>
-            )}
-            
-            {/* Display attached files with remove buttons */}
-            {form.attachments.length > 0 && (
-              <div className="space-y-2 mt-2">
-                {form.attachments.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-[10px] font-bold text-slate-700 truncate">{file.name}</span>
-                      <span className="text-[9px] text-slate-400">({(file.size / 1024).toFixed(1)} KB)</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(index)}
-                      className="text-slate-400 hover:text-red-500 transition-colors text-sm font-bold"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+        <div className="modal-body-scroll">
+          <form 
+            id="ticketForm" 
+            onSubmit={handleSubmit} 
+            className="p-6 sm:p-10 space-y-5 sm:space-y-6"
+          >
+            {/* Subject */}
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Subject*</label>
+              <input
+                name="subject"
+                placeholder="brief issue summary"
+                className={`w-full bg-white border ${errors.subject ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300`}
+                value={form.subject}
+                onChange={handleChange}
+                required
+              />
+              <div className="flex justify-between items-center mt-1">
+                {errors.subject ? (
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.subject}</p>
+                ) : <div />}
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.subject.length}/100</p>
               </div>
-            )}
-          </div>
-        </form>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Detailed Description*</label>
+              <textarea
+                name="description"
+                placeholder="describe issue details"
+                rows={4}
+                className={`w-full bg-white border ${errors.description && errors.description.length > 0 ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300 resize-none`}
+                value={form.description}
+                onChange={handleChange}
+                required
+              />
+              <div className="flex justify-between items-center mt-1">
+                {errors.description ? (
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.description}</p>
+                ) : <div />}
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest">{form.description.length}/1000</p>
+              </div>
+            </div>
+
+            {/* File Upload */}
+            <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                Attachments {form.attachments.length > 0 && `(${form.attachments.length}/${MAX_FILES})`}
+              </label>
+              <input
+                ref={fileInputRef}
+                name="attachment"
+                type="file"
+                multiple
+                accept=".bmp,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*,video/mp4,audio/mpeg"
+                className="text-[10px] text-slate-400 font-bold file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-slate-200 file:text-slate-600 hover:file:bg-slate-300 cursor-pointer"
+                onChange={handleChange}
+                disabled={form.attachments.length >= MAX_FILES}
+              />
+              {errors.attachment && (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.attachment}</p>
+              )}
+              
+              {/* Display attached files with remove buttons */}
+              {form.attachments.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  {form.attachments.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-[10px] font-bold text-slate-700 truncate">{file.name}</span>
+                        <span className="text-[9px] text-slate-400">({(file.size / 1024).toFixed(1)} KB)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(index)}
+                        className="text-slate-400 hover:text-red-500 transition-colors text-sm font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </form>
+        </div>
 
         {/* Footer */}
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
+        <div className="px-10 py-8 border-t border-slate-100 flex gap-4 bg-slate-50/50">
           <button
             type="button"
             onClick={handleCancelClick}
-            className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+            className="flex-1 py-3.5 font-black text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
           >
             CANCEL
           </button>
@@ -308,7 +305,7 @@ const handleSubmit = async (e) => {
             type="submit"
             form="ticketForm"
             disabled={submitting}
-            className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn btn-primary flex-1 shadow-lg shadow-blue-100"
           >
             {submitting ? "SUBMITTING..." : "SUBMIT TICKET"}
           </button>

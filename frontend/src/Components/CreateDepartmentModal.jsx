@@ -72,70 +72,92 @@ const CreateDepartmentModal = ({ isOpen, onClose, onDepartmentCreated, potential
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4" onClick={handleBackdropClick}>
-      <div ref={modalRef} className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl relative animate-fadeIn">
-        <button onClick={onClose} className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light">&times;</button>
-
-        <div className="px-8 py-6 border-b border-slate-50 text-center">
-          <h2 className="text-lg font-black text-slate-800 tracking-widest uppercase">Create Department</h2>
+      <div ref={modalRef} className="modal-container-sm">
+        {/* Header */}
+        <div className="px-8 py-6 border-b border-slate-100 text-center bg-white sticky top-0 z-10">
+          <h2 className="text-lg font-black text-slate-800 uppercase tracking-widest">
+            Create Department
+          </h2>
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light"
+          >
+            &times;
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-4">
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              Department Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className={`w-full bg-white border ${errors.name ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all`}
-              placeholder="e.g. Engineering"
-              required
-            />
-            {errors.name && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.name}</p>}
-          </div>
-
-          <ModernSelect
-            label="Department Manager"
-            name="manager"
-            value={formData.manager}
-            onChange={handleChange}
-            placeholder="NO MANAGER"
-            options={potentialManagers.map(mgr => ({
-              value: mgr._id,
-              label: `${mgr.name.toUpperCase()} (${mgr.designation || "NO TITLE"})`
-            }))}
-            error={errors.manager}
-          />
-
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              Description
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              className={`w-full bg-white border ${errors.description ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 resize-none transition-all`}
-              placeholder="Brief description"
-              rows="3"
-            />
-            <div className="flex justify-between items-center mt-1">
-              {errors.description ? (
-                <p className="text-[10px] text-red-500 font-bold">{errors.description}</p>
-              ) : <div />}
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest">{formData.description.length}/500</p>
+        {/* Body */}
+        <div className="modal-body-scroll">
+          <form id="createDeptForm" onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
+                Department Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className={`w-full bg-white border ${errors.name ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3.5 text-sm text-slate-700 font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300`}
+                placeholder="e.g. Engineering"
+                required
+              />
+              {errors.name && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.name}</p>}
             </div>
-          </div>
 
-          <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-3 font-black text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">Cancel</button>
-            <button type="submit" disabled={isLoading} className="flex-1 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg hover:brightness-110 active:scale-95 transition-all disabled:opacity-50">
-              {isLoading ? "Creating..." : "Create"}
-            </button>
-          </div>
-        </form>
+            <ModernSelect
+              label="Department Manager"
+              name="manager"
+              value={formData.manager}
+              onChange={handleChange}
+              placeholder="SELECT MANAGER"
+              options={potentialManagers.map(mgr => ({
+                value: mgr._id,
+                label: `${mgr.name.toUpperCase()} (${mgr.designation || "NO TITLE"})`
+              }))}
+              error={errors.manager}
+            />
+
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                className={`w-full bg-white border ${errors.description ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3.5 text-sm text-slate-700 font-bold outline-none focus:ring-2 focus:ring-blue-100 resize-none transition-all placeholder:text-slate-300`}
+                placeholder="Brief department description..."
+                rows="4"
+              />
+              <div className="flex justify-between items-center mt-2">
+                {errors.description ? (
+                  <p className="text-[10px] text-red-500 font-bold">{errors.description}</p>
+                ) : <div />}
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{formData.description.length}/500</p>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-6 border-t border-slate-100 flex gap-3 bg-slate-50/50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 font-black text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+          >
+            CANCEL
+          </button>
+          <button
+            type="submit"
+            form="createDeptForm"
+            disabled={isLoading}
+            className="btn btn-primary flex-1 shadow-lg shadow-blue-100"
+          >
+            {isLoading ? "CREATING..." : "CREATE"}
+          </button>
+        </div>
       </div>
     </div>
   );

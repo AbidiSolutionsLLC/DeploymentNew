@@ -1,6 +1,9 @@
-import React from "react";
-import { FaPlus } from "react-icons/fa";
-import SearchBar from "./SearchBar";
+import React, { useState, useMemo } from "react";
+import { Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import DataTable from "./DataTable";
+import FilterBar from "./FilterBar";
+import StatusBadge from "./StatusBadge";
 
 const ProjectsTable = ({
   projects,
@@ -9,147 +12,111 @@ const ProjectsTable = ({
   onDelete,
   openModal,
 }) => {
-  const handleEdit = (project) => {
-    // You can implement edit functionality here
-    // For example, open a modal with the project data
-    console.log("Edit project:", project);
-  };
+  const navigate = useNavigate();
+  const [filterValues, setFilterValues] = useState({
+    search: '',
+    status: 'All'
+  });
 
-  const handleDelete = (projectId) => {
-    if (window.confirm("Are you sure you want to delete this project?")) {
-      onDelete(projectId);
-    }
-  };
-
-  // Function to decide color based on completion
   const getProgressColor = (percentage) => {
-    if (percentage < 40) return "#f44336"; // red
-    if (percentage < 70) return "#ff9800"; // orange
-    return "#4caf50"; // green
+    if (percentage < 40) return "bg-red-500"; 
+    if (percentage < 70) return "bg-amber-500"; 
+    return "bg-emerald-500"; 
   };
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter(project => {
+      const matchesSearch = !filterValues.search || (project.name || "").toLowerCase().includes(filterValues.search.toLowerCase());
+      const matchesStatus = filterValues.status === 'All' || project.Status === filterValues.status;
+      return matchesSearch && matchesStatus;
+    });
+  }, [projects, filterValues]);
+
+  const columns = [
+    { key: "id", label: "ID", sortable: true },
+    { 
+      key: "name", 
+      label: "Project Name", 
+      sortable: true,
+      render: (val, row) => (
+        <span 
+          className="font-bold text-slate-800 hover:text-blue-600 cursor-pointer transition-colors"
+          onClick={() => navigate(`/projects/${row.id}`)}
+        >
+          {val}
+        </span>
+      )
+    },
+    { key: "ProjectOwner", label: "Project Owner", sortable: true },
+    { key: "NoOfUser", label: "Users", sortable: true },
+    { 
+      key: "Status", 
+      label: "Status", 
+      sortable: true,
+      render: (val) => <StatusBadge status={val} />
+    },
+    { 
+      key: "StartDate", 
+      label: "Start Date", 
+      sortable: true,
+      render: (val) => val ? new Date(val).toLocaleDateString() : 'N/A'
+    },
+    { 
+      key: "EndDate", 
+      label: "End Date", 
+      sortable: true,
+      render: (val) => val ? new Date(val).toLocaleDateString() : 'N/A'
+    },
+    { 
+      key: "completion", 
+      label: "Progress", 
+      sortable: true,
+      render: (val) => {
+        const percent = val || 0;
+        return (
+          <div className="flex items-center gap-2 w-full min-w-[100px]">
+            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full ${getProgressColor(percent)} transition-all duration-500`}
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-black text-slate-500 w-8 text-right">{percent}%</span>
+          </div>
+        );
+      }
+    }
+  ];
 
   return (
-    <div className="bg-white rounded-xl shadow p-4 w-full">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-        <SearchBar />
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex-1 w-full">
+          <FilterBar 
+            filters={[
+              { type: 'search', key: 'search', placeholder: 'Search projects...' },
+              { type: 'select', key: 'status', label: 'Status', options: ['All', 'Active', 'On Hold', 'Completed'] }
+            ]}
+            values={filterValues}
+            onChange={(k, v) => setFilterValues(prev => ({ ...prev, [k]: v }))}
+            onReset={() => setFilterValues({ search: '', status: 'All' })}
+          />
+        </div>
         <button
           onClick={openModal}
-          className="flex items-center gap-2 bg-[#86B2AA] text-white text-sm px-4 py-2 rounded-md hover:brightness-110 w-full sm:w-auto justify-center"
+          className="btn btn-primary gap-2 shadow-lg shadow-blue-100 shrink-0 w-full sm:w-auto"
         >
-          <FaPlus /> New Project
+          <Plus size={16} strokeWidth={3} /> NEW PROJECT
         </button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-left border-separate border-spacing-0">
-          <thead className="bg-gray-100">
-            <tr>
-              {[
-                "ID",
-                "Project Name",
-                "Project Owner",
-                "No.Of User",
-                "Status",
-                "Start Date",
-                "End Date",
-                "Progress",
-              ].map((header, index) => (
-                <th
-                  key={index}
-                  className={`p-3 font-medium text-gray-700 border-r whitespace-nowrap last:border-none border-gray-300`}
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [...Array(5)].map((_, index) => (
-                <tr key={index} className="border-b">
-                  {[...Array(8)].map((__, colIndex) => (
-                    <td key={colIndex} className="p-3">
-                      <div className="h-4 bg-gray-100 rounded" />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : projects.length > 0 ? (
-              projects.map((project) => (
-                <tr key={project.id} className="hover:bg-gray-200">
-                  <td className="p-3 whitespace-nowrap">{project.id}</td>
-                  <td className="p-3 whitespace-nowrap relative group">
-                    <span>{project.name}</span>
-
-                    {/* Hover button */}
-                    <button
-                      onClick={() => console.log("View project:", project)}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 bg-blue-200 text-blue-700 px-3 py-1 rounded hover:bg-blue-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    >
-                      View Project
-                    </button>
-                  </td>
-
-                  <td className="p-3 whitespace-nowrap">
-                    {project.ProjectOwner || "N/A"}
-                  </td>
-                  <td className="p-3 whitespace-nowrap">{project.NoOfUser}</td>
-                  <td className="p-3 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        project.Status === "Active"
-                          ? "bg-green-100 text-green-800"
-                          : project.Status === "Completed"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {project.Status}
-                    </span>
-                  </td>
-                  <td className="p-3 whitespace-nowrap">
-                    {new Date(project.StartDate).toLocaleDateString()}
-                  </td>
-                  <td className="p-3 whitespace-nowrap">
-                    {new Date(project.EndDate).toLocaleDateString()}
-                  </td>
-                  <td className="p-3 whitespace-nowrap">
-                    <div
-                      style={{
-                        background: "#e0e0e0",
-                        borderRadius: "10px",
-                        height: "20px",
-                        width: "100%",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: "100%",
-                          width: `${project.completion}%`,
-                          background: getProgressColor(project.completion),
-                          textAlign: "center",
-                          color: "white",
-                          fontSize: "12px",
-                          lineHeight: "20px",
-                          transition: "width 0.3s ease-in-out",
-                        }}
-                      >
-                        {project.completion}%
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="8" className="p-3 text-center text-gray-500">
-                  No projects found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 overflow-hidden">
+        <DataTable 
+          data={filteredProjects}
+          columns={columns}
+          loading={loading}
+          defaultSort={{ key: "id", direction: "desc" }}
+        />
       </div>
     </div>
   );

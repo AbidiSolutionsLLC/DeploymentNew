@@ -52,7 +52,7 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6">
-      <div className="w-full max-w-2xl bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden">
+      <div className="modal-container-standard">
         {/* CLOSE BUTTON */}
         <button 
           onClick={onClose}
@@ -68,14 +68,14 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
           </h2>
           <div className="flex items-center justify-center gap-3 mt-2">
             <p className="text-sm text-slate-500">{timesheet.name}</p>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(timesheet.status)}`}>
+            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(timesheet.status)}`}>
               {timesheet.status}
             </span>
           </div>
         </div>
 
         {/* CONTENT */}
-        <div className="p-6 sm:p-10 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+        <div className="modal-body-scroll space-y-6 custom-scrollbar flex-1">
           {/* BASIC INFO */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -237,10 +237,10 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
         </div>
 
         {/* FOOTER */}
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
+        <div className="px-10 py-8 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button
             onClick={onClose}
-            className="w-full py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all"
+            className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-slate-200 hover:bg-slate-700 active:scale-95 transition-all"
           >
             CLOSE
           </button>

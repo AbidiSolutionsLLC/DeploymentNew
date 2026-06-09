@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import api from "../axios"; 
 
-const NavBarVertical = ({ onNotificationClick }) => {
+const NavBarVertical = ({ onNotificationClick, isOpenNotificationPanel }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
   const [user, setUser] = useState(null);
   const location = useLocation();
@@ -53,14 +53,6 @@ const NavBarVertical = ({ onNotificationClick }) => {
     return location.pathname.startsWith(item.to);
   };
 
-  const handleNotificationToggle = () => {
-    if (location.pathname === '/notifications') {
-      // If we are already on notifications, clicking again "closes" it (goes back)
-      navigate(-1);
-    } else {
-      navigate('/notifications');
-    }
-  };
 
   return (
     <>
@@ -68,12 +60,12 @@ const NavBarVertical = ({ onNotificationClick }) => {
       <div className="absolute bottom-8 left-[-5px] z-[80]">
         <button
           id="nav-notification-bell"
-          onClick={handleNotificationToggle}
+          onClick={onNotificationClick}
           onMouseEnter={() => setHoveredItem('notifications')}
           onMouseLeave={() => setHoveredItem(null)}
           aria-label="Notifications"
           className={`relative w-10 h-10 flex items-center justify-center transition-all duration-300 shadow-md rounded-xl ${
-            location.pathname === '/notifications'
+            isOpenNotificationPanel
               ? 'bg-slate-800 text-white translate-y-[2px] shadow-sm' 
               : 'bg-white text-slate-700 hover:bg-slate-50'
           }`}

@@ -161,140 +161,152 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
       >
         <div
           ref={modalRef}
-          className="w-full max-w-3xl bg-white rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden animate-fadeIn"
+          className="modal-container-standard"
         >
-          {/* Close */}
-          <button
-            onClick={() => setIsOpen(false)}
-            className="absolute top-4 right-4 text-3xl text-slate-400 hover:text-red-500"
-          >
-            &times;
-          </button>
-
           {/* Header */}
-          <div className="px-8 py-6 border-b border-slate-100 text-center">
+          <div className="px-8 py-6 border-b border-slate-100 text-center bg-white sticky top-0 z-10">
             <h2 className="text-lg font-black text-slate-800 uppercase tracking-widest">
               Create New User
             </h2>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light"
+            >
+              &times;
+            </button>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
-
-            {/* Name + Email */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="John" error={errors.firstName} required />
-              <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Doe" error={errors.lastName} required />
-              <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" error={errors.email} required />
-            </div>
-
-            {/* Password + Phone */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="********" error={errors.password} required />
-              <Input label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+1234567890" error={errors.phoneNumber} required />
-            </div>
-
-            {/* Role + Designation + Technician */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <ModernSelect label="Role" name="role" value={formData.role} onChange={handleChange} options={filteredRoles} error={errors.role} />
-
-              <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="Senior Developer" />
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase">Technician</label>
-                <div
-                  onClick={() => setFormData((p) => ({ ...p, isTechnician: !p.isTechnician }))}
-                  className={`flex items-center gap-3 px-4 py-3 border rounded-xl cursor-pointer ${
-                    formData.isTechnician ? "bg-blue-50 border-blue-200" : "border-slate-200"
-                  }`}
-                >
-                  <div className={`w-5 h-5 border rounded flex items-center justify-center ${
-                    formData.isTechnician ? "bg-blue-500 border-blue-500" : "border-slate-300"
-                  }`}>
-                    {formData.isTechnician && <FaCheck className="text-white w-3 h-3" />}
-                  </div>
-                  <span className="text-sm text-slate-600">Assign as Technician</span>
+          {/* Form Body */}
+          <div className="modal-body-scroll">
+            <form id="createUserForm" onSubmit={handleSubmit} className="space-y-8">
+              {/* Personal Info */}
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-4">Personal Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="John" error={errors.firstName} required />
+                  <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Doe" error={errors.lastName} required />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" error={errors.email} required />
+                  <Input label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+1234567890" error={errors.phoneNumber} required />
                 </div>
               </div>
-            </div>
 
-            {/* Department + ReportsTo + Wage */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="flex gap-2 items-end">
-                <ModernSelect
-                  label="Department"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  options={allDepartments.map((d) => ({ value: d._id, label: d.name }))}
-                  error={errors.department}
-                />
-                <button type="button" onClick={() => setIsDeptModalOpen(true)} className="h-[46px] px-4 bg-blue-50 rounded-xl text-blue-600">
-                  <FaPlus />
-                </button>
+              {/* Security & Access */}
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-4">Security & Access</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="********" error={errors.password} required />
+                  <ModernSelect label="Role" name="role" value={formData.role} onChange={handleChange} options={filteredRoles} error={errors.role} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="Senior Developer" />
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Technician Access</label>
+                    <div
+                      onClick={() => setFormData((p) => ({ ...p, isTechnician: !p.isTechnician }))}
+                      className={`flex items-center gap-3 px-4 py-3 border rounded-xl cursor-pointer transition-all ${
+                        formData.isTechnician ? "bg-blue-50 border-blue-200" : "bg-white border-slate-200 hover:border-blue-200"
+                      }`}
+                    >
+                      <div className={`w-5 h-5 border rounded flex items-center justify-center transition-all ${
+                        formData.isTechnician ? "bg-blue-500 border-blue-500" : "bg-white border-slate-300"
+                      }`}>
+                        {formData.isTechnician && <FaCheck className="text-white w-2.5 h-2.5" />}
+                      </div>
+                      <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Assign as Technician</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <ModernSelect
-                label="Reports To"
-                name="reportsTo"
-                value={formData.reportsTo}
-                onChange={handleChange}
-                options={allManagers.map((m) => ({ value: m._id, label: m.name }))}
-                error={errors.reportsTo}
-              />
-
-              <Input label="Hourly Wage" name="hourlyWage" type="number" value={formData.hourlyWage} onChange={handleChange} placeholder="25.50" />
-            </div>
-
-            {/* Type + Joining Date + Branch + Timezone */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <ModernSelect
-                label="Employee Type"
-                name="empType"
-                value={formData.empType}
-                onChange={handleChange}
-                options={[
-                  { value: "Permanent", label: "Permanent" },
-                  { value: "Contractor", label: "Contractor" },
-                  { value: "Intern", label: "Intern" },
-                  { value: "Part Time", label: "Part Time" },
-                ]}
-              />
-
-              <div className="grid grid-cols-1  gap-4">
-                <ModernDatePicker label="Joining Date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} />
-                {(formData.empType === "Contractor" || formData.empType === "Intern") && (
-                  <ModernDatePicker label="End Date" name="endDate" value={formData.endDate} onChange={handleChange} />
-                )}
+              {/* Employment Details */}
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-4">Employment Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="flex gap-2 items-end">
+                    <ModernSelect
+                      label="Department"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      options={allDepartments.map((d) => ({ value: d._id, label: d.name }))}
+                      error={errors.department}
+                      className="flex-1"
+                    />
+                    <button type="button" onClick={() => setIsDeptModalOpen(true)} className="h-[46px] w-[46px] flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors shrink-0">
+                      <FaPlus size={12} />
+                    </button>
+                  </div>
+                  <ModernSelect
+                    label="Reports To"
+                    name="reportsTo"
+                    value={formData.reportsTo}
+                    onChange={handleChange}
+                    options={allManagers.map((m) => ({ value: m._id, label: m.name }))}
+                    error={errors.reportsTo}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <Input label="Hourly Wage" name="hourlyWage" type="number" value={formData.hourlyWage} onChange={handleChange} placeholder="25.50" />
+                  <ModernSelect
+                    label="Employee Type"
+                    name="empType"
+                    value={formData.empType}
+                    onChange={handleChange}
+                    options={[
+                      { value: "Permanent", label: "Permanent" },
+                      { value: "Contractor", label: "Contractor" },
+                      { value: "Intern", label: "Intern" },
+                      { value: "Part Time", label: "Part Time" },
+                    ]}
+                  />
+                </div>
               </div>
 
-              <Input label="Branch" name="branch" value={formData.branch} onChange={handleChange} placeholder="New York Office" />
-
-              <ModernSelect
-                label="Timezone"
-                name="timeZone"
-                value={formData.timeZone}
-                onChange={handleChange}
-                options={[
-                  { value: "Asia/Karachi", label: "Asia/Karachi" },
-                  { value: "America/New_York", label: "America/New_York" },
-                  { value: "Europe/London", label: "Europe/London" },
-                ]}
-              />
-            </div>
-          </form>
+              {/* Dates & Location */}
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-4">Dates & Location</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <ModernDatePicker label="Joining Date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} />
+                  {(formData.empType === "Contractor" || formData.empType === "Intern") && (
+                    <ModernDatePicker label="End Date" name="endDate" value={formData.endDate} onChange={handleChange} />
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <Input label="Branch" name="branch" value={formData.branch} onChange={handleChange} placeholder="New York Office" />
+                  <ModernSelect
+                    label="Timezone"
+                    name="timeZone"
+                    value={formData.timeZone}
+                    onChange={handleChange}
+                    options={[
+                      { value: "Asia/Karachi", label: "Asia/Karachi" },
+                      { value: "America/New_York", label: "America/New_York" },
+                      { value: "Europe/London", label: "Europe/London" },
+                    ]}
+                  />
+                </div>
+              </div>
+            </form>
+          </div>
 
           {/* Footer */}
-          <div className="px-8 py-6 border-t border-slate-100 flex gap-3">
-            <button onClick={() => setIsOpen(false)} className="flex-1 py-3 font-black text-slate-400 uppercase">
-              Cancel
+          <div className="px-10 py-8 border-t border-slate-100 flex gap-4 bg-slate-50/50">
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="flex-1 py-3.5 font-black text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+            >
+              CANCEL
             </button>
             <button
-              onClick={handleSubmit}
+              type="submit"
+              form="createUserForm"
               disabled={isLoading}
-              className="flex-1 py-3 bg-[#64748b] text-white rounded-2xl font-black uppercase"
+              className="btn btn-primary flex-1 shadow-lg shadow-blue-100"
             >
-              {isLoading ? "Creating..." : "Create User"}
+              {isLoading ? "CREATING..." : "CREATE USER"}
             </button>
           </div>
         </div>

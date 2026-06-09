@@ -18,7 +18,7 @@ const TaskDetailModal = ({ task, onClose }) => {
     >
       <div
         ref={modalRef}
-        className="w-full max-w-md bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
+        className="modal-container-sm"
       >
         {/* Close Button */}
         <button
@@ -36,7 +36,7 @@ const TaskDetailModal = ({ task, onClose }) => {
         </div>
 
         {/* Content Body */}
-        <div className="p-6 sm:p-10 space-y-6 overflow-y-auto custom-scrollbar">
+        <div className="modal-body-scroll space-y-6 custom-scrollbar">
           {/* Title */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">
@@ -103,10 +103,10 @@ const TaskDetailModal = ({ task, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 bg-white flex-shrink-0">
+        <div className="px-10 py-8 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button
             onClick={onClose}
-            className="w-full py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all"
+            className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-slate-200 hover:bg-slate-700 active:scale-95 transition-all"
           >
             CLOSE DETAILS
           </button>

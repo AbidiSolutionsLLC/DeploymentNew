@@ -10,7 +10,7 @@ import ViewLeaveModal from "../../Components/ViewLeaveModal";
 import api from "../../axios";
 import { parseISOToLocalDate, formatDisplayDate, calculateWorkingDays } from "../../utils/dateUtils";
 import { toast } from "react-toastify";
-
+import DataTable from "../../Components/DataTable";
 
 const LeaveSummary = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -254,11 +254,11 @@ const LeaveSummary = () => {
 
             {/* Applied Leaves Table */}
             <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 mb-6">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                     <h1 className="text-base font-bold text-slate-800 uppercase tracking-tight">Applied Leaves</h1>
                     <button
                         onClick={() => userData?._id && dispatch(refreshUserData(userData._id))}
-                        className="text-xs text-slate-600 hover:text-slate-800 flex items-center gap-1"
+                        className="text-xs text-slate-600 hover:text-slate-800 flex items-center gap-1 bg-slate-100 px-3 py-1.5 rounded-lg font-medium transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -267,94 +267,60 @@ const LeaveSummary = () => {
                     </button>
                 </div>
 
-                {refreshing ? (
-                    <div className="p-4 text-center">
-                        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
-                        <p className="mt-2 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading leaves...</p>
-                    </div>
-                ) : appliedLeaves.length === 0 ? (
-                    <div className="p-6 text-center text-slate-500 text-sm bg-slate-50/80 rounded-lg">
-                        <div className="flex flex-col items-center gap-2">
-                            <svg className="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                            </svg>
-                            <p className="font-medium text-slate-500">No leave records found</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm border-separate border-spacing-0">
-                            <thead>
-                                <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                                    {["Start Date", "End Date", "Leave Type", "Reason", "Duration", "Status", "Applied Date", "Actions"].map((header, index) => (
-                                        <th
-                                            key={index}
-                                            className={`p-4 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left ${index === 0 ? "rounded-tl-lg" : ""
-                                                } ${index === 7 ? "rounded-tr-lg" : ""
-                                                }`}
-                                        >
-                                            {header}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {appliedLeaves.map((item, index) => (
-                                    <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                                        <td className="p-4 text-slate-700 font-medium">{item.startDate}</td>
-                                        <td className="p-4 text-slate-700 font-medium">{formatDisplayDate(item.endDate)}</td>
-                                        <td className="p-4 text-slate-600">{item.leaveType}</td>
-                                        <td className="p-4 text-slate-600" title={item.reason}>
-                                            <span
-                                                className="block max-w-[220px]"
-                                                style={{
-                                                    display: "-webkit-box",
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: "vertical",
-                                                    overflow: "hidden",
-                                                }}
-                                            >
-                                                {item.reason}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-slate-700 font-medium">{item.duration}</td>
-                                        <td className="p-4">
-                                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${item.status === "Approved"
-                                                ? "bg-green-100 text-green-800"
-                                                : item.status === "Rejected"
-                                                    ? "bg-red-100 text-red-800"
-                                                    : "bg-yellow-100 text-yellow-800"
-                                                }`}>
-                                                {item.status}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-slate-700 font-medium">{item.appliedAt}</td>
-                                        <td className="p-4">
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => handleViewLeave(item)}
-                                                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
-                                                >
-                                                    <FaEye size={12} />
-                                                    View
-                                                </button>
-                                                {item.status === 'Pending' && (
-                                                    <button
-                                                        onClick={() => handleEditLeave(item)}
-                                                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition-colors"
-                                                    >
-                                                        <FaEdit size={12} />
-                                                        Edit
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                <DataTable 
+                    data={appliedLeaves}
+                    loading={refreshing}
+                    emptyMessage="No leave records found"
+                    columns={[
+                        { key: "startDate", label: "Start Date", sortable: true },
+                        { key: "endDate", label: "End Date", sortable: true, render: (val) => formatDisplayDate(val) },
+                        { key: "leaveType", label: "Leave Type", sortable: true },
+                        { 
+                            key: "reason", 
+                            label: "Reason", 
+                            sortable: false,
+                            render: (val) => (
+                                <span className="block max-w-[220px] truncate" title={val}>
+                                    {val}
+                                </span>
+                            )
+                        },
+                        { key: "duration", label: "Duration", sortable: true },
+                        { 
+                            key: "status", 
+                            label: "Status", 
+                            sortable: true,
+                            render: (val) => (
+                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${
+                                    val === "Approved" ? "bg-green-100 text-green-800" : 
+                                    val === "Rejected" ? "bg-red-100 text-red-800" : 
+                                    "bg-yellow-100 text-yellow-800"
+                                }`}>
+                                    {val}
+                                </span>
+                            )
+                        },
+                        { key: "appliedAt", label: "Applied Date", sortable: true }
+                    ]}
+                    rowActions={[
+                        {
+                            icon: <FaEye size={12} />,
+                            label: "View",
+                            onClick: (row) => handleViewLeave(row)
+                        },
+                        {
+                            icon: <FaEdit size={12} />,
+                            label: "Edit",
+                            onClick: (row) => {
+                                if (row.status === 'Pending') {
+                                    handleEditLeave(row);
+                                } else {
+                                    toast.info("Only pending leaves can be edited");
+                                }
+                            }
+                        }
+                    ].filter(Boolean)}
+                />
             </div>
 
             {/* Holidays Table */}

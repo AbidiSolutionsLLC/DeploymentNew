@@ -7,6 +7,7 @@ const { containerClient } = require("../config/azureConfig");
 const { getSearchScope } = require("../utils/rbac");
 const { getTeamIds } = require("../utils/hierarchy");
 const { createNotification } = require('../utils/notificationService');
+const APIFeatures = require("../utils/apiFeatures");
 
 // @desc    Create new expense
 // @route   POST /api/web/expenses
@@ -86,11 +87,23 @@ exports.createExpense = catchAsync(async (req, res, next) => {
 // @access  Private
 exports.getAllExpenses = catchAsync(async (req, res, next) => {
   const scope = await getSearchScope(req.user, "expense");
-  const query = Expense.find(scope).sort("-createdAt");
-  const expenses = await query;
+  
+  const features = new APIFeatures(Expense.find(scope), req.query)
+    .filter()
+    .search(['title', 'description', 'submittedByName', 'category'])
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const expenses = await features.query;
+  const totalCount = await Expense.countDocuments(scope);
+
   res.status(200).json({
     success: true,
+    total: totalCount,
     count: expenses.length,
+    page: req.query.page * 1 || 1,
+    limit: req.query.limit * 1 || 100,
     data: expenses,
   });
 });

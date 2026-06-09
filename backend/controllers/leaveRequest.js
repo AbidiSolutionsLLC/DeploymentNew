@@ -7,6 +7,7 @@ const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/Exp
 const sendEmail = require('../utils/emailService');
 const mongoose = require("mongoose");
 const { createNotification } = require('../utils/notificationService');
+const APIFeatures = require("../utils/apiFeatures");
  
 // --- HELPER: GET FULL TEAM IDS (RECURSIVE) ---
 const getTeamIds = async (managerId) => {
@@ -201,30 +202,43 @@ exports.updateLeaveResponse = catchAsync(async (req, res) => {
 // --- GET LEAVE REQUESTS (RECURSIVE TEAM VIEW) ---
 exports.getLeaveRequests = catchAsync(async (req, res) => {
   const roleKey = req.user.role.replace(/\s+/g, '').toLowerCase();
-  let query = {};
+  let baseQuery = {};
   const currentUserId = req.user.id || req.user._id;
  
   if (roleKey === 'superadmin' || roleKey === 'hr') {
-      query = {};
+      baseQuery = {};
   }
   else if (roleKey === 'manager' || roleKey === 'admin') {
       const fullTeamIds = await getTeamIds(currentUserId);
-      query.employee = { $in: fullTeamIds };
+      baseQuery.employee = { $in: fullTeamIds };
   }
   else {
-      query.employee = currentUserId;
+      baseQuery.employee = currentUserId;
   }
  
-  if (req.query.employeeName) query.employeeName = { $regex: req.query.employeeName, $options: 'i' };
-  if (req.query.leaveType) query.leaveType = req.query.leaveType;
-  if (req.query.status) query.status = req.query.status;
- 
-  const leaveRequests = await LeaveRequest.find(query)
-    .populate('employee', 'name email avatar department')
-    .populate('responses.author', 'name email avatar role')
-    .sort({ appliedAt: -1 });
+  const features = new APIFeatures(
+    LeaveRequest.find(baseQuery)
+      .populate('employee', 'name email avatar department')
+      .populate('responses.author', 'name email avatar role'),
+    req.query
+  )
+    .filter()
+    .search(['employeeName', 'reason', 'leaveType'])
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const leaveRequests = await features.query;
+  const totalCount = await LeaveRequest.countDocuments(baseQuery);
    
-  res.json({ success: true, data: leaveRequests });
+  res.json({
+    success: true,
+    total: totalCount,
+    count: leaveRequests.length,
+    page: req.query.page * 1 || 1,
+    limit: req.query.limit * 1 || 100,
+    data: leaveRequests
+  });
 });
  
 // --- GET SINGLE LEAVE REQUEST WITH RESPONSES ---

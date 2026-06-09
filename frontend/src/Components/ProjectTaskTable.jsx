@@ -1,61 +1,128 @@
+import React, { useState, useMemo } from "react";
+import DataTable from "./DataTable";
+import FilterBar from "./FilterBar";
+import TaskStatusDropDown from "./home/TaskStatusDropDown";
+import TaskDetailModal from "./TaskDetailModal";
 
-const ProjectTasksTable = ({ tasks ,children}) => {
+const ProjectTasksTable = ({ tasks, onUpdate, children }) => {
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    search: '',
+    status: 'All'
+  });
+
+  const openModal = (task) => {
+    setSelectedTask(task);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedTask(null);
+  };
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(task => {
+      const matchesSearch = !filterValues.search || (task.name || "").toLowerCase().includes(filterValues.search.toLowerCase());
+      const matchesStatus = filterValues.status === 'All' || task.status === filterValues.status;
+      return matchesSearch && matchesStatus;
+    });
+  }, [tasks, filterValues]);
+
+  const columns = [
+    { 
+      key: "name", 
+      label: "Task Name", 
+      sortable: true,
+      render: (val, row) => (
+        <span 
+          className="font-bold text-slate-800 hover:text-blue-600 cursor-pointer transition-colors"
+          onClick={(e) => { e.stopPropagation(); openModal(row); }}
+        >
+          {val}
+        </span>
+      )
+    },
+    { 
+      key: "description", 
+      label: "Description", 
+      sortable: false,
+      render: (val) => (
+        <span className="truncate max-w-[200px] block" title={val}>
+          {val}
+        </span>
+      )
+    },
+    { 
+      key: "startDate", 
+      label: "Start Date", 
+      sortable: true,
+      render: (val) => val ? new Date(val).toLocaleDateString() : 'N/A'
+    },
+    { 
+      key: "endDate", 
+      label: "End Date", 
+      sortable: true,
+      render: (val) => val ? new Date(val).toLocaleDateString() : 'N/A'
+    },
+    { key: "assignedBy", label: "Assigned By", sortable: true },
+    { key: "priority", label: "Priority", sortable: true },
+    { 
+      key: "status", 
+      label: "Status", 
+      sortable: true,
+      render: (val, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <TaskStatusDropDown
+            status={val}
+            onChange={(newStatus) => {
+              if (onUpdate) {
+                onUpdate(row._id || row.id, { status: newStatus });
+              }
+            }}
+          />
+        </div>
+      )
+    }
+  ];
+
   return (
-    <div className="bg-white rounded-xl shadow p-4 w-full">
-      {/* Top Bar: Sort By & Add Task */}
-      {/* <div className="flex justify-between items-center mb-4">
-        <button className="flex items-center gap-2 bg-[#86B2AA] text-white text-sm px-4 py-2 rounded-md hover:brightness-110">
-          Sort By <FaSortDown className="text-xs" />
-        </button>
-        <button onClick={()=>openModal()} className="flex items-center gap-2 bg-[#86B2AA] text-white text-sm px-4 py-2 rounded-md hover:brightness-110">
-          <FaPlus /> Add Task
-        </button>
-      </div> */}
-      {children}
+    <div className="space-y-6">
+      {/* If parent passes children, usually Top Bar with Add Button */}
+      {children && (
+        <div className="mb-4">
+          {children}
+        </div>
+      )}
 
-      {/* Tasks Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-left border-separate border-spacing-0">
-          <thead className="bg-gray-100">
-            <tr>
-              {["Task Name", "Description", "Start Date", "End Date", "Assigned By","Assigned To", "Priority", "Status"].map((header, index) => (
-                <th
-                  key={index}
-                  className="p-3 font-medium text-gray-700 whitespace-nowrap border-r last:border-none border-gray-300"
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {tasks.length > 0 ? (
-              tasks.map((task, index) => (
-                <tr key={index} className="border-b hover:bg-gray-50">
-                  <td className="p-3 whitespace-nowrap">{task.name}</td>
-                  <td className="p-3 whitespace-nowrap">{task.description}</td>
-                  <td className="p-3 whitespace-nowrap">{task.startDate}</td>
-                  <td className="p-3 whitespace-nowrap">{task.endDate}</td>
-                  <td className="p-3 whitespace-nowrap">{task.assignedBy}</td>
-                  <td className="p-3 whitespace-nowrap">{task.assignedBy}</td>
-                  <td className="p-3 whitespace-nowrap">{task.priority}</td>
-                  <td className="p-3 whitespace-nowrap">{task.status}</td>
-                </tr>
-              ))
-            ) : (
-              [...Array(8)].map((_, index) => (
-                <tr key={index} className="border-b">
-                  {[...Array(7)].map((__, colIndex) => (
-                    <td key={colIndex} className="p-3">
-                      <div className="h-4 bg-gray-100 rounded" />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex-1 w-full">
+          <FilterBar 
+            filters={[
+              { type: 'search', key: 'search', placeholder: 'Search tasks...' },
+              { type: 'select', key: 'status', label: 'Status', options: ['All', 'To Do', 'InProgress', 'UnderReview', 'Completed'] }
+            ]}
+            values={filterValues}
+            onChange={(k, v) => setFilterValues(prev => ({ ...prev, [k]: v }))}
+            onReset={() => setFilterValues({ search: '', status: 'All' })}
+          />
+        </div>
       </div>
+
+      <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 overflow-hidden">
+        <DataTable 
+          data={filteredTasks}
+          columns={columns}
+          loading={false}
+          defaultSort={{ key: "endDate", direction: "asc" }}
+          onRowClick={(row) => openModal(row)}
+        />
+      </div>
+
+      {isModalOpen && (
+        <TaskDetailModal task={selectedTask} onClose={closeModal} />
+      )}
     </div>
   );
 };

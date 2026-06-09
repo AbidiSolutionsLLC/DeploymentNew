@@ -63,11 +63,11 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
         : "bg-gray-50 text-gray-600 border-gray-100";
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6" onClick={handleBackdropClick}>
-      <div ref={modalRef} className="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4" onClick={handleBackdropClick}>
+      <div className="modal-container-standard">
         
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-50 flex justify-between items-center bg-white z-10">
+        <div className="px-6 py-5 border-b border-slate-50 flex justify-between items-center bg-white sticky top-0 z-10">
           <div>
             <h2 className="text-lg font-black text-slate-800 uppercase tracking-widest">TICKET OVERVIEW</h2>
             <p className="text-[10px] text-slate-400 font-bold mt-1">ID: {ticket.ticketID}</p>
@@ -78,8 +78,8 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
         </div>
 
         {/* Scrollable Body */}
-        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="modal-body-scroll">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <DetailItem label="Created On" value={new Date(ticket.createdAt).toLocaleDateString()} />
             <div>
               <label className="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">STATUS</label>
@@ -89,7 +89,7 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
             <DetailItem label="Requester" value={ticket.emailAddress} />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-8">
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">DESCRIPTION</label>
             <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm text-slate-600 leading-relaxed font-medium">
               {ticket.description}
@@ -98,8 +98,8 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
 
           {/* Attachments */}
           {ticket.attachments?.length > 0 && (
-            <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest flex items-center gap-2">
+            <div className="mb-8 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest flex items-center gap-2">
                 <PaperClipIcon className="w-3 h-3" /> ATTACHMENTS
               </label>
               <div className="grid gap-2">
@@ -107,7 +107,7 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
                   <button 
                     key={idx}
                     onClick={(e) => { e.preventDefault(); downloadFile(file.blobName || file.url, file.name); }}
-                    className="w-full flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all group cursor-pointer text-left"
+                    className="w-full flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all group cursor-pointer text-left"
                   >
                     <div className="flex items-center gap-2 overflow-hidden">
                       <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">
@@ -125,11 +125,11 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
           )}
 
           {/* --- TRIANGULAR CHAT SECTION --- */}
-          <div className="border-t border-slate-100 pt-6">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">DISCUSSION HISTORY</h3>
+          <div className="border-t border-slate-100 pt-8">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">DISCUSSION HISTORY</h3>
             
             {/* Message List */}
-            <div className="space-y-4 mb-4">
+            <div className="space-y-4 mb-6">
               {ticket.responses?.length > 0 ? (
                 ticket.responses.map((res, i) => (
                   <div key={i} className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
@@ -161,7 +161,7 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
                   if (errors.response) setErrors(prev => ({ ...prev, response: null }));
                 }}
                 placeholder="Type your reply..."
-                className={`w-full bg-slate-50 border ${errors.response ? 'border-red-400' : 'border-slate-200'} rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none h-14 transition-all`}
+                className={`w-full bg-slate-50 border ${errors.response ? 'border-red-400' : 'border-slate-200'} rounded-xl pl-4 pr-14 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none h-16 transition-all`}
               />
               <div className="flex justify-between items-center mt-1 px-1">
                 {errors.response ? (
@@ -172,9 +172,9 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
               <button
                 onClick={handleSendResponse}
                 disabled={sending || !commentText.trim()}
-                className="absolute right-2 top-2 p-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-all"
+                className="absolute right-3 top-3 p-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 disabled:opacity-50 transition-all shadow-lg shadow-slate-100"
               >
-                {sending ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <FaPaperPlane className="w-3 h-3" />}
+                {sending ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <FaPaperPlane className="w-3.5 h-3.5" />}
               </button>
             </div>
           </div>

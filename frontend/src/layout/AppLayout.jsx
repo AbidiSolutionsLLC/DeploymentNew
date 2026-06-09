@@ -99,9 +99,11 @@ const AppLayout = () => {
               <XMarkIcon className="h-5 w-5" />
             </button>
 
-            {/* NavBarVertical */}
             <div className="flex items-center h-full">
-              <NavBarVertical onNotificationClick={() => setIsNotificationOpen(true)} />
+              <NavBarVertical 
+                onNotificationClick={() => setIsNotificationOpen(true)} 
+                isOpenNotificationPanel={isNotificationOpen}
+              />
             </div>
 
             {/* SubNavbarVertical */}
@@ -112,7 +114,7 @@ const AppLayout = () => {
         </aside>
 
         {/* --- MAIN CONTENT AREA --- */}
-        <main className="flex-1 m-2 md:m-4 md:ml-2 md:mr-2 rounded-[1.5rem] md:rounded-[2rem] bg-[#ECF0F3] shadow-lg text-slate-800 relative transition-all duration-500 ease-in-out overflow-visible flex flex-col">
+        <main className="flex-1 min-w-0 m-2 md:m-4 md:ml-2 md:mr-2 rounded-[1.5rem] md:rounded-[2rem] bg-[#ECF0F3] shadow-lg text-slate-800 relative transition-all duration-500 ease-in-out overflow-hidden flex flex-col">
           <div className="flex-1 p-4 md:p-6 overflow-y-auto scrollbar-on-hover">
             <Outlet />
           </div>

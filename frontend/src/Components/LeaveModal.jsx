@@ -185,7 +185,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
     >
       <div 
         ref={modalRef}
-        className="w-full max-w-md bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
+        className="modal-container-sm"
       >
         <button 
           onClick={() => !isSubmitting && setIsOpen(false)} 
@@ -203,7 +203,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
 
         <form 
           id="leaveForm"
-          className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar"
+          className="modal-body-scroll space-y-5 sm:space-y-6 custom-scrollbar"
           onSubmit={handleSubmit}
         >
           <div>
@@ -337,12 +337,12 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
           <div className="h-4"></div>
         </form>
 
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
+        <div className="px-10 py-8 border-t border-slate-100 flex gap-4 bg-slate-50/50 flex-shrink-0">
           <button
             type="button"
             onClick={handleCancel}
             disabled={isSubmitting}
-            className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors disabled:opacity-50"
+            className="flex-1 py-3.5 font-black text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors disabled:opacity-50"
           >
             CANCEL
           </button>
@@ -350,10 +350,10 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
             type="submit" 
             form="leaveForm"
             disabled={quotaError !== "" || Object.values(errors).some(Boolean) || isSubmitting}
-            className={`flex-1 py-3 sm:py-4 text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg transition-all ${
+            className={`flex-1 py-3.5 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg transition-all ${
               quotaError !== "" || Object.values(errors).some(Boolean) || isSubmitting
                 ? "bg-slate-300 shadow-none cursor-not-allowed"
-                : "bg-[#64748b] shadow-slate-100 hover:brightness-110 active:scale-95"
+                : "bg-slate-800 shadow-slate-200 hover:bg-slate-700 active:scale-95"
             }`}
           >
             {isSubmitting ? (

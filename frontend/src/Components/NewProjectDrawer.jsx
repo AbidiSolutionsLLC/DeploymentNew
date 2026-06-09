@@ -5,72 +5,103 @@ const NewProjectDrawer = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-end z-50">
-      <div className="w-full sm:w-[600px] md:w-[700px] bg-white h-full shadow-lg flex flex-col p-6 relative">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+      <div className="modal-container-standard w-full max-w-2xl bg-white flex flex-col relative animate-in fade-in zoom-in-95 duration-300">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold">New Projects</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-black text-xl">&times;</button>
+        <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-tight">New Project</h2>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Initialize a new organization project</p>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
+          >
+            &times;
+          </button>
         </div>
 
         {/* Form */}
-        <form className="space-y-4 overflow-y-auto flex-1">
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Project Name"
-              className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-blue-200"
-            />
-            <select className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-blue-200">
-              <option value="">Project Owner</option>
-              <option value="Alice">Alice</option>
-              <option value="Bob">Bob</option>
-              <option value="Charlie">Charlie</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="relative">
+        <form className="modal-body-scroll p-6 space-y-6 flex-1 overflow-y-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Project Name</label>
               <input
-                type="date"
-                placeholder="Start Date"
-                className="w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring focus:ring-blue-200"
+                type="text"
+                placeholder="Enter project name"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
               />
-              <FaCalendarAlt className="absolute top-3 right-3 text-gray-400" />
             </div>
-            <div className="relative">
-              <input
-                type="date"
-                placeholder="End Date"
-                className="w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring focus:ring-blue-200"
-              />
-              <FaCalendarAlt className="absolute top-3 right-3 text-gray-400" />
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Project Owner</label>
+              <select className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none cursor-pointer">
+                <option value="">Select Owner</option>
+                <option value="Alice">Alice</option>
+                <option value="Bob">Bob</option>
+                <option value="Charlie">Charlie</option>
+              </select>
             </div>
           </div>
 
-          <textarea
-            placeholder="Description"
-            rows="3"
-            className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-blue-200"
-          ></textarea>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Start Date</label>
+              <div className="relative group">
+                <input
+                  type="date"
+                  className="w-full pl-4 pr-11 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
+                />
+                <FaCalendarAlt className="absolute top-1/2 -translate-y-1/2 right-4 text-slate-400 group-focus-within:text-blue-500 transition-colors pointer-events-none" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">End Date</label>
+              <div className="relative group">
+                <input
+                  type="date"
+                  className="w-full pl-4 pr-11 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
+                />
+                <FaCalendarAlt className="absolute top-1/2 -translate-y-1/2 right-4 text-slate-400 group-focus-within:text-blue-500 transition-colors pointer-events-none" />
+              </div>
+            </div>
+          </div>
 
-          <select className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-blue-200">
-            <option value="">Department</option>
-            <option value="IT">IT</option>
-            <option value="Marketing">Marketing</option>
-            <option value="HR">HR</option>
-          </select>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Description</label>
+            <textarea
+              placeholder="Enter project goals and scope..."
+              rows="4"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none resize-none"
+            ></textarea>
+          </div>
 
-          <select className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-blue-200">
-            <option value="">Users</option>
-            <option value="User A">User A</option>
-            <option value="User B">User B</option>
-            <option value="User C">User C</option>
-          </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Department</label>
+              <select className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none cursor-pointer">
+                <option value="">Select Department</option>
+                <option value="IT">IT</option>
+                <option value="Marketing">Marketing</option>
+                <option value="HR">HR</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assigned Users</label>
+              <select className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none cursor-pointer">
+                <option value="">Select Users</option>
+                <option value="User A">User A</option>
+                <option value="User B">User B</option>
+                <option value="User C">User C</option>
+              </select>
+            </div>
+          </div>
 
-          <div className="flex justify-end mt-4">
-            <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
-              Save Project
+          <div className="sticky bottom-0 bg-white/80 backdrop-blur-md pt-6 pb-2 mt-4 flex justify-end gap-3 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="btn btn-ghost px-6">
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary px-8 shadow-lg shadow-blue-100">
+              Create Project
             </button>
           </div>
         </form>

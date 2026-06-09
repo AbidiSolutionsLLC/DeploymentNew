@@ -1,40 +1,37 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { 
   ClipboardDocumentCheckIcon, 
-  FunnelIcon, 
-  EyeIcon,
   XMarkIcon,
   PaperClipIcon,
-  ArrowDownTrayIcon,
-  PaperAirplaneIcon,
-  MagnifyingGlassIcon,
-  ChevronDownIcon
+  PaperAirplaneIcon
 } from "@heroicons/react/24/solid";
 import api from "../../axios";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
 import { downloadFile } from "../../utils/downloadFile";
-import { Paperclip } from "lucide-react";
+import { Paperclip, Eye } from "lucide-react";
 import { validateDescription, getApiError } from "../../utils/validationUtils";
+import DataTable from "../../Components/DataTable";
+import FilterBar from "../../Components/FilterBar";
+import ModernSelect from "../../Components/ui/ModernSelect";
 
 export default function AssignedTickets() {
   const [tickets, setTickets] = useState([]);
-  const [filteredTickets, setFilteredTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   
   // Filters
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [priorityFilter, setPriorityFilter] = useState("All");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValues, setFilterValues] = useState({
+    search: "",
+    status: "All",
+    priority: "All"
+  });
   
-  // Modal & Dropdown State
+  // Modal State
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [commentText, setCommentText] = useState("");
   const [commentError, setCommentError] = useState(null);
   const [sendingComment, setSendingComment] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState(null);
-  const dropdownRef = useRef(null);
 
   // 1. Fetch Data
   const fetchData = async () => {
@@ -59,7 +56,6 @@ export default function AssignedTickets() {
       }
       
       setTickets(myAssignments);
-      setFilteredTickets(myAssignments);
     } catch (err) {
       toast.error("Failed to load tickets");
     } finally {
@@ -69,55 +65,33 @@ export default function AssignedTickets() {
 
   useEffect(() => {
     fetchData();
-    // Close dropdown on click outside
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setOpenDropdownId(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 2. Advanced Filtering Logic
-  useEffect(() => {
-    let result = tickets;
+  // 2. Filtering Logic
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      const matchesSearch = !filterValues.search || 
+        ticket.ticketID?.toLowerCase().includes(filterValues.search.toLowerCase()) ||
+        ticket.subject?.toLowerCase().includes(filterValues.search.toLowerCase());
+      
+      const matchesStatus = filterValues.status === "All" || 
+        (filterValues.status === "Open" ? (ticket.status?.toLowerCase() === "open" || ticket.status?.toLowerCase() === "opened") : ticket.status?.toLowerCase() === filterValues.status.toLowerCase());
+      
+      const matchesPriority = filterValues.priority === "All" || 
+        ticket.priority?.toLowerCase().includes(filterValues.priority.toLowerCase());
 
-    // Status Filter
-    if (statusFilter !== "All") {
-      if (statusFilter === "Open") {
-        result = result.filter(t => t.status.toLowerCase() === "open" || t.status.toLowerCase() === "opened");
-      } else {
-        result = result.filter(t => t.status.toLowerCase() === statusFilter.toLowerCase());
-      }
-    }
-
-    // Priority Filter
-    if (priorityFilter !== "All") {
-      result = result.filter(t => t.priority.toLowerCase().includes(priorityFilter.toLowerCase()));
-    }
-
-    // Search Filter
-    if (searchTerm) {
-      result = result.filter(t => 
-        t.ticketID.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.subject.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredTickets(result);
-  }, [statusFilter, priorityFilter, searchTerm, tickets]);
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [tickets, filterValues]);
 
   // 3. Handlers
   const handleStatusChange = async (ticketId, newStatus) => {
     try {
       await api.patch(`/tickets/${ticketId}/status`, { status: newStatus });
-      const updatedList = tickets.map(t => t._id === ticketId ? { ...t, status: newStatus } : t);
-      setTickets(updatedList);
+      setTickets(prev => prev.map(t => t._id === ticketId ? { ...t, status: newStatus } : t));
       if (selectedTicket && selectedTicket._id === ticketId) {
         setSelectedTicket(prev => ({ ...prev, status: newStatus }));
       }
-      setOpenDropdownId(null);
       toast.success("Status Updated");
     } catch (err) {
       toast.error("Failed to update status");
@@ -153,26 +127,106 @@ export default function AssignedTickets() {
     }
   };
 
-  // UI Helpers
-  const getPriorityColor = (p) => {
-    if (p.includes("High")) return "bg-red-100 text-red-700";
-    if (p.includes("Medium")) return "bg-orange-100 text-orange-700";
-    return "bg-green-100 text-green-700";
-  };
+  const filterConfig = [
+    { name: "search", type: "search", placeholder: "Search ID, Subject..." },
+    { 
+      name: "status", 
+      type: "select", 
+      options: [
+        { value: "All", label: "ALL STATUS" },
+        { value: "Open", label: "OPEN" },
+        { value: "In Progress", label: "IN PROGRESS" },
+        { value: "Closed", label: "CLOSED" }
+      ] 
+    },
+    {
+      name: "priority",
+      type: "select",
+      options: [
+        { value: "All", label: "ALL PRIORITY" },
+        { value: "High", label: "HIGH" },
+        { value: "Medium", label: "MEDIUM" },
+        { value: "Low", label: "LOW" }
+      ]
+    }
+  ];
 
-  const getStatusColor = (s) => {
-    const status = s.toLowerCase();
-    if (status === "open") return "bg-blue-100 text-blue-700";
-    if (status === "in progress") return "bg-purple-100 text-purple-700";
-    return "bg-gray-100 text-gray-600";
-  };
+  const columns = [
+    {
+      key: "ticketID",
+      label: "Ticket ID",
+      sortable: true,
+      render: (row) => (
+        <div className="flex flex-col">
+          <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
+            #{row.ticketID}
+          </span>
+          <span className="text-[10px] text-slate-400 mt-1 font-bold">
+            {format(new Date(row.createdAt), "MMM dd, yyyy")}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: "subject",
+      label: "Subject",
+      sortable: true,
+      render: (row) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-slate-700">{row.subject}</span>
+          <span className="text-xs text-slate-400 line-clamp-1 font-medium">{row.description}</span>
+        </div>
+      )
+    },
+    {
+      key: "priority",
+      label: "Priority",
+      sortable: true,
+      render: (row) => (
+        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide border ${
+          row.priority.toLowerCase().includes("high") ? "bg-rose-50 text-rose-600 border-rose-100" :
+          row.priority.toLowerCase().includes("medium") ? "bg-amber-50 text-amber-600 border-amber-100" :
+          "bg-emerald-50 text-emerald-600 border-emerald-100"
+        }`}>
+          {row.priority.replace(' Priority', '')}
+        </span>
+      )
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      render: (row) => (
+        <div className="w-32">
+          <ModernSelect
+            value={row.status}
+            onChange={(e) => handleStatusChange(row._id, e.target.value)}
+            options={[
+              { value: "Open", label: "OPEN" },
+              { value: "In Progress", label: "IN PROGRESS" },
+              { value: "Closed", label: "CLOSED" }
+            ]}
+            className="text-[10px] font-bold uppercase"
+          />
+        </div>
+      )
+    }
+  ];
+
+  const rowActions = [
+    {
+      label: "View",
+      icon: "eye",
+      onClick: (row) => setSelectedTicket(row)
+    }
+  ];
 
   return (
     <div className="p-6 min-h-screen">
       
-      {/* --- CONTAINER 1: HEADER & FILTERS --- */}
+      {/* Header */}
       <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-200 p-6 mb-6">
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-50 rounded-2xl">
                <ClipboardDocumentCheckIcon className="w-8 h-8 text-blue-600" />
@@ -184,140 +238,30 @@ export default function AssignedTickets() {
               </p>
             </div>
           </div>
-
-          <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
-            {/* Search */}
-            <div className="relative flex-1">
-              <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input 
-                type="text" 
-                placeholder="Search ID or Subject..." 
-                className="pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-100 w-full transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                  title="Clear search"
-                >
-                  <XMarkIcon className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            
-            {/* Priority Filter */}
-            <select 
-              className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-            >
-              <option value="All">All Priorities</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-
-            {/* Status Filter */}
-            <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200 overflow-x-auto">
-              {["All", "Open", "In Progress", "Closed"].map(s => (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all whitespace-nowrap ${
-                    statusFilter === s ? "bg-white text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* --- CONTAINER 2: DATA TABLE --- */}
-      <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-200 overflow-hidden min-h-[500px] flex flex-col">
-        <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">Ticket ID</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">Subject</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">Priority</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr><td colSpan="5" className="text-center py-20 text-slate-400 text-xs font-bold">Loading tickets...</td></tr>
-              ) : filteredTickets.length === 0 ? (
-                <tr><td colSpan="5" className="text-center py-20 text-slate-400 text-xs font-bold">No tickets match your filters.</td></tr>
-              ) : (
-                filteredTickets.map((ticket) => (
-                  <tr key={ticket._id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-                        #{ticket.ticketID}
-                      </span>
-                      <div className="text-[10px] text-slate-400 mt-1 pl-1 font-bold">
-                        {format(new Date(ticket.createdAt), "MMM dd, yyyy")}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-bold text-slate-700">{ticket.subject}</div>
-                      <div className="text-xs text-slate-400 mt-0.5 line-clamp-1 font-medium">{ticket.description}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${getPriorityColor(ticket.priority)}`}>
-                        {ticket.priority.replace(' Priority', '')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenDropdownId(openDropdownId === ticket._id ? null : ticket._id);
-                        }}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all ${getStatusColor(ticket.status)}`}
-                      >
-                        {ticket.status}
-                        <ChevronDownIcon className="w-3 h-3 opacity-60" />
-                      </button>
+      <FilterBar
+        filters={filterConfig}
+        values={filterValues}
+        onChange={(name, value) => setFilterValues(prev => ({ ...prev, [name]: value }))}
+        onReset={() => setFilterValues({ search: "", status: "All", priority: "All" })}
+        totalResults={filteredTickets.length}
+      />
 
-                      {openDropdownId === ticket._id && (
-                        <div ref={dropdownRef} className="absolute left-6 top-10 w-32 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden py-1 animate-fadeIn">
-                          {["Open", "In Progress", "Closed"].map((s) => (
-                            <button
-                              key={s}
-                              onClick={() => handleStatusChange(ticket._id, s)}
-                              className="w-full text-left px-4 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 uppercase"
-                            >
-                              {s}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => setSelectedTicket(ticket)}
-                        className="p-2 bg-white border border-slate-200 text-slate-400 rounded-xl hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
-                      >
-                        <EyeIcon className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* Data Table */}
+      <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-200 overflow-hidden mb-6">
+        <DataTable
+          columns={columns}
+          data={filteredTickets}
+          loading={loading}
+          rowActions={rowActions}
+          onRowClick={(row) => setSelectedTicket(row)}
+          emptyMessage="No tickets assigned to you."
+        />
       </div>
 
-      {/* --- TICKET DETAIL MODAL --- */}
+      {/* TICKET DETAIL MODAL */}
       {selectedTicket && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedTicket(null)}></div>
@@ -327,7 +271,11 @@ export default function AssignedTickets() {
               <div>
                 <h2 className="text-xl font-black text-slate-800 flex items-center gap-3">
                    {selectedTicket.subject}
-                   <span className={`text-[10px] px-2 py-1 rounded-md border uppercase tracking-wider ${getPriorityColor(selectedTicket.priority)}`}>
+                   <span className={`text-[10px] px-2.5 py-1 rounded-md border uppercase tracking-wider ${
+                     selectedTicket.priority.toLowerCase().includes("high") ? "bg-rose-50 text-rose-600 border-rose-100" :
+                     selectedTicket.priority.toLowerCase().includes("medium") ? "bg-amber-50 text-amber-600 border-amber-100" :
+                     "bg-emerald-50 text-emerald-600 border-emerald-100"
+                   }`}>
                      {selectedTicket.priority}
                    </span>
                 </h2>

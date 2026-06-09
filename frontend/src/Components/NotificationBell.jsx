@@ -8,6 +8,7 @@ import {
   markAllAsRead,
 } from '../../slices/notificationSlice';
 import { getNotificationIcon, getRouteForNotification, formatNotifDate } from '../../utils/notificationUtils';
+import NotificationItem from './NotificationItem';
 
 export default function NotificationBell() {
   const dispatch = useDispatch();
@@ -53,7 +54,11 @@ export default function NotificationBell() {
       <button
         id="notification-bell-btn"
         onClick={() => setOpen((prev) => !prev)}
-        className="relative p-2 rounded-full hover:bg-teal-700 transition-colors duration-200 focus:outline-none"
+        className={`relative p-2.5 rounded-xl transition-all duration-300 focus:outline-none ${
+          open 
+            ? 'bg-teal-600/20 ring-2 ring-teal-500/50 shadow-[0_0_15px_rgba(20,184,166,0.3)]' 
+            : 'hover:bg-teal-700/50'
+        }`}
         aria-label="Notifications"
         aria-haspopup="true"
         aria-expanded={open}
@@ -61,11 +66,11 @@ export default function NotificationBell() {
         {/* Bell icon */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="w-6 h-6 text-white"
+          className={`w-5.5 h-5.5 transition-transform duration-300 ${open ? 'scale-110' : 'group-hover:rotate-12'}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          strokeWidth={1.5}
+          strokeWidth={1.8}
         >
           <path
             strokeLinecap="round"
@@ -77,7 +82,7 @@ export default function NotificationBell() {
         {/* Unread badge */}
         {unreadCount > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-red-500 rounded-full px-1 leading-none"
+            className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-red-500 rounded-full border-2 border-primary shadow-sm leading-none animate-in zoom-in duration-300"
             aria-live="polite"
             aria-label={`${unreadCount} unread notifications`}
           >
@@ -89,27 +94,28 @@ export default function NotificationBell() {
       {/* Dropdown Panel */}
       {open && (
         <div
-          className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+          className="absolute right-0 mt-3 w-96 backdrop-blur-xl bg-white/95 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/20 z-[200] overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200"
           role="dialog"
           aria-label="Notifications panel"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-teal-50 to-white">
-            <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
-              Notifications
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-white/50">
+            <div className="flex items-center gap-2.5">
+              <h3 className="font-bold text-slate-800 text-sm tracking-tight">
+                Notifications
+              </h3>
               {unreadCount > 0 && (
-                <span className="inline-flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px]">
-                  {unreadCount}
+                <span className="inline-flex items-center justify-center bg-teal-500 text-white text-[10px] font-extrabold rounded-full px-2 py-0.5 shadow-sm shadow-teal-200">
+                  {unreadCount} NEW
                 </span>
               )}
-            </h3>
+            </div>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAll}
-                className="flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800 font-medium transition-colors"
-                title="Mark all as read"
+                className="flex items-center gap-1.5 text-[11px] text-teal-600 hover:text-teal-700 font-bold uppercase tracking-wider transition-all hover:translate-y-[-1px] active:translate-y-0"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
                 Mark all read
@@ -118,60 +124,42 @@ export default function NotificationBell() {
           </div>
 
           {/* Notification List */}
-          <ul className="max-h-96 overflow-y-auto divide-y divide-gray-50" role="list">
-            {loading && (
-              <li className="p-6 text-center text-sm text-gray-400">
-                <div className="inline-block w-5 h-5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin mb-2" />
-                <p>Loading...</p>
-              </li>
+          <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 divide-y divide-slate-50" role="list">
+            {loading && items.length === 0 && (
+              <div className="p-12 text-center text-sm text-slate-400">
+                <div className="inline-block w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mb-3" />
+                <p className="font-medium">Refreshing stream...</p>
+              </div>
             )}
             {!loading && items.length === 0 && (
-              <li className="p-10 text-center text-sm text-gray-400">
-                <div className="text-4xl mb-3">🔔</div>
-                <p className="font-medium text-gray-500">No notifications yet</p>
-                <p className="text-xs mt-1">We'll let you know when something happens.</p>
-              </li>
+              <div className="p-12 text-center">
+                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100/50">
+                  <span className="text-3xl opacity-50">🔔</span>
+                </div>
+                <p className="font-bold text-slate-800 text-sm">All caught up!</p>
+                <p className="text-xs text-slate-400 mt-1.5 px-6 leading-relaxed">
+                  We'll notify you here when there's an update to your tasks, leaves, or tickets.
+                </p>
+              </div>
             )}
             {items.slice(0, 20).map((notif) => (
-              <li
+              <NotificationItem
                 key={notif._id}
-                onClick={() => handleNotifClick(notif)}
-                role="listitem"
-                className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-teal-50 ${
-                  !notif.isRead ? 'bg-blue-50/60' : 'bg-white'
-                }`}
-              >
-                {/* Icon */}
-                <span className="shrink-0 mt-0.5 text-xl select-none" aria-hidden="true">
-                  {getNotificationIcon(notif.type)}
-                </span>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm leading-snug ${!notif.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
-                    {notif.title}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
-                    {notif.message}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">{formatNotifDate(notif.createdAt)}</p>
-                </div>
-
-                {/* Unread dot */}
-                {!notif.isRead && (
-                  <span className="shrink-0 mt-2 w-2 h-2 rounded-full bg-blue-500 flex-none" aria-label="Unread" />
-                )}
-              </li>
+                notif={notif}
+                onClick={handleNotifClick}
+                isDense={true}
+              />
             ))}
-          </ul>
+          </div>
 
           {/* Footer */}
-          <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 text-center">
+          <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/50 text-center">
             <button
               onClick={() => { navigate('/notifications'); setOpen(false); }}
-              className="text-xs text-teal-600 hover:text-teal-800 hover:underline font-medium transition-colors"
+              className="group text-xs text-teal-600 hover:text-teal-700 font-bold uppercase tracking-widest transition-all"
             >
-              View all notifications →
+              See all notifications
+              <span className="inline-block transition-transform group-hover:translate-x-1 ml-1.5">→</span>
             </button>
           </div>
         </div>

@@ -257,69 +257,120 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
   return (
     <>
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={handleBackdropClick}>
-        <div ref={modalRef} className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
-
+        <div ref={modalRef} className="modal-container-lg">
           {/* HEADER */}
-          <div className="bg-white border-b p-6 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-slate-800">{user.name}</h2>
-            <div className="flex gap-2">
-              {!isEditing && <button onClick={handleResendInvite} className="px-3 py-2 bg-amber-50 text-amber-600 rounded-xl">Invite</button>}
-              {!isEditing && <button onClick={handleDeleteUser} className="px-3 py-2 bg-red-50 text-red-600 rounded-xl">Delete</button>}
-              <button onClick={() => setIsEditing(!isEditing)} className="px-3 py-2 bg-blue-50 text-blue-600 rounded-xl">Edit</button>
-              <button onClick={onClose} className="text-xl text-slate-400">&times;</button>
+          <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10 shrink-0">
+            <div>
+              <h2 className="text-lg font-black text-slate-800 uppercase tracking-widest">{user.name}</h2>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">User Profile & Access Control</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {!isEditing && (
+                <>
+                  <button onClick={handleResendInvite} className="px-4 py-2.5 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all">Invite</button>
+                  <button onClick={handleDeleteUser} className="px-4 py-2.5 bg-rose-50 text-rose-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-100 transition-all">Delete</button>
+                </>
+              )}
+              <button onClick={() => setIsEditing(!isEditing)} className={`px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${isEditing ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>
+                {isEditing ? 'Cancel Edit' : 'Edit Profile'}
+              </button>
+              <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light">&times;</button>
             </div>
           </div>
 
           {/* BODY */}
-          <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
+          <div className="modal-body-scroll bg-white">
+            <form id="editUserForm" onSubmit={handleSubmit} className="space-y-10">
+              <section className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-px bg-slate-100 flex-1"></div>
+                  <h3 className="font-black text-blue-500 text-[10px] uppercase tracking-[0.2em] px-2">Personal Information</h3>
+                  <div className="h-px bg-slate-100 flex-1"></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {isEditing ? (
+                    <>
+                      {renderField("First Name", "firstName", formData.firstName)}
+                      {renderField("Last Name", "lastName", formData.lastName)}
+                    </>
+                  ) : (
+                    <div className="col-span-2">{renderField("Full Name", "name", user.name)}</div>
+                  )}
+                  {renderField("Email Address", "email", formData.email, "email")}
+                  {renderField("Phone Number", "phoneNumber", formData.phoneNumber)}
+                </div>
+              </section>
 
-            <div>
-              <h3 className="font-bold text-slate-400 text-xs uppercase">Personal</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {isEditing ? (
-                  <>
-                    {renderField("First Name", "firstName", formData.firstName)}
-                    {renderField("Last Name", "lastName", formData.lastName)}
-                  </>
-                ) : (
-                  renderField("Full Name", "name", user.name)
-                )}
-                {renderField("Email", "email", formData.email, "email")}
-                {renderField("Phone", "phoneNumber", formData.phoneNumber)}
-              </div>
-            </div>
+              <section className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-px bg-slate-100 flex-1"></div>
+                  <h3 className="font-black text-blue-500 text-[10px] uppercase tracking-[0.2em] px-2">Employment & Role</h3>
+                  <div className="h-px bg-slate-100 flex-1"></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {renderField("Employment Status", "empStatus", formData.empStatus, "select", ["Active", "Inactive", "Pending"].map(v => ({ value: v, label: v })))}
+                  {renderField("Access Level (Role)", "role", formData.role, "select", ["Employee", "Manager", "HR", "Admin", "Super Admin"].map(v => ({ value: v, label: v })))}
+                  {renderField("Job Designation", "designation", formData.designation)}
+                  {renderField("Hourly Wage ($)", "hourlyWage", formData.hourlyWage, "number")}
+                  {renderField("Contract Type", "empType", formData.empType, "select", ["Permanent", "Contractor", "Intern", "Part Time"].map(v => ({ value: v, label: v })))}
+                  {renderField("Primary Department", "department", formData.department, "select", allDepartments)}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="sm:col-span-1">{renderField("Reporting Manager", "reportsTo", formData.reportsTo, "select", allManagers)}</div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Technician Mode</label>
+                    <div
+                      onClick={() => isEditing && setFormData((p) => ({ ...p, isTechnician: !p.isTechnician }))}
+                      className={`flex items-center gap-3 px-4 py-3 border rounded-xl transition-all ${
+                        isEditing ? "cursor-pointer" : "cursor-default opacity-80"
+                      } ${
+                        formData.isTechnician ? "bg-blue-50 border-blue-200" : "bg-white border-slate-200"
+                      }`}
+                    >
+                      <div className={`w-5 h-5 border rounded flex items-center justify-center transition-all ${
+                        formData.isTechnician ? "bg-blue-500 border-blue-500" : "bg-white border-slate-300"
+                      }`}>
+                        {formData.isTechnician && <FaCheck className="text-white w-2.5 h-2.5" />}
+                      </div>
+                      <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Assign as Technician</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
-            <div>
-              <h3 className="font-bold text-slate-400 text-xs uppercase">Employment</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {renderField("Status", "empStatus", formData.empStatus, "select", ["Active", "Inactive", "Pending"].map(v => ({ value: v, label: v })))}
-                {renderField("Role", "role", formData.role, "select", ["Employee", "Manager", "HR", "Admin", "Super Admin"].map(v => ({ value: v, label: v })))}
-                {renderField("Designation", "designation", formData.designation)}
-                {renderField("Hourly Wage", "hourlyWage", formData.hourlyWage, "number")}
-                {renderField("Type", "empType", formData.empType, "select", ["Permanent", "Contractor", "Intern", "Part Time"].map(v => ({ value: v, label: v })))}
-                {renderField("Department", "department", formData.department, "select", allDepartments)}
-                {renderField("Reports To", "reportsTo", formData.reportsTo, "select", allManagers)}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-slate-400 text-xs uppercase">Company</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {renderField("Joining Date", "joiningDate", formData.joiningDate, "date")}
-                {(formData.empType === "Contractor" || formData.empType === "Intern") && renderField("End Date", "endDate", formData.endDate, "date")}
-                {renderField("Branch", "branch", formData.branch)}
-                {renderField("Timezone", "timeZone", formData.timeZone, "select", ["Asia/Karachi", "America/New_York", "Europe/London", "Asia/Dubai"].map(v => ({ value: v, label: v })))}
-              </div>
-            </div>
-
-          </form>
+              <section className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-px bg-slate-100 flex-1"></div>
+                  <h3 className="font-black text-blue-500 text-[10px] uppercase tracking-[0.2em] px-2">Logistics & Dates</h3>
+                  <div className="h-px bg-slate-100 flex-1"></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pb-6">
+                  {renderField("Joining Date", "joiningDate", formData.joiningDate, "date")}
+                  {(formData.empType === "Contractor" || formData.empType === "Intern") && renderField("Contract End Date", "endDate", formData.endDate, "date")}
+                  {renderField("Office Branch", "branch", formData.branch)}
+                  {renderField("Work Timezone", "timeZone", formData.timeZone, "select", ["Asia/Karachi", "America/New_York", "Europe/London", "Asia/Dubai"].map(v => ({ value: v, label: v })))}
+                </div>
+              </section>
+            </form>
+          </div>
 
           {/* FOOTER */}
           {isEditing && (
-            <div className="p-4 border-t flex justify-end gap-3">
-              <button onClick={() => setIsEditing(false)} className="text-slate-400">Cancel</button>
-              <button onClick={handleSubmit} className="px-6 py-2 bg-slate-600 text-white rounded-xl">
-                {isLoading ? "Saving..." : "Save Changes"}
+            <div className="p-8 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/50 shrink-0">
+              <button 
+                type="button"
+                onClick={() => setIsEditing(false)} 
+                className="px-8 py-3.5 font-black text-[11px] text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+              >
+                DISCARD CHANGES
+              </button>
+              <button 
+                form="editUserForm"
+                onClick={handleSubmit} 
+                disabled={isLoading}
+                className="btn btn-primary px-10 py-3.5 shadow-lg shadow-blue-100"
+              >
+                {isLoading ? "SAVING..." : "SAVE CHANGES"}
               </button>
             </div>
           )}
