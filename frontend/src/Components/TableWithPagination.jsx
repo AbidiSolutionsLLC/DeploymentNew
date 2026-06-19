@@ -141,7 +141,7 @@ const TableWithPagination = ({
               >
                 {columns.map((column) => (
                   <td key={column.key} className="p-4 border-b border-white/30 text-slate-700 font-medium">
-                    {column.render ? column.render(row) : row[column.key]}
+                    {column.render ? column.render(row[column.key], row) : row[column.key]}
                   </td>
                 ))}
                 {actions.length > 0 && (

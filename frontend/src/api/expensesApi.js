@@ -1,30 +1,30 @@
-import axios from '../axios';
+import api from '../axios';
 
 const BASE_URL = '/expenses';
 
-export const expensesApi = {
+const expensesApi = {
   getMyExpenses: async () => {
-    const response = await axios.get(`${BASE_URL}/my-expenses`);
+    const response = await api.get(`${BASE_URL}/my-expenses`);
     return response.data;
   },
 
   getAllExpenses: async (params) => {
-    const response = await axios.get(BASE_URL, { params });
+    const response = await api.get(BASE_URL, { params });
     return response.data;
   },
 
   getPendingExpenses: async () => {
-    const response = await axios.get(`${BASE_URL}/pending`);
+    const response = await api.get(`${BASE_URL}/pending`);
     return response.data;
   },
 
   getStats: async () => {
-    const response = await axios.get(`${BASE_URL}/stats`);
+    const response = await api.get(`${BASE_URL}/stats`);
     return response.data;
   },
 
   createExpense: async (formData) => {
-    const response = await axios.post(BASE_URL, formData, {
+    const response = await api.post(BASE_URL, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -33,22 +33,22 @@ export const expensesApi = {
   },
 
   approveExpense: async (id) => {
-    const response = await axios.put(`${BASE_URL}/${id}/approve`);
+    const response = await api.put(`${BASE_URL}/${id}/approve`);
     return response.data;
   },
 
   rejectExpense: async (id, reason) => {
-    const response = await axios.put(`${BASE_URL}/${id}/reject`, { reason });
+    const response = await api.put(`${BASE_URL}/${id}/reject`, { reason });
     return response.data;
   },
 
   deleteExpense: async (id) => {
-    const response = await axios.delete(`${BASE_URL}/${id}`);
+    const response = await api.delete(`${BASE_URL}/${id}`);
     return response.data;
   },
 
   processReceipt: async (formData) => {
-    const response = await axios.post(`${BASE_URL}/process-receipt`, formData, {
+    const response = await api.post(`${BASE_URL}/process-receipt`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -56,10 +56,17 @@ export const expensesApi = {
     return response.data;
   },
   
+  updateExpense: async (id, data) => {
+    const response = await api.put(`${BASE_URL}/${id}`, data);
+    return response.data;
+  },
+
   exportExpenses: async () => {
-    const response = await axios.get(`${BASE_URL}/export`, {
+    const response = await api.get(`${BASE_URL}/export`, {
       responseType: 'blob', // Important for downloading files
     });
     return response.data;
   }
 };
+
+export default expensesApi;

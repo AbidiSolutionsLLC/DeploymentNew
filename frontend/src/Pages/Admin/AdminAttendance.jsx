@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import api from "../../axios";
-import {
-  Search, Calendar, Clock, User, CheckCircle,
-  AlertCircle, XCircle, Download, Edit2, Save, X, Trash2
-} from "lucide-react";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import AdminAddAttendanceModal from "../../Components/AdminAddAttendanceModal";
+import { 
+  Download, Calendar, User as UserIcon, Building, Briefcase, ChevronDown, CheckCircle, XCircle, AlertCircle, Clock, Check, X, FileText, Search, UserCheck, UserX, Sun, Users, Edit2, Trash2, Save
+} from "lucide-react";
+import PageContainer from "../../components/ui/PageContainer";
+import TableWithPagination from "../../components/TableWithPagination";
+import AdminAddAttendanceModal from "../../components/AdminAddAttendanceModal";
 
 // --- SUB-COMPONENT: LIVE TIMER ---
 const LiveTimer = ({ startTime }) => {
@@ -275,14 +276,89 @@ const AdminAttendance = () => {
     return matchesSearch;
   });
 
-  return (
-    <div className="min-h-screen">
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-black text-heading uppercase tracking-tight">Employee Attendance</h1>
-          <p className="text-sm text-muted font-medium mt-1">Monitor daily check-ins, check-outs, and working hours.</p>
+  const attendanceColumns = [
+    {
+      key: "user",
+      label: "Employee",
+      render: (_, log) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm">
+            {log.user?.name?.charAt(0).toUpperCase() || "?"}
+          </div>
+          <div>
+            <p className="text-sm font-bold text-main">{log.user?.name || "Unknown"}</p>
+            <p className="text-[10px] font-bold text-muted uppercase">{log.user?.designation || "Employee"}</p>
+          </div>
         </div>
+      )
+    },
+    {
+      key: "date",
+      label: "Date",
+      render: (_, log) => new Date(log.date || filterDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    },
+    ...(activeTab === "present" ? [
+      {
+        key: "checkInTime",
+        label: "Check In",
+        render: (_, log) => formatTime(log.checkInTime)
+      },
+      {
+        key: "checkOutTime",
+        label: "Check Out",
+        render: (_, log) => log.checkOutTime ? (
+          <span className="text-sm font-bold text-main">{formatTime(log.checkOutTime)}</span>
+        ) : (
+          <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 uppercase tracking-wider">Active</span>
+        )
+      },
+      {
+        key: "duration",
+        label: "Duration",
+        render: (_, log) => log.checkInTime && log.checkOutTime ? (
+          <span className="text-muted">{log.totalHours} hrs</span>
+        ) : (
+          log.checkInTime ? <LiveTimer startTime={log.checkInTime} /> : <span className="text-muted text-xs italic">N/A</span>
+        )
+      }
+    ] : []),
+    {
+      key: "status",
+      label: "Status",
+      render: (_, log) => getStatusBadge(log.status)
+    },
+    ...(canEdit ? [
+      {
+        key: "actions",
+        label: "Actions",
+        align: "right",
+        render: (_, log) => (
+          <div className="flex justify-end gap-1">
+            {log._id ? (
+              <>
+                <button onClick={(e) => { e.stopPropagation(); handleEditClick(log); }} className="p-2 text-muted hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit Record">
+                  <Edit2 size={16} />
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); handleDeleteRecord(log._id); }} className="p-2 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete Record">
+                  <Trash2 size={16} />
+                </button>
+              </>
+            ) : (
+               <button onClick={(e) => { e.stopPropagation(); handleEditClick(log); }} className="p-2 text-muted hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Add/Update Record">
+                 <Edit2 size={16} />
+               </button>
+            )}
+          </div>
+        )
+      }
+    ] : [])
+  ];
+
+  return (
+    <PageContainer
+      title="Employee Attendance"
+      subtitle="Monitor daily check-ins, check-outs, and working hours."
+      headerActions={
         <div className="flex flex-wrap items-center gap-2">
           {canEdit && (
             <button
@@ -299,7 +375,8 @@ const AdminAttendance = () => {
             <Download size={16} /> Export CSV
           </button>
         </div>
-      </div>
+      }
+    >
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
         <div className="bg-white p-2 rounded-xl shadow-sm border border-border-subtle flex flex-col sm:flex-row gap-2 h-auto sm:h-16">
@@ -392,92 +469,12 @@ const AdminAttendance = () => {
       </div>
 
       <div className="bg-white rounded-[1.5rem] shadow-sm border border-border-subtle overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border-subtle">
-                <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-widest whitespace-nowrap w-[30%] min-w-[200px]">Employee</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-widest whitespace-nowrap w-[15%] min-w-[120px]">Date</th>
-                {activeTab === "present" && (
-                  <>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-widest whitespace-nowrap w-[12%] min-w-[100px]">Check In</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-widest whitespace-nowrap w-[12%] min-w-[100px]">Check Out</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-widest whitespace-nowrap w-[12%] min-w-[100px]">Duration</th>
-                  </>
-                )}
-                <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-widest whitespace-nowrap w-[12%] min-w-[100px]">Status</th>
-                {canEdit && (
-                  <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-widest text-right whitespace-nowrap w-[7%] min-w-[100px]">Actions</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr><td colSpan={activeTab === 'present' ? (canEdit ? 7 : 6) : (canEdit ? 4 : 3)} className="px-6 py-12 text-center text-muted italic font-medium">Loading attendance data...</td></tr>
-              ) : activeTabLogs.length === 0 ? (
-                <tr><td colSpan={activeTab === 'present' ? (canEdit ? 7 : 6) : (canEdit ? 4 : 3)} className="px-6 py-12 text-center text-muted italic font-medium">No records found for this category.</td></tr>
-              ) : (
-                activeTabLogs.map((log) => (
-                  <tr key={log._id || log.user?._id} className="hover:bg-white/40 dark:bg-black/20 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm">
-                          {log.user?.name?.charAt(0).toUpperCase() || "?"}
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-main">{log.user?.name || "Unknown"}</p>
-                          <p className="text-[10px] font-bold text-muted uppercase">{log.user?.designation || "Employee"}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted whitespace-nowrap">
-                      {new Date(log.date || filterDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </td>
-                    {activeTab === "present" && (
-                      <>
-                        <td className="px-6 py-4 text-sm font-bold text-main">{formatTime(log.checkInTime)}</td>
-                        <td className="px-6 py-4">
-                          {log.checkOutTime ? (
-                            <span className="text-sm font-bold text-main">{formatTime(log.checkOutTime)}</span>
-                          ) : (
-                            <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 uppercase tracking-wider">Active</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium">
-                          {log.checkInTime && log.checkOutTime ? (
-                            <span className="text-muted">{log.totalHours} hrs</span>
-                          ) : (
-                            log.checkInTime ? <LiveTimer startTime={log.checkInTime} /> : <span className="text-muted text-xs italic">N/A</span>
-                          )}
-                        </td>
-                      </>
-                    )}
-                    <td className="px-6 py-4">{getStatusBadge(log.status)}</td>
-                    {canEdit && (
-                      <td className="px-6 py-4 text-right flex justify-end gap-1">
-                        {log._id ? (
-                          <>
-                            <button onClick={() => handleEditClick(log)} className="p-2 text-muted hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit Record">
-                              <Edit2 size={16} />
-                            </button>
-                            <button onClick={() => handleDeleteRecord(log._id)} className="p-2 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete Record">
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        ) : (
-                           /* For absent/leave virtual records without _id, we can still allow "Add" behavior via edit modal */
-                           <button onClick={() => handleEditClick(log)} className="p-2 text-muted hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Add/Update Record">
-                             <Edit2 size={16} />
-                           </button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <TableWithPagination
+          columns={attendanceColumns}
+          data={activeTabLogs}
+          loading={loading}
+          emptyMessage="No records found for this category."
+        />
       </div>
 
       {isEditModalOpen && (
@@ -562,7 +559,7 @@ const AdminAttendance = () => {
           />
       )}
 
-    </div>
+    </PageContainer>
   );
 };
 

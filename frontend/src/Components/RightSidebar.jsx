@@ -28,12 +28,13 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
     const { userInfo } = useSelector((state) => state.user);
 
     useEffect(() => {
-        if (user?.user?._id) {
-            dispatch(refreshUserData(user?.user?._id));
+        const userId = user?.data?.user?._id || user?.user?._id || user?._id || user?.id;
+        if (userId) {
+            dispatch(refreshUserData(userId));
         }
     }, [user, dispatch]);
 
-    const currentUser = userInfo;
+    const currentUser = userInfo || user?.data?.user || user?.user || user;
     const profileImage = currentUser?.avatar || "";
     const firstName = currentUser?.name || "User";
 

@@ -3,14 +3,15 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../axios";
-import Toast from "../../Components/Toast";
-import ModernSelect from "../../Components/ui/ModernSelect";
+import Toast from "../../components/Toast";
+import ModernSelect from "../../components/ui/ModernSelect";
 import { downloadFile } from "../../utils/downloadFile";
 import { validateDescription, getApiError } from "../../utils/validationUtils";
 import {
   ArrowLeft, Trash2, ChevronDown, Flag, User,
   Clock, Check, UserPlus, Paperclip, Send
 } from "lucide-react";
+import PageContainer from "../../components/ui/PageContainer";
 
 const AssignTicket = () => {
   const navigate = useNavigate();
@@ -166,33 +167,119 @@ const AssignTicket = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-transparent p-2 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
-          <p className="mt-3 text-muted text-xs font-medium uppercase tracking-wide">Loading ticket...</p>
-        </div>
-      </div>
+      <PageContainer title="Loading Ticket..." loading={true} isCard={false}>
+        <div className="min-h-screen bg-transparent p-2 flex items-center justify-center"></div>
+      </PageContainer>
     );
   }
 
   if (!ticket) {
     return (
-      <div className="min-h-screen bg-transparent p-2 flex items-center justify-center">
-        <div className="text-center">
-          <p className="mt-3 text-sm font-medium text-muted">Ticket not found</p>
-          <button
-            onClick={() => navigate("/admin/assign-ticket")}
-            className="mt-4 px-4 py-2 bg-surface text-main rounded-lg text-sm font-medium hover:bg-slate-200 transition"
-          >
-            Back to Tickets
-          </button>
+      <PageContainer title="Ticket Not Found" isCard={false}>
+        <div className="min-h-screen bg-transparent p-2 flex items-center justify-center">
+          <div className="text-center">
+            <p className="mt-3 text-sm font-medium text-muted">Ticket not found</p>
+            <button
+              onClick={() => navigate("/admin/assign-ticket")}
+              className="mt-4 px-4 py-2 bg-surface text-main rounded-lg text-sm font-medium hover:bg-slate-200 transition"
+            >
+              Back to Tickets
+            </button>
+          </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="min-h-screen bg-transparent p-2">
+    <PageContainer
+      title={`Ticket #${ticket.ticketID || ticket._id?.slice(0, 6)}: ${ticket.subject || ticket.title}`}
+      subtitle={`Created ${new Date(ticket.createdAt).toLocaleString()}`}
+      isCard={false}
+      headerActions={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/admin/assign-ticket")}
+            className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
+            title="Back to Tickets"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <button
+            onClick={handleDeleteTicket}
+            className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
+            title="Delete Ticket"
+          >
+            <Trash2 size={18} />
+          </button>
+
+          <button
+            onClick={() => setAddTechnicianModal(true)}
+            className="px-4 py-2 rounded-xl flex items-center gap-2 bg-purple-100 text-purple-800 border border-purple-200 hover:brightness-95 transition-all shadow-sm hover:shadow-md"
+            title="Add New Technician"
+          >
+            <UserPlus size={16} />
+            <span className="text-sm font-medium hidden sm:inline">Add Technician</span>
+          </button>
+
+          {/* Assign Dropdown */}
+          <div className="relative z-30">
+            <button
+              onClick={() => setAssignDropdownOpen(!assignDropdownOpen)}
+              className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm ${selectedAssignee
+                  ? "bg-green-100 text-green-800 border border-green-200"
+                  : "bg-amber-100 text-amber-800 border border-amber-200"
+                } hover:brightness-95`}
+            >
+              <User size={16} />
+              <span className="text-sm font-medium hidden sm:inline">
+                {selectedAssignee ? selectedAssignee.name : "Assign"}
+              </span>
+              <ChevronDown size={16} />
+            </button>
+
+            {assignDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg z-[9999] border border-border-subtle overflow-hidden max-h-60 overflow-y-auto">
+                <div className="py-1">
+                  {technician.length > 0 ? (
+                    <>
+                      <div className="px-3 py-2 text-xs font-bold text-muted uppercase tracking-wider border-b border-border-subtle">
+                        Available Technicians
+                      </div>
+                      {technician.map((user) => (
+                        <button
+                          key={user._id}
+                          onClick={() => assignToUser(user._id)}
+                          className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-surface transition ${selectedAssigneeId === user._id ? "bg-amber-50 text-amber-700" : "text-main"
+                            }`}
+                        >
+                          <User className="w-4 h-4 text-muted" />
+                          <div className="flex flex-col truncate">
+                            <span className="font-medium truncate">{user.name}</span>
+                            <span className="text-[10px] text-muted uppercase">
+                              {user.designation || user.role}
+                            </span>
+                          </div>
+                          {selectedAssigneeId === user._id && (
+                            <Check className="w-4 h-4 text-green-500 ml-auto" />
+                          )}
+                        </button>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="px-3 py-3 text-center">
+                      <User className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm text-muted font-medium">No technicians found</p>
+                      <p className="text-xs text-muted mt-1">Use "Add Technician" to update privileges</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      }
+    >
       {toast && (
         <Toast
           message={toast.message}
@@ -306,109 +393,6 @@ const AssignTicket = () => {
           </div>
         </div>
       )}
-
-      {/* Main Ticket Interface */}
-      <div className="relative z-[99]">
-        <div className="glass-card mb-4 p-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <button
-                onClick={() => navigate("/admin/assign-ticket")}
-                className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
-                title="Back to Tickets"
-              >
-                <ArrowLeft size={18} />
-              </button>
-              <div className="truncate">
-                <h2 className="text-base font-bold text-heading uppercase tracking-tight truncate">
-                  Ticket #{ticket.ticketID || ticket._id?.slice(0, 6)}: {ticket.subject || ticket.title}
-                </h2>
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <span className="text-xs text-muted flex items-center gap-1">
-                    <Clock size={12} />
-                    Created {new Date(ticket.createdAt).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleDeleteTicket}
-                className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
-                title="Delete Ticket"
-              >
-                <Trash2 size={18} />
-              </button>
-
-              <button
-                onClick={() => setAddTechnicianModal(true)}
-                className="px-4 py-2 rounded-xl flex items-center gap-2 bg-purple-100 text-purple-800 border border-purple-200 hover:brightness-95 transition-all shadow-sm hover:shadow-md"
-                title="Add New Technician"
-              >
-                <UserPlus size={16} />
-                <span className="text-sm font-medium">Add Technician</span>
-              </button>
-
-              {/* Assign Dropdown */}
-              <div className="relative z-30">
-                <button
-                  onClick={() => setAssignDropdownOpen(!assignDropdownOpen)}
-                  className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm ${selectedAssignee
-                      ? "bg-green-100 text-green-800 border border-green-200"
-                      : "bg-amber-100 text-amber-800 border border-amber-200"
-                    } hover:brightness-95`}
-                >
-                  <User size={16} />
-                  <span className="text-sm font-medium">
-                    {selectedAssignee ? selectedAssignee.name : "Assign Ticket"}
-                  </span>
-                  <ChevronDown size={16} />
-                </button>
-
-                {assignDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg z-[9999] border border-border-subtle overflow-hidden max-h-60 overflow-y-auto">
-                    <div className="py-1">
-                      {technician.length > 0 ? (
-                        <>
-                          <div className="px-3 py-2 text-xs font-bold text-muted uppercase tracking-wider border-b border-border-subtle">
-                            Available Technicians
-                          </div>
-                          {technician.map((user) => (
-                            <button
-                              key={user._id}
-                              onClick={() => assignToUser(user._id)}
-                              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-surface transition ${selectedAssigneeId === user._id ? "bg-amber-50 text-amber-700" : "text-main"
-                                }`}
-                            >
-                              <User className="w-4 h-4 text-muted" />
-                              <div className="flex flex-col truncate">
-                                <span className="font-medium truncate">{user.name}</span>
-                                <span className="text-[10px] text-muted uppercase">
-                                  {user.designation || user.role}
-                                </span>
-                              </div>
-                              {selectedAssigneeId === user._id && (
-                                <Check className="w-4 h-4 text-green-500 ml-auto" />
-                              )}
-                            </button>
-                          ))}
-                        </>
-                      ) : (
-                        <div className="px-3 py-3 text-center">
-                          <User className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                          <p className="text-sm text-muted font-medium">No technicians found</p>
-                          <p className="text-xs text-muted mt-1">Use "Add Technician" to update privileges</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 relative z-0">
@@ -527,7 +511,7 @@ const AssignTicket = () => {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

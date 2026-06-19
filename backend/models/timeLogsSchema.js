@@ -55,6 +55,8 @@ const timeLogSchema = new mongoose.Schema(
   },
 );
 
+timeLogSchema.index({ employee: 1, date: 1 });
+
 const TimeLog =
   mongoose.models.TimeLog || mongoose.model("TimeLog", timeLogSchema);
 module.exports = TimeLog;

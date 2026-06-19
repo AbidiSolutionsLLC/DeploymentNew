@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import CreateUserModal from "../../Components/CreateUserModal";
-import CreateDepartmentModal from "../../Components/CreateDepartmentModal";
-import UserManagementTable from "../../Components/UserManagementTable";
-import { FaPlus, FaSearch, FaSortDown } from "react-icons/fa";
-import UserDetailModal from "../../Components/UserDetailModal";
+import CreateUserModal from "../../components/CreateUserModal";
+import CreateDepartmentModal from "../../components/CreateDepartmentModal";
+import { FaPlus, FaSearch } from "react-icons/fa";
+import UserDetailModal from "../../components/UserDetailModal";
 import api from "../../axios";
 import { toast } from "react-toastify";
-import PageContainer from "../../Components/ui/PageContainer";
-import GlassInput from "../../Components/ui/GlassInput";
+import PageContainer from "../../components/ui/PageContainer";
+import GlassInput from "../../components/ui/GlassInput";
+import TableWithPagination from "../../components/TableWithPagination";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -109,6 +109,53 @@ const UserManagement = () => {
 
   const canAddUser = currentUser && ["Super Admin", "Admin"].includes(currentUser.role);
 
+  const userColumns = [
+    { key: "empID", label: "ID", render: (val) => `#${val}` },
+    { key: "name", label: "Name", sortable: true },
+    { key: "email", label: "Email", sortable: true },
+    { 
+      key: "department", 
+      label: "Department", 
+      sortable: true,
+      render: (val) => (
+        <span className="text-xs font-semibold bg-white/50 dark:bg-black/20 px-2.5 py-1 rounded-md border border-border-subtle text-main">
+          {val?.name || "-"}
+        </span>
+      ) 
+    },
+    { 
+      key: "role", 
+      label: "Role", 
+      sortable: true,
+      render: (val) => (
+        <span className="bg-brand/10 text-brand border border-brand/20 px-2.5 py-1 rounded-full text-xs font-bold">
+          {val}
+        </span>
+      ) 
+    },
+    { 
+      key: "hourlyWage", 
+      label: "Wage", 
+      sortable: true,
+      render: (val) => val ? `$${val}` : "-" 
+    },
+    { 
+      key: "empStatus", 
+      label: "Status", 
+      sortable: true,
+      render: (val) => (
+        <span
+          className={`px-2.5 py-1 rounded-full text-xs font-bold border ${val === "Active"
+              ? "bg-green-500/10 text-green-600 border-green-500/20"
+              : "bg-red-500/10 text-red-600 border-red-500/20"
+            }`}
+        >
+          {val}
+        </span>
+      ) 
+    }
+  ];
+
   return (
     <>
       <style>{`
@@ -130,11 +177,11 @@ const UserManagement = () => {
 
       <PageContainer
         title="User Management"
-        subtitle="Manage users, roles, and permissions"
+        subtitle="Manage employees, roles, and departments"
         loading={loading}
         headerActions={
           <>
-            {canAddUser && (
+            {currentUser?.role === "Super Admin" && (
               <button
                 onClick={() => setIsDeptModalOpen(true)}
                 className="btn btn-secondary flex items-center gap-2"
@@ -187,58 +234,13 @@ const UserManagement = () => {
         }
       >
         <div className="bg-white/30 backdrop-blur-md rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden">
-          <table className="min-w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gradient-to-r from-white/60 to-white/40 border-b border-border-subtle shadow-sm">
-                {["ID", "Name", "Email", "Department", "Role", "Wage", "Status"].map((h) => (
-                  <th
-                    key={h}
-                    className="p-4 text-[11px] font-black text-heading uppercase tracking-widest cursor-pointer hover:bg-white/30 transition-colors"
-                    onClick={() => handleSort(h === "Wage" ? "hourlyWage" : h.toLowerCase())}
-                  >
-                  {h}
-                  {sortConfig.key === (h === "Wage" ? "hourlyWage" : h.toLowerCase()) && (
-                    <FaSortDown className={`inline ml-1 ${sortConfig.direction === "desc" ? "rotate-180" : ""}`} />
-                  )}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border-subtle">
-            {filteredUsers.map((user) => (
-              <tr
-                key={user._id}
-                onClick={() => handleUserClick(user)}
-                className="hover:bg-white/40 dark:hover:bg-black/20 cursor-pointer transition-colors"
-              >
-                <td className="p-4 text-sm font-medium text-muted">#{user.empID}</td>
-                <td className="p-4 text-sm font-bold text-main">{user.name}</td>
-                <td className="p-4 text-sm font-medium text-muted">{user.email}</td>
-                <td className="p-4 text-xs font-semibold bg-white/50 dark:bg-black/20 px-2.5 py-1 rounded-md border border-border-subtle text-main">
-                  {user.department?.name || "-"}
-                </td>
-                <td className="p-4">
-                  <span className="bg-brand/10 text-brand border border-brand/20 px-2.5 py-1 rounded-full text-xs font-bold">
-                    {user.role}
-                  </span>
-                </td>
-                <td className="p-4 text-sm font-bold text-main">
-                  {user.hourlyWage ? `$${user.hourlyWage}` : "-"}
-                </td>
-                <td className="p-4">
-                  <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-bold border ${user.empStatus === "Active"
-                        ? "bg-green-500/10 text-green-600 border-green-500/20"
-                        : "bg-red-500/10 text-red-600 border-red-500/20"
-                      }`}
-                  >
-                    {user.empStatus}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          <TableWithPagination
+            columns={userColumns}
+            data={filteredUsers}
+            loading={loading}
+            emptyMessage="No users found"
+            onRowClick={handleUserClick}
+          />
         </div>
       </PageContainer>
 

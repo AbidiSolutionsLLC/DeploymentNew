@@ -34,7 +34,7 @@ export const injectStore = (_store) => {
 let msalInitialized = false;
 
 const api = axios.create({
-    baseURL: "http://localhost:4000/api/v1",
+    baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api/v1",
     timeout: 30000,
     withCredentials: true
 });
@@ -70,7 +70,13 @@ api.interceptors.request.use(
 
 // --- UPDATED RESPONSE INTERCEPTOR ---
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Automatically unwrap the backend's ApiResponse wrapper on success
+        if (response.data && response.data.success === true && 'data' in response.data) {
+            response.data = response.data.data;
+        }
+        return response;
+    },
     async (error) => {
         const status = error.response?.status;
         const ignoreAuthRedirect = error.config?.ignoreAuthRedirect;

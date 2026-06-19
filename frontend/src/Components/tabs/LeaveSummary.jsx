@@ -3,15 +3,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { refreshUserData } from "../../slices/userSlice";
 import { FaMoneyBillWave, FaHospital, FaEye, FaEdit } from "react-icons/fa";
 import { MdEventAvailable } from "react-icons/md";
-import ApplyLeaveModal from "../../Components/LeaveModal";
-import EditLeaveModal from "../../Components/EditLeaveModal";
-import HolidayTable from "../../Components/HolidayTable";
-import ViewLeaveModal from "../../Components/ViewLeaveModal";
+import ApplyLeaveModal from "../../components/LeaveModal";
+import EditLeaveModal from "../../components/EditLeaveModal";
+import HolidayTable from "../../components/HolidayTable";
+import ViewLeaveModal from "../../components/ViewLeaveModal";
 import api from "../../axios";
 import { parseISOToLocalDate, formatDisplayDate, calculateWorkingDays } from "../../utils/dateUtils";
 import { toast } from "react-toastify";
-
-
+import TableWithPagination from "../../components/TableWithPagination";
 const LeaveSummary = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -29,8 +28,9 @@ const LeaveSummary = () => {
     const { userInfo, refreshing } = useSelector((state) => state.user);
 
     useEffect(() => {
-        if (user?.user?._id) {
-            dispatch(refreshUserData(user.user._id));
+        const userId = user?.data?.user?._id || user?.user?._id || user?._id || user?.id;
+        if (userId) {
+            dispatch(refreshUserData(userId));
         }
     }, [dispatch, user]);
 
@@ -57,8 +57,8 @@ const LeaveSummary = () => {
     const fetchHolidays = async () => {
         try {
             const response = await api.get("/holidays");
-            setHolidays(response.data);
-            console.log("holidays", holidays);
+            setHolidays(response.data?.data || response.data);
+            console.log("holidays", response.data?.data || response.data);
 
         } catch (err) {
             console.error("Failed to fetch holidays:", err);
@@ -172,6 +172,56 @@ const LeaveSummary = () => {
         }
     };
 
+    const columns = [
+        { key: "startDate", label: "Start Date" },
+        { key: "endDate", label: "End Date", render: (row) => formatDisplayDate(row.endDate) },
+        { key: "leaveType", label: "Leave Type" },
+        { 
+            key: "reason", 
+            label: "Reason",
+            sortable: false,
+            render: (row) => (
+                <div className="max-w-[220px] text-slate-600" title={row.reason}>
+                    <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                        {row.reason}
+                    </span>
+                </div>
+            )
+        },
+        { key: "duration", label: "Duration" },
+        { 
+            key: "status", 
+            label: "Status",
+            render: (row) => (
+                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${
+                    row.status === "Approved" ? "bg-green-100 text-green-800" : 
+                    row.status === "Rejected" ? "bg-red-100 text-red-800" : 
+                    "bg-yellow-100 text-yellow-800"
+                }`}>
+                    {row.status}
+                </span>
+            )
+        },
+        { key: "appliedAt", label: "Applied Date" }
+    ];
+
+    const actions = [
+        {
+            icon: <div className="flex items-center gap-1"><FaEye size={12} /> View</div>,
+            title: "View",
+            className: "px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors",
+            onClick: (row) => handleViewLeave(row)
+        },
+        {
+            icon: <div className="flex items-center gap-1"><FaEdit size={12} /> Edit</div>,
+            title: "Edit",
+            className: (row) => row.status === 'Pending' ? "px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200 transition-colors" : "hidden",
+            onClick: (row) => {
+                if(row.status === 'Pending') handleEditLeave(row);
+            }
+        }
+    ];
+
     return (
         <div className="min-h-screen bg-transparent p-4">
             {/* View Leave Modal */}
@@ -272,87 +322,16 @@ const LeaveSummary = () => {
                         <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
                         <p className="mt-2 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading leaves...</p>
                     </div>
-                ) : appliedLeaves.length === 0 ? (
-                    <div className="p-6 text-center text-slate-500 text-sm bg-slate-50/80 rounded-lg">
-                        <div className="flex flex-col items-center gap-2">
-                            <svg className="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                            </svg>
-                            <p className="font-medium text-slate-500">No leave records found</p>
-                        </div>
-                    </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm border-separate border-spacing-0">
-                            <thead>
-                                <tr className="bg-slate-100/80 backdrop-blur-sm text-slate-800">
-                                    {["Start Date", "End Date", "Leave Type", "Reason", "Duration", "Status", "Applied Date", "Actions"].map((header, index) => (
-                                        <th
-                                            key={index}
-                                            className={`p-4 font-semibold text-xs uppercase tracking-wide border-b border-slate-200 text-left ${index === 0 ? "rounded-tl-lg" : ""
-                                                } ${index === 7 ? "rounded-tr-lg" : ""
-                                                }`}
-                                        >
-                                            {header}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {appliedLeaves.map((item, index) => (
-                                    <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-                                        <td className="p-4 text-slate-700 font-medium">{item.startDate}</td>
-                                        <td className="p-4 text-slate-700 font-medium">{formatDisplayDate(item.endDate)}</td>
-                                        <td className="p-4 text-slate-600">{item.leaveType}</td>
-                                        <td className="p-4 text-slate-600" title={item.reason}>
-                                            <span
-                                                className="block max-w-[220px]"
-                                                style={{
-                                                    display: "-webkit-box",
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: "vertical",
-                                                    overflow: "hidden",
-                                                }}
-                                            >
-                                                {item.reason}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-slate-700 font-medium">{item.duration}</td>
-                                        <td className="p-4">
-                                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${item.status === "Approved"
-                                                ? "bg-green-100 text-green-800"
-                                                : item.status === "Rejected"
-                                                    ? "bg-red-100 text-red-800"
-                                                    : "bg-yellow-100 text-yellow-800"
-                                                }`}>
-                                                {item.status}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-slate-700 font-medium">{item.appliedAt}</td>
-                                        <td className="p-4">
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => handleViewLeave(item)}
-                                                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
-                                                >
-                                                    <FaEye size={12} />
-                                                    View
-                                                </button>
-                                                {item.status === 'Pending' && (
-                                                    <button
-                                                        onClick={() => handleEditLeave(item)}
-                                                        className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200 transition-colors"
-                                                    >
-                                                        <FaEdit size={12} />
-                                                        Edit
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <TableWithPagination
+                            columns={columns}
+                            data={appliedLeaves}
+                            loading={refreshing}
+                            emptyMessage="No leave records found"
+                            actions={actions}
+                            rowsPerPage={5}
+                        />
                     </div>
                 )}
             </div>

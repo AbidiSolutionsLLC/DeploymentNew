@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const timeTrackerController = require("../../controllers/timeTrackerController");
-const { isLoggedIn } = require("../../middlewares/authMiddleware");
+const { isLoggedIn, restrictTo } = require("../../middlewares/authMiddleware");
+const validate = require("../../middlewares/validationMiddleware");
+const { timeTrackerSchema, editTimeTrackerSchema } = require("../../JoiSchema/TimeTrackerJoiSchema");
 
 // Apply authentication middleware to ALL routes
 router.use(isLoggedIn);
@@ -25,12 +27,12 @@ router.get("/monthly/:year/:month", timeTrackerController.getMonthlyAttendance);
 // --- Base Routes ---
 router.route("/")
   .get(timeTrackerController.getAllTimeLogs)
-  .post(timeTrackerController.createTimeLog);
+  .post(validate(timeTrackerSchema), timeTrackerController.createTimeLog);
 
 // --- Individual Records (Dynamic :id MUST be at the very bottom) ---
 router.route("/:id")
   .get(timeTrackerController.getTimeLogById)
-  .put(timeTrackerController.updateTimeLog)
-  .delete(timeTrackerController.deleteTimeLog);
+  .put(restrictTo('Super Admin'), validate(editTimeTrackerSchema), timeTrackerController.updateTimeLog)
+  .delete(restrictTo('Super Admin'), timeTrackerController.deleteTimeLog);
 
 module.exports = router;

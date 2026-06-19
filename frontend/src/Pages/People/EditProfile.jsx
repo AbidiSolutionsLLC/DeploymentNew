@@ -10,8 +10,9 @@ import { format } from "date-fns";
 import { validateText, validateDescription, sanitizeText, getApiError } from "../../utils/validationUtils";
 
 // IMPORT YOUR NEW MODERN COMPONENTS
-import ModernSelect from "../../Components/ui/ModernSelect";
-import ModernDatePicker from "../../Components/ui/ModernDatePicker";
+import ModernSelect from "../../components/ui/ModernSelect";
+import ModernDatePicker from "../../components/ui/ModernDatePicker";
+import PageContainer from "../../components/ui/PageContainer";
 
 export default function EditProfile() {
   const navigate = useNavigate();
@@ -337,17 +338,21 @@ export default function EditProfile() {
   }
 
   return (
-    <div className="relative flex flex-col bg-transparent text-heading p-6 rounded-[1.2rem] min-h-[700px]">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate("/people/profile")}
-        className="absolute top-10 right-10 bg-white/30 backdrop-blur-lg text-heading font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 hover:scale-105 text-sm ring-1 ring-white/20 z-50 flex items-center gap-2"
-      >
-        <IoArrowBack className="text-base" />
-        Back
-      </button>
-
-      {/* --- BANNER (READONLY in edit mode) --- */}
+    <PageContainer
+      title="Edit Your Profile"
+      subtitle="Update your personal and professional details"
+      headerActions={
+        <button
+          onClick={() => navigate("/people/profile")}
+          className="bg-white/30 backdrop-blur-lg text-heading font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 hover:scale-105 text-sm ring-1 ring-white/20 flex items-center gap-2"
+        >
+          <IoArrowBack className="text-base" />
+          Back
+        </button>
+      }
+    >
+      <div className="relative flex flex-col bg-transparent text-heading p-0 rounded-[1.2rem] min-h-[700px]">
+        {/* --- BANNER (READONLY in edit mode) --- */}
       <div className="relative h-28 md:h-40 rounded-[1.5rem] overflow-hidden shadow-md bg-slate-200">
         <img
           src={user.coverImage || "https://data3262.blob.core.windows.net/hr-portal/abidiPro/users/profile_photos/Abidi-Solutions-Banner%201_1774560002057.jpg"}
@@ -388,7 +393,6 @@ export default function EditProfile() {
         </div>
       </div>
 
-      <h2 className="text-lg font-bold text-heading mb-6 uppercase tracking-tight">Edit Your Profile</h2>
 
       {/* Basic Information */}
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] p-4 mb-6 shadow-md border border-white/50">
@@ -740,6 +744,7 @@ export default function EditProfile() {
           ) : 'Save Changes'}
         </button>
       </div>
-    </div>
+      </div>
+    </PageContainer>
   );
 }

@@ -39,4 +39,6 @@ const timeTrackerSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+timeTrackerSchema.index({ user: 1, date: 1 });
+
 module.exports = mongoose.model("TimeTracker", timeTrackerSchema);

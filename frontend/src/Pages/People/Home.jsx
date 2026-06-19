@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
-import FeedsCard from "../../Components/home/FeedsCard";
-import AttendanceCard from "../../Components/home/AttendanceCard";
-import HolidaysCard from "../../Components/home/HolidaysCard";
-import ToDoCard from "../../Components/home/TodoCard";
-import NotesCard from "../../Components/home/NotesCard";
-import AddCardMenu from "../../Components/home/AddCardMenu";
-import RecentActivitiesCard from "../../Components/home/RecentActivitiesCard";
-import UpcomingBirthdaysCard from "../../Components/home/UpcomingBirthdaysCard";
-import LeaveLogCard from "../../Components/home/LeaveLogCard";
-import UpcomingDeadlinesCard from "../../Components/home/UpcomingDeadlinesCard";
-import TimeoffBalanceCard from "../../Components/home/TimeoffBalanceCard";
-import TasksAssignedToMeCard from "../../Components/home/TasksAssignedToMeCard";
+import FeedsCard from "../../components/home/FeedsCard";
+import AttendanceCard from "../../components/home/AttendanceCard";
+import HolidaysCard from "../../components/home/HolidaysCard";
+import ToDoCard from "../../components/home/TodoCard";
+import NotesCard from "../../components/home/NotesCard";
+import AddCardMenu from "../../components/home/AddCardMenu";
+import RecentActivitiesCard from "../../components/home/RecentActivitiesCard";
+import UpcomingBirthdaysCard from "../../components/home/UpcomingBirthdaysCard";
+import LeaveLogCard from "../../components/home/LeaveLogCard";
+import UpcomingDeadlinesCard from "../../components/home/UpcomingDeadlinesCard";
+import TimeoffBalanceCard from "../../components/home/TimeoffBalanceCard";
+import TasksAssignedToMeCard from "../../components/home/TasksAssignedToMeCard";
 
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -22,7 +22,7 @@ import {
 import api from "../../axios";
 import { toast } from "react-toastify";
 import { refreshUserData } from "../../slices/userSlice";
-import PageContainer from "../../Components/ui/PageContainer";
+import PageContainer from "../../components/ui/PageContainer";
 
 function format(sec) {
   const h = String(Math.floor(sec / 3600)).padStart(2, "0");
@@ -50,8 +50,9 @@ const Home = () => {
 
   // Fetch user
   useEffect(() => {
-    if (user?.user?._id) {
-      dispatch(refreshUserData(user.user._id));
+    const userIdToFetch = user?.data?.user?._id || user?.user?._id || user?._id || user?.id;
+    if (userIdToFetch) {
+      dispatch(refreshUserData(userIdToFetch));
     }
   }, [dispatch, user]);
 
@@ -163,7 +164,7 @@ const Home = () => {
         if (!userId) return;
         setLoading(true);
         const res = await api.get(`/users/${userId}/dashboard-cards`);
-        setCards(res.data);
+        setCards(res.data?.data || res.data || []);
       } catch (err) {
         toast.error("Failed to load cards");
       } finally {
@@ -176,7 +177,7 @@ const Home = () => {
   const addCard = async (type) => {
     try {
       const res = await api.post(`/users/${userId}/dashboard-cards/add`, { type });
-      setCards(res.data);
+      setCards(res.data?.data || res.data || []);
     } catch {
       toast.error("Failed");
     }
@@ -192,12 +193,16 @@ const Home = () => {
   };
   const profileImage =
   userInfo?.avatar ||
+  user?.data?.user?.avatar ||
   user?.user?.avatar ||
-  "https://ui-avatars.com/api/?name=" + (userInfo?.name || "User");
+  user?.avatar ||
+  "https://ui-avatars.com/api/?name=" + (userInfo?.name || user?.data?.user?.name || user?.user?.name || user?.name || "User");
 
 const userName =
   userInfo?.name ||
+  user?.data?.user?.name ||
   user?.user?.name ||
+  user?.name ||
   "User";
   const renderCard = (card) => {
     const onDelete = () => removeCard(card.id);

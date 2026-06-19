@@ -1,20 +1,20 @@
-import axios from '../axios';
+import api from '../axios';
 
-export const settingsApi = {
+const settingsApi = {
   updateProfile: async (data) => {
-    const response = await axios.put('/users/profile', data);
+    const response = await api.put('/users/profile', data);
     return response.data;
   },
 
   updateSettings: async (data) => {
-    const response = await axios.put('/users/settings', data);
+    const response = await api.put('/users/settings', data);
     return response.data;
   },
 
   uploadAvatar: async (userId, file) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    const response = await axios.post(`/users/${userId}/upload-avatar`, formData, {
+    const response = await api.post(`/users/${userId}/upload-avatar`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return response.data;
@@ -23,9 +23,11 @@ export const settingsApi = {
   uploadCover: async (userId, file) => {
     const formData = new FormData();
     formData.append('coverImage', file);
-    const response = await axios.post(`/users/${userId}/upload-cover`, formData, {
+    const response = await api.post(`/users/${userId}/upload-cover`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return response.data;
   }
 };
+
+export default settingsApi;

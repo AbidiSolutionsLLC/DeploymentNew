@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import ProjectTasksTable from "../../Components/ProjectTaskTable";
-import AddTaskDrawer from "../../Components/addTaskModal";
+import ProjectTasksTable from "../../components/ProjectTaskTable";
+import AddTaskDrawer from "../../components/addTaskModal";
 import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchProjectById, fetchProjectTasks } from "../../Store/projectSlice";
-import { createTask } from "../../Store/taskSlice";  
+import { fetchProjectById, fetchProjectTasks } from "../../store/projectSlice";
+import { createTask } from "../../store/taskSlice";  
 import { toast } from "react-toastify";
 import { FaSortDown, FaPlus } from "react-icons/fa"; 
-import SearchBar from "../../Components/SearchBar";    
+import SearchBar from "../../components/SearchBar";    
 
 const Project = () => {
   const { id } = useParams();

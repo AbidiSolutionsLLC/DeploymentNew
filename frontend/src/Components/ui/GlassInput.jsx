@@ -17,7 +17,8 @@ export default function GlassInput({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`glass-input w-full ${Icon ? 'pl-10' : 'pl-3'}`}
+        className="glass-input w-full"
+        style={{ paddingLeft: Icon ? '2.75rem' : '1rem' }}
       />
     </div>
   );

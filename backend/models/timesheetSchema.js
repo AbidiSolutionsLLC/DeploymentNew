@@ -21,7 +21,6 @@ const timesheetSchema = new mongoose.Schema(
     date: {
       type: Date,
       required: true,
-      unique: true,
     },
     submittedHours: {
       type: Number,
@@ -81,11 +80,14 @@ const timesheetSchema = new mongoose.Schema(
 );
 
 timesheetSchema.index({ employee: 1, "date": 1 }, { 
+  unique: true,
   partialFilterExpression: { 
     date: { $exists: true },
     employee: { $exists: true }
   }
 });
+
+timesheetSchema.index({ company: 1, employee: 1, status: 1 });
 
 // Add virtual for week number
 timesheetSchema.virtual('weekNumber').get(function() {

@@ -9,14 +9,15 @@ import {
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import ModernSelect from "../../Components/ui/ModernSelect";
-import ExpenseFilters from "../../Components/ExpenseFilter";
-import ExpenseStats from "../../Components/ExpenseStats";
-import ExpenseTable from "../../Components/ExpenseTable";
-import ExpenseForm from "../../Components/ExpenseForm";
-import ExpenseDetail from "../../Components/ExpenseDetails";
+import ModernSelect from "../../components/ui/ModernSelect";
+import ExpenseFilters from "../../components/ExpenseFilter";
+import ExpenseStats from "../../components/ExpenseStats";
+import ExpenseForm from "../../components/ExpenseForm";
+import ExpenseDetail from "../../components/ExpenseDetails";
 import { downloadFile } from "../../utils/downloadFile";
-import PageContainer from "../../Components/ui/PageContainer";
+import PageContainer from "../../components/ui/PageContainer";
+import TableWithPagination from "../../components/TableWithPagination";
+import expensesApi from "../../api/expensesApi";
 
 // --- MAIN COMPONENT ---
 const ExpenseManagement = () => {
@@ -89,8 +90,9 @@ const ExpenseManagement = () => {
 
   const fetchExpenses = async () => {
     try {
-      const res = await api.get("/expenses/");
-      const sortedExpenses = res.data.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const resData = await expensesApi.getAllExpenses();
+      const expensesArray = Array.isArray(resData) ? resData : resData.data || [];
+      const sortedExpenses = expensesArray.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setExpenses(sortedExpenses);
     } catch (error) {
         console.error("get expenses Error//////////////////////////////////////:", error.response?.data);
@@ -106,11 +108,11 @@ const ExpenseManagement = () => {
   // --- EXPENSE ACTIONS ---
   const handleApprove = async (expenseId) => {
     try {
-      const res = await api.put(`/expenses/${expenseId}/approve`);
+      const resData = await expensesApi.approveExpense(expenseId);
       toast.success("Expense approved successfully");
       await fetchExpenses();
       if (selectedExpense?._id === expenseId) {
-        setSelectedExpense(res.data.data);
+        setSelectedExpense(resData.data);
       }
     } catch (error) {
       toast.error(error.response?.data?.msg || "Failed to approve expense");
@@ -124,11 +126,11 @@ const ExpenseManagement = () => {
     }
     
     try {
-      const res = await api.put(`/expenses/${expenseId}/reject`, { reason });
+      const resData = await expensesApi.rejectExpense(expenseId, reason);
       toast.success("Expense rejected");
       await fetchExpenses();
       if (selectedExpense?._id === expenseId) {
-        setSelectedExpense(res.data.data);
+        setSelectedExpense(resData.data);
       }
       setIsEditModalOpen(false);
     } catch (error) {
@@ -140,7 +142,7 @@ const ExpenseManagement = () => {
     if (!window.confirm("Are you sure you want to delete this expense?")) return;
     
     try {
-      await api.delete(`/expenses/${expenseId}`);
+      await expensesApi.deleteExpense(expenseId);
       toast.success("Expense deleted successfully");
       await fetchExpenses();
       if (selectedExpense?._id === expenseId) {
@@ -177,7 +179,7 @@ const ExpenseManagement = () => {
         status: editFormData.status
       };
 
-      const res = await api.put(`/expenses/${editingExpense._id}`, updates);
+      const resData = await expensesApi.updateExpense(editingExpense._id, updates);
       toast.success("Expense updated successfully");
       setIsEditModalOpen(false);
       await fetchExpenses();
@@ -274,6 +276,108 @@ const ExpenseManagement = () => {
       .reduce((sum, e) => sum + (e.amount || 0), 0)
   };
 
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "approved": return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-emerald-50 text-emerald-600 border-emerald-100 uppercase tracking-wide">Approved</span>;
+      case "rejected": return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-rose-50 text-rose-600 border-rose-100 uppercase tracking-wide">Rejected</span>;
+      default: return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-50 text-amber-600 border-amber-100 uppercase tracking-wide">Pending</span>;
+    }
+  };
+
+  const getCategoryLabel = (category) => {
+    const categories = { travel: "Travel", food: "Food", supplies: "Supplies", equipment: "Equipment", other: "Other" };
+    return categories[category] || category;
+  };
+
+  const expenseColumns = [
+    {
+      key: "expense",
+      label: "Expense",
+      render: (_, expense) => (
+        <div className="flex flex-col">
+          <p className="text-sm font-bold text-slate-700">{expense.title}</p>
+          {expense.description && (
+            <p className="text-[10px] font-medium text-slate-500 truncate max-w-[200px]">
+              {expense.description}
+            </p>
+          )}
+        </div>
+      )
+    },
+    {
+      key: "category",
+      label: "Category",
+      render: (val) => (
+        <span className="p-4 text-xs font-semibold bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 uppercase tracking-tight text-slate-600">
+          {getCategoryLabel(val)}
+        </span>
+      )
+    },
+    {
+      key: "amount",
+      label: "Amount",
+      render: (val) => <span className="text-sm font-bold text-slate-700">${val?.toFixed(2)}</span>
+    },
+    {
+      key: "submittedBy",
+      label: "Submitted By",
+      render: (_, expense) => (
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px] font-bold border border-indigo-100">
+            {(expense.submittedByName || expense.submittedBy?.name || "?").charAt(0).toUpperCase()}
+          </div>
+          <span className="text-xs font-semibold text-slate-600">
+            {expense.submittedByName || expense.submittedBy?.name || "Unknown"}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: "createdAt",
+      label: "Date",
+      render: (val) => <span className="text-xs font-medium text-slate-500">{new Date(val).toLocaleDateString()}</span>
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (val) => getStatusBadge(val)
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      align: "right",
+      render: (_, expense) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); setSelectedExpense(expense); setIsDetailModalOpen(true); }}
+            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+            title="View Details"
+          >
+            <Eye size={14} />
+          </button>
+          {expense.receiptUrl && (
+            <button
+              onClick={(e) => { e.stopPropagation(); downloadFile(expense.receiptUrl, `receipt-${expense.title}`); }}
+              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+              title="Download Receipt"
+            >
+              <Download size={14} />
+            </button>
+          )}
+          {canEdit && expense.status === 'pending' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleEditClick(expense); }}
+              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+              title="Edit Expense"
+            >
+              <Edit2 size={14} />
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
+
   return (
     <PageContainer
       title="Expense Management"
@@ -348,15 +452,15 @@ const ExpenseManagement = () => {
         }
       `}</style>
       <div className="bg-white/30 backdrop-blur-md rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden">
-        <ExpenseTable
-          expenses={filteredExpenses}
+        <TableWithPagination
+          columns={expenseColumns}
+          data={filteredExpenses}
           loading={loading}
-          onView={(expense) => {
+          emptyMessage="No expenses found"
+          onRowClick={(expense) => {
             setSelectedExpense(expense);
             setIsDetailModalOpen(true);
           }}
-          onEdit={handleEditClick}
-          canEdit={canEdit}
         />
       </div>
 

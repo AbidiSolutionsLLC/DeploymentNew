@@ -135,7 +135,7 @@ export function useFileUploader() {
         mimeType: `${result.resource_type}/${result.format}`,
         ...(accessSettings && {
           isPublic: accessSettings.isPublic,
-          sharedWithRoles: accessSettings.sharedWithRoles,
+          SharedWithRoles: accessSettings.SharedWithRoles,
           sharedWithEmails: accessSettings.userEmails
         })
       };
@@ -157,7 +157,7 @@ export function useFileUploader() {
     try {
       const { data } = await api.patch(`/files/files/${fileId}/access`, {
         isPublic: accessSettings.isPublic,
-        sharedWithRoles: accessSettings.sharedWithRoles,
+        SharedWithRoles: accessSettings.SharedWithRoles,
         userEmails: accessSettings.userEmails
       });
       

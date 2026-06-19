@@ -8,8 +8,7 @@ import {
   deleteNotification,
 } from '../../slices/notificationSlice';
 import { getNotificationIcon, getRouteForNotification, formatNotifDate } from '../../utils/notificationUtils';
-
-
+import PageContainer from '../../components/ui/PageContainer';
 
 export default function NotificationsPage() {
   const dispatch = useDispatch();
@@ -57,13 +56,27 @@ export default function NotificationsPage() {
   const totalPages = Math.ceil((pagination.total || 0) / limit);
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white rounded-2xl my-2">
-      {/* --- MASTER LIST SIDEBAR --- */}
-      <div className={`w-full md:w-[350px] lg:w-[400px] border-r border-gray-200 flex flex-col transition-all bg-white ${selectedNotif ? 'hidden md:flex' : 'flex'}`}>
-        
-        {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center gap-3 mb-4">
+    <PageContainer
+      title="Notifications"
+      subtitle="View your alerts and updates"
+      isCard={false}
+      headerActions={
+        unreadCount > 0 && (
+          <button
+            onClick={() => dispatch(markAllAsRead())}
+            className="text-[10px] sm:text-xs text-amber-600 hover:text-amber-800 font-bold uppercase tracking-widest px-3 py-1.5 bg-amber-50 rounded-lg transition-colors"
+          >
+            Mark all read
+          </button>
+        )
+      }
+    >
+      <div className="flex h-[calc(100vh-180px)] min-h-[600px] w-full bg-white/50 backdrop-blur-sm rounded-2xl shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] border border-white/60 overflow-hidden">
+        {/* --- MASTER LIST SIDEBAR --- */}
+        <div className={`w-full md:w-[350px] lg:w-[400px] border-r border-border-subtle flex flex-col transition-all bg-white/40 ${selectedNotif ? 'hidden md:flex' : 'flex'}`}>
+          
+          {/* Sidebar Header */}
+          <div className="p-3 border-b border-border-subtle bg-white/50">
             <button
               onClick={() => {
                 if (window.history.state && window.history.state.idx > 0) {
@@ -72,29 +85,16 @@ export default function NotificationsPage() {
                   navigate('/');
                 }
               }}
-              className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all"
-              title="Go back"
+              className="px-3 py-1.5 text-xs font-bold text-muted hover:text-main hover:bg-surface rounded-lg transition-all flex items-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7 7-7" />
               </svg>
+              Go Back
             </button>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight flex-1 truncate">Notifications</h1>
-            {unreadCount > 0 && (
-              <button
-                onClick={() => dispatch(markAllAsRead())}
-                className="text-xs text-teal-600 hover:text-teal-800 font-semibold"
-                title="Mark all as read"
-              >
-                Mark all read
-              </button>
-            )}
           </div>
 
-
-        </div>
-
-        {/* Notification List Content */}
+          {/* Notification List Content */}
         <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
           {loading && (
             <div className="py-12 text-center">
@@ -248,7 +248,8 @@ export default function NotificationsPage() {
             <p className="text-sm text-gray-500 max-w-xs font-medium leading-relaxed">Choose an item from the list to view its full content and available actions.</p>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

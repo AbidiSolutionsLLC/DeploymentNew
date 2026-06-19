@@ -7,49 +7,49 @@ import AppLayout from "./layout/AppLayout";
 import AuthLayout from "./layout/AuthLayout";
 
 // Pages
-import ThemeSelector from "./Pages/ThemeSelector";
-import Login from "./Pages/login/Login";
-import Home from "./Pages/People/Home";
-import TimeTracker from "./Pages/People/TimeTracker";
-import Files from "./Pages/People/Files";
-import Profile from "./Pages/People/Profile";
-import Attendance from "./Pages/People/Attendance";
-import EditProfile from "./Pages/People/EditProfile";
-import LeaveTracker from "./Pages/People/LeaveTracker";
-import LeaveTrackerAdmin from "./Pages/People/LeaveTrackerAdmin";
-import FileTabs from "./Pages/People/FileTabs";
-import ProjectDashBoard from "./Pages/Projects/ProjectDashBoard";
-import Projects from "./Pages/Projects/Projects";
-import Project from "./Pages/Projects/Project";
-import UserManagement from "./Pages/Admin/UserManagement";
-import LeaveRequest from "./Pages/People/LeaveRequest";
-import ApproveTimesheets from "./Pages/People/ApproveTimesheets";
+import ThemeSelector from "./pages/ThemeSelector";
+import Login from "./pages/auth/Login";
+import Home from "./pages/people/Home";
+import TimeTracker from "./pages/people/TimeTracker";
+import Files from "./pages/people/Files";
+import Profile from "./pages/people/Profile";
+import Attendance from "./pages/people/Attendance";
+import EditProfile from "./pages/people/EditProfile";
+import LeaveTracker from "./pages/people/LeaveTracker";
+import LeaveTrackerAdmin from "./pages/people/LeaveTrackerAdmin";
+import FileTabs from "./pages/people/FileTabs";
+import ProjectDashBoard from "./pages/projects/ProjectDashBoard";
+import Projects from "./pages/projects/Projects";
+import Project from "./pages/projects/Project";
+import UserManagement from "./pages/admin/UserManagement";
+import LeaveRequest from "./pages/people/LeaveRequest";
+import ApproveTimesheets from "./pages/people/ApproveTimesheets";
 import { ToastContainer } from "react-toastify";
-import PrivateRoute from "./Components/PrivateRoute";
-import PublicRoute from "./Components/PublicRoute";
+import PrivateRoute from "./components/PrivateRoute";
+import PublicRoute from "./components/PublicRoute";
 import "react-toastify/dist/ReactToastify.css";
-import Ticket from "./Pages/Tickets/Ticket";
-import AdminTickets from "./Pages/Tickets/AdminTickets";
-import AdminDashBoard from "./Pages/Admin/AdminDashBoard";
-import ActivityLogs from "./Pages/Admin/ActivityLogs";
-import MyTask from "./Pages/Projects/MyTask";
-import useAutoLogin from "./Hooks/useAutoLogin";
-import { TimeLogProvider } from "../src/Pages/People/TimeLogContext";
-import Role from "./Pages/People/sharedWithRole";
-import UploadDocument from "./Pages/People/UploadDocument";
-import FAQs from "./Pages/People/FAQ";
-import AssignTicket from "./Pages/Tickets/AssignTickets";
-import ProjectDetail from "./Pages/Projects/ProjectDetail";
-import ComingSoon from "./Pages/Projects/ComingSoon";
-import OrgChartPage from "./Pages/Admin/OrgChart";
-import AssignedTickets from "./Pages/People/AssignedTickets";
-import AdminAttendance from "./Pages/Admin/AdminAttendance";
-import ExpenseManagement from "./Pages/Admin/ExpenseManagement";
-import NotificationsPage from "./Pages/Notifications/NotificationsPage";
-import { useNotificationSSE } from "./Hooks/useNotificationSSE";
+import Ticket from "./pages/tickets/Ticket";
+import AdminTickets from "./pages/tickets/AdminTickets";
+import AdminDashBoard from "./pages/admin/AdminDashBoard";
+import ActivityLogs from "./pages/admin/ActivityLogs";
+import MyTask from "./pages/projects/MyTask";
+import useAutoLogin from "./hooks/useAutoLogin";
+import { TimeLogProvider } from "../src/pages/people/TimeLogContext";
+import Role from "./pages/people/SharedWithRole";
+import UploadDocument from "./pages/people/UploadDocument";
+import FAQs from "./pages/people/FAQ";
+import AssignTicket from "./pages/tickets/AssignTickets";
+import ProjectDetail from "./pages/projects/ProjectDetail";
+import ComingSoon from "./pages/projects/ComingSoon";
+import OrgChartPage from "./pages/admin/OrgChart";
+import AssignedTickets from "./pages/people/AssignedTickets";
+import AdminAttendance from "./pages/admin/AdminAttendance";
+import ExpenseManagement from "./pages/admin/ExpenseManagement";
+import NotificationsPage from "./pages/notifications/NotificationsPage";
+import { useNotificationSSE } from "./hooks/useNotificationSSE";
 import React, { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
-import MobileBlock from "./Components/MobileBlock";
+import { useSelector, useDispatch } from "react-redux";
+import MobileBlock from "./components/MobileBlock";
 
 function App() {
   useAutoLogin();
@@ -76,6 +76,18 @@ function App() {
 
   // Activate real-time notification stream (uses MSAL token internally)
   const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
+  const authStateUser = useSelector((s) => s.auth.user);
+  const dispatch = useDispatch();
+
+  // PERMANENT FIX: Auto-normalize cached nested user objects from Redux Persist
+  useEffect(() => {
+    if (authStateUser && (authStateUser.data?.user || authStateUser.user)) {
+      const normalizedUser = authStateUser.data?.user || authStateUser.user;
+      dispatch({ type: 'auth/setAuthUser', payload: normalizedUser });
+      console.log("Auto-normalized Redux Persist user object structure");
+    }
+  }, [authStateUser, dispatch]);
+
   useNotificationSSE(isAuthenticated);
 
   if (isMobileDevice) {

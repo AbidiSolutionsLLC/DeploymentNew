@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import api from "../axios";
 import { toast } from "react-toastify";
-import { X } from "lucide-react";
 import ModernSelect from "./ui/ModernSelect";
 import ModernDatePicker from "./ui/ModernDatePicker";
+import GlassModal from "./ui/GlassModal";
+import GlassButton from "./ui/GlassButton";
 import {
   validateDescription,
   validateText,
-  validateNumeric,
   sanitizeText,
   getApiError,
 } from "../utils/validationUtils";
@@ -22,7 +22,6 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const modalRef = useRef(null);
 
   useEffect(() => {
     if (open) {
@@ -36,10 +35,6 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
       setErrors({});
     }
   }, [open]);
-
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) handleCancel();
-  };
 
   const handleCancel = () => {
     const isDirty = formData.employeeId || formData.job || formData.description || formData.hours;
@@ -98,14 +93,6 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
     return !Object.values(newErrors).some(Boolean);
   };
 
-  const isValid = !Object.values({
-    employeeId: validateField("employeeId", formData.employeeId),
-    job: validateField("job", formData.job),
-    date: validateField("date", formData.date),
-    hours: validateField("hours", formData.hours),
-    description: validateField("description", formData.description),
-  }).some(Boolean);
-
   const handleChange = (name, value) => {
     const updatedForm = { ...formData, [name]: value };
     setFormData(updatedForm);
@@ -113,7 +100,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!validateAll()) {
       toast.error("Please fix validation errors before submitting.");
       return;
@@ -138,143 +125,124 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6"
-      onClick={handleBackdropClick}
-    >
-      <div
-        ref={modalRef}
-        className="w-full max-w-lg bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
-      >
-        <button
-          onClick={handleCancel}
-          className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
-        >
-          &times;
-        </button>
-
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
-          <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
-            ADD TIME LOG (ADMIN)
-          </h2>
-        </div>
-
-        <form className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar" onSubmit={handleSubmit}>
-          {/* Employee Select */}
-          <div className="relative z-50">
-            <ModernSelect
-              label="Select Employee"
-              name="employeeId"
-              value={formData.employeeId}
-              onChange={(e) => handleChange("employeeId", e.target.value)}
-              required
-              placeholder="Select Employee"
-              options={[
-                { value: "", label: "Select Employee" },
-                ...allUsers.map((u) => ({ value: u._id, label: `${u.name} (${u.email})` })),
-              ]}
-              className="w-full"
-            />
-            {errors.employeeId && (
-              <p className="text-xs text-red-500 mt-1">{errors.employeeId}</p>
-            )}
-          </div>
-
-          {/* Job/Task Name */}
-          <div className="relative z-40">
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              TASK/JOB NAME*
-            </label>
-            <input
-              type="text"
-              name="job"
-              value={formData.job}
-              maxLength={50}
-              onChange={(e) => handleChange("job", e.target.value)}
-              onBlur={() => setErrors((prev) => ({ ...prev, job: validateField("job", formData.job) }))}
-              placeholder="e.g. Website Overhaul"
-              className={`w-full bg-white border ${errors.job ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-amber-100 font-medium`}
-            />
-            {errors.job && <p className="text-xs text-red-500 mt-1">{errors.job}</p>}
-          </div>
-
-          {/* Date */}
-          <div className="relative z-30">
-            <ModernDatePicker
-              label="DATE"
-              name="date"
-              value={formData.date}
-              onChange={(e) => handleChange("date", e.target.value)}
-              required
-              maxDate={new Date()}
-            />
-            {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
-          </div>
-
-          {/* Hours */}
-          <div className="relative z-20">
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              HOURS WORKED*
-            </label>
-            <input
-              type="number"
-              step="0.5"
-              min="0.5"
-              max="24"
-              value={formData.hours}
-              onChange={(e) => handleChange("hours", e.target.value)}
-              onBlur={() => setErrors((prev) => ({ ...prev, hours: validateField("hours", formData.hours) }))}
-              placeholder="e.g. 4.5"
-              className={`w-full bg-white border ${errors.hours ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-amber-100 font-medium`}
-            />
-            {errors.hours && <p className="text-xs text-red-500 mt-1">{errors.hours}</p>}
-          </div>
-
-          {/* Description */}
-          <div className="relative z-10">
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              DESCRIPTION* <span className="normal-case font-normal text-slate-300">(min 10, max 300 chars)</span>
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              onBlur={() =>
-                setErrors((prev) => ({ ...prev, description: validateField("description", formData.description) }))
-              }
-              placeholder="Describe what this person worked on in detail..."
-              className={`w-full bg-white border ${errors.description ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-amber-100 min-h-[80px]`}
-            />
-            <div className="flex justify-between items-center mt-1">
-              {errors.description ? (
-                <p className="text-xs text-red-500">{errors.description}</p>
-              ) : (
-                <span />
-              )}
-              <p className="text-xs text-slate-400 text-right">{formData.description.length}/300</p>
-            </div>
-          </div>
-        </form>
-
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="flex-1 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest"
-          >
+    <GlassModal
+      isOpen={open}
+      onClose={() => !loading && handleCancel()}
+      title="ADD TIME LOG (ADMIN)"
+      maxWidth="max-w-lg"
+      footer={
+        <>
+          <GlassButton variant="ghost" onClick={handleCancel} disabled={loading}>
             CANCEL
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-[2] py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-50"
+          </GlassButton>
+          <GlassButton 
+            variant="primary" 
+            onClick={handleSubmit} 
+            isLoading={loading}
+            disabled={Object.values(errors).some(Boolean)}
           >
             {loading ? "SAVING..." : "CREATE LOG"}
-          </button>
+          </GlassButton>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Employee Select */}
+        <div className="relative z-50">
+          <ModernSelect
+            label="Select Employee"
+            name="employeeId"
+            value={formData.employeeId}
+            onChange={(e) => handleChange("employeeId", e.target.value)}
+            required
+            placeholder="Select Employee"
+            options={[
+              { value: "", label: "Select Employee" },
+              ...allUsers.map((u) => ({ value: u._id, label: `${u.name} (${u.email})` })),
+            ]}
+            className="w-full"
+            error={errors.employeeId}
+          />
+          {errors.employeeId && (
+            <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.employeeId}</p>
+          )}
         </div>
-      </div>
-    </div>
+
+        {/* Job/Task Name */}
+        <div className="relative z-40">
+          <label className="block text-[10px] font-black text-muted dark:text-slate-500 mb-2 uppercase tracking-widest">
+            TASK/JOB NAME*
+          </label>
+          <input
+            type="text"
+            name="job"
+            value={formData.job}
+            maxLength={50}
+            onChange={(e) => handleChange("job", e.target.value)}
+            onBlur={() => setErrors((prev) => ({ ...prev, job: validateField("job", formData.job) }))}
+            placeholder="e.g. Website Overhaul"
+            className={`glass-input w-full ${errors.job ? "border-red-400 ring-1 ring-red-400" : ""}`}
+          />
+          {errors.job && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.job}</p>}
+        </div>
+
+        {/* Date */}
+        <div className="relative z-30">
+          <ModernDatePicker
+            label="DATE"
+            name="date"
+            value={formData.date}
+            onChange={(e) => handleChange("date", e.target.value)}
+            required
+            maxDate={new Date()}
+            error={errors.date}
+          />
+        </div>
+
+        {/* Hours */}
+        <div className="relative z-20">
+          <label className="block text-[10px] font-black text-muted dark:text-slate-500 mb-2 uppercase tracking-widest">
+            HOURS WORKED*
+          </label>
+          <input
+            type="number"
+            step="0.5"
+            min="0.5"
+            max="24"
+            value={formData.hours}
+            onChange={(e) => handleChange("hours", e.target.value)}
+            onBlur={() => setErrors((prev) => ({ ...prev, hours: validateField("hours", formData.hours) }))}
+            placeholder="e.g. 4.5"
+            className={`glass-input w-full ${errors.hours ? "border-red-400 ring-1 ring-red-400" : ""}`}
+          />
+          {errors.hours && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.hours}</p>}
+        </div>
+
+        {/* Description */}
+        <div className="relative z-10">
+          <label className="block text-[10px] font-black text-muted dark:text-slate-500 mb-2 uppercase tracking-widest">
+            DESCRIPTION* <span className="normal-case font-normal text-muted dark:text-slate-500">(min 10, max 300 chars)</span>
+          </label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => handleChange("description", e.target.value)}
+            onBlur={() =>
+              setErrors((prev) => ({ ...prev, description: validateField("description", formData.description) }))
+            }
+            placeholder="Describe what this person worked on in detail..."
+            className={`glass-input w-full resize-none min-h-[80px] ${errors.description ? "border-red-400 ring-1 ring-red-400" : ""}`}
+          />
+          <div className="flex justify-between items-center mt-1">
+            {errors.description ? (
+              <p className="text-[10px] text-red-500 font-bold">{errors.description}</p>
+            ) : (
+              <span />
+            )}
+            <p className="text-[10px] text-muted dark:text-slate-400 text-right">{formData.description.length}/300</p>
+          </div>
+        </div>
+      </form>
+    </GlassModal>
   );
 }

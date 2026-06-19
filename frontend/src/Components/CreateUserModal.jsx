@@ -6,12 +6,13 @@ import { FaPlus, FaCheck } from "react-icons/fa";
 import ModernSelect from "./ui/ModernSelect";
 import ModernDatePicker from "./ui/ModernDatePicker";
 import { validateText, validateEmail, validatePassword, validatePhone, sanitizeText } from "../utils/validationUtils";
+import GlassModal from "./ui/GlassModal";
+import GlassButton from "./ui/GlassButton";
 
 const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, allManagers }) => {
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const modalRef = useRef(null);
 
   const initialFormState = {
     firstName: "",
@@ -89,12 +90,6 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
     validateField(name, value);
   };
 
-  const handleBackdropClick = (e) => {
-    // If clicking inside the date picker portal, don't close the modal
-    if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
-    if (modalRef.current && !modalRef.current.contains(e.target)) setIsOpen(false);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -151,154 +146,134 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
       ? baseRoles.filter((r) => r.value !== "Super Admin")
       : baseRoles;
 
-  if (!isOpen) return null;
-
   return (
     <>
-      <div
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4"
-        onClick={handleBackdropClick}
-      >
-        <div
-          ref={modalRef}
-          className="w-full max-w-3xl bg-white rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden animate-fadeIn"
-        >
-          {/* Close */}
-          <button
-            onClick={() => setIsOpen(false)}
-            className="absolute top-4 right-4 text-3xl text-slate-400 hover:text-red-500"
-          >
-            &times;
-          </button>
-
-          {/* Header */}
-          <div className="px-8 py-6 border-b border-slate-100 text-center">
-            <h2 className="text-lg font-black text-slate-800 uppercase tracking-widest">
-              Create New User
-            </h2>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
-
-            {/* Name + Email */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="John" error={errors.firstName} required />
-              <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Doe" error={errors.lastName} required />
-              <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" error={errors.email} required />
-            </div>
-
-            {/* Password + Phone */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="********" error={errors.password} required />
-              <Input label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+1234567890" error={errors.phoneNumber} required />
-            </div>
-
-            {/* Role + Designation + Technician */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <ModernSelect label="Role" name="role" value={formData.role} onChange={handleChange} options={filteredRoles} error={errors.role} />
-
-              <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="Senior Developer" />
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase">Technician</label>
-                <div
-                  onClick={() => setFormData((p) => ({ ...p, isTechnician: !p.isTechnician }))}
-                  className={`flex items-center gap-3 px-4 py-3 border rounded-xl cursor-pointer ${
-                    formData.isTechnician ? "bg-amber-50 border-amber-200" : "border-slate-200"
-                  }`}
-                >
-                  <div className={`w-5 h-5 border rounded flex items-center justify-center ${
-                    formData.isTechnician ? "bg-amber-500 border-amber-500" : "border-slate-300"
-                  }`}>
-                    {formData.isTechnician && <FaCheck className="text-white w-3 h-3" />}
-                  </div>
-                  <span className="text-sm text-slate-600">Assign as Technician</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Department + ReportsTo + Wage */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="flex gap-2 items-end">
-                <ModernSelect
-                  label="Department"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  options={allDepartments.map((d) => ({ value: d._id, label: d.name }))}
-                  error={errors.department}
-                />
-                <button type="button" onClick={() => setIsDeptModalOpen(true)} className="h-[46px] px-4 bg-amber-50 rounded-xl text-amber-600">
-                  <FaPlus />
-                </button>
-              </div>
-
-              <ModernSelect
-                label="Reports To"
-                name="reportsTo"
-                value={formData.reportsTo}
-                onChange={handleChange}
-                options={allManagers.map((m) => ({ value: m._id, label: m.name }))}
-                error={errors.reportsTo}
-              />
-
-              <Input label="Hourly Wage" name="hourlyWage" type="number" value={formData.hourlyWage} onChange={handleChange} placeholder="25.50" />
-            </div>
-
-            {/* Type + Joining Date + Branch + Timezone */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <ModernSelect
-                label="Employee Type"
-                name="empType"
-                value={formData.empType}
-                onChange={handleChange}
-                options={[
-                  { value: "Permanent", label: "Permanent" },
-                  { value: "Contractor", label: "Contractor" },
-                  { value: "Intern", label: "Intern" },
-                  { value: "Part Time", label: "Part Time" },
-                ]}
-              />
-
-              <div className="grid grid-cols-1  gap-4">
-                <ModernDatePicker label="Joining Date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} />
-                {(formData.empType === "Contractor" || formData.empType === "Intern") && (
-                  <ModernDatePicker label="End Date" name="endDate" value={formData.endDate} onChange={handleChange} />
-                )}
-              </div>
-
-              <Input label="Branch" name="branch" value={formData.branch} onChange={handleChange} placeholder="New York Office" />
-
-              <ModernSelect
-                label="Timezone"
-                name="timeZone"
-                value={formData.timeZone}
-                onChange={handleChange}
-                options={[
-                  { value: "Asia/Karachi", label: "Asia/Karachi" },
-                  { value: "America/New_York", label: "America/New_York" },
-                  { value: "Europe/London", label: "Europe/London" },
-                ]}
-              />
-            </div>
-          </form>
-
-          {/* Footer */}
-          <div className="px-8 py-6 border-t border-slate-100 flex gap-3">
-            <button onClick={() => setIsOpen(false)} className="flex-1 py-3 font-black text-slate-400 uppercase">
+      <GlassModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Create New User"
+        maxWidth="max-w-3xl"
+        footer={
+          <>
+            <GlassButton variant="ghost" onClick={() => setIsOpen(false)}>
               Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="flex-1 py-3 bg-[#64748b] text-white rounded-2xl font-black uppercase"
-            >
+            </GlassButton>
+            <GlassButton variant="primary" onClick={handleSubmit} isLoading={isLoading}>
               {isLoading ? "Creating..." : "Create User"}
-            </button>
+            </GlassButton>
+          </>
+        }
+      >
+        <form id="create-user-form" onSubmit={handleSubmit} className="space-y-6">
+
+          {/* Name + Email */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="John" error={errors.firstName} required />
+            <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Doe" error={errors.lastName} required />
+            <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" error={errors.email} required />
           </div>
-        </div>
-      </div>
+
+          {/* Password + Phone */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="********" error={errors.password} required />
+            <Input label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+1234567890" error={errors.phoneNumber} required />
+          </div>
+
+          {/* Role + Designation + Technician */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <ModernSelect label="Role" name="role" value={formData.role} onChange={handleChange} options={filteredRoles} error={errors.role} />
+
+            <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="Senior Developer" />
+
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 mb-2 uppercase">Technician</label>
+              <div
+                onClick={() => setFormData((p) => ({ ...p, isTechnician: !p.isTechnician }))}
+                className={`flex items-center gap-3 px-4 py-3 border rounded-xl cursor-pointer transition-colors ${
+                  formData.isTechnician ? "bg-brand-primary/10 border-brand-primary" : "border-border-subtle hover:bg-surface/50"
+                }`}
+              >
+                <div className={`w-5 h-5 border rounded flex items-center justify-center ${
+                  formData.isTechnician ? "bg-brand-primary border-brand-primary" : "border-slate-300"
+                }`}>
+                  {formData.isTechnician && <FaCheck className="text-white w-3 h-3" />}
+                </div>
+                <span className="text-sm text-heading dark:text-white">Assign as Technician</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Department + ReportsTo + Wage */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex gap-2 items-end">
+              <ModernSelect
+                label="Department"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                options={allDepartments.map((d) => ({ value: d._id, label: d.name }))}
+                error={errors.department}
+              />
+              <button 
+                type="button" 
+                onClick={() => setIsDeptModalOpen(true)} 
+                className="h-[46px] px-4 bg-brand-primary/10 rounded-xl text-brand-primary hover:bg-brand-primary/20 transition-colors"
+                aria-label="Add Department"
+              >
+                <FaPlus />
+              </button>
+            </div>
+
+            <ModernSelect
+              label="Reports To"
+              name="reportsTo"
+              value={formData.reportsTo}
+              onChange={handleChange}
+              options={allManagers.map((m) => ({ value: m._id, label: m.name }))}
+              error={errors.reportsTo}
+            />
+
+            <Input label="Hourly Wage" name="hourlyWage" type="number" value={formData.hourlyWage} onChange={handleChange} placeholder="25.50" />
+          </div>
+
+          {/* Type + Joining Date + Branch + Timezone */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <ModernSelect
+              label="Employee Type"
+              name="empType"
+              value={formData.empType}
+              onChange={handleChange}
+              options={[
+                { value: "Permanent", label: "Permanent" },
+                { value: "Contractor", label: "Contractor" },
+                { value: "Intern", label: "Intern" },
+                { value: "Part Time", label: "Part Time" },
+              ]}
+            />
+
+            <div className="grid grid-cols-1 gap-4">
+              <ModernDatePicker label="Joining Date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} />
+              {(formData.empType === "Contractor" || formData.empType === "Intern") && (
+                <ModernDatePicker label="End Date" name="endDate" value={formData.endDate} onChange={handleChange} />
+              )}
+            </div>
+
+            <Input label="Branch" name="branch" value={formData.branch} onChange={handleChange} placeholder="New York Office" />
+
+            <ModernSelect
+              label="Timezone"
+              name="timeZone"
+              value={formData.timeZone}
+              onChange={handleChange}
+              options={[
+                { value: "Asia/Karachi", label: "Asia/Karachi" },
+                { value: "America/New_York", label: "America/New_York" },
+                { value: "Europe/London", label: "Europe/London" },
+              ]}
+            />
+          </div>
+        </form>
+      </GlassModal>
 
       <CreateDepartmentModal
         isOpen={isDeptModalOpen}
@@ -315,11 +290,11 @@ export default CreateUserModal;
 /* Input Component */
 const Input = ({ label, error, ...props }) => (
   <div>
-    <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
+    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-widest">
       {label}
     </label>
     <input
-      className={`w-full bg-white border ${error ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-amber-100 placeholder:text-slate-300 transition-all`}
+      className={`glass-input w-full ${error ? 'border-red-400 ring-1 ring-red-400' : ''}`}
       {...props}
     />
     {error && <p className="text-[10px] text-red-500 mt-1 font-bold">{error}</p>}

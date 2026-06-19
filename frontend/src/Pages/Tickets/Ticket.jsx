@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import TableWithPagination from "../../Components/TableWithPagination"; 
+import TableWithPagination from "../../components/TableWithPagination"; 
 import { FiTrash2, FiPlus } from "react-icons/fi";
 import { FaEye } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import api from "../../axios";
-import RaiseTicketModal from "../../Pages/Tickets/RaiseTicketModal";
-import ViewTicketDetailsModal from "../../Pages/Tickets/ViewTicketDetailsModal";
+import RaiseTicketModal from "../../pages/tickets/RaiseTicketModal";
+import ViewTicketDetailsModal from "../../pages/tickets/ViewTicketDetailsModal";
 import { toast } from "react-toastify";
-import PageContainer from "../../Components/ui/PageContainer";
+import PageContainer from "../../components/ui/PageContainer";
 
 const Ticket = () => {
   const [tickets, setTickets] = useState([]);

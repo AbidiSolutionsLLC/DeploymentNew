@@ -1,11 +1,11 @@
 // src/pages/Projects.jsx  (hook-based)
 import { useState } from "react";
-import ProjectsTable from "../../Components/ProjectsTable";
-import NewProjectDrawer from "../../Components/NewProjectDrawer";
-import useProjects from "../../Hooks/useProjects";
+import ProjectsTable from "../../components/ProjectsTable";
+import NewProjectDrawer from "../../components/NewProjectDrawer";
+import useProjects from "../../hooks/useProjects";
 import projectApi from "../../api/projectApi";
 import { toast } from "react-toastify";
-import PageContainer from "../../Components/ui/PageContainer";
+import PageContainer from "../../components/ui/PageContainer";
 
 const Projects = () => {
   const { projects, loading, error, refetch } = useProjects(); // autoFetch true

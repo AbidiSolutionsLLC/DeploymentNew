@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FaUser, FaPaperPlane, FaSpinner } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext"; // Keep this import
-import { useComments } from "../../Hooks/project/useComments";
+import { useComments } from "../../hooks/project/useComments";
 import { toast } from "react-toastify";
 
 const CommentSection = ({ projectId }) => { // Changed component name

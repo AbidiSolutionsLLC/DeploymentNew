@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useProject } from "../../Hooks/project/useProject";
-import { useTasks } from "../../Hooks/project/useTask";
+import { useProject } from "../../hooks/project/useProject";
+import { useTasks } from "../../hooks/project/useTask";
 import { useTheme } from "../../context/ThemeContext"; // Keep this import
-import ProjectHeader from "../../Components/project/ProjectHeader";
-import TabNavigation from "../../Components/project/TabNavigation";
-import KanbanBoard from "../../Components/project/KanbanBoard";
-import CommentsSection from "../../Components/project/CommentSection";
-import MyTasksView from "../../Components/project/MyTaskView";
-import AddTaskDrawer from "../../Components/project/AddTaskDrawer";
+import ProjectHeader from "../../components/project/ProjectHeader";
+import TabNavigation from "../../components/project/TabNavigation";
+import KanbanBoard from "../../components/project/KanbanBoard";
+import CommentsSection from "../../components/project/CommentSection";
+import MyTasksView from "../../components/project/MyTaskView";
+import AddTaskDrawer from "../../components/project/AddTaskDrawer";
 
-import PageContainer from "../../Components/ui/PageContainer";
+import PageContainer from "../../components/ui/PageContainer";
 
 const ProjectDetail = () => {
   const { id } = useParams();

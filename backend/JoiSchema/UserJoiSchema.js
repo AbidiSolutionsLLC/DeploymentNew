@@ -1,28 +1,15 @@
 const Joi = require("joi");
 
 const userSchema = Joi.object({
-  name: Joi.string()
-    .trim()
-    .min(3)
-    .max(101)
-    .pattern(/^[a-zA-Z\s'-]+$/)
-    .required()
-    .messages({
-      'string.min': 'Name must be at least 3 characters.',
-      'string.max': 'Name cannot exceed 101 characters.',
-      'string.pattern.base': 'Name can only contain letters, spaces, hyphens, and apostrophes.',
-      'any.required': 'Name is required.'
-    }),
-  email: Joi.string()
-    .email()
-    .max(254)
-    .required()
-    .messages({
-      'string.email': 'Please enter a valid email address.',
-      'string.max': 'Email is too long.',
-      'any.required': 'Email is required.'
-    }),
-  // Password removed as it is handled by Microsoft Auth / not required on creation
+  name: Joi.string().trim().min(2).max(101).required().messages({
+    'string.min': 'Name must be at least 2 characters.',
+    'string.max': 'Name cannot exceed 101 characters.',
+    'any.required': 'Name is required.'
+  }),
+  email: Joi.string().email().max(254).required().messages({
+    'string.email': 'Please enter a valid email address.',
+    'any.required': 'Email is required.'
+  }),
   password: Joi.string().min(6).optional(), 
   
   role: Joi.string().valid("SuperAdmin", "Admin", "HR", "Manager", "Employee").default("Employee"),
@@ -38,12 +25,7 @@ const userSchema = Joi.object({
   
   joiningDate: Joi.date().required(),
   timeZone: Joi.string().required(),
-  phoneNumber: Joi.string()
-    .pattern(/^\+?[0-9]{7,15}$/)
-    .allow(null, "")
-    .messages({
-      'string.pattern.base': 'Please enter a valid phone number (7–15 digits, optional + prefix).'
-    }),
+  phoneNumber: Joi.string().allow(null, ""),
   branch: Joi.string().required(),
   salary: Joi.number().allow(null),
   address: Joi.string().allow(""),

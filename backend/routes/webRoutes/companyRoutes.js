@@ -1,17 +1,18 @@
 const express = require("express");
 const router = express.Router();
 const companyController = require("../../controllers/registerCompany");
-const catchAsync = require("../../utils/catchAsync");
+const validate = require("../../middlewares/validationMiddleware");
+const { companySchema } = require("../../JoiSchema/CompanyJoiSchema");
 
 router
   .route("/")
-  .post(catchAsync(companyController.createCompany))
-  .get(catchAsync(companyController.getAllCompanies));
+  .post(validate(companySchema), companyController.createCompany)
+  .get(companyController.getAllCompanies);
 
 router
   .route("/:id")
-  .get(catchAsync(companyController.getCompanyById))
-  .put(catchAsync(companyController.updateCompany))
-  .delete(catchAsync(companyController.deleteCompany));
+  .get(companyController.getCompanyById)
+  .put(validate(companySchema), companyController.updateCompany)
+  .delete(companyController.deleteCompany);
 
 module.exports = router;

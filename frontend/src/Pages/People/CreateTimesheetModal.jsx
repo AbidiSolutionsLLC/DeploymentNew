@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { moment, TIMEZONE } from "../../utils/dateUtils"; // Use project's moment util
 import DatePicker from "react-datepicker";
 import { validateDescription, sanitizeText, getApiError } from "../../utils/validationUtils";
+import GlassModal from "../../components/ui/GlassModal";
 
 export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated, selectedDate: propSelectedDate }) {
   const [timesheetName, setTimesheetName] = useState("");
@@ -253,185 +254,165 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
 
   if (!open) return null;
 
-  return (
-    <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6"
-      onClick={handleBackdropClick}
-    >
-      <div
-        ref={modalRef}
-        className="w-full max-w-lg bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
+  const footer = (
+    <div className="flex w-full gap-3">
+      <button onClick={onClose} className="flex-1 py-3 font-bold text-xs text-muted uppercase hover:text-heading transition-colors">
+        Cancel
+      </button>
+      <button
+        onClick={handleSubmit}
+        disabled={loading || fetchingLogs}
+        className="flex-[2] py-3 bg-brand-primary text-white rounded-xl font-bold text-xs uppercase hover:bg-brand-primary/90 active:scale-95 transition-all disabled:opacity-50"
       >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-muted hover:bg-surface hover:text-red-500 transition-all text-2xl font-light z-10"
-        >
-          &times;
-        </button>
-
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
-          <h2 className="text-base sm:text-lg font-black text-heading tracking-widest uppercase">
-            CREATE TIMESHEET
-          </h2>
-        </div>
-
-        <form
-          className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar"
-          onSubmit={handleSubmit}
-        >
-          <div>
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">
-              TIMESHEET DATE*
-            </label>
-            <DatePicker
-  selected={selectedDate ? new Date(selectedDate) : null}
-  onChange={(date) => setSelectedDate(date ? moment(date).format('YYYY-MM-DD') : "")}
-  maxDate={new Date()} // replaces max={getTodayString()}
-  dateFormat="yyyy-MM-dd"
-  wrapperClassName="w-full"
-  className="w-full bg-white border border-border-subtle rounded-xl px-4 py-3 text-sm text-main outline-none focus:ring-2 focus:ring-amber-100 font-medium"
-  placeholderText="Select date"
-  required
-/>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-muted mb-3 uppercase tracking-widest">
-              AVAILABLE LOGS FOR {selectedDate ? formatDisplayDate(selectedDate) : '...'}
-            </label>
-            {fetchingLogs ? (
-              <div className="text-center p-4 text-xs font-bold text-muted animate-pulse">
-                LOADING LOGS...
-              </div>
-            ) : logs.length === 0 ? (
-              <div className="p-4 bg-surface rounded-xl border border-dashed border-border-subtle text-center text-xs text-muted">
-                No logs available for this date.
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                {logs.map((log) => (
-                  <div key={log._id} className="p-3 bg-surface border border-border-subtle rounded-xl text-xs">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-black text-main uppercase tracking-tighter">
-                        {log.job || log.jobTitle}
-                      </span>
-                      <span className="font-bold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
-                        {log.hours} HRS
-                      </span>
-                    </div>
-                    <p className="text-muted line-clamp-1">{log.description}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">
-              TIMESHEET NAME
-            </label>
-            <input
-              type="text"
-              value={timesheetName}
-              onChange={(e) => {
-                setTimesheetName(e.target.value);
-                setNameError(validateName(e.target.value));
-              }}
-              onBlur={() => setNameError(validateName(timesheetName))}
-              className={`w-full bg-white border ${nameError ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-main outline-none focus:ring-2 focus:ring-amber-100 font-medium`}
-              required
-            />
-            {nameError && (
-              <p className="text-xs text-red-500 mt-1">{nameError}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">
-              SUMMARY DESCRIPTION* <span className="normal-case font-normal text-slate-300">(min 10, max 500 chars)</span>
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => {
-                setDescription(e.target.value);
-                setDescriptionError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
-              }}
-              onBlur={() => setDescriptionError(validateDescription(description, { min: 10, max: 500, required: true }))}
-              className={`w-full bg-white border ${descriptionError ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-main outline-none focus:ring-2 focus:ring-amber-100 min-h-[100px]`}
-              placeholder="Describe your work in detail (at least 3 meaningful words)..."
-            />
-            <div className="flex justify-between items-center mt-1">
-              {descriptionError ? (
-                <p className="text-xs text-red-500">{descriptionError}</p>
-              ) : <span />}
-              <p className="text-xs text-muted text-right">{description.length}/500</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">
-              ATTACHMENT {attachments.length > 0 && `(${attachments.length}/${MAX_FILES})`}
-            </label>
-            <div className="relative group">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg,.bmp,.mp4,.mp3"
-                onChange={handleFileChange}
-                className="w-full opacity-0 absolute inset-0 cursor-pointer z-10"
-                disabled={attachments.length >= MAX_FILES}
-              />
-              <div className="w-full bg-white border border-border-subtle border-dashed rounded-xl px-4 py-3 text-sm text-muted flex items-center justify-between group-hover:bg-surface transition-all">
-                <span className="truncate">
-                  {attachments.length > 0 ? `${attachments.length} file(s) selected` : "Choose file(s)..."}
-                </span>
-                <span className="text-[10px] font-black text-slate-300">UPLOAD</span>
-              </div>
-            </div>
-            {attachmentError && (
-              <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight mt-1">{attachmentError}</p>
-            )}
-            
-            {/* Display attached files with remove buttons */}
-            {attachments.length > 0 && (
-              <div className="space-y-2 mt-2">
-                {attachments.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-2 bg-white rounded-lg border border-border-subtle"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-[10px] font-bold text-main truncate">{file.name}</span>
-                      <span className="text-[9px] text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(index)}
-                      className="text-muted hover:text-red-500 transition-colors text-sm font-bold"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </form>
-
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-border-subtle flex gap-3 sm:gap-4 bg-white flex-shrink-0">
-          <button onClick={onClose} className="flex-1 py-4 font-black text-[10px] text-muted uppercase tracking-widest">
-            CANCEL
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading || fetchingLogs}
-            className="flex-[2] py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-50"
-          >
-            {loading ? "CREATING..." : "CREATE TIMESHEET"}
-          </button>
-        </div>
-      </div>
+        {loading ? "Creating..." : "Create Timesheet"}
+      </button>
     </div>
+  );
+
+  return (
+    <GlassModal isOpen={open} onClose={onClose} title="Create Timesheet" footer={footer}>
+      <form
+        className="space-y-6"
+        onSubmit={handleSubmit}
+      >
+        <div>
+          <label className="block text-xs font-bold text-muted mb-2 uppercase">
+            Timesheet Date*
+          </label>
+          <DatePicker
+            selected={selectedDate ? new Date(selectedDate) : null}
+            onChange={(date) => setSelectedDate(date ? moment(date).format('YYYY-MM-DD') : "")}
+            maxDate={new Date()} // replaces max={getTodayString()}
+            dateFormat="yyyy-MM-dd"
+            wrapperClassName="w-full"
+            className="w-full bg-surface/50 border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium cursor-pointer"
+            placeholderText="Select date"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-muted mb-3 uppercase">
+            Available Logs for {selectedDate ? formatDisplayDate(selectedDate) : '...'}
+          </label>
+          {fetchingLogs ? (
+            <div className="text-center p-4 text-xs font-bold text-muted animate-pulse">
+              LOADING LOGS...
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="p-4 bg-surface/50 rounded-xl border border-dashed border-border-subtle text-center text-xs text-muted">
+              No logs available for this date.
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+              {logs.map((log) => (
+                <div key={log._id} className="p-3 bg-surface/50 border border-border-subtle rounded-xl text-xs">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-heading uppercase tracking-tight">
+                      {log.job || log.jobTitle}
+                    </span>
+                    <span className="font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">
+                      {log.hours} HRS
+                    </span>
+                  </div>
+                  <p className="text-muted line-clamp-1">{log.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-muted mb-2 uppercase">
+            Timesheet Name
+          </label>
+          <input
+            type="text"
+            value={timesheetName}
+            onChange={(e) => {
+              setTimesheetName(e.target.value);
+              setNameError(validateName(e.target.value));
+            }}
+            onBlur={() => setNameError(validateName(timesheetName))}
+            className={`w-full bg-surface/50 border ${nameError ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium`}
+            required
+          />
+          {nameError && (
+            <p className="text-xs text-red-500 mt-1">{nameError}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-muted mb-2 uppercase">
+            Summary Description* <span className="normal-case font-normal text-muted/70">(min 10, max 500 chars)</span>
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              setDescriptionError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
+            }}
+            onBlur={() => setDescriptionError(validateDescription(description, { min: 10, max: 500, required: true }))}
+            className={`w-full bg-surface/50 border ${descriptionError ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 min-h-[100px] resize-none`}
+            placeholder="Describe your work in detail (at least 3 meaningful words)..."
+          />
+          <div className="flex justify-between items-center mt-1">
+            {descriptionError ? (
+              <p className="text-xs text-red-500">{descriptionError}</p>
+            ) : <span />}
+            <p className="text-xs text-muted text-right">{description.length}/500</p>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-muted mb-2 uppercase">
+            Attachment {attachments.length > 0 && `(${attachments.length}/${MAX_FILES})`}
+          </label>
+          <div className="relative group">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg,.bmp,.mp4,.mp3"
+              onChange={handleFileChange}
+              className="w-full opacity-0 absolute inset-0 cursor-pointer z-10"
+              disabled={attachments.length >= MAX_FILES}
+            />
+            <div className="w-full bg-surface/50 border border-border-subtle border-dashed rounded-xl px-4 py-3 text-sm text-muted flex items-center justify-between group-hover:bg-surface transition-all">
+              <span className="truncate">
+                {attachments.length > 0 ? `${attachments.length} file(s) selected` : "Choose file(s)..."}
+              </span>
+              <span className="text-[10px] font-bold text-muted uppercase">Upload</span>
+            </div>
+          </div>
+          {attachmentError && (
+            <p className="text-[10px] font-bold text-red-500 uppercase mt-1">{attachmentError}</p>
+          )}
+          
+          {attachments.length > 0 && (
+            <div className="space-y-2 mt-2">
+              {attachments.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-2 bg-surface/50 rounded-lg border border-border-subtle"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-xs font-bold text-heading truncate">{file.name}</span>
+                    <span className="text-[10px] text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(index)}
+                    className="text-muted hover:text-red-500 transition-colors text-sm font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </form>
+    </GlassModal>
   );
 }

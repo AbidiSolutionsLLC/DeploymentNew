@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import PageContainer from "../../components/ui/PageContainer";
 
 const FAQs = () => {
   const [expandedFAQ, setExpandedFAQ] = useState("What is HR Fusion?");
@@ -36,19 +37,12 @@ const FAQs = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-primary m-5 rounded-lg">
-      {/* Main Content */}
-      <main className="flex-1 p-8 ">
-        <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm p-6">
-          {/* FAQs Section */}
-          <div>
-            <div className="bg-gray-50 p-4 rounded-md mb-6">
-              <h2 className="text-base font-medium text-center">
-                HR Fusion - Frequently Asked Questions (FAQs)
-              </h2>
-            </div>
-
-            <div className="space-y-4">
+    <PageContainer
+      title="Frequently Asked Questions"
+      subtitle="Find answers to common questions about HR Fusion"
+    >
+      <div className="bg-white/30 backdrop-blur-md rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] p-6">
+        <div className="space-y-4">
               {faqs.map((faq) => (
                 <div
                   key={faq.title}
@@ -75,9 +69,7 @@ const FAQs = () => {
               ))}
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+    </PageContainer>
   );
 };
 

@@ -53,14 +53,17 @@ const ticketSchema = new mongoose.Schema({
   ],
   status: {
     type: String,
-    // enum: ['opened', 'in progress', 'closed' , "Open" , "In Progress", "Closed"],
+    enum: ['opened', 'in progress', 'closed' , "Open" , "In Progress", "Closed"],
     default: 'Open'
   }, 
   priority: {
     type: String,
-    // enum: ["High Priority", "Medium Priority", "Low Priority"],
+    enum: ["High Priority", "Medium Priority", "Low Priority", "High", "Medium", "Low"],
     default: 'Medium'
   }
 }, { timestamps: true });
+
+ticketSchema.index({ company: 1, assignedTo: 1, status: 1 });
+ticketSchema.index({ company: 1, user: 1, status: 1 });
 
 module.exports = mongoose.model("Ticket", ticketSchema);

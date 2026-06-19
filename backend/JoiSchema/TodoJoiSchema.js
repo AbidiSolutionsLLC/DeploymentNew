@@ -1,18 +1,11 @@
 const Joi = require("joi");
 
 const baseTodoFields = {
-  title: Joi.string().trim().min(3).max(100).required().messages({
+  title: Joi.string().trim().min(1).max(200).required().messages({
     "string.empty": "Task name is required.",
-    "string.min": "Task name must be at least 3 characters.",
-    "string.max": "Task name cannot exceed 100 characters.",
     "any.required": "Task name is required.",
   }),
-  description: Joi.string().trim().min(3).max(500).required().messages({
-    "string.empty": "Task description is required.",
-    "string.min": "Task description must be at least 3 characters.",
-    "string.max": "Task description cannot exceed 500 characters.",
-    "any.required": "Task description is required.",
-  }),
+  description: Joi.string().trim().allow("", null),
   dueDate: Joi.date().required().messages({
     "date.base": "A valid due date is required.",
     "any.required": "Due date is required.",

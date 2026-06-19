@@ -11,7 +11,7 @@ import {
   useFileDeleter,
   useFolderDeleter,
   useFileDownloader,
-} from "../../Hooks/useDrive"
+} from "../../hooks/useDrive"
 import { toast } from "react-toastify"
 import { IoEllipsisVertical } from "react-icons/io5"
 import { FaFolder, FaFile, FaShare, FaTrash } from "react-icons/fa"
@@ -30,7 +30,7 @@ const UploadDocument = () => {
   const [currentFile, setCurrentFile] = useState(null)
   const [accessSettings, setAccessSettings] = useState({
     isPublic: false,
-    sharedWithRoles: [],
+    SharedWithRoles: [],
     userEmails: []
   })
 
@@ -41,7 +41,7 @@ const UploadDocument = () => {
     setCurrentFile(file)
     setAccessSettings({
       isPublic: false,
-      sharedWithRoles: [],
+      SharedWithRoles: [],
       userEmails: []
     })
     setShareModalOpen(true)
@@ -129,7 +129,7 @@ const UploadDocument = () => {
         formData.append('file', currentFile);
         formData.append('folderId', folderId); 
         formData.append('isPublic', accessSettings.isPublic);
-        formData.append('sharedWithRoles', JSON.stringify(accessSettings.sharedWithRoles));
+        formData.append('SharedWithRoles', JSON.stringify(accessSettings.SharedWithRoles));
         formData.append('userEmails', JSON.stringify(accessSettings.userEmails));
 
         await upload(formData);
@@ -249,14 +249,14 @@ const UploadDocument = () => {
                   <label key={role} className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={accessSettings.sharedWithRoles.includes(role)}
+                      checked={accessSettings.SharedWithRoles.includes(role)}
                       onChange={(e) => {
                         const newRoles = e.target.checked
-                          ? [...accessSettings.sharedWithRoles, role]
-                          : accessSettings.sharedWithRoles.filter(r => r !== role);
+                          ? [...accessSettings.SharedWithRoles, role]
+                          : accessSettings.SharedWithRoles.filter(r => r !== role);
                         setAccessSettings({
                           ...accessSettings,
-                          sharedWithRoles: newRoles
+                          SharedWithRoles: newRoles
                         });
                       }}
                       className="mr-1.5 h-3.5 w-3.5 text-amber-600"

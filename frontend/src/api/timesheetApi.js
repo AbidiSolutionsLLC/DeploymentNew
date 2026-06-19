@@ -6,7 +6,7 @@ const getEmployeeTimesheets = async (month, year) => {
   const response = await api.get(API_URL, { 
     params: { month, year } 
   });
-  return response.data;
+  return response.data?.data || response.data;
 };
 
 // New function for weekly timesheets
@@ -14,34 +14,34 @@ const getWeeklyTimesheets = async (weekStart) => {
   const response = await api.get(`${API_URL}/weekly`, {
     params: { weekStart }
   });
-  return response.data;
+  return response.data?.data || response.data;
 };
 
 const createTimesheet = async (timesheetData) => {
   const response = await api.post(API_URL, timesheetData);
-  return response.data;
+  return response.data?.data || response.data;
 };
 
 const getTimesheetById = async (id) => {
   const response = await api.get(`${API_URL}/${id}`);
-  return response.data;
+  return response.data?.data || response.data;
 };
 
 const getAllTimesheets = async (params) => {
   const response = await api.get(`${API_URL}/all`, {
     params
   });
-  return response.data;
+  return response.data?.data || response.data;
 };
 
 const updateTimesheetStatus = async (id, updateData) => {
   const response = await api.put(`${API_URL}/${id}/status`, updateData);
-  return response.data;
+  return response.data?.data || response.data;
 };
 
 const addTimesheetComment = async (id, content) => {
   const response = await api.post(`${API_URL}/${id}/comment`, { content });
-  return response.data;
+  return response.data?.data || response.data;
 };
 
 const downloadAttachment = async (timesheetId, attachmentId) => {
@@ -53,15 +53,15 @@ const downloadAttachment = async (timesheetId, attachmentId) => {
 
 const updateTimesheet = async (id, timesheetData) => {
   const response = await api.put(`/timesheets/${id}/edit`, timesheetData);
-  return response.data;
+  return response.data?.data || response.data;
 };
 
 const deleteTimesheet = async (id) => {
   const response = await api.delete(`/timesheets/${id}`);
-  return response.data;
+  return response.data?.data || response.data;
 };
 
-export default {
+const timesheetApi = {
   getEmployeeTimesheets,
   getWeeklyTimesheets, // Add this
   createTimesheet,
@@ -73,3 +73,5 @@ export default {
   updateTimesheet,
   deleteTimesheet
 };
+
+export default timesheetApi;

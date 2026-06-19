@@ -11,7 +11,7 @@ import {
   PhoneIcon,
 } from "@heroicons/react/24/outline";
 import { moduleConfigs } from "../routeConfig";
-import { useTimeLog } from "../Pages/People/TimeLogContext";
+import { useTimeLog } from "../pages/people/TimeLogContext";
 import CircularProgress from '@mui/material/CircularProgress';
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";

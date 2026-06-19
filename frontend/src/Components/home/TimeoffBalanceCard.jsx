@@ -1,7 +1,7 @@
 // ========== TimeoffBalanceCard.jsx ==========
 import React, { useState, useRef, useEffect } from "react";
 import { FiMoreVertical, FiTrash2, FiCalendar } from "react-icons/fi";
-import axios from "axios";
+import api from "../../axios";
 import EmptyCardState from "./EmptyCardState";
 
 const TimeoffBalanceCard = ({ onDelete, userId }) => {
@@ -13,8 +13,8 @@ const TimeoffBalanceCard = ({ onDelete, userId }) => {
   useEffect(() => {
     const fetchLeaves = async () => {
       try {
-        const response = await axios.get(`/users/${userId}/leaves`);
-        const leaves = response.data;
+        const response = await api.get(`/users/${userId}/leaves`);
+        const leaves = response.data?.data || response.data;
         
         const leaveTypes = [
           {

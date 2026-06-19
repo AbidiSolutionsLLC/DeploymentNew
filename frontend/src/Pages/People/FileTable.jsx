@@ -1,5 +1,7 @@
+import React from "react";
 import { FiEye, FiDownload } from "react-icons/fi";
 import { format } from "date-fns";
+import TableWithPagination from "../../components/TableWithPagination";
 
 const FileTable = ({ files, onDownload, loading, searchTerm = "" }) => {
   
@@ -57,95 +59,89 @@ const FileTable = ({ files, onDownload, loading, searchTerm = "" }) => {
     return `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   };
 
-  return (
-    <div className="bg-white rounded-xl shadow p-4 w-full">
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-left border-separate border-spacing-0">
-          <thead className="bg-gray-100">
-            <tr>
-              {["File Name", "Owner", "Uploaded", "Type", "Size", "Actions"].map(
-                (h) => (
-                  <th
-                    key={h}
-                    className="p-3 font-medium text-gray-700 border-r last:border-none border-gray-300"
-                  >
-                    {h}
-                  </th>
-                )
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length ? (
-              filtered.map((file, i) => (
-                <tr key={i} className="border-b hover:bg-gray-50">
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 flex items-center justify-center">
-                        {file.mimeType?.startsWith('image/') ? (
-                          <img 
-                            src={file.url} 
-                            alt={file.name}
-                            className="w-6 h-6 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 bg-amber-100 rounded flex items-center justify-center">
-                            <span className="text-xs text-amber-600 font-bold">
-                              {file.name?.split('.').pop()?.charAt(0).toUpperCase() || 'F'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <span className="truncate max-w-[200px]" title={file.name}>
-                        {file.name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    {getOwnerName(file)}
-                  </td>
-                  <td className="p-3">
-                    {formatDate(file.createdAt)}
-                  </td>
-                  <td className="p-3">
-                    {getCategory(file.mimeType)}
-                  </td>
-                  <td className="p-3">
-                    {getFileSize(file.size)}
-                  </td>
-                  <td className="p-3 flex items-center gap-3">
-                    <a 
-                      href={file.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      title="View"
-                      className="hover:brightness-110"
-                    >
-                      <FiEye className="text-lg text-purple-600" />
-                    </a>
-                    <button 
-                      onClick={() => onDownload(file._id)} 
-                      title="Download" 
-                      className="hover:brightness-110 disabled:opacity-50"
-                      disabled={loading}
-                    >
-                      <FiDownload className="text-lg text-green-600" />
-                    </button>
-                  </td>
-                </tr>
-              ))
+  const fileColumns = [
+    {
+      key: "fileName",
+      label: "File Name",
+      render: (_, file) => (
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 flex items-center justify-center">
+            {file.mimeType?.startsWith('image/') ? (
+              <img 
+                src={file.url} 
+                alt={file.name}
+                className="w-6 h-6 object-cover rounded"
+              />
             ) : (
-              <tr>
-                <td colSpan={6} className="p-4 text-center text-gray-500">
-                  {searchTerm
-                    ? `No files found matching "${searchTerm}"`
-                    : "No files available"}
-                </td>
-              </tr>
+              <div className="w-6 h-6 bg-amber-100 rounded flex items-center justify-center">
+                <span className="text-xs text-amber-600 font-bold">
+                  {file.name?.split('.').pop()?.charAt(0).toUpperCase() || 'F'}
+                </span>
+              </div>
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+          <span className="truncate max-w-[200px]" title={file.name}>
+            {file.name}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: "owner",
+      label: "Owner",
+      render: (_, file) => getOwnerName(file)
+    },
+    {
+      key: "uploaded",
+      label: "Uploaded",
+      render: (_, file) => formatDate(file.createdAt)
+    },
+    {
+      key: "type",
+      label: "Type",
+      render: (_, file) => getCategory(file.mimeType)
+    },
+    {
+      key: "size",
+      label: "Size",
+      render: (_, file) => getFileSize(file.size)
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      align: "right",
+      render: (_, file) => (
+        <div className="flex items-center justify-end gap-3">
+          <a 
+            href={file.url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            title="View"
+            className="hover:brightness-110"
+          >
+            <FiEye className="text-lg text-purple-600" />
+          </a>
+          <button 
+            onClick={() => onDownload(file._id)} 
+            title="Download" 
+            className="hover:brightness-110 disabled:opacity-50"
+            disabled={loading}
+          >
+            <FiDownload className="text-lg text-green-600" />
+          </button>
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <div className="bg-white/30 backdrop-blur-md rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden w-full">
+      <TableWithPagination
+        columns={fileColumns}
+        data={filtered}
+        loading={loading}
+        emptyMessage={searchTerm ? `No files found matching "${searchTerm}"` : "No files available"}
+      />
     </div>
   );
 };

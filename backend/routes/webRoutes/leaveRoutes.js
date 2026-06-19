@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const leaveController = require("../../controllers/leaveRequest");
-const catchAsync = require("../../utils/catchAsync");
 const { isLoggedIn } = require("../../middlewares/authMiddleware");
 const validate = require("../../middlewares/validationMiddleware");
 const { leaveSchema, leaveResponseSchema } = require("../../JoiSchema/LeaveJoiSchema");

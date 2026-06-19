@@ -93,9 +93,10 @@ const ToDoCard = ({ onDelete, userId }) => {
 
       try {
         setLoading(true);
-        const { data } = await api.get(`/users/${resolvedUserId}/todos`);
+        const response = await api.get(`/users/${resolvedUserId}/todos`);
+        const todos = response.data?.data || response.data;
         setTasks(
-          data.map((todo) => ({
+          todos.map((todo) => ({
             ...todo,
             dueDate: formatDateInput(todo.dueDate),
           }))
@@ -172,11 +173,12 @@ const ToDoCard = ({ onDelete, userId }) => {
         description: addModalForm.description.trim(),
         dueDate: addModalForm.dueDate,
       };
-      const { data } = await api.post(`/users/${resolvedUserId}/todos`, payload);
+      const response = await api.post(`/users/${resolvedUserId}/todos`, payload);
+      const newTodo = response.data?.data || response.data;
       setTasks((prev) => [
         {
-          ...data,
-          dueDate: formatDateInput(data.dueDate),
+          ...newTodo,
+          dueDate: formatDateInput(newTodo.dueDate),
         },
         ...prev,
       ]);
@@ -195,14 +197,15 @@ const ToDoCard = ({ onDelete, userId }) => {
 
     try {
       setUpdatingTaskId(todoId);
-      const { data } = await api.put(`/users/${resolvedUserId}/todos/${todoId}`, payload);
+      const response = await api.put(`/users/${resolvedUserId}/todos/${todoId}`, payload);
+      const updatedTodo = response.data?.data || response.data;
       setTasks((prev) =>
         prev.map((task) =>
           task._id === todoId
             ? {
                 ...task,
-                ...data,
-                dueDate: formatDateInput(data.dueDate),
+                ...updatedTodo,
+                dueDate: formatDateInput(updatedTodo.dueDate),
               }
             : task
         )

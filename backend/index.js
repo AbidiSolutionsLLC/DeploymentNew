@@ -6,17 +6,18 @@ const cors = require("cors");
 require("./conn/conn");
 const cookieParser = require("cookie-parser");
 const globalErrorHandler = require('./middlewares/globalErrorHandler');
-const CronJobs = require('./cronjobs');
 const path = require("path");
 
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(helmet());
+app.use(mongoSanitize());
 
 const corsOptions = {
   origin: ['https://abidipro.abidisolutions.com', 'http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000', "http://localhost:5174","http://localhost:5175" , "http://192.168.100.91:5173"],
@@ -27,7 +28,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 100 });
+const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 10 });
 app.use('/api/v1/auth', authLimiter);
 
 // Serve static files from uploads directory
@@ -98,7 +99,6 @@ app.use(globalErrorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  new CronJobs();
 });
 
 process.on('SIGINT', async () => {

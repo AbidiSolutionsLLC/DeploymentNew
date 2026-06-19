@@ -8,13 +8,14 @@ const {
   createDebugLog,
   getAllLogs,
 } = require("../../controllers/LogController");
-const catchAsync = require("../../utils/catchAsync");
+const validate = require("../../middlewares/validationMiddleware");
+const logValidationSchema = require("../../JoiSchema/LogJoiSchema");
 
-router.post("/", catchAsync(createLog));
-router.post("/info", catchAsync(createInfoLog));
-router.post("/error", catchAsync(createErrorLog));
-router.post("/warn", catchAsync(createWarnLog));
-router.post("/debug", catchAsync(createDebugLog));
-router.get("/", catchAsync(getAllLogs));
+router.post("/", validate(logValidationSchema), createLog);
+router.post("/info", validate(logValidationSchema), createInfoLog);
+router.post("/error", validate(logValidationSchema), createErrorLog);
+router.post("/warn", validate(logValidationSchema), createWarnLog);
+router.post("/debug", validate(logValidationSchema), createDebugLog);
+router.get("/", getAllLogs);
 
 module.exports = router;

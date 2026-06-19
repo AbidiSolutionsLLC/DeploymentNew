@@ -1,29 +1,28 @@
 const express = require("express");
 const router = express.Router();
-const catchAsync = require("../../utils/catchAsync");
 const { isLoggedIn } = require("../../middlewares/authMiddleware");
 const authController = require("../../controllers/authController");
 const userController = require("../../controllers/userController");
 
-router.post("/setup-admin", catchAsync(userController.createInitialSuperAdmin));
+router.post("/setup-admin", userController.createInitialSuperAdmin);
 
 // Onboarding Route
-router.post("/register-company", catchAsync(authController.registerCompany));
+router.post("/register-company", authController.registerCompany);
 
 // Auth Routes
-router.post("/login", catchAsync(authController.login));
-router.post("/verify-otp", catchAsync(authController.verifyOtp));
-router.post("/resend-otp", catchAsync(authController.resendOtp));
-router.post("/logout", catchAsync(authController.logout));
-router.get("/refresh-token", catchAsync(authController.refreshAccessToken));
+router.post("/login", authController.login);
+router.post("/verify-otp", authController.verifyOtp);
+router.post("/resend-otp", authController.resendOtp);
+router.post("/logout", authController.logout);
+router.get("/refresh-token", authController.refreshAccessToken);
 
 // Password Reset
-router.post("/forgot-password", catchAsync(authController.forgotPassword));
-router.get("/verify-reset-token/:token", catchAsync(authController.verifyResetToken));
-router.post("/reset-password/:token", catchAsync(authController.resetPassword));
+router.post("/forgot-password", authController.forgotPassword);
+router.get("/verify-reset-token/:token", authController.verifyResetToken);
+router.post("/reset-password/:token", authController.resetPassword);
 
 // Protected Routes
 router.use(isLoggedIn);
-router.get("/me", catchAsync(authController.getCurrentUser));
+router.get("/me", authController.getCurrentUser);
 
 module.exports = router;

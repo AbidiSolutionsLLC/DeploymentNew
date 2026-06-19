@@ -16,6 +16,8 @@ import { format } from "date-fns";
 import { downloadFile } from "../../utils/downloadFile";
 import { Paperclip } from "lucide-react";
 import { validateDescription, getApiError } from "../../utils/validationUtils";
+import PageContainer from "../../components/ui/PageContainer";
+import TableWithPagination from "../../components/TableWithPagination";
 
 export default function AssignedTickets() {
   const [tickets, setTickets] = useState([]);
@@ -167,23 +169,92 @@ export default function AssignedTickets() {
     return "bg-gray-100 text-gray-600";
   };
 
-  return (
-    <div className="p-6 min-h-screen">
-      
-      {/* --- CONTAINER 1: HEADER & FILTERS --- */}
-      <div className="bg-white rounded-[1.5rem] shadow-sm border border-border-subtle p-6 mb-6">
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-amber-50 rounded-2xl">
-               <ClipboardDocumentCheckIcon className="w-8 h-8 text-amber-600" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-heading uppercase tracking-tight">Assigned Tickets</h1>
-              <p className="text-xs text-muted font-bold mt-1">
-                Manage your tasks efficiently
-              </p>
-            </div>
+  const assignedTicketColumns = [
+    {
+      key: "ticketId",
+      label: "Ticket ID",
+      render: (_, ticket) => (
+        <>
+          <span className="text-xs font-mono font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
+            #{ticket.ticketID}
+          </span>
+          <div className="text-[10px] text-muted mt-1 pl-1 font-bold">
+            {format(new Date(ticket.createdAt), "MMM dd, yyyy")}
           </div>
+        </>
+      )
+    },
+    {
+      key: "subject",
+      label: "Subject",
+      render: (_, ticket) => (
+        <>
+          <div className="text-sm font-bold text-main">{ticket.subject}</div>
+          <div className="text-xs text-muted mt-0.5 line-clamp-1 font-medium">{ticket.description}</div>
+        </>
+      )
+    },
+    {
+      key: "priority",
+      label: "Priority",
+      render: (_, ticket) => (
+        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${getPriorityColor(ticket.priority)}`}>
+          {ticket.priority.replace(' Priority', '')}
+        </span>
+      )
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (_, ticket) => (
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenDropdownId(openDropdownId === ticket._id ? null : ticket._id);
+            }}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all ${getStatusColor(ticket.status)}`}
+          >
+            {ticket.status}
+            <ChevronDownIcon className="w-3 h-3 opacity-60" />
+          </button>
+
+          {openDropdownId === ticket._id && (
+            <div ref={dropdownRef} className="absolute left-0 top-10 w-32 bg-white rounded-xl shadow-xl border border-border-subtle z-50 overflow-hidden py-1 animate-fadeIn">
+              {["Open", "In Progress", "Closed"].map((s) => (
+                <button
+                  key={s}
+                  onClick={(e) => { e.stopPropagation(); handleStatusChange(ticket._id, s); }}
+                  className="w-full text-left px-4 py-2 text-[10px] font-bold text-muted hover:bg-surface hover:text-amber-600 uppercase"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      key: "action",
+      label: "Action",
+      align: "right",
+      render: (_, ticket) => (
+        <button 
+          onClick={(e) => { e.stopPropagation(); setSelectedTicket(ticket); }}
+          className="p-2 bg-white border border-border-subtle text-muted rounded-xl hover:border-amber-300 hover:text-amber-600 transition-all shadow-sm"
+        >
+          <EyeIcon className="w-4 h-4" />
+        </button>
+      )
+    }
+  ];
+
+  return (
+    <PageContainer
+      title="Assigned Tickets"
+      subtitle="Manage your tasks efficiently"
+      filters={
 
           <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
             {/* Search */}
@@ -234,87 +305,17 @@ export default function AssignedTickets() {
               ))}
             </div>
           </div>
-        </div>
-      </div>
-
+      }
+    >
       {/* --- CONTAINER 2: DATA TABLE --- */}
-      <div className="bg-white rounded-[1.5rem] shadow-sm border border-border-subtle overflow-hidden min-h-[500px] flex flex-col">
-        <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-surface border-b border-border-subtle">
-              <tr>
-                <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-wider">Ticket ID</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-wider">Subject</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-wider">Priority</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted uppercase tracking-wider text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr><td colSpan="5" className="text-center py-20 text-muted text-xs font-bold">Loading tickets...</td></tr>
-              ) : filteredTickets.length === 0 ? (
-                <tr><td colSpan="5" className="text-center py-20 text-muted text-xs font-bold">No tickets match your filters.</td></tr>
-              ) : (
-                filteredTickets.map((ticket) => (
-                  <tr key={ticket._id} className="hover:bg-white/40 dark:bg-black/20 transition-colors group">
-                    <td className="px-6 py-4">
-                      <span className="text-xs font-mono font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
-                        #{ticket.ticketID}
-                      </span>
-                      <div className="text-[10px] text-muted mt-1 pl-1 font-bold">
-                        {format(new Date(ticket.createdAt), "MMM dd, yyyy")}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-bold text-main">{ticket.subject}</div>
-                      <div className="text-xs text-muted mt-0.5 line-clamp-1 font-medium">{ticket.description}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${getPriorityColor(ticket.priority)}`}>
-                        {ticket.priority.replace(' Priority', '')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenDropdownId(openDropdownId === ticket._id ? null : ticket._id);
-                        }}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all ${getStatusColor(ticket.status)}`}
-                      >
-                        {ticket.status}
-                        <ChevronDownIcon className="w-3 h-3 opacity-60" />
-                      </button>
-
-                      {openDropdownId === ticket._id && (
-                        <div ref={dropdownRef} className="absolute left-6 top-10 w-32 bg-white rounded-xl shadow-xl border border-border-subtle z-50 overflow-hidden py-1 animate-fadeIn">
-                          {["Open", "In Progress", "Closed"].map((s) => (
-                            <button
-                              key={s}
-                              onClick={() => handleStatusChange(ticket._id, s)}
-                              className="w-full text-left px-4 py-2 text-[10px] font-bold text-muted hover:bg-surface hover:text-amber-600 uppercase"
-                            >
-                              {s}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => setSelectedTicket(ticket)}
-                        className="p-2 bg-white border border-border-subtle text-muted rounded-xl hover:border-amber-300 hover:text-amber-600 transition-all shadow-sm"
-                      >
-                        <EyeIcon className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="bg-white/30 backdrop-blur-md rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden min-h-[500px] flex flex-col">
+        <TableWithPagination
+          columns={assignedTicketColumns}
+          data={filteredTickets}
+          loading={loading}
+          emptyMessage="No tickets match your filters."
+          onRowClick={(ticket) => setSelectedTicket(ticket)}
+        />
       </div>
 
       {/* --- TICKET DETAIL MODAL --- */}
@@ -433,6 +434,6 @@ export default function AssignedTickets() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -25,11 +25,11 @@ const leaveRequestSchema = new mongoose.Schema({
     required: true,
   },
   startDate: {
-    type: String,
+    type: Date,
     required: true,
   },
   endDate: {
-    type: String,
+    type: Date,
     required: true,
   },
   reason: String,
@@ -85,5 +85,8 @@ const leaveRequestSchema = new mongoose.Schema({
 }, {
   timestamps: true // This adds createdAt and updatedAt automatically
 });
+
+leaveRequestSchema.index({ company: 1, employee: 1, status: 1 });
+leaveRequestSchema.index({ company: 1, startDate: 1, endDate: 1 });
 
 module.exports = mongoose.model("LeaveRequest", leaveRequestSchema);

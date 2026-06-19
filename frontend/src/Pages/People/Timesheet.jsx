@@ -7,11 +7,12 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
-import TableWithPagination from "../../Components/TableWithPagination";
-import ViewTimesheetModal from "../../Components/ViewTimesheetModal";
-import EditTimesheetModal from "../../Components/EditTimesheetModal";
+import TableWithPagination from "../../components/TableWithPagination";
+import ViewTimesheetModal from "../../components/ViewTimesheetModal";
+import EditTimesheetModal from "../../components/EditTimesheetModal";
 import { moment, TIMEZONE } from "../../utils/dateUtils";
-import PageContainer from "../../Components/ui/PageContainer";
+import PageContainer from "../../components/ui/PageContainer";
+import GlassModal from "../../components/ui/GlassModal";
 
 const Timesheet = ({ refreshTrigger }) => {
   const [showCalendar, setShowCalendar] = useState(false);
@@ -448,30 +449,6 @@ const Timesheet = ({ refreshTrigger }) => {
                 rowsPerPage={5}
                 actions={tableActions}
                 onRowClick={(row) => handleViewDetails(row)}
-                renderTable={(data) => (
-                  <table className="min-w-full text-sm border-separate border-spacing-0">
-                    <thead>
-                      <tr className="bg-surface/80 backdrop-blur-sm text-heading">
-                        {timesheetColumns.map((col) => (
-                          <th key={col.key} className="p-4 font-semibold text-xs uppercase tracking-wide border-b border-border-subtle text-left">
-                            {col.label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.map((item) => (
-                        <tr key={item._id} className="border-b border-border-subtle hover:bg-surface/50 transition-colors">
-                          {timesheetColumns.map((col) => (
-                            <td key={col.key} className="p-4">
-                              {col.render ? col.render(item) : item[col.key]}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
               />
             )}
             
@@ -505,40 +482,39 @@ const Timesheet = ({ refreshTrigger }) => {
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
-      {deleteConfirmDialog.show && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-fadeIn">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </div>
-              <h3 className="text-base font-black text-heading uppercase tracking-wider mb-2">
-                Delete Timesheet
-              </h3>
-              <p className="text-xs text-muted font-medium mb-6">
-                Are you sure you want to delete this timesheet? This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCancelDelete}
-                  className="flex-1 py-3 bg-surface text-main rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
+      <GlassModal
+        isOpen={deleteConfirmDialog.show}
+        onClose={handleCancelDelete}
+        title="Delete Timesheet"
+        maxWidth="sm"
+        footer={
+          <div className="flex w-full gap-3">
+            <button
+              onClick={handleCancelDelete}
+              className="flex-1 py-3 font-bold text-xs text-muted uppercase hover:text-heading transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              className="flex-1 py-3 bg-red-500/10 text-red-600 rounded-xl font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-all border border-red-500/20 hover:border-transparent active:scale-95"
+            >
+              Delete
+            </button>
           </div>
+        }
+      >
+        <div className="text-center py-4">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-500/10 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <p className="text-sm text-heading font-medium">
+            Are you sure you want to delete this timesheet? This action cannot be undone.
+          </p>
         </div>
-      )}
+      </GlassModal>
     </PageContainer>
   );
 };

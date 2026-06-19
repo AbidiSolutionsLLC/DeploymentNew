@@ -8,11 +8,12 @@ import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
 import { Download, Plus, X } from "lucide-react";
 import api from "../../axios";
-import TableWithPagination from "../../Components/TableWithPagination";
-import ApproveTimesheetViewModal from "../../Components/ApproveTimesheetViewModal";
-import AdminAddTimeLogModal from "../../Components/AdminAddTimeLogModal";
-import AdminCreateTimesheetModal from "../../Components/AdminCreateTimesheetModal";
-import ExportSelectionModal from "../../Components/ExportSelectionModal";
+import TableWithPagination from "../../components/TableWithPagination";
+import ApproveTimesheetViewModal from "../../components/ApproveTimesheetViewModal";
+import AdminAddTimeLogModal from "../../components/AdminAddTimeLogModal";
+import AdminCreateTimesheetModal from "../../components/AdminCreateTimesheetModal";
+import ExportSelectionModal from "../../components/ExportSelectionModal";
+import PageContainer from "../../components/ui/PageContainer";
 
 
 const ApproveTimesheets = () => {
@@ -560,45 +561,28 @@ const ApproveTimesheets = () => {
   ];
 
   return (
-    <div className="font-sans text-muted">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 pr-4">
-        <div className="bg-white/80 backdrop-blur-sm p-2 rounded-2xl shadow-sm inline-flex border border-white/50">
-          {tabs.map((item, index) => (
-            <button
-              key={index}
-              onClick={() => setActiveTab(index)}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                activeTab === index 
-                ? "bg-white text-amber-600 shadow-md transform scale-[1.02]" 
-                : "text-muted hover:bg-white/50 hover:text-main"
-              }`}
-            >
-              {item.title.split(' ')[0]} {/* Shorter titles for tabs */}
-              {item.count > 0 && (
-                <span className={`ml-2 px-2 py-0.5 rounded-lg text-[10px] ${activeTab === index ? 'bg-amber-50 text-amber-600' : 'bg-surface text-muted'}`}>
-                  {item.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
+    <>
+      <PageContainer
+        title="Approve Timesheets"
+      subtitle="Manage team timesheets and time logs"
+      isCard={true}
+      headerActions={
         <div className="flex items-center gap-3">
-            <div className="relative group">
+            <div className="relative group hidden sm:block">
               <input
                 type="text"
                 placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-10 py-2.5 bg-white border border-border-subtle rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-amber-50 focus:border-amber-400 transition-all w-48 md:w-64"
+                className="pl-10 pr-10 py-2 bg-surface border border-border-subtle rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all w-48 md:w-64"
               />
-              <svg className="absolute left-3.5 top-3 w-4 h-4 text-muted group-focus-within:text-amber-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-3.5 top-2.5 w-4 h-4 text-muted group-focus-within:text-brand-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               {searchTerm && (
                 <button 
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-3 text-muted hover:text-muted transition-colors"
+                  className="absolute right-3 top-2.5 text-muted hover:text-heading transition-colors"
                 >
                   <X size={16} />
                 </button>
@@ -609,7 +593,7 @@ const ApproveTimesheets = () => {
               <button
                 onClick={handleBulkApprove}
                 disabled={updating}
-                className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 text-white rounded-2xl hover:bg-amber-700 transition-all shadow-lg shadow-amber-100 text-[11px] font-black uppercase tracking-widest active:scale-95 disabled:opacity-50"
+                className="btn btn-primary shadow-lg shadow-brand-primary/20 active:scale-95 disabled:opacity-50"
               >
                 Bulk Approve ({selectedIds.length})
               </button>
@@ -617,26 +601,41 @@ const ApproveTimesheets = () => {
 
             <button
               onClick={() => setIsAddTimeLogOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 text-white rounded-2xl hover:bg-amber-700 transition-all shadow-lg shadow-amber-100 text-[11px] font-black uppercase tracking-widest active:scale-95"
+              className="btn btn-secondary flex items-center gap-2 active:scale-95"
             >
               <Plus size={16} strokeWidth={3} /> Time Log
             </button>
             <button
               onClick={() => setIsCreateTimesheetOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 text-[11px] font-black uppercase tracking-widest active:scale-95"
+              className="btn btn-primary flex items-center gap-2 active:scale-95"
             >
               <Plus size={16} strokeWidth={3} /> Timesheet
             </button>
         </div>
-      </div>
-
-      <div className="bg-white rounded-[2rem] shadow-sm border border-border-subtle p-4 mb-6 transition-all">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 px-2">
-          <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-0.5">Management</span>
-              <h2 className="text-lg font-black text-heading uppercase tracking-tight leading-none">{tabs[activeTab].title}</h2>
-            </div>
+      }
+      filters={
+        <>
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 w-full">
+          <div className="inline-flex flex-row flex-wrap items-center bg-surface p-1 rounded-xl shadow-sm border border-border-subtle">
+            {tabs.map((item, index) => (
+              <button
+                key={index}
+                onClick={() => setActiveTab(index)}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 ${
+                  activeTab === index 
+                  ? "bg-white text-brand-primary shadow-sm" 
+                  : "text-muted hover:text-heading hover:bg-white/50"
+                }`}
+              >
+                {item.title.split(' ')[0]}
+                {item.count > 0 && (
+                  <span className={`ml-2 px-1.5 py-0.5 rounded-md text-[10px] ${activeTab === index ? 'bg-brand-primary/10 text-brand-primary' : 'bg-surface text-muted'}`}>
+                    {item.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
 
             {activeTab === 3 ? (
               <div className="flex flex-wrap items-center gap-3 pl-0 md:pl-6 md:border-l border-border-subtle">
@@ -768,8 +767,9 @@ const ApproveTimesheets = () => {
                   </span>
               </div>
           </div>
-        </div>
-      </div>
+        </>
+      }
+    >
 
       <div className="rounded-[1.5rem] shadow-sm border border-border-subtle overflow-hidden">
         <AnimatePresence mode="wait">
@@ -797,6 +797,7 @@ const ApproveTimesheets = () => {
           </motion.div>
         </AnimatePresence>
       </div>
+      </PageContainer>
 
       {showDetails && selectedTimesheet && (
         <ApproveTimesheetViewModal
@@ -837,7 +838,7 @@ const ApproveTimesheets = () => {
           title={`Select ${tabs[activeTab].status} Timesheets to Export`}
         />
       )}
-    </div>
+    </>
   );
 };
 

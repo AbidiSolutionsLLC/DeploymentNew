@@ -11,7 +11,7 @@ const getEmployeeTimeLogs = async (date = null, userId = null) => {
     params.userId = userId;
   }
   const response = await api.get(API_URL, { params });
-  return response.data;
+  return response.data.data || response.data;
 };
 
 const createTimeLog = async (timeLogData) => {
@@ -21,17 +21,17 @@ const createTimeLog = async (timeLogData) => {
     }
   };
   const response = await api.post(API_URL, timeLogData, config);
-  return response.data;
+  return response.data.data || response.data;
 };
 
 const updateTimeLog = async (id, updates) => {
   const response = await api.put(`${API_URL}/${id}`, updates);
-  return response.data;
+  return response.data.data || response.data;
 };
 
 const deleteTimeLog = async (id) => {
   const response = await api.delete(`${API_URL}/${id}`);
-  return response.data;
+  return response.data.data || response.data;
 };
 
 const downloadAttachment = async (logId, attachmentId) => {
@@ -41,10 +41,12 @@ const downloadAttachment = async (logId, attachmentId) => {
   return response.data;
 }
 
-export default {
+const timeLogApi = {
   getEmployeeTimeLogs,
   createTimeLog,
   updateTimeLog,
   deleteTimeLog,
   downloadAttachment
 };
+
+export default timeLogApi;

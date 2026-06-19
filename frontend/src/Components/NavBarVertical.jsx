@@ -9,24 +9,13 @@ import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import api from "../axios"; 
 
-const NavBarVertical = ({ onNotificationClick }) => {
+const NavbarVertical = ({ onNotificationClick }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
-  const [user, setUser] = useState(null);
+  const authStateUser = useSelector((state) => state.auth.user);
+  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
   const location = useLocation();
   const navigate = useNavigate();
   const unreadCount = useSelector((s) => s.notifications?.unreadCount ?? 0);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await api.get("/auth/me");
-        setUser(res.data.user);
-      } catch (err) {
-        console.error("Failed to fetch user info", err);
-      }
-    };
-    fetchUser();
-  }, []);
 
   const hasRole = (allowedRoles) => {
     if (!user || !user.role) return false;
@@ -146,4 +135,4 @@ const NavBarVertical = ({ onNotificationClick }) => {
 };
 
 
-export default NavBarVertical;
+export default NavbarVertical;

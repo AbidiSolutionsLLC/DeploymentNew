@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { FaSortDown } from "react-icons/fa"; 
-import AddTaskDrawer from "../../Components/addTaskModal";
-import SearchBar from "../../Components/SearchBar";
-import MyTasksTable from "../../Components/MyTaskTable";
+import AddTaskDrawer from "../../components/addTaskModal";
+import SearchBar from "../../components/SearchBar";
+import MyTasksTable from "../../components/MyTaskTable";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchMyTasks, createTask, updateTask } from "../../Store/taskSlice";
+import { fetchMyTasks, createTask, updateTask } from "../../store/taskSlice";
 import { toast } from "react-toastify";
 
-import PageContainer from "../../Components/ui/PageContainer";
+import PageContainer from "../../components/ui/PageContainer";
 
 const MyTask = () => {
   const dispatch = useDispatch();

@@ -52,7 +52,7 @@ router
 router
   .route("/:id")
   .get(expenseController.getExpenseById)
-  .put(expenseController.updateExpense)
+  .put(validate(expenseSchema), expenseController.updateExpense)
   .delete(expenseController.deleteExpense);
 
 // Approval/Rejection routes

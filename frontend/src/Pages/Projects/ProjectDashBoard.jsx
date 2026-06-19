@@ -1,20 +1,20 @@
 import React, { useEffect } from "react";
 import { BsFileEarmarkCheckFill } from "react-icons/bs";
 import { MdPeople } from "react-icons/md";
-import ProjectCard from "../../Components/ProjectCard";
+import ProjectCard from "../../components/ProjectCard";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchProjectDashboard } from "../../Store/projectSlice";
-import GreetingTimerCard from "../../Components/ProjectDashboardCards/GreetingTimerCard";
-import BarCard from "../../Components/ProjectDashboardCards/BarCard";
-import LineChartCard from "../../Components/ProjectDashboardCards/LineChartCard";
-import StatCard from "../../Components/ProjectDashboardCards/StatCard";
-import ProgressCard from "../../Components/ProjectDashboardCards/ProgressCard";
-import TasksAssignedToMeCard from "../../Components/ProjectDashboardCards/TasksAssignedToMe";
-import ActiveProjectsCard from "../../Components/ProjectDashboardCards/ActiveProjectsCard";
-import UpcomingDeadlinesCard from "../../Components/ProjectDashboardCards/UpcomingDeadlinesCard";
-import MyTeamMembersCard from "../../Components/ProjectDashboardCards/MyTeamMembersCard";
-import TimeTrackingOverviewCard from "../../Components/ProjectDashboardCards/TimeTrackingOverviewCard";
-import PageContainer from "../../Components/ui/PageContainer";
+import { fetchProjectDashboard } from "../../store/projectSlice";
+import GreetingTimerCard from "../../components/dashboard-cards/GreetingTimerCard";
+import BarCard from "../../components/dashboard-cards/BarCard";
+import LineChartCard from "../../components/dashboard-cards/LineChartCard";
+import StatCard from "../../components/dashboard-cards/StatCard";
+import ProgressCard from "../../components/dashboard-cards/ProgressCard";
+import TasksAssignedToMeCard from "../../components/dashboard-cards/TasksAssignedToMe";
+import ActiveProjectsCard from "../../components/dashboard-cards/ActiveProjectsCard";
+import UpcomingDeadlinesCard from "../../components/dashboard-cards/UpcomingDeadlinesCard";
+import MyTeamMembersCard from "../../components/dashboard-cards/MyTeamMembersCard";
+import TimeTrackingOverviewCard from "../../components/dashboard-cards/TimeTrackingOverviewCard";
+import PageContainer from "../../components/ui/PageContainer";
 
 const ProjectDashBoard = () => {
   const dispatch = useDispatch();

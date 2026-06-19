@@ -1,7 +1,11 @@
 import api from "../axios";
 
-export const getAdminDashboardStats = async () => {
-  const response = await api.get("/admin-dashboard/stats");
-  return response.data;
+const adminDashboardApi = {
+  getAdminDashboardStats: async () => {
+    const response = await api.get("/admin-dashboard/stats");
+    return response.data?.data || response.data;
+  }
 };
+
+export default adminDashboardApi;
 

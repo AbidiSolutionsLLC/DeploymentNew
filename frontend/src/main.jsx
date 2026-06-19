@@ -5,8 +5,8 @@ import "./index.css";
 import { ThemeProvider } from "./context/ThemeContext";
 import { BrowserRouter as Router } from "react-router-dom";
 import { Provider } from "react-redux";
-import { store, persistor } from "./Store/index";
-import { TimeLogProvider } from "./Pages/People/TimeLogContext";
+import { store, persistor } from "./store/index";
+import { TimeLogProvider } from "./pages/people/TimeLogContext";
 import { PersistGate } from "redux-persist/integration/react";
 import { injectStore } from "./axios";
 
@@ -14,6 +14,8 @@ import { injectStore } from "./axios";
 import { PublicClientApplication, EventType } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./authConfig";
+
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
@@ -65,7 +67,9 @@ function renderApp() {
             <Provider store={store}>
               <PersistGate loading={null} persistor={persistor}>
                 <TimeLogProvider>
-                  <App />
+                  <ErrorBoundary>
+                    <App />
+                  </ErrorBoundary>
                 </TimeLogProvider>
               </PersistGate>
             </Provider>

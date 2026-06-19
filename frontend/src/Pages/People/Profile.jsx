@@ -11,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../../axios";
 import { FiCamera, FiEdit2 } from "react-icons/fi";
 import { toast } from "react-toastify";
+import PageContainer from "../../components/ui/PageContainer";
 
 export default function Profile({ userId: propUserId }) {
   const navigate = useNavigate();
@@ -108,7 +109,11 @@ export default function Profile({ userId: propUserId }) {
   ];
 
   return (
-    <div className="p-2 m-2 md:m-4 pb-8">
+    <PageContainer
+      title="User Profile"
+      subtitle="View your personal and professional details"
+    >
+      <div className="p-0 pb-8">
       
       {/* --- BANNER & AVATAR CONTAINER --- */}
       <div className="relative mb-16 md:mb-20"> {/* Add bottom margin for avatar overlap */}
@@ -295,6 +300,7 @@ export default function Profile({ userId: propUserId }) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </PageContainer>
   );
 }

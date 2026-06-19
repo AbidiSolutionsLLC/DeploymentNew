@@ -1,11 +1,13 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import api from "../axios";
-import { FaEdit, FaPlus, FaTrash, FaEnvelope, FaCheck } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
 import { toast } from "react-toastify";
 import CreateDepartmentModal from "./CreateDepartmentModal";
 import ModernSelect from "./ui/ModernSelect";
 import ModernDatePicker from "./ui/ModernDatePicker";
 import { validateText, validateEmail, validatePhone, sanitizeText } from "../utils/validationUtils";
+import GlassModal from "./ui/GlassModal";
+import GlassButton from "./ui/GlassButton";
 
 const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, allManagers, allDepartments }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -15,11 +17,10 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
   const [isResending, setIsResending] = useState(false);
   const [errors, setErrors] = useState({});
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
-  const modalRef = useRef(null);
 
   // ================== INIT FORM ==================
   useEffect(() => {
-    if (user) {
+    if (user && isOpen) {
       const [fName, ...lNameParts] = (user.name || "").split(" ");
       setFormData({
         firstName: fName || "",
@@ -40,8 +41,9 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
         hourlyWage: user.hourlyWage || ""
       });
       setErrors({});
+      setIsEditing(false);
     }
-  }, [user]);
+  }, [user, isOpen]);
 
   // ================== VALIDATION ==================
   const validateField = (name, value) => {
@@ -57,7 +59,7 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
         error = validateEmail(value);
         break;
       case "phoneNumber":
-        error = validatePhone(value, false); // Optional in edit? The rules said optional for phone.
+        error = validatePhone(value, false);
         break;
       case "designation":
         error = value.trim() ? "" : "Designation is required";
@@ -102,7 +104,6 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Prevent editing oneself
     if (user && currentUser && user._id === currentUser._id) {
       toast.error("You cannot edit yourself", { toastId: "self-edit-error" });
       setIsEditing(false);
@@ -120,7 +121,6 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
         let current = formData[key];
 
         if (key === "firstName" || key === "lastName") {
-          // Special handling for split name
           const fullName = sanitizeText(`${formData.firstName} ${formData.lastName}`);
           if (fullName !== user.name) changedFields.name = fullName;
           return;
@@ -137,11 +137,9 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
 
         if (key === "isTechnician") {
           if (current !== original) changedFields[key] = current;
-        }
-        else if (key === "hourlyWage") {
+        } else if (key === "hourlyWage") {
           if (parseFloat(current) !== parseFloat(original)) changedFields[key] = parseFloat(current);
-        }
-        else {
+        } else {
           if (String(current) !== String(original)) changedFields[key] = current;
         }
       });
@@ -188,15 +186,6 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
     }
   };
 
-  const handleBackdropClick = (e) => {
-    // If clicking inside the date picker portal, don't close the modal
-    if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
-    if (modalRef.current && !modalRef.current.contains(e.target)) {
-      onClose();
-      setIsEditing(false);
-    }
-  };
-
   // ================== FIELD RENDER ==================
   const renderField = (label, name, value, type = "text", options = [], required = true) => {
     const error = errors[name];
@@ -211,7 +200,11 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
           return (
             <div className="flex gap-2 items-end">
               <ModernSelect label={label} name={name} value={value} onChange={handleChange} options={formattedOptions} required={required} placeholder={`SELECT ${label}`} className="flex-1" />
-              <button type="button" onClick={() => setIsDeptModalOpen(true)} className="px-4 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 h-[46px] flex items-center">
+              <button 
+                type="button" 
+                onClick={() => setIsDeptModalOpen(true)} 
+                className="h-[46px] px-4 bg-brand-primary/10 rounded-xl text-brand-primary hover:bg-brand-primary/20 transition-colors"
+              >
                 <FaPlus />
               </button>
             </div>
@@ -224,15 +217,15 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
 
       return (
         <div>
-          <label className="text-xs font-bold text-slate-400 uppercase">{label}</label>
+          <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-widest">{label}</label>
           <input
             type={type}
             name={name}
             value={value}
             onChange={handleChange}
-            className={`w-full bg-white border ${error ? "border-red-300" : "border-slate-200"} rounded-xl px-4 py-3`}
+            className={`glass-input w-full ${error ? "border-red-400 ring-1 ring-red-400" : ""}`}
           />
-          {error && <p className="text-red-500 text-xs">{error}</p>}
+          {error && <p className="text-[10px] text-red-500 mt-1 font-bold">{error}</p>}
         </div>
       );
     }
@@ -240,8 +233,8 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
     // VIEW MODE
     return (
       <div>
-        <label className="text-xs font-bold text-slate-400 uppercase">{label}</label>
-        <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm">
+        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-widest">{label}</label>
+        <div className="glass-input px-4 py-3 text-sm min-h-[44px] flex items-center bg-surface/50 dark:bg-slate-800/50">
           {name === "department" ? allDepartments.find(d => d._id === value)?.name :
             name === "reportsTo" ? allManagers.find(m => m._id === value)?.name :
               (name === "joiningDate" || name === "endDate") ? (value ? new Date(value).toLocaleDateString() : "-") :
@@ -252,79 +245,78 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
     );
   };
 
-  if (!isOpen || !user) return null;
+  const headerActions = (
+    <div className="flex gap-2">
+      {!isEditing && <GlassButton variant="secondary" size="sm" onClick={handleResendInvite} isLoading={isResending}>Invite</GlassButton>}
+      {!isEditing && <GlassButton variant="danger" size="sm" onClick={handleDeleteUser} isLoading={isDeleting}>Delete</GlassButton>}
+      <GlassButton variant="secondary" size="sm" onClick={() => setIsEditing(!isEditing)}>{isEditing ? "Cancel Edit" : "Edit"}</GlassButton>
+    </div>
+  );
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={handleBackdropClick}>
-        <div ref={modalRef} className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+      <GlassModal
+        isOpen={isOpen}
+        onClose={() => {
+          onClose();
+          setIsEditing(false);
+        }}
+        title={<div className="flex items-center gap-4">{user?.name} {headerActions}</div>}
+        maxWidth="max-w-4xl"
+        footer={isEditing ? (
+          <>
+            <GlassButton variant="ghost" onClick={() => setIsEditing(false)}>
+              Cancel
+            </GlassButton>
+            <GlassButton variant="primary" onClick={handleSubmit} isLoading={isLoading}>
+              {isLoading ? "Saving..." : "Save Changes"}
+            </GlassButton>
+          </>
+        ) : null}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* HEADER */}
-          <div className="bg-white border-b p-6 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-slate-800">{user.name}</h2>
-            <div className="flex gap-2">
-              {!isEditing && <button onClick={handleResendInvite} className="px-3 py-2 bg-amber-50 text-amber-600 rounded-xl">Invite</button>}
-              {!isEditing && <button onClick={handleDeleteUser} className="px-3 py-2 bg-red-50 text-red-600 rounded-xl">Delete</button>}
-              <button onClick={() => setIsEditing(!isEditing)} className="px-3 py-2 bg-amber-50 text-amber-600 rounded-xl">Edit</button>
-              <button onClick={onClose} className="text-xl text-slate-400">&times;</button>
+          <div>
+            <h3 className="font-bold text-slate-400 dark:text-slate-500 text-xs uppercase mb-3 border-b border-border-subtle pb-2">Personal</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {isEditing ? (
+                <>
+                  {renderField("First Name", "firstName", formData.firstName)}
+                  {renderField("Last Name", "lastName", formData.lastName)}
+                </>
+              ) : (
+                renderField("Full Name", "name", user?.name)
+              )}
+              {renderField("Email", "email", formData.email, "email")}
+              {renderField("Phone", "phoneNumber", formData.phoneNumber)}
             </div>
           </div>
 
-          {/* BODY */}
-          <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
-
-            <div>
-              <h3 className="font-bold text-slate-400 text-xs uppercase">Personal</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {isEditing ? (
-                  <>
-                    {renderField("First Name", "firstName", formData.firstName)}
-                    {renderField("Last Name", "lastName", formData.lastName)}
-                  </>
-                ) : (
-                  renderField("Full Name", "name", user.name)
-                )}
-                {renderField("Email", "email", formData.email, "email")}
-                {renderField("Phone", "phoneNumber", formData.phoneNumber)}
-              </div>
+          <div>
+            <h3 className="font-bold text-slate-400 dark:text-slate-500 text-xs uppercase mb-3 border-b border-border-subtle pb-2">Employment</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {renderField("Status", "empStatus", formData.empStatus, "select", ["Active", "Inactive", "Pending"].map(v => ({ value: v, label: v })))}
+              {renderField("Role", "role", formData.role, "select", ["Employee", "Manager", "HR", "Admin", "Super Admin"].map(v => ({ value: v, label: v })))}
+              {renderField("Designation", "designation", formData.designation)}
+              {renderField("Hourly Wage", "hourlyWage", formData.hourlyWage, "number")}
+              {renderField("Type", "empType", formData.empType, "select", ["Permanent", "Contractor", "Intern", "Part Time"].map(v => ({ value: v, label: v })))}
+              {renderField("Department", "department", formData.department, "select", allDepartments)}
+              {renderField("Reports To", "reportsTo", formData.reportsTo, "select", allManagers)}
             </div>
+          </div>
 
-            <div>
-              <h3 className="font-bold text-slate-400 text-xs uppercase">Employment</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {renderField("Status", "empStatus", formData.empStatus, "select", ["Active", "Inactive", "Pending"].map(v => ({ value: v, label: v })))}
-                {renderField("Role", "role", formData.role, "select", ["Employee", "Manager", "HR", "Admin", "Super Admin"].map(v => ({ value: v, label: v })))}
-                {renderField("Designation", "designation", formData.designation)}
-                {renderField("Hourly Wage", "hourlyWage", formData.hourlyWage, "number")}
-                {renderField("Type", "empType", formData.empType, "select", ["Permanent", "Contractor", "Intern", "Part Time"].map(v => ({ value: v, label: v })))}
-                {renderField("Department", "department", formData.department, "select", allDepartments)}
-                {renderField("Reports To", "reportsTo", formData.reportsTo, "select", allManagers)}
-              </div>
+          <div>
+            <h3 className="font-bold text-slate-400 dark:text-slate-500 text-xs uppercase mb-3 border-b border-border-subtle pb-2">Company</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {renderField("Joining Date", "joiningDate", formData.joiningDate, "date")}
+              {(formData.empType === "Contractor" || formData.empType === "Intern") && renderField("End Date", "endDate", formData.endDate, "date")}
+              {renderField("Branch", "branch", formData.branch)}
+              {renderField("Timezone", "timeZone", formData.timeZone, "select", ["Asia/Karachi", "America/New_York", "Europe/London", "Asia/Dubai"].map(v => ({ value: v, label: v })))}
             </div>
+          </div>
 
-            <div>
-              <h3 className="font-bold text-slate-400 text-xs uppercase">Company</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {renderField("Joining Date", "joiningDate", formData.joiningDate, "date")}
-                {(formData.empType === "Contractor" || formData.empType === "Intern") && renderField("End Date", "endDate", formData.endDate, "date")}
-                {renderField("Branch", "branch", formData.branch)}
-                {renderField("Timezone", "timeZone", formData.timeZone, "select", ["Asia/Karachi", "America/New_York", "Europe/London", "Asia/Dubai"].map(v => ({ value: v, label: v })))}
-              </div>
-            </div>
-
-          </form>
-
-          {/* FOOTER */}
-          {isEditing && (
-            <div className="p-4 border-t flex justify-end gap-3">
-              <button onClick={() => setIsEditing(false)} className="text-slate-400">Cancel</button>
-              <button onClick={handleSubmit} className="px-6 py-2 bg-slate-600 text-white rounded-xl">
-                {isLoading ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+        </form>
+      </GlassModal>
 
       <CreateDepartmentModal
         isOpen={isDeptModalOpen}

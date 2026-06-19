@@ -15,9 +15,9 @@ const FileTabs = ({ activeTab, setActiveTab }) => {
       </button>
 
       <button
-        onClick={() => setActiveTab("sharedWithRole")}
+        onClick={() => setActiveTab("SharedWithRole")}
         className={`px-4 py-2 text-sm font-medium ml-0 ${
-          activeTab === "sharedWithRole"
+          activeTab === "SharedWithRole"
             ? "bg-secondary text-heading"
             : "bg-gray-100 text-gray-700"
         }`}

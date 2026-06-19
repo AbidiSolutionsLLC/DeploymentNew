@@ -78,7 +78,8 @@ const userSlice = createSlice({
       })
       .addCase(refreshUserData.fulfilled, (state, action) => {
         state.refreshing = false;
-        state.userInfo = action.payload;
+        // The API returns { success: true, data: userObject }, so we extract data
+        state.userInfo = action.payload.data || action.payload;
       })
       .addCase(refreshUserData.rejected, (state, action) => {
         state.refreshing = false;

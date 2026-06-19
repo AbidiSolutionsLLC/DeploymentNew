@@ -4,14 +4,14 @@ import { useDispatch } from "react-redux";
 import { useMsal } from "@azure/msal-react";
 import { logout } from "../slices/authSlice";
 
-import NavBarVertical from "../Components/NavBarVertical";
-import SubNavbarVertical from "../Components/SubNavbarVertical";
-import RightSidebar from "../Components/RightSidebar";
+import NavbarVertical from "../components/NavbarVertical";
+import SubNavbarVertical from "../components/SubNavbarVertical";
+import RightSidebar from "../components/RightSidebar";
 import {
   Bars3Icon,
   XMarkIcon
 } from "@heroicons/react/24/solid";
-import NotificationModal from "../Components/Notification";
+import NotificationModal from "../components/Notification";
 
 const AppLayout = () => {
   const [isRightBarOpen, setRightBarOpen] = useState(true);
@@ -99,9 +99,9 @@ const AppLayout = () => {
               <XMarkIcon className="h-5 w-5" />
             </button>
 
-            {/* NavBarVertical */}
+            {/* NavbarVertical */}
             <div className="flex items-center h-full">
-              <NavBarVertical onNotificationClick={() => setIsNotificationOpen(true)} />
+              <NavbarVertical onNotificationClick={() => setIsNotificationOpen(true)} />
             </div>
 
             {/* SubNavbarVertical */}

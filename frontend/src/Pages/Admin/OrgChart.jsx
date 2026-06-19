@@ -3,6 +3,7 @@ import api from '../../axios';
 import { FaUserTie, FaNetworkWired, FaIdBadge, FaSearchPlus, FaSearchMinus, FaRedo } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import PageContainer from "../../components/ui/PageContainer";
 
 const OrgNode = ({ node, onNodeClick }) => {
   const getRoleColor = (role) => {
@@ -142,18 +143,12 @@ const OrgChartPage = () => {
   };
 
   return (
-    <div className="p-6 h-[calc(100vh-80px)] overflow-hidden flex flex-col bg-gray-50/50">
-      <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <FaNetworkWired className="text-amber-600" /> Organization Chart
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Interactive hierarchy of company leadership and teams</p>
-        </div>
-      </div>
-
+    <PageContainer
+      title="Organization Chart"
+      subtitle="Interactive hierarchy of company leadership and teams"
+    >
       {/* Chart Container */}
-      <div className="flex-1 bg-surface border border-gray-200 shadow-inner overflow-hidden relative rounded-2xl">
+      <div className="bg-surface border border-gray-200 shadow-inner overflow-hidden relative rounded-2xl h-[calc(100vh-200px)] min-h-[500px]">
         <TransformWrapper
           initialScale={1}
           minScale={0.2}
@@ -221,7 +216,7 @@ const OrgChartPage = () => {
           )}
         </TransformWrapper>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

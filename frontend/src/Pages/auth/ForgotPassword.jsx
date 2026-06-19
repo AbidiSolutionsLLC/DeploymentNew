@@ -4,7 +4,7 @@
 // import { useNavigate } from "react-router-dom";
 // import api from "../../axios";
  
-// const ForgotPasswordPage = () => {
+// const ForgotPasswordwordPage = () => {
 //   const {
 //     register,
 //     handleSubmit,
@@ -86,6 +86,6 @@
 //   );
 // };
  
-// export default ForgotPasswordPage;
+// export default ForgotPasswordwordPage;
  
  

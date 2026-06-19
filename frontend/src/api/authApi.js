@@ -1,6 +1,6 @@
 import api from '../axios';
 
-export const authApi = {
+const authApi = {
   login: async (credentials) => {
     const response = await api.post('/auth/login', credentials);
     return response.data;
@@ -31,3 +31,5 @@ export const authApi = {
     return response.data;
   }
 };
+
+export default authApi;

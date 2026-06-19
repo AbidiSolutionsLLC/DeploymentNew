@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { CardBody } from "@material-tailwind/react";
-import { useTimeLog } from "../../Pages/People/TimeLogContext";
+import { useTimeLog } from "../../pages/people/TimeLogContext";
 import { useSelector } from "react-redux";
 
 function format(sec) {
@@ -12,7 +12,7 @@ function format(sec) {
 
 const GreetingTimerCard = () => {
   const userInfo = useSelector((state) => state.auth.user);
-  const firstName = userInfo?.name || "User";
+  const firstName = userInfo?.user?.name || userInfo?.name || "User";
   const { elapsed } = useTimeLog();
   const { h, m, s } = format(elapsed);
 

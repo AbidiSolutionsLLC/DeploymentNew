@@ -1,6 +1,7 @@
 import React from "react";
 import { FaPlus } from "react-icons/fa";
 import SearchBar from "./SearchBar";
+import TableWithPagination from "./TableWithPagination";
 
 const ProjectsTable = ({
   projects,
@@ -28,8 +29,100 @@ const ProjectsTable = ({
     return "#4caf50"; // green
   };
 
+  const projectColumns = [
+    {
+      key: "id",
+      label: "ID",
+      render: (val) => <span className="whitespace-nowrap">{val}</span>
+    },
+    {
+      key: "name",
+      label: "Project Name",
+      render: (val, project) => (
+        <div className="whitespace-nowrap relative group">
+          <span>{val}</span>
+          <button
+            onClick={() => console.log("View project:", project)}
+            className="absolute right-0 top-1/2 -translate-y-1/2 bg-amber-200 text-amber-700 px-3 py-1 rounded hover:bg-amber-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          >
+            View Project
+          </button>
+        </div>
+      )
+    },
+    {
+      key: "ProjectOwner",
+      label: "Project Owner",
+      render: (val) => <span className="whitespace-nowrap">{val || "N/A"}</span>
+    },
+    {
+      key: "NoOfUser",
+      label: "No.Of User",
+      render: (val) => <span className="whitespace-nowrap">{val}</span>
+    },
+    {
+      key: "Status",
+      label: "Status",
+      render: (val) => (
+        <span
+          className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
+            val === "Active"
+              ? "bg-green-100 text-green-800"
+              : val === "Completed"
+              ? "bg-amber-100 text-amber-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {val}
+        </span>
+      )
+    },
+    {
+      key: "StartDate",
+      label: "Start Date",
+      render: (val) => <span className="whitespace-nowrap">{new Date(val).toLocaleDateString()}</span>
+    },
+    {
+      key: "EndDate",
+      label: "End Date",
+      render: (val) => <span className="whitespace-nowrap">{new Date(val).toLocaleDateString()}</span>
+    },
+    {
+      key: "completion",
+      label: "Progress",
+      render: (val) => (
+        <div className="whitespace-nowrap w-32">
+          <div
+            style={{
+              background: "#e0e0e0",
+              borderRadius: "10px",
+              height: "20px",
+              width: "100%",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                width: `${val}%`,
+                background: getProgressColor(val),
+                textAlign: "center",
+                color: "white",
+                fontSize: "12px",
+                lineHeight: "20px",
+                transition: "width 0.3s ease-in-out",
+              }}
+            >
+              {val}%
+            </div>
+          </div>
+        </div>
+      )
+    }
+  ];
+
   return (
-    <div className="bg-white rounded-xl shadow p-4 w-full">
+    <div className="bg-white/30 backdrop-blur-md rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] p-4 w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
         <SearchBar />
         <button
@@ -40,117 +133,12 @@ const ProjectsTable = ({
         </button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-left border-separate border-spacing-0">
-          <thead className="bg-gray-100">
-            <tr>
-              {[
-                "ID",
-                "Project Name",
-                "Project Owner",
-                "No.Of User",
-                "Status",
-                "Start Date",
-                "End Date",
-                "Progress",
-              ].map((header, index) => (
-                <th
-                  key={index}
-                  className={`p-3 font-medium text-gray-700 border-r whitespace-nowrap last:border-none border-gray-300`}
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [...Array(5)].map((_, index) => (
-                <tr key={index} className="border-b">
-                  {[...Array(8)].map((__, colIndex) => (
-                    <td key={colIndex} className="p-3">
-                      <div className="h-4 bg-gray-100 rounded" />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : projects.length > 0 ? (
-              projects.map((project) => (
-                <tr key={project.id} className="hover:bg-gray-200">
-                  <td className="p-3 whitespace-nowrap">{project.id}</td>
-                  <td className="p-3 whitespace-nowrap relative group">
-                    <span>{project.name}</span>
-
-                    {/* Hover button */}
-                    <button
-                      onClick={() => console.log("View project:", project)}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 bg-amber-200 text-amber-700 px-3 py-1 rounded hover:bg-amber-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    >
-                      View Project
-                    </button>
-                  </td>
-
-                  <td className="p-3 whitespace-nowrap">
-                    {project.ProjectOwner || "N/A"}
-                  </td>
-                  <td className="p-3 whitespace-nowrap">{project.NoOfUser}</td>
-                  <td className="p-3 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        project.Status === "Active"
-                          ? "bg-green-100 text-green-800"
-                          : project.Status === "Completed"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {project.Status}
-                    </span>
-                  </td>
-                  <td className="p-3 whitespace-nowrap">
-                    {new Date(project.StartDate).toLocaleDateString()}
-                  </td>
-                  <td className="p-3 whitespace-nowrap">
-                    {new Date(project.EndDate).toLocaleDateString()}
-                  </td>
-                  <td className="p-3 whitespace-nowrap">
-                    <div
-                      style={{
-                        background: "#e0e0e0",
-                        borderRadius: "10px",
-                        height: "20px",
-                        width: "100%",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: "100%",
-                          width: `${project.completion}%`,
-                          background: getProgressColor(project.completion),
-                          textAlign: "center",
-                          color: "white",
-                          fontSize: "12px",
-                          lineHeight: "20px",
-                          transition: "width 0.3s ease-in-out",
-                        }}
-                      >
-                        {project.completion}%
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="8" className="p-3 text-center text-gray-500">
-                  No projects found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <TableWithPagination
+        columns={projectColumns}
+        data={projects}
+        loading={loading}
+        emptyMessage="No projects found"
+      />
     </div>
   );
 };

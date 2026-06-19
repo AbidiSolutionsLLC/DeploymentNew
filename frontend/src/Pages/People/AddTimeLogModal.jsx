@@ -10,6 +10,7 @@ import {
   sanitizeText,
   getApiError,
 } from "../../utils/validationUtils";
+import GlassModal from "../../components/ui/GlassModal";
 
 const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
   const [jobTitle, setJobTitle] = useState("");
@@ -249,244 +250,203 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
     }
   };
 
-  return (
-    <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6"
-      onClick={handleBackdropClick}
-    >
-      <div
-        ref={modalRef}
-        className="w-full max-w-lg bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
+  const footer = (
+    <div className="flex w-full flex-col sm:flex-row gap-3">
+      <button
+        type="button"
+        onClick={handleAddAnother}
+        disabled={!isCurrentInputValid}
+        className="flex-1 py-3 bg-brand-primary/10 text-brand-primary rounded-xl font-bold text-xs uppercase hover:bg-brand-primary/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        {/* CLOSE CROSS */}
+        + Add Another
+      </button>
+
+      <div className="flex gap-3 flex-[2]">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-muted hover:bg-surface hover:text-red-500 transition-all text-2xl font-light z-10"
+          className="flex-1 py-3 font-bold text-xs text-muted uppercase hover:text-heading transition-colors"
         >
-          &times;
+          Cancel
         </button>
+        <button
+          onClick={handleSave}
+          disabled={(!isCurrentInputValid && logs.length === 0) || isLoading}
+          className="flex-[2] py-3 bg-brand-primary text-white rounded-xl font-bold text-xs uppercase hover:bg-brand-primary/90 active:scale-95 transition-all disabled:opacity-50"
+        >
+          {isLoading
+            ? "Saving..."
+            : logs.length > 0
+            ? `Save All (${logs.length + (isCurrentInputValid ? 1 : 0)})`
+            : "Save Log"}
+        </button>
+      </div>
+    </div>
+  );
 
-        {/* HEADER */}
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
-          <h2 className="text-base sm:text-lg font-black text-heading tracking-widest uppercase">
-            ADD TIME LOG
-          </h2>
+  return (
+    <GlassModal isOpen={isOpen} onClose={onClose} title="Add Time Log" footer={footer}>
+      <div className="space-y-6">
+        {/* JOB TITLE INPUT */}
+        <div>
+          <label className="block text-xs font-bold text-muted mb-2 uppercase">Log Title*</label>
+          <input
+            type="text"
+            placeholder="e.g. Frontend Development"
+            value={jobTitle}
+            onChange={(e) => {
+              setJobTitle(e.target.value);
+              setErrors((prev) => ({ ...prev, jobTitle: validateField("jobTitle", e.target.value) }));
+            }}
+            onBlur={() => setErrors((prev) => ({ ...prev, jobTitle: validateField("jobTitle", jobTitle) }))}
+            className={`w-full bg-surface/50 border ${errors.jobTitle ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all`}
+          />
+          {errors.jobTitle && <p className="text-xs text-red-500 mt-1">{errors.jobTitle}</p>}
         </div>
 
-        {/* FORM BODY */}
-        <div className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar">
+        <div className="grid grid-cols-2 gap-4">
+          {/* DATE */}
+          <div className="relative">
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Date*</label>
+            <DatePicker
+              selected={date}
+              onChange={(d) => {
+                setDate(d);
+                setErrors((prev) => ({ ...prev, date: d ? null : "Please select a valid date." }));
+              }}
+              maxDate={new Date()}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Select Date"
+              className={`w-full bg-surface/50 border ${errors.date ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 cursor-pointer`}
+              popperProps={{ strategy: "fixed" }}
+            />
+            {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
+          </div>
 
-          {/* JOB TITLE INPUT */}
+          {/* HOURS */}
           <div>
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">
-              LOG TITLE*
-            </label>
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Hours*</label>
             <input
-              type="text"
-              placeholder="e.g. Frontend Development"
-              value={jobTitle}
+              type="number"
+              step="0.5"
+              min="0.5"
+              max="24"
+              placeholder="0.0"
+              value={hours}
               onChange={(e) => {
-                setJobTitle(e.target.value);
-                setErrors((prev) => ({ ...prev, jobTitle: validateField("jobTitle", e.target.value) }));
+                setHours(e.target.value);
+                setErrors((prev) => ({ ...prev, hours: validateField("hours", e.target.value) }));
               }}
-              onBlur={() => setErrors((prev) => ({ ...prev, jobTitle: validateField("jobTitle", jobTitle) }))}
-              className={`w-full bg-white border ${errors.jobTitle ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-main font-medium outline-none focus:ring-2 focus:ring-amber-100 placeholder:text-slate-300 transition-all`}
+              onBlur={() => setErrors((prev) => ({ ...prev, hours: validateField("hours", hours) }))}
+              className={`w-full bg-surface/50 border ${errors.hours ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30`}
             />
-            {errors.jobTitle && (
-              <p className="text-xs text-red-500 mt-1">{errors.jobTitle}</p>
-            )}
+            {errors.hours && <p className="text-xs text-red-500 mt-1">{errors.hours}</p>}
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* DATE */}
-            <div className="relative">
-              <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">
-                DATE*
-              </label>
-              <DatePicker
-                selected={date}
-                onChange={(d) => {
-                  setDate(d);
-                  setErrors((prev) => ({ ...prev, date: d ? null : "Please select a valid date." }));
-                }}
-                maxDate={new Date()}
-                dateFormat="yyyy-MM-dd"
-                placeholderText="Select Date"
-                className={`w-full bg-white border ${errors.date ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-main outline-none focus:ring-2 focus:ring-amber-100 cursor-pointer`}
-                popperProps={{ strategy: "fixed" }}
-              />
-              {errors.date && (
-                <p className="text-xs text-red-500 mt-1">{errors.date}</p>
-              )}
-            </div>
+        {/* DESCRIPTION */}
+        <div>
+          <label className="block text-xs font-bold text-muted mb-2 uppercase">
+            Description* <span className="normal-case font-normal text-muted/70">(min 10, max 300 chars)</span>
+          </label>
+          <textarea
+            placeholder="describe your work in detail..."
+            value={description}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              setErrors((prev) => ({
+                ...prev,
+                description: validateDescription(e.target.value, { min: 10, max: 300, required: true }),
+              }));
+            }}
+            onBlur={() =>
+              setErrors((prev) => ({
+                ...prev,
+                description: validateDescription(description, { min: 10, max: 300, required: true }),
+              }))
+            }
+            className={`w-full bg-surface/50 border ${errors.description ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 resize-none`}
+            rows={3}
+          />
+          <div className="flex justify-between items-center mt-1">
+            {errors.description ? <p className="text-xs text-red-500">{errors.description}</p> : <span />}
+            <p className="text-xs text-muted text-right">{description.length}/300</p>
+          </div>
+        </div>
 
-            {/* HOURS */}
-            <div>
-              <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">
-                HOURS*
-              </label>
+        {/* ATTACHMENT */}
+        <div className="flex flex-col gap-2">
+          <label className="block text-xs font-bold text-muted uppercase">
+            Attachment {attachments.length > 0 && `(${attachments.length}/${MAX_FILES})`}
+          </label>
+          <div className="flex items-center justify-center w-full">
+            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-border-subtle border-dashed rounded-xl cursor-pointer bg-surface hover:bg-surface/80 transition-colors">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <p className="text-xs text-muted font-bold uppercase tracking-tight">
+                  {attachments.length > 0 ? `${attachments.length} file(s) selected` : "click to upload file(s)"}
+                </p>
+              </div>
               <input
-                type="number"
-                step="0.5"
-                min="0.5"
-                max="24"
-                placeholder="0.0"
-                value={hours}
-                onChange={(e) => {
-                  setHours(e.target.value);
-                  setErrors((prev) => ({ ...prev, hours: validateField("hours", e.target.value) }));
-                }}
-                onBlur={() => setErrors((prev) => ({ ...prev, hours: validateField("hours", hours) }))}
-                className={`w-full bg-white border ${errors.hours ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-main outline-none focus:ring-2 focus:ring-amber-100 placeholder:text-slate-300`}
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg,.bmp,.mp4,.mp3"
+                className="hidden"
+                onChange={handleFileChange}
+                disabled={attachments.length >= MAX_FILES}
               />
-              {errors.hours && (
-                <p className="text-xs text-red-500 mt-1">{errors.hours}</p>
-              )}
-            </div>
-          </div>
-
-          {/* DESCRIPTION */}
-          <div>
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">
-              DESCRIPTION* <span className="normal-case font-normal text-slate-300">(min 10, max 300 chars)</span>
             </label>
-            <textarea
-              placeholder="describe your work in detail..."
-              value={description}
-              onChange={(e) => {
-                setDescription(e.target.value);
-                setErrors((prev) => ({
-                  ...prev,
-                  description: validateDescription(e.target.value, { min: 10, max: 300, required: true }),
-                }));
-              }}
-              onBlur={() =>
-                setErrors((prev) => ({
-                  ...prev,
-                  description: validateDescription(description, { min: 10, max: 300, required: true }),
-                }))
-              }
-              className={`w-full bg-white border ${errors.description ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-main outline-none focus:ring-2 focus:ring-amber-100 placeholder:text-slate-300 resize-none`}
-              rows={3}
-            />
-            <div className="flex justify-between items-center mt-1">
-              {errors.description ? (
-                <p className="text-xs text-red-500">{errors.description}</p>
-              ) : (
-                <span />
-              )}
-              <p className="text-xs text-muted text-right">{description.length}/300</p>
-            </div>
           </div>
-
-          {/* ATTACHMENT */}
-          <div className="flex flex-col gap-2">
-            <label className="block text-[10px] font-black text-muted uppercase tracking-widest">
-              ATTACHMENT {attachments.length > 0 && `(${attachments.length}/${MAX_FILES})`}
-            </label>
-            <div className="flex items-center justify-center w-full">
-              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-border-subtle border-dashed rounded-xl cursor-pointer bg-surface hover:bg-surface transition-colors">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <p className="text-[10px] text-muted font-bold uppercase tracking-tighter">
-                    {attachments.length > 0 ? `${attachments.length} file(s) selected` : "click to upload file(s)"}
-                  </p>
+          {errors.attachments && (
+            <p className="text-xs font-bold text-red-500 uppercase">{errors.attachments}</p>
+          )}
+          
+          {attachments.length > 0 && (
+            <div className="space-y-2 mt-2">
+              {attachments.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-2 bg-surface/50 rounded-lg border border-border-subtle"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-xs font-bold text-heading truncate">{file.name}</span>
+                    <span className="text-[10px] text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(index)}
+                    className="text-muted hover:text-red-500 transition-colors text-sm font-bold"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg,.bmp,.mp4,.mp3"
-                  className="hidden"
-                  onChange={handleFileChange}
-                  disabled={attachments.length >= MAX_FILES}
-                />
-              </label>
-            </div>
-            {errors.attachments && (
-              <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.attachments}</p>
-            )}
-            
-            {/* Display attached files with remove buttons */}
-            {attachments.length > 0 && (
-              <div className="space-y-2 mt-2">
-                {attachments.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-2 bg-white rounded-lg border border-border-subtle"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-[10px] font-bold text-main truncate">{file.name}</span>
-                      <span className="text-[9px] text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(index)}
-                      className="text-muted hover:text-red-500 transition-colors text-sm font-bold"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* PREVIEW OF QUEUED LOGS */}
-          {logs.length > 0 && (
-            <div className="space-y-3">
-              <label className="block text-[10px] font-black text-amber-500 uppercase tracking-widest">
-                QUEUED LOGS ({logs.length})
-              </label>
-              <div className="space-y-2">
-                {logs.map((log, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-[11px] font-medium text-amber-700 flex justify-between items-center"
-                  >
-                    <span>
-                      {log.jobTitle} • {log.hours}h
-                    </span>
-                    <span className="text-amber-300 uppercase">{log.date}</span>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* FOOTER */}
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-border-subtle flex flex-col sm:flex-row gap-3 bg-white flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleAddAnother}
-            disabled={!isCurrentInputValid}
-            className="flex-1 py-3 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            + Add Another
-          </button>
-
-          <div className="flex gap-3 flex-[2]">
-            <button
-              onClick={onClose}
-              className="flex-1 py-3 font-black text-[10px] text-muted uppercase tracking-widest hover:text-muted transition-colors"
-            >
-              CANCEL
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={(!isCurrentInputValid && logs.length === 0) || isLoading}
-              className="flex-[2] py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
-            >
-              {isLoading
-                ? "SAVING..."
-                : logs.length > 0
-                ? `SAVE ALL (${logs.length + (isCurrentInputValid ? 1 : 0)})`
-                : "SAVE LOG"}
-            </button>
+        {/* PREVIEW OF QUEUED LOGS */}
+        {logs.length > 0 && (
+          <div className="space-y-3">
+            <label className="block text-xs font-bold text-brand-primary uppercase">
+              Queued Logs ({logs.length})
+            </label>
+            <div className="space-y-2">
+              {logs.map((log, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 bg-brand-primary/5 rounded-xl border border-brand-primary/10 text-xs font-medium text-brand-primary flex justify-between items-center"
+                >
+                  <span>
+                    {log.jobTitle} • {log.hours}h
+                  </span>
+                  <span className="opacity-70">{log.date}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
-    </div>
+    </GlassModal>
   );
 };
 

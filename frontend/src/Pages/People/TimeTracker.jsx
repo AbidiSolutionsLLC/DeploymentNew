@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import SubNavbar from "../../Components/PeopleSubNavbar";
+import SubNavbar from "../../components/PeopleSubNavbar";
 import AddTimeLogModal from "../People/AddTimeLogModal";
 import {
   IoCalendarNumberOutline,
@@ -18,8 +18,10 @@ import { toast } from "react-toastify";
 import Timesheet from "./Timesheet";
 import CreateTimesheetModal from "./CreateTimesheetModal";
 import timesheetApi from "../../api/timesheetApi";
-import TableWithPagination from "../../Components/TableWithPagination";
+import TableWithPagination from "../../components/TableWithPagination";
 import { IoDownloadOutline } from "react-icons/io5";
+import PageContainer from "../../components/ui/PageContainer";
+import GlassModal from "../../components/ui/GlassModal";
 
 const TimeTracker = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -315,9 +317,9 @@ const TimeTracker = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-transparent p-2">
+      <div className="flex flex-col gap-4 h-full">
         {/* Tab Bar & Action Button Container */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="inline-flex flex-row flex-wrap items-center justify-center bg-white/90 backdrop-blur-sm p-1.5 rounded-[1.2rem] shadow-sm border border-white/50">
             {tabs.map((item, index) => (
               <div key={item.title} className="flex items-center">
@@ -358,26 +360,27 @@ const TimeTracker = () => {
         </div>
 
         {activeTab === 0 && (
-          <>
-            {/* Header Card */}
-            <div className="glass-card mb-4 p-2 relative z-20">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 className="text-base font-bold text-heading uppercase tracking-tight">Time Logs</h2>
-
+          <PageContainer
+            title="Time Logs"
+            subtitle="Track your daily work entries"
+            loading={loading}
+            isCard={true}
+            headerActions={
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={navigateToPreviousDay}
-                    className="p-2.5 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
+                    className="p-2.5 rounded-lg bg-surface text-muted hover:bg-hover border border-border-subtle transition shadow-sm"
                   >
                     <FaAngleLeft size={18} />
                   </button>
 
                   <div className="relative" ref={calendarRef}>
                     <button
-                      className="px-3 py-2 text-amber-800 bg-amber-100 rounded-lg flex items-center gap-2 hover:bg-amber-200 transition shadow-sm text-sm font-medium"
+                      className="px-3 py-2 bg-surface border border-border-subtle text-main rounded-lg flex items-center gap-2 hover:bg-hover transition shadow-sm text-sm font-medium"
                       onClick={() => setShowCalendar(!showCalendar)}
                     >
-                      <IoCalendarNumberOutline size={18} />
+                      <IoCalendarNumberOutline size={18} className="text-muted" />
                       {selectedDate && (
                         <span className="text-sm font-medium">{formatDate(selectedDate)}</span>
                       )}
@@ -389,7 +392,7 @@ const TimeTracker = () => {
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute z-50 mt-2    rounded-xl"
+                          className="absolute z-50 mt-2 bg-white dark:bg-slate-800 shadow-2xl rounded-xl border border-border-subtle p-2"
                         >
                           <DatePicker
                             selected={selectedDate}
@@ -408,27 +411,19 @@ const TimeTracker = () => {
                   <button
                     onClick={navigateToNextDay}
                     disabled={selectedDate >= new Date().setHours(0, 0, 0, 0)} // Disable if today
-                    className={`p-2.5 rounded-lg transition shadow-sm ${selectedDate >= new Date().setHours(0, 0, 0, 0) ? 'bg-surface text-muted cursor-not-allowed' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'}`}
+                    className={`p-2.5 rounded-lg border border-border-subtle transition shadow-sm ${selectedDate >= new Date().setHours(0, 0, 0, 0) ? 'bg-surface/50 text-muted/50 cursor-not-allowed' : 'bg-surface text-muted hover:bg-hover'}`}
                   >
                     <FaAngleRight size={18} />
                   </button>
                 </div>
-                <div className="bg-amber-50 px-3 py-2 rounded-lg shadow-sm">
-                  <span className="text-xs font-medium text-heading uppercase tracking-wide">
-                    Submitted Hours: <span className="font-bold text-heading">{totalHours.toFixed(2)}</span>
+                <div className="bg-brand-primary/10 border border-brand-primary/20 px-3 py-2 rounded-lg shadow-sm">
+                  <span className="text-xs font-medium text-brand-primary uppercase tracking-wide">
+                    Submitted Hours: <span className="font-bold text-brand-primary">{totalHours.toFixed(2)}</span>
                   </span>
                 </div>
               </div>
-            </div>
-
-            {/* Loading State */}
-            {loading && (
-              <div className="text-center p-6 glass-card">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
-                <p className="mt-3 text-muted text-xs font-medium uppercase tracking-wide">Loading time logs...</p>
-              </div>
-            )}
-
+            }
+          >
             {/* Error State */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-[1.2rem] p-4 text-center text-red-700 text-sm mb-4">
@@ -454,10 +449,9 @@ const TimeTracker = () => {
                 <div className="flex justify-center sm:justify-end pb-8">
                   <button
                     onClick={() => setIsCreateTimesheetModalOpen(true)}
-                    className="group relative flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.15em] shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-300/60 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 overflow-hidden"
+                    className="group relative flex items-center gap-3 px-8 py-4 bg-brand-primary text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.15em] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <svg className="w-5 h-5 text-amber-300 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-white transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <span>Create Timesheet for this date</span>
@@ -465,7 +459,7 @@ const TimeTracker = () => {
                 </div>
               </div>
             )}
-          </>
+          </PageContainer>
         )}
         {activeTab === 1 && <Timesheet refreshTrigger={refreshTimesheetTrigger} />}
       </div>
@@ -504,40 +498,39 @@ const TimeTracker = () => {
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
-      {deleteConfirmDialog.show && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex justify-center items-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-fadeIn">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </div>
-              <h3 className="text-base font-black text-heading uppercase tracking-wider mb-2">
-                Delete Time Log
-              </h3>
-              <p className="text-xs text-muted font-medium mb-6">
-                Are you sure you want to delete this time log? This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCancelDelete}
-                  className="flex-1 py-3 bg-surface text-main rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
+      <GlassModal
+        isOpen={deleteConfirmDialog.show}
+        onClose={handleCancelDelete}
+        title="Delete Time Log"
+        maxWidth="sm"
+        footer={
+          <div className="flex w-full gap-3">
+            <button
+              onClick={handleCancelDelete}
+              className="flex-1 py-3 font-bold text-xs text-muted uppercase hover:text-heading transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              className="flex-1 py-3 bg-red-500/10 text-red-600 rounded-xl font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-all border border-red-500/20 hover:border-transparent active:scale-95"
+            >
+              Delete
+            </button>
           </div>
+        }
+      >
+        <div className="text-center py-4">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-500/10 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <p className="text-sm text-heading font-medium">
+            Are you sure you want to delete this time log? This action cannot be undone.
+          </p>
         </div>
-      )}
+      </GlassModal>
     </>
   );
 };

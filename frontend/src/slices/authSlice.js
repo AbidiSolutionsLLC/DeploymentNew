@@ -9,9 +9,13 @@ export const syncAzureUser = createAsyncThunk(
     try {
       const response = await api.get("/auth/me", { ignoreAuthRedirect: true });
       
-      dispatch(setUser(response.data));
+      // Extract the actual user object from the ApiResponse wrapper
+      // /auth/me returns { success: true, data: { user: {...} } }
+      const userData = response.data?.data?.user || response.data?.data || response.data;
       
-      return response.data;
+      dispatch(setUser(userData));
+      
+      return userData;
     } catch (error) {
       // Suppress noisy console error on startup if there is no session
       // console.error("Sync error:", error.response?.data || error.message);

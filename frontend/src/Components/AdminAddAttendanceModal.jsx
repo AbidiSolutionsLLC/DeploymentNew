@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import api from "../axios";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { X, Save } from "lucide-react";
 import ModernSelect from "./ui/ModernSelect";
+import GlassModal from "./ui/GlassModal";
+import GlassButton from "./ui/GlassButton";
 
 export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allUsers }) {
   const [formData, setFormData] = useState({
@@ -16,7 +17,6 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const modalRef = useRef(null);
 
   useEffect(() => {
     if (open) {
@@ -31,17 +31,8 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
     }
   }, [open]);
 
-  const handleBackdropClick = (e) => {
-    // If clicking inside the date picker portal, don't close the modal
-    if (e.target.closest('#portal-root') || e.target.closest('.react-datepicker')) return;
-    if (e.target.closest('[data-modern-select-dropdown]')) return;
-    if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
-  };
-
-  const isValid = formData.user && formData.checkInTime;
-
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const newErrors = {};
     if (!formData.user) newErrors.user = "Employee is required.";
     if (!formData.checkInTime) newErrors.checkInTime = "Check-in time is required.";
@@ -62,7 +53,6 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
     
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
-      // Find the first error message to display in toast
       const firstError = Object.values(newErrors)[0];
       toast.error(firstError);
       return;
@@ -88,134 +78,113 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6"
-      onClick={handleBackdropClick}
-    >
-      <div
-        ref={modalRef}
-        className="w-full max-w-lg bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-all text-2xl font-light z-10"
-        >
-          &times;
-        </button>
-
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
-          <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
-            ADD ATTENDANCE RECORD
-          </h2>
-        </div>
-
-        <form className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar" onSubmit={handleSubmit}>
-          <div className="relative z-50">
-            <ModernSelect
-              label="Employee"
-              name="user"
-              value={formData.user}
-              onChange={(e) => {
-                setFormData({ ...formData, user: e.target.value });
-                setErrors(prev => ({ ...prev, user: e.target.value ? null : "Employee is required." }));
-              }}
-              required
-              placeholder="Select Employee"
-              options={[
-                { value: "", label: "Select Employee" },
-                ...allUsers.map((u) => ({ value: u._id, label: `${u.name} (${u.email})` }))
-              ]}
-              className={`w-full ${errors.user ? "border-red-400" : ""}`}
-            />
-            {errors.user && <p className="text-xs text-red-500 mt-1">{errors.user}</p>}
-          </div>
-
-          <div className="relative z-40">
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              CHECK IN TIME*
-            </label>
-            <DatePicker
-              selected={formData.checkInTime}
-              onChange={(date) => {
-                setFormData({ ...formData, checkInTime: date });
-                setErrors(prev => ({ ...prev, checkInTime: date ? null : "Check-in time is required." }));
-              }}
-              showTimeSelect
-              dateFormat="Pp"
-              className={`w-full bg-white border ${errors.checkInTime ? "border-red-400" : "border-slate-200"} rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-amber-100 font-medium`}
-              popperProps={{ strategy: "fixed" }}
-              portalId="portal-root"
-              required
-            />
-            {errors.checkInTime && <p className="text-xs text-red-500 mt-1">{errors.checkInTime}</p>}
-          </div>
-
-          <div className="relative z-30">
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              CHECK OUT TIME
-            </label>
-            <DatePicker
-              selected={formData.checkOutTime}
-              onChange={(date) => setFormData({ ...formData, checkOutTime: date })}
-              showTimeSelect
-              dateFormat="Pp"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-amber-100 font-medium"
-              popperProps={{ strategy: "fixed" }}
-              portalId="portal-root"
-            />
-          </div>
-
-          <div className="relative z-20">
-            <ModernSelect
-              label="Status"
-              name="status"
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              options={[
-                { value: "Present", label: "Present" },
-                { value: "Half Day", label: "Half Day" },
-                { value: "Absent", label: "Absent" },
-                { value: "Late", label: "Late" },
-                { value: "On Leave", label: "On Leave" }
-              ]}
-              className="w-full"
-            />
-          </div>
-          
-          <div className="relative z-10">
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-              NOTES
-            </label>
-            <input
-              type="text"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="e.g. Forgot to punch in"
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-amber-100 font-medium"
-            />
-          </div>
-        </form>
-
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest"
-          >
+    <GlassModal
+      isOpen={open}
+      onClose={onClose}
+      title="ADD ATTENDANCE RECORD"
+      maxWidth="max-w-lg"
+      footer={
+        <>
+          <GlassButton variant="ghost" onClick={onClose} disabled={loading}>
             CANCEL
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-[2] py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-50"
+          </GlassButton>
+          <GlassButton 
+            variant="primary" 
+            onClick={handleSubmit} 
+            isLoading={loading}
           >
             {loading ? "SAVING..." : "CREATE RECORD"}
-          </button>
+          </GlassButton>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="relative z-50">
+          <ModernSelect
+            label="Employee"
+            name="user"
+            value={formData.user}
+            onChange={(e) => {
+              setFormData({ ...formData, user: e.target.value });
+              setErrors(prev => ({ ...prev, user: e.target.value ? null : "Employee is required." }));
+            }}
+            required
+            placeholder="Select Employee"
+            options={[
+              { value: "", label: "Select Employee" },
+              ...allUsers.map((u) => ({ value: u._id, label: `${u.name} (${u.email})` }))
+            ]}
+            className={`w-full ${errors.user ? "border-red-400" : ""}`}
+          />
+          {errors.user && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.user}</p>}
         </div>
-      </div>
-    </div>
+
+        <div className="relative z-40">
+          <label className="block text-[10px] font-black text-muted dark:text-slate-500 mb-2 uppercase tracking-widest">
+            CHECK IN TIME*
+          </label>
+          <DatePicker
+            selected={formData.checkInTime}
+            onChange={(date) => {
+              setFormData({ ...formData, checkInTime: date });
+              setErrors(prev => ({ ...prev, checkInTime: date ? null : "Check-in time is required." }));
+            }}
+            showTimeSelect
+            dateFormat="Pp"
+            className={`glass-input w-full cursor-pointer ${errors.checkInTime ? "border-red-400 ring-1 ring-red-400" : ""}`}
+            popperProps={{ strategy: "fixed" }}
+            portalId="portal-root"
+            required
+          />
+          {errors.checkInTime && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.checkInTime}</p>}
+        </div>
+
+        <div className="relative z-30">
+          <label className="block text-[10px] font-black text-muted dark:text-slate-500 mb-2 uppercase tracking-widest">
+            CHECK OUT TIME
+          </label>
+          <DatePicker
+            selected={formData.checkOutTime}
+            onChange={(date) => setFormData({ ...formData, checkOutTime: date })}
+            showTimeSelect
+            dateFormat="Pp"
+            className="glass-input w-full cursor-pointer"
+            popperProps={{ strategy: "fixed" }}
+            portalId="portal-root"
+          />
+        </div>
+
+        <div className="relative z-20">
+          <ModernSelect
+            label="Status"
+            name="status"
+            value={formData.status}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            options={[
+              { value: "Present", label: "Present" },
+              { value: "Half Day", label: "Half Day" },
+              { value: "Absent", label: "Absent" },
+              { value: "Late", label: "Late" },
+              { value: "On Leave", label: "On Leave" }
+            ]}
+            className="w-full"
+          />
+        </div>
+        
+        <div className="relative z-10">
+          <label className="block text-[10px] font-black text-muted dark:text-slate-500 mb-2 uppercase tracking-widest">
+            NOTES
+          </label>
+          <input
+            type="text"
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="e.g. Forgot to punch in"
+            className="glass-input w-full"
+          />
+        </div>
+      </form>
+    </GlassModal>
   );
 }

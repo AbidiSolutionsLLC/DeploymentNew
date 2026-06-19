@@ -2,10 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, NavLink } from "react-router-dom";
 import { moduleConfigs } from "../routeConfig";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useMsal } from "@azure/msal-react";
 import { logout } from "../slices/authSlice";
-import api from "../axios";
 import {
   HomeIcon, TicketIcon, CalendarDaysIcon, ClockIcon,
   UserCircleIcon, BriefcaseIcon, DocumentIcon, UserGroupIcon,
@@ -18,7 +17,9 @@ import { DollarSignIcon } from "lucide-react";
 
 const SubNavbarVertical = () => {
   const { pathname } = useLocation();
-  const [user, setUser] = useState(null);
+  const authStateUser = useSelector((state) => state.auth.user);
+  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
+
   const mainModule = pathname.split("/")[1] || "Menu";
   const rawLinks = moduleConfigs[mainModule]?.links || [];
 
@@ -27,18 +28,6 @@ const SubNavbarVertical = () => {
   const settingsRef = useRef(null);
   const dispatch = useDispatch();
   const { instance } = useMsal();
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await api.get("/auth/me");
-        setUser(res.data.user);
-      } catch (err) {
-        console.error("Failed to fetch user info", err);
-      }
-    };
-    fetchUser();
-  },[]);
 
   useEffect(() => {
     function handleClickOutside(event) {

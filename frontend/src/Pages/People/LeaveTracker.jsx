@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import api from "../../axios";
-import ApplyLeaveModal from "../../Components/LeaveModal";
-import LeaveSummary from "../../Components/tabs/LeaveSummary";
+import ApplyLeaveModal from "../../components/LeaveModal";
+import LeaveSummary from "../../components/tabs/LeaveSummary";
 import LeaveRequest from "./LeaveRequest";
-import AddHolidayModal from "../../Components/AddHolidayModal";
+import AddHolidayModal from "../../components/AddHolidayModal";
 
-import PageContainer from "../../Components/ui/PageContainer";
+import PageContainer from "../../components/ui/PageContainer";
 
 const LeaveTracker = () => {
   const [isOpen, setIsOpen] = useState(false);

@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from "react";
 import api from "../../axios";
 import { FaPlus, FaEye } from "react-icons/fa";
-import HolidayTable from "../../Components/HolidayTable";
-import AddHolidayModal from "../../Components/AddHolidayModal";
-import Toast from "../../Components/Toast";
-import ViewLeaveModal from "../../Components/ViewLeaveModal";
-import HistoryViewLeaveModal from "../../Components/HistoryViewLeaveModal";
-import ModernSelect from "../../Components/ui/ModernSelect";
+import HolidayTable from "../../components/HolidayTable";
+import AddHolidayModal from "../../components/AddHolidayModal";
+import Toast from "../../components/Toast";
+import ViewLeaveModal from "../../components/ViewLeaveModal";
+import HistoryViewLeaveModal from "../../components/HistoryViewLeaveModal";
+import ModernSelect from "../../components/ui/ModernSelect";
 import { useSelector } from "react-redux";
-import TableWithPagination from "../../Components/TableWithPagination";
+import TableWithPagination from "../../components/TableWithPagination";
 import { getApiError } from "../../utils/validationUtils";
 import { parseISOToLocalDate, formatDisplayDate } from "../../utils/dateUtils";
+import PageContainer from "../../components/ui/PageContainer";
 
 const LeaveTrackerAdmin = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -65,7 +66,8 @@ const LeaveTrackerAdmin = () => {
   const fetchLeaves = async () => {
     try {
       const response = await api.get("/getAllLeaves");
-      const formatted = response.data.data.map((item) => ({
+      const leaveArray = Array.isArray(response.data) ? response.data : response.data.data || [];
+      const formatted = leaveArray.map((item) => ({
         ...item, // Keep all raw data for the modal
         id: item._id,
         startDate: item.startDate,
@@ -386,6 +388,15 @@ const LeaveTrackerAdmin = () => {
     }
   ];
 
+  const historyActions = [
+    {
+      icon: <div className="flex items-center gap-1"><FaEye size={12} /> View</div>,
+      title: "View",
+      className: "px-3 py-1.5 bg-surface text-main rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors flex items-center justify-center",
+      onClick: (row) => handleViewHistoryLeave(row)
+    }
+  ];
+
   // ==================== INITIAL FETCH ====================
   useEffect(() => {
     fetchLeaves();
@@ -402,7 +413,10 @@ const LeaveTrackerAdmin = () => {
 
   // ==================== RENDER ====================
   return (
-    <div className="min-h-screen bg-transparent p-2">
+    <PageContainer
+      title="Leave Tracker Admin"
+      subtitle="Manage employee leaves, holidays and balances"
+    >
       {toast && (
         <Toast
           message={toast.message}
@@ -592,52 +606,17 @@ const LeaveTrackerAdmin = () => {
               </div>
             ) : leaveHistory.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm border-separate border-spacing-0">
-                  <thead>
-                    <tr className="bg-surface/80 backdrop-blur-sm text-heading">
-                      {["Leave Type", "Start Date", "End Date", "Duration", "Status", "Reason", "Actions"].map((heading) => (
-                        <th key={heading} className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-border-subtle text-left">
-                          {heading}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveHistory.map((leave, index) => {
-                      const startDate = parseISOToLocalDate(leave.startDate);
-                      const endDate = parseISOToLocalDate(leave.endDate);
-                      const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-
-                      return (
-                        <tr key={leave._id || index} className="border-b border-border-subtle hover:bg-surface/50 transition-colors">
-                          <td className="p-3 text-main">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
-                              {leave.leaveType}
-                            </span>
-                          </td>
-                          <td className="p-3 text-muted">{startDate.toLocaleDateString()}</td>
-                          <td className="p-3 text-muted">{endDate.toLocaleDateString()}</td>
-                          <td className="p-3 text-main font-medium">{duration} days</td>
-                          <td className="p-3">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(leave.status)}`}>
-                              {leave.status}
-                            </span>
-                          </td>
-                          <td className="p-3 text-muted max-w-xs truncate">{leave.reason || "-"}</td>
-                          <td className="p-3">
-                            <button
-                              onClick={() => handleViewHistoryLeave(leave)}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-surface text-main rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
-                            >
-                              <FaEye size={12} />
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <TableWithPagination
+                  columns={historyColumns}
+                  data={leaveHistory.map((leave, index) => ({
+                    ...leave,
+                    _id: leave._id || index, // ensure unique key
+                  }))}
+                  loading={loadingHistory}
+                  emptyMessage="No leave history found"
+                  actions={historyActions}
+                  rowsPerPage={10}
+                />
               </div>
             ) : historySelectedUser ? (
               <div className="text-center p-8">
@@ -672,7 +651,7 @@ const LeaveTrackerAdmin = () => {
           leaveData={selectedHistoryLeave}
         />
       )}
-    </div>
+    </PageContainer>
   );
 };
 

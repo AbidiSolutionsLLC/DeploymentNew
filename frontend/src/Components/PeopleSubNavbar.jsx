@@ -3,12 +3,12 @@ import { useLocation, NavLink } from "react-router-dom";
 import { Navbar, MobileNav, IconButton, Button , Collapse} from "@material-tailwind/react";
 import { CalendarDaysIcon, PhoneIcon } from "@heroicons/react/24/outline";
 import { moduleConfigs } from "../routeConfig";
-import { useTimeLog } from "../Pages/People/TimeLogContext";
+import { useTimeLog } from "../pages/people/TimeLogContext";
 import CircularProgress from '@mui/material/CircularProgress';
 import { toast } from "react-toastify";
 import { setError } from "../slices/attendanceTimer";
 import { useDispatch, useSelector } from "react-redux";
-import AddTimeLogModal from "../Pages/People/AddTimeLogModal";
+import AddTimeLogModal from "../pages/people/AddTimeLogModal";
 
 const SubNavbar = ({ onAddTimeLog, activeTab, onCreateTimesheet }) => {
   const [openNav, setOpenNav] = useState(false);

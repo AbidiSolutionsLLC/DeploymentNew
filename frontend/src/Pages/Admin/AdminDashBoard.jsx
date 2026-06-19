@@ -14,11 +14,11 @@ import {
 } from 'react-icons/fa';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
-import { getAdminDashboardStats } from '../../api/adminDashboardApi';
+import adminDashboardApi from '../../api/adminDashboardApi';
 import api from '../../axios'; // Added to fetch user role
 import { toast } from 'react-toastify';
-import LogListCard from '../../Components/LogsListcard';
-import PageContainer from '../../Components/ui/PageContainer';
+import LogListCard from '../../components/LogsListcard';
+import PageContainer from '../../components/ui/PageContainer';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -31,11 +31,11 @@ const AdminDashBoard = () => {
     const fetchAllData = async () => {
       try {
         const [statsRes, userRes] = await Promise.all([
-          getAdminDashboardStats(),
+          adminDashboardApi.getAdminDashboardStats(),
           api.get("/auth/me")
         ]);
-        setData(statsRes.data);
-        setUser(userRes.data.user);
+        setData(statsRes);
+        setUser(userRes.data.user || userRes.data);
       } catch (err) {
         console.error(err);
         toast.error("Failed to load dashboard analytics");

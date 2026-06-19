@@ -3,6 +3,7 @@ import timeLogApi from "../../api/timeLogApi";
 import { toast } from "react-toastify";
 import { moment, TIMEZONE } from "../../utils/dateUtils";
 import { getApiError } from "../../utils/validationUtils";
+import GlassModal from "../../components/ui/GlassModal";
 
 const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUpdated }) => {
   const [date, setDate] = useState("");
@@ -95,108 +96,100 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
     }
   };
 
-  return (
-    <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6"
-      onClick={handleBackdropClick}
-    >
-      <div
-        ref={modalRef}
-        className="w-full max-w-md bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
+  const footer = (
+    <div className="flex w-full gap-3">
+      <button onClick={onClose} className="flex-1 py-3 font-bold text-xs text-muted uppercase hover:text-heading transition-colors">
+        Cancel
+      </button>
+      <button
+        type="submit"
+        form="editLogForm"
+        disabled={isLoading || !isCurrentInputValid}
+        className="flex-1 py-3 bg-brand-primary text-white rounded-xl font-bold text-xs uppercase hover:bg-brand-primary/90 active:scale-95 transition-all disabled:opacity-50"
       >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-muted hover:bg-surface hover:text-red-500 transition-all text-2xl font-light z-10"
-        >
-          &times;
-        </button>
+        {isLoading ? "Saving..." : "Update Log"}
+      </button>
+    </div>
+  );
 
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
-          <h2 className="text-base sm:text-lg font-black text-heading tracking-widest uppercase">
-            EDIT TIME LOG
-          </h2>
+  return (
+    <GlassModal isOpen={isOpen} onClose={onClose} title="Edit Time Log" footer={footer}>
+      <form id="editLogForm" onSubmit={handleSave} className="space-y-6">
+        <div>
+          <label className="block text-xs font-bold text-muted mb-2 uppercase">Job Title</label>
+          <input
+            type="text"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
+            className="w-full bg-surface/50 border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30"
+          />
         </div>
 
-        <form id="editLogForm" onSubmit={handleSave} className="p-6 sm:p-10 space-y-6 overflow-y-auto custom-scrollbar">
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">JOB TITLE</label>
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Date*</label>
             <input
-              type="text"
-              value={jobTitle}
-              onChange={(e) => setJobTitle(e.target.value)}
-              className="w-full bg-white border border-border-subtle rounded-xl px-4 py-3 text-sm text-main outline-none focus:ring-2 focus:ring-amber-100 font-medium"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">DATE*</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-white border border-border-subtle rounded-xl px-4 py-3 text-sm text-main font-medium outline-none focus:ring-2 focus:ring-amber-100"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">HOURS*</label>
-              <input
-                type="number"
-                step="0.1"
-                value={hours}
-                onChange={(e) => {
-                  setHours(e.target.value);
-                  setErrors((prev) => ({ ...prev, hours: validateHours(e.target.value) }));
-                }}
-                onBlur={() => setErrors((prev) => ({ ...prev, hours: validateHours(hours) }))}
-                className={`w-full bg-white border ${errors.hours ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-main font-medium outline-none focus:ring-2 focus:ring-amber-100`}
-                required
-              />
-              {errors.hours && (
-                <p className="text-xs text-red-500 mt-1">{errors.hours}</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">DESCRIPTION*</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full bg-white border border-border-subtle rounded-xl px-4 py-3 text-sm text-main font-medium outline-none focus:ring-2 focus:ring-amber-100"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full bg-surface/50 border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30"
               required
             />
           </div>
-
-          <div className="p-4 bg-surface rounded-xl border border-dashed border-border-subtle">
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">ATTACHMENT</label>
+          <div>
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Hours*</label>
             <input
-              type="file"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
-              onChange={(e) => setNewAttachment(e.target.files[0])}
-              className="text-[11px] text-muted file:mr-4 file:py-1 file:px-3 file:rounded-full file:bg-slate-200 file:text-muted cursor-pointer"
+              type="number"
+              step="0.1"
+              value={hours}
+              onChange={(e) => {
+                setHours(e.target.value);
+                setErrors((prev) => ({ ...prev, hours: validateHours(e.target.value) }));
+              }}
+              onBlur={() => setErrors((prev) => ({ ...prev, hours: validateHours(hours) }))}
+              className={`w-full bg-surface/50 border ${errors.hours ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30`}
+              required
             />
-            {attachmentName && !newAttachment && (
-              <p className="text-[10px] font-bold text-muted mt-2 truncate">CURRENT: {attachmentName}</p>
+            {errors.hours && (
+              <p className="text-xs text-red-500 mt-1">{errors.hours}</p>
             )}
           </div>
-        </form>
-
-        <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-border-subtle flex gap-4 bg-white flex-shrink-0">
-          <button onClick={onClose} className="flex-1 py-4 font-black text-[10px] text-muted uppercase tracking-widest">CANCEL</button>
-          <button
-            type="submit"
-            form="editLogForm"
-            disabled={isLoading || !isCurrentInputValid}
-            className="flex-1 py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-50"
-          >
-            {isLoading ? "SAVING..." : "UPDATE LOG"}
-          </button>
         </div>
-      </div>
-    </div>
+
+        <div>
+          <label className="block text-xs font-bold text-muted mb-2 uppercase">Description*</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            className="w-full bg-surface/50 border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 resize-none"
+            required
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="block text-xs font-bold text-muted uppercase">Attachment</label>
+          <div className="flex items-center justify-center w-full">
+            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-border-subtle border-dashed rounded-xl cursor-pointer bg-surface hover:bg-surface/80 transition-colors">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <p className="text-xs text-muted font-bold uppercase tracking-tight">
+                  {newAttachment ? newAttachment.name : "click to replace file"}
+                </p>
+              </div>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg,.bmp,.mp4,.mp3"
+                onChange={(e) => setNewAttachment(e.target.files[0])}
+                className="hidden"
+              />
+            </label>
+          </div>
+          {attachmentName && !newAttachment && (
+            <p className="text-[10px] font-bold text-muted mt-2 truncate uppercase">CURRENT: {attachmentName}</p>
+          )}
+        </div>
+      </form>
+    </GlassModal>
   );
 };
 

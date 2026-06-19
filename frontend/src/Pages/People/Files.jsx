@@ -3,6 +3,7 @@ import { Spin, Alert } from 'antd';
 import FileTable from './FileTable';
 import api from '../../axios'; // Import your axios instance
 import { useSelector } from 'react-redux';
+import PageContainer from "../../components/ui/PageContainer";
 
 export default function Files() {
   const [viewMode, setViewMode] = useState('table');
@@ -54,9 +55,9 @@ export default function Files() {
           return false;
         }
         
-        // Check if file has sharedWithRoles that includes user's role
-        if (file.sharedWithRoles && user?.roles && Array.isArray(user.roles)) {
-          const hasRoleAccess = file.sharedWithRoles.some(role => 
+        // Check if file has SharedWithRoles that includes user's role
+        if (file.SharedWithRoles && user?.roles && Array.isArray(user.roles)) {
+          const hasRoleAccess = file.SharedWithRoles.some(role => 
             user.roles.includes(role)
           );
           
@@ -152,64 +153,55 @@ export default function Files() {
   if (error) return <Alert message={error} type="error" />;
 
   return (
-    <div className="min-h-screen bg-primary p-2 sm:p-4 mx-2 my-4 sm:m-6 rounded-lg shadow-md">
-      {/* Tab Bar */}
-      <div className="inline-flex flex-row flex-wrap items-center justify-center bg-white p-1 rounded-lg shadow-sm border border-gray-200 mb-4">
-        {tabs.map((item, index) => (
-          <div key={item.title} className="flex items-center">
-            <button
-              className={`px-4 py-2 text-sm font-medium transition-colors duration-200
-                ${activeTab === index
-                  ? "text-heading rounded-md bg-gray-100"
-                  : "text-primary hover:text-primary hover:bg-gray-100 rounded-md"
-                }`}
-              onClick={() => setActiveTab(index)}
-            >
-              {item.title}
-            </button>
-            {index !== tabs.length - 1 && (
-              <span className="w-px h-4 bg-gray-300 mx-1"></span>
-            )}
+    <PageContainer
+      title="Files"
+      subtitle="View and manage public and shared files"
+      filters={
+        <div className="flex flex-col space-y-4 w-full">
+          {/* Tab Bar */}
+          <div className="inline-flex flex-row flex-wrap items-center justify-start bg-white/30 backdrop-blur-md p-1.5 rounded-[1.2rem] shadow-sm border border-white/50 w-max">
+            {tabs.map((item, index) => (
+              <div key={item.title} className="flex items-center">
+                <button
+                  className={`px-5 py-2.5 text-sm font-medium transition-all duration-200 rounded-xl
+                    ${activeTab === index
+                      ? "text-heading bg-white shadow-sm font-bold"
+                      : "text-muted hover:text-heading hover:bg-surface/50"
+                    }`}
+                  onClick={() => setActiveTab(index)}
+                >
+                  {item.title}
+                </button>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Search and View Controls */}
-      <div className="flex flex-col space-y-4 mb-5 bg-white rounded-lg px-4 py-4 sm:px-8">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between w-full">
-          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-3 lg:mb-0">
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <label className="text-sm text-heading whitespace-nowrap">Show</label>
-              <select className="text-sm px-2 py-1 text-heading bg-secondary rounded-md shadow-md">
-                <option className="text-gray-700">10</option>
-                <option className="text-gray-700">25</option>
-                <option className="text-gray-700">50</option>
-              </select>
-              <span className="text-sm text-heading">entries</span>
-            </div>
-
-            <div className="w-full sm:w-auto">
+          {/* Search Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+            <div className="w-full sm:w-64">
               <input
                 type="text"
                 placeholder="Search by name, owner, or type..."
-                className="border-0 px-3 py-1.5 rounded-md shadow-md w-full sm:w-64 text-sm bg-secondary text-description"
+                className="w-full bg-white/80 backdrop-blur-sm border border-border-subtle px-4 py-2 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-300"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
         </div>
-      </div>
-
+      }
+    >
       {/* Tab Content */}
-      <Spin spinning={activeTab === 0 ? loading.public : loading.role}>
-        <FileTable
-          files={getFilteredFiles()}
-          onDownload={handleDownload}
-          loading={loading.download}
-          searchTerm={searchTerm}
-        />
-      </Spin>
-    </div>
+      <div className="bg-white/30 backdrop-blur-md rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] p-6 min-h-[400px]">
+        <Spin spinning={activeTab === 0 ? loading.public : loading.role}>
+          <FileTable
+            files={getFilteredFiles()}
+            onDownload={handleDownload}
+            loading={loading.download}
+            searchTerm={searchTerm}
+          />
+        </Spin>
+      </div>
+    </PageContainer>
   );
 }

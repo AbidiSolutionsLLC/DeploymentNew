@@ -1,5 +1,9 @@
 import React, { useState } from "react";
-import { Upload, X, FileText, Image, Wand2, CheckCircle, Loader } from "lucide-react";
+import { 
+  Upload, FileText, X, File, FileCode, CheckCircle, 
+  AlertCircle, AlertTriangle, Info, ChevronRight, Zap, Image, Wand2, Loader
+} from "lucide-react";
+import expensesApi from "../api/expensesApi";
 import { toast } from "react-toastify";
 import api from "../axios";
 import ModernSelect from "./ui/ModernSelect";
@@ -84,11 +88,9 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
     formDataToSend.append("documentType", documentType);
 
     try {
-      const response = await api.post("/expenses/process-receipt", formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+      const resData = await expensesApi.processReceipt(formDataToSend);
 
-      const extractedData = response.data.data;
+      const extractedData = resData.data;
 
       // Auto-fill the form with extracted data
       setFormData({
@@ -129,9 +131,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
     formDataToSend.append("receipt", receipt);
 
     try {
-      await api.post("/expenses", formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+      await expensesApi.createExpense(formDataToSend);
 
       toast.success("Expense submitted successfully!");
       
