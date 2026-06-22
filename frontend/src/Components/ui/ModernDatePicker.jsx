@@ -3,93 +3,74 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { FiCalendar } from "react-icons/fi";
 
-// Custom CSS to override default DatePicker styles to match your theme
-const customDatePickerStyles = `
-  .react-datepicker-wrapper { width: 100%; }
-  .react-datepicker {
-    font-family: 'Segoe UI', sans-serif;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-  }
-  .react-datepicker__header {
-    background-color: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    padding-top: 1rem;
-  }
-  .react-datepicker__day--selected, .react-datepicker__day--keyboard-selected {
-    background-color: #3b82f6 !important; /* Blue-500 */
-    border-radius: 0.5rem;
-  }
-  .react-datepicker__day:hover {
-    border-radius: 0.5rem;
-  }
-  .react-datepicker__triangle { display: none; }
-`;
-
 const ModernDatePicker = ({
-  label,
-  name,
-  value,
-  onChange,
-  placeholder = "Select Date",
-  required = false,
-  className = "",
-  error = null,
-  maxDate = null,
+ label,
+ name,
+ value,
+ onChange,
+ placeholder = "Select Date",
+ required = false,
+ className = "",
+ error = null,
+ maxDate = null,
 }) => {
-  // Handle Date Change (Convert standard JS Date to Event-like object for your forms)
-  const handleDateChange = (date) => {
-    // Format to YYYY-MM-DD for consistency with backend
-    const formattedDate = date ? date.toLocaleDateString("en-CA") : "";
-    
-    onChange({
-      target: {
-        name: name,
-        value: formattedDate,
-      },
-    });
-  };
+ // Handle Date Change (Convert standard JS Date to Event-like object for your forms)
+ const handleDateChange = (date) => {
+ // Format to YYYY-MM-DD for consistency with backend
+ const formattedDate = date ? date.toLocaleDateString("en-CA") : "";
 
-  return (
-    <div className={`w-full ${className}`}>
-      <style>{customDatePickerStyles}</style>
+ onChange({
+ target: {
+ name: name,
+ value: formattedDate,
+ },
+ });
+ };
 
-      {/* Label */}
-      {label && (
-        <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
-      )}
+ return (
+ <div className={`w-full ${className}`}>
+ {/* Label */}
+ {label && (
+ <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">
+ {label} {required && <span className="text-red-500">*</span>}
+ </label>
+ )}
 
-      {/* Input Container */}
-      <div className="relative w-full">
-        <DatePicker
-selected={
-  value
-    ? new Date(value + "T00:00:00")
-    : null
-}          onChange={handleDateChange}
-          dateFormat="yyyy-MM-dd"
-           placeholderText={placeholder}
-           required={required}
-           className={`w-full bg-white border ${error ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-3 pl-10 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-amber-100 placeholder:text-slate-300 transition-all shadow-sm hover:border-slate-300`}
-           popperClassName="z-[99999]" // Ensure it pops over modals
-          showMonthDropdown
-          showYearDropdown
-          dropdownMode="select"
-          portalId="portal-root" 
-          maxDate={maxDate}
-        />
-        
-        {/* Calendar Icon */}
-        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-          <FiCalendar className="w-4 h-4" />
-        </div>
-      </div>
-    </div>
-  );
+ {/* Input Container */}
+ <div className="relative w-full">
+ <DatePicker
+ selected={
+ value
+ ? new Date(value + "T00:00:00")
+ : null
+ }
+ onChange={handleDateChange}
+ dateFormat="yyyy-MM-dd"
+ placeholderText={placeholder}
+ required={required}
+ className={`w-full
+ bg-surface dark:bg-slate-800
+ border ${error ? "border-red-400 dark:border-red-500" : "border-subtle dark:border-slate-600 hover:border-subtle dark:hover:border-slate-500"}
+ rounded-xl px-4 py-3 pl-10
+ text-sm text-main dark:text-slate-100 font-medium
+ outline-none focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-500/20 focus:border-amber-400 dark:focus:border-amber-500
+ placeholder:text-slate-300 dark:placeholder:text-muted
+ transition-all shadow-sm`}
+ popperClassName="z-[99999]"
+ showMonthDropdown
+ showYearDropdown
+ dropdownMode="select"
+ portalId="portal-root"
+ maxDate={maxDate}
+ />
+
+ {/* Calendar Icon */}
+ <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted dark:text-muted pointer-events-none">
+ <FiCalendar className="w-4 h-4" />
+ </div>
+ </div>
+ </div>
+ );
 };
 
 export default ModernDatePicker;

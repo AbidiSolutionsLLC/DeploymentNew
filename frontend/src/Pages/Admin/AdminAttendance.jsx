@@ -1,566 +1,584 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import api from "../../axios";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { 
-  Download, Calendar, User as UserIcon, Building, Briefcase, ChevronDown, CheckCircle, XCircle, AlertCircle, Clock, Check, X, FileText, Search, UserCheck, UserX, Sun, Users, Edit2, Trash2, Save
+ Download, Calendar, CheckCircle, XCircle, AlertCircle, Clock, X, Edit2, Trash2, Save, Search
 } from "lucide-react";
 import PageContainer from "../../components/ui/PageContainer";
 import TableWithPagination from "../../components/TableWithPagination";
 import AdminAddAttendanceModal from "../../components/AdminAddAttendanceModal";
+import GlassInput from "../../components/ui/GlassInput";
+import ModernSelect from "../../components/ui/ModernSelect";
+import FilterRow from "../../components/ui/FilterRow";
 
 // --- SUB-COMPONENT: LIVE TIMER ---
 const LiveTimer = ({ startTime }) => {
-  const [duration, setDuration] = useState("");
+ const [duration, setDuration] = useState("");
 
-  useEffect(() => {
-    const updateTimer = () => {
-      const start = new Date(startTime).getTime();
-      const now = new Date().getTime();
-      const diff = now - start;
+ useEffect(() => {
+ const updateTimer = () => {
+ const start = new Date(startTime).getTime();
+ const now = new Date().getTime();
+ const diff = now - start;
 
-      if (diff < 0) return setDuration("00:00:00");
+ if (diff < 0) return setDuration("00:00:00");
 
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+ const hours = Math.floor(diff / (1000 * 60 * 60));
+ const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+ const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-      setDuration(
-        `${hours.toString().padStart(2, "0")}:${minutes
-          .toString()
-          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-      );
-    };
+ setDuration(
+ `${hours.toString().padStart(2, "0")}:${minutes
+ .toString()
+ .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+ );
+ };
 
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
+ updateTimer();
+ const interval = setInterval(updateTimer, 1000);
 
-    return () => clearInterval(interval);
-  }, [startTime]);
+ return () => clearInterval(interval);
+ }, [startTime]);
 
-  return <span className="text-amber-600 font-mono font-bold tracking-wider">{duration}</span>;
+ return <span className="text-amber-600 font-mono font-bold tracking-wider">{duration}</span>;
 };
 
 // --- MAIN COMPONENT ---
 const AdminAttendance = () => {
-  const [summaryData, setSummaryData] = useState({ present: [], absent: [], onLeave: [], counts: { present: 0, absent: 0, onLeave: 0, total: 0 } });
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterDate, setFilterDate] = useState(() => {
-    const savedDate = localStorage.getItem('admin_attendance_date');
-    return savedDate ? new Date(savedDate) : new Date();
-  });
-  const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem('admin_attendance_tab') || "present";
-  });
-  const [allUsers, setAllUsers] = useState([]);
-  const [isAddAttendanceOpen, setIsAddAttendanceOpen] = useState(false);
+ const [summaryData, setSummaryData] = useState({ present: [], absent: [], onLeave: [], counts: { present: 0, absent: 0, onLeave: 0, total: 0 } });
+ const [loading, setLoading] = useState(true);
+ const [searchTerm, setSearchTerm] = useState("");
+ const [deptFilter, setDeptFilter] = useState("all");
+ const [filterDate, setFilterDate] = useState(() => {
+ const savedDate = localStorage.getItem('admin_attendance_date');
+ return savedDate ? new Date(savedDate) : new Date();
+ });
+ const [activeTab, setActiveTab] = useState(() => {
+ return localStorage.getItem('admin_attendance_tab') || "present";
+ });
+ const [allUsers, setAllUsers] = useState([]);
+ const [isAddAttendanceOpen, setIsAddAttendanceOpen] = useState(false);
 
-  // Edit State
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingLog, setEditingLog] = useState(null);
-  const [editFormData, setEditFormData] = useState({ checkInTime: null, checkOutTime: null, status: "" });
+ // Edit State
+ const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+ const [editingLog, setEditingLog] = useState(null);
+ const [editFormData, setEditFormData] = useState({ checkInTime: null, checkOutTime: null, status: "" });
 
-  // Permission State
-  const [currentUserRole, setCurrentUserRole] = useState("");
+ // Permission State
+ const [currentUserRole, setCurrentUserRole] = useState("");
 
-  const fetchSummary = async (date) => {
-    setLoading(true);
-    try {
-      const dateStr = date.toISOString().split('T')[0];
-      const res = await api.get(`/timetrackers/admin-summary?date=${dateStr}`);
-      setSummaryData(res.data);
-    } catch (error) {
-      console.error("Fetch Summary Error:", error);
-      toast.error("Failed to load attendance summary");
-    } finally {
-      setLoading(false);
-    }
-  };
+ const fetchSummary = async (date) => {
+ setLoading(true);
+ try {
+ const dateStr = date.toISOString().split('T')[0];
+ const res = await api.get(`/timetrackers/admin-summary?date=${dateStr}`);
+ setSummaryData(res.data);
+ } catch (error) {
+ console.error("Fetch Summary Error:", error);
+ toast.error("Failed to load attendance summary");
+ } finally {
+ setLoading(false);
+ }
+ };
 
-  // --- FETCH USER INFO ON MOUNT ---
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      try {
-        const userRes = await api.get("/auth/me");
-        const role = userRes.data.user.role || "";
-        const processedRole = role.replace(/\s+/g, '').toLowerCase();
-        setCurrentUserRole(processedRole);
-        
-        if (processedRole === 'superadmin' || processedRole === 'admin') {
-          const allUsersRes = await api.get("/users");
-          setAllUsers(Array.isArray(allUsersRes.data) ? allUsersRes.data : allUsersRes.data.data || []);
-        }
-      } catch (error) {
-        console.error("User Init Error:", error);
-      }
-    };
-    fetchUserInfo();
-  }, []);
+ // --- FETCH USER INFO ON MOUNT ---
+ useEffect(() => {
+ const fetchUserInfo = async () => {
+ try {
+ const userRes = await api.get("/auth/me");
+ const role = userRes.data.user.role || "";
+ const processedRole = role.replace(/\s+/g, '').toLowerCase();
+ setCurrentUserRole(processedRole);
+ 
+ if (processedRole === 'superadmin' || processedRole === 'admin') {
+ const allUsersRes = await api.get("/users");
+ setAllUsers(Array.isArray(allUsersRes.data) ? allUsersRes.data : allUsersRes.data.data || []);
+ }
+ } catch (error) {
+ console.error("User Init Error:", error);
+ }
+ };
+ fetchUserInfo();
+ }, []);
 
-  // --- FETCH SUMMARY ON DATE CHANGE ---
-  useEffect(() => {
-    if (filterDate) {
-      fetchSummary(filterDate);
-    }
-  }, [filterDate]);
+ // --- FETCH SUMMARY ON DATE CHANGE ---
+ useEffect(() => {
+ if (filterDate) {
+ fetchSummary(filterDate);
+ }
+ }, [filterDate]);
 
-  const canEdit = currentUserRole === 'superadmin';
+ const canEdit = currentUserRole === 'superadmin';
 
-  // --- DOWNLOAD EXCEL (CSV) ---
-  const handleDownload = () => {
-    const dataToExport = activeTabLogs;
-    if (dataToExport.length === 0) {
-      toast.warn("No data to download");
-      return;
-    }
+ // --- DERIVE UNIQUE DEPARTMENTS ---
+ const departmentOptions = useMemo(() => {
+ const depts = new Set();
+ allUsers.forEach(u => {
+ const deptName = u.department?.name || u.department;
+ if (deptName) depts.add(deptName);
+ });
+ return [
+ { value: "all", label: "All Departments" },
+ ...[...depts].sort().map(d => ({ value: d, label: d })),
+ ];
+ }, [allUsers]);
 
-    const isPresentTab = activeTab === "present";
-    const headers = isPresentTab 
-      ? ["Employee Name", "Email", "Date", "Check In", "Check Out", "Total Hours", "Status"]
-      : ["Employee Name", "Email", "Date", "Status"];
+ // --- DOWNLOAD EXCEL (CSV) ---
+ const handleDownload = () => {
+ const dataToExport = activeTabLogs;
+ if (dataToExport.length === 0) {
+ toast.warn("No data to download");
+ return;
+ }
 
-    const rows = dataToExport.map(log => {
-      const base = [
-        `"${log.user?.name || 'Unknown'}"`,
-        `"${log.user?.email || 'N/A'}"`,
-        new Date(log.date || filterDate).toLocaleDateString(),
-        log.status
-      ];
-      if (isPresentTab) {
-        return [
-          base[0], base[1], base[2],
-          log.checkInTime ? new Date(log.checkInTime).toLocaleTimeString() : "--",
-          log.checkOutTime ? new Date(log.checkOutTime).toLocaleTimeString() : "Active",
-          log.totalHours || "--",
-          base[3]
-        ];
-      }
-      return base;
-    });
+ const isPresentTab = activeTab === "present";
+ const headers = isPresentTab 
+ ? ["Employee Name", "Email", "Date", "Check In", "Check Out", "Total Hours", "Status"]
+ : ["Employee Name", "Email", "Date", "Status"];
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.join(","))
-    ].join("\n");
+ const rows = dataToExport.map(log => {
+ const base = [
+ `"${log.user?.name || 'Unknown'}"`,
+ `"${log.user?.email || 'N/A'}"`,
+ new Date(log.date || filterDate).toLocaleDateString(),
+ log.status
+ ];
+ if (isPresentTab) {
+ return [
+ base[0], base[1], base[2],
+ log.checkInTime ? new Date(log.checkInTime).toLocaleTimeString() : "--",
+ log.checkOutTime ? new Date(log.checkOutTime).toLocaleTimeString() : "Active",
+ log.totalHours || "--",
+ base[3]
+ ];
+ }
+ return base;
+ });
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `attendance_${activeTab}_report_${filterDate.toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+ const csvContent = [
+ headers.join(","),
+ ...rows.map(row => row.join(","))
+ ].join("\n");
 
-  // --- EDIT HANDLERS ---
-  const handleEditClick = (log) => {
-    setEditingLog(log);
-    setEditFormData({
-      checkInTime: log.checkInTime ? new Date(log.checkInTime) : null,
-      checkOutTime: log.checkOutTime ? new Date(log.checkOutTime) : null,
-      status: log.status
-    });
-    setIsEditModalOpen(true);
-  };
+ const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+ const url = URL.createObjectURL(blob);
+ const link = document.createElement("a");
+ link.setAttribute("href", url);
+ link.setAttribute("download", `attendance_${activeTab}_report_${filterDate.toISOString().split('T')[0]}.csv`);
+ document.body.appendChild(link);
+ link.click();
+ document.body.removeChild(link);
+ };
 
-  const handleSaveChanges = async () => {
-    try {
-      let updates = { ...editFormData };
+ // --- EDIT HANDLERS ---
+ const handleEditClick = (log) => {
+ setEditingLog(log);
+ setEditFormData({
+ checkInTime: log.checkInTime ? new Date(log.checkInTime) : null,
+ checkOutTime: log.checkOutTime ? new Date(log.checkOutTime) : null,
+ status: log.status
+ });
+ setIsEditModalOpen(true);
+ };
 
-      // VALIDATION
-      // Auto-clear times for Absent/Leave
-      if (updates.status === 'Absent' || updates.status === 'On Leave' || updates.status === 'Leave') {
-        updates.checkInTime = null;
-        updates.checkOutTime = null;
-        updates.totalHours = 0;
-      } else {
-        const now = new Date();
-        if (updates.checkInTime && new Date(updates.checkInTime) > now) {
-          return toast.error("Check-in time cannot be in the future");
-        }
-        if (updates.checkOutTime && new Date(updates.checkOutTime) > now) {
-          return toast.error("Check-out time cannot be in the future");
-        }
+ const handleSaveChanges = async () => {
+ try {
+ let updates = { ...editFormData };
 
-        if (updates.checkInTime && updates.checkOutTime) {
-          if (new Date(updates.checkOutTime) <= new Date(updates.checkInTime)) {
-            return toast.error("Check-out cannot be before check-in");
-          }
-        }
-        if (!updates.checkInTime && updates.checkOutTime) {
-          return toast.error("Check-in is required if check-out is provided");
-        }
-      }
+ // VALIDATION
+ // Auto-clear times for Absent/Leave
+ if (updates.status === 'Absent' || updates.status === 'On Leave' || updates.status === 'Leave') {
+ updates.checkInTime = null;
+ updates.checkOutTime = null;
+ updates.totalHours = 0;
+ } else {
+ const now = new Date();
+ if (updates.checkInTime && new Date(updates.checkInTime) > now) {
+ return toast.error("Check-in time cannot be in the future");
+ }
+ if (updates.checkOutTime && new Date(updates.checkOutTime) > now) {
+ return toast.error("Check-out time cannot be in the future");
+ }
 
-      // Auto-calc duration if times changed
-      if (updates.checkInTime && updates.checkOutTime) {
-        const start = new Date(updates.checkInTime);
-        const end = new Date(updates.checkOutTime);
-        const diffMs = end - start;
-        const totalHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
-        updates.totalHours = totalHours;
-      }
+ if (updates.checkInTime && updates.checkOutTime) {
+ if (new Date(updates.checkOutTime) <= new Date(updates.checkInTime)) {
+ return toast.error("Check-out cannot be before check-in");
+ }
+ }
+ if (!updates.checkInTime && updates.checkOutTime) {
+ return toast.error("Check-in is required if check-out is provided");
+ }
+ }
 
-      if (editingLog._id) {
-        await api.put(`/timetrackers/${editingLog._id}`, updates);
-        toast.success("Attendance updated successfully");
-      } else {
-        await api.post("/timetrackers", {
-          user: editingLog.user?._id,
-          checkInTime: updates.checkInTime,
-          checkOutTime: updates.checkOutTime,
-          status: updates.status,
-          totalHours: updates.totalHours,
-          date: editingLog.date || filterDate
-        });
-        toast.success("Attendance record created successfully");
-      }
-      setIsEditModalOpen(false);
-      await fetchSummary(filterDate);
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update record");
-    }
-  };
+ // Auto-calc duration if times changed
+ if (updates.checkInTime && updates.checkOutTime) {
+ const start = new Date(updates.checkInTime);
+ const end = new Date(updates.checkOutTime);
+ const diffMs = end - start;
+ const totalHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+ updates.totalHours = totalHours;
+ }
 
-  const handleDeleteRecord = async (logId) => {
-    if (!window.confirm("Delete this attendance record permanently?")) return;
-    try {
-      await api.delete(`/timetrackers/${logId}`);
-      toast.success("Record deleted");
-      await fetchSummary(filterDate);
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to delete record");
-    }
-  };
+ if (editingLog._id) {
+ await api.put(`/timetrackers/${editingLog._id}`, updates);
+ toast.success("Attendance updated successfully");
+ } else {
+ await api.post("/timetrackers", {
+ user: editingLog.user?._id,
+ checkInTime: updates.checkInTime,
+ checkOutTime: updates.checkOutTime,
+ status: updates.status,
+ totalHours: updates.totalHours,
+ date: editingLog.date || filterDate
+ });
+ toast.success("Attendance record created successfully");
+ }
+ setIsEditModalOpen(false);
+ await fetchSummary(filterDate);
+ } catch (error) {
+ toast.error(error.response?.data?.message || "Failed to update record");
+ }
+ };
 
-  // --- HELPERS ---
-  const formatTime = (isoString) => {
-    if (!isoString) return "--:--";
-    return new Date(isoString).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
+ const handleDeleteRecord = async (logId) => {
+ if (!window.confirm("Delete this attendance record permanently?")) return;
+ try {
+ await api.delete(`/timetrackers/${logId}`);
+ toast.success("Record deleted");
+ await fetchSummary(filterDate);
+ } catch (error) {
+ toast.error(error.response?.data?.message || "Failed to delete record");
+ }
+ };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Present":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><CheckCircle size={12} /> Present</span>;
-      case "Half Day":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200"><AlertCircle size={12} /> Half Day</span>;
-      case "Absent":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200"><XCircle size={12} /> Absent</span>;
-      case "On Leave":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200"><Calendar size={12} /> On Leave</span>;
-      default:
-        return <span className="text-muted text-xs font-bold">{status}</span>;
-    }
-  };
+ // --- HELPERS ---
+ const formatTime = (isoString) => {
+ if (!isoString) return "--:--";
+ return new Date(isoString).toLocaleTimeString("en-US", {
+ hour: "2-digit",
+ minute: "2-digit",
+ hour12: true,
+ });
+ };
 
-  const getActiveTabData = () => {
-    switch (activeTab) {
-      case "present": return summaryData.present.filter(log => log.status !== 'Absent' && log.status !== 'On Leave' && log.status !== 'Leave');
-      case "absent": return summaryData.absent;
-      case "leave": return summaryData.onLeave;
-      default: return [];
-    }
-  };
+ const getStatusBadge = (status) => {
+ switch (status) {
+ case "Present":
+ return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><CheckCircle size={12} /> Present</span>;
+ case "Half Day":
+ return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200"><AlertCircle size={12} /> Half Day</span>;
+ case "Absent":
+ return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200"><XCircle size={12} /> Absent</span>;
+ case "On Leave":
+ return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200"><Calendar size={12} /> On Leave</span>;
+ default:
+ return <span className="text-muted text-xs font-bold">{status}</span>;
+ }
+ };
 
-  const activeTabLogs = getActiveTabData().filter((log) => {
-    const employeeName = log.user?.name || "Unknown";
-    const matchesSearch = employeeName.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+ const getActiveTabData = () => {
+ switch (activeTab) {
+ case "present": return summaryData.present.filter(log => log.status !== 'Absent' && log.status !== 'On Leave' && log.status !== 'Leave');
+ case "absent": return summaryData.absent;
+ case "leave": return summaryData.onLeave;
+ default: return [];
+ }
+ };
 
-  const attendanceColumns = [
-    {
-      key: "user",
-      label: "Employee",
-      render: (_, log) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm">
-            {log.user?.name?.charAt(0).toUpperCase() || "?"}
-          </div>
-          <div>
-            <p className="text-sm font-bold text-main">{log.user?.name || "Unknown"}</p>
-            <p className="text-[10px] font-bold text-muted uppercase">{log.user?.designation || "Employee"}</p>
-          </div>
-        </div>
-      )
-    },
-    {
-      key: "date",
-      label: "Date",
-      render: (_, log) => new Date(log.date || filterDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    },
-    ...(activeTab === "present" ? [
-      {
-        key: "checkInTime",
-        label: "Check In",
-        render: (_, log) => formatTime(log.checkInTime)
-      },
-      {
-        key: "checkOutTime",
-        label: "Check Out",
-        render: (_, log) => log.checkOutTime ? (
-          <span className="text-sm font-bold text-main">{formatTime(log.checkOutTime)}</span>
-        ) : (
-          <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 uppercase tracking-wider">Active</span>
-        )
-      },
-      {
-        key: "duration",
-        label: "Duration",
-        render: (_, log) => log.checkInTime && log.checkOutTime ? (
-          <span className="text-muted">{log.totalHours} hrs</span>
-        ) : (
-          log.checkInTime ? <LiveTimer startTime={log.checkInTime} /> : <span className="text-muted text-xs italic">N/A</span>
-        )
-      }
-    ] : []),
-    {
-      key: "status",
-      label: "Status",
-      render: (_, log) => getStatusBadge(log.status)
-    },
-    ...(canEdit ? [
-      {
-        key: "actions",
-        label: "Actions",
-        align: "right",
-        render: (_, log) => (
-          <div className="flex justify-end gap-1">
-            {log._id ? (
-              <>
-                <button onClick={(e) => { e.stopPropagation(); handleEditClick(log); }} className="p-2 text-muted hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit Record">
-                  <Edit2 size={16} />
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleDeleteRecord(log._id); }} className="p-2 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete Record">
-                  <Trash2 size={16} />
-                </button>
-              </>
-            ) : (
-               <button onClick={(e) => { e.stopPropagation(); handleEditClick(log); }} className="p-2 text-muted hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Add/Update Record">
-                 <Edit2 size={16} />
-               </button>
-            )}
-          </div>
-        )
-      }
-    ] : [])
-  ];
+ const activeTabLogs = getActiveTabData().filter((log) => {
+ const employeeName = log.user?.name || "Unknown";
+ const matchesSearch = employeeName.toLowerCase().includes(searchTerm.toLowerCase());
+ const userDeptName = log.user?.department?.name || log.user?.department || "";
+ const matchesDept = deptFilter === "all" || userDeptName === deptFilter;
+ return matchesSearch && matchesDept;
+ });
 
-  return (
-    <PageContainer
-      title="Employee Attendance"
-      subtitle="Monitor daily check-ins, check-outs, and working hours."
-      headerActions={
-        <div className="flex flex-wrap items-center gap-2">
-          {canEdit && (
-            <button
-              onClick={() => setIsAddAttendanceOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition shadow-lg shadow-amber-200 text-[11px] font-black uppercase tracking-wide"
-            >
-              + Check In/Out
-            </button>
-          )}
-          <button
-            onClick={handleDownload}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200 text-[11px] font-black uppercase tracking-wide"
-          >
-            <Download size={16} /> Export CSV
-          </button>
-        </div>
-      }
-    >
+ const attendanceColumns = [
+ {
+ key: "user",
+ label: "Employee",
+ render: (_, log) => (
+ <div className="flex items-center gap-3">
+ <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm">
+ {log.user?.name?.charAt(0).toUpperCase() || "?"}
+ </div>
+ <div>
+ <p className="text-sm font-bold text-main">{log.user?.name || "Unknown"}</p>
+ <p className="text-[10px] font-bold text-muted uppercase">{log.user?.designation || "Employee"}</p>
+ </div>
+ </div>
+ )
+ },
+ {
+ key: "date",
+ label: "Date",
+ render: (_, log) => new Date(log.date || filterDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+ },
+ ...(activeTab === "present" ? [
+ {
+ key: "checkInTime",
+ label: "Check In",
+ render: (_, log) => formatTime(log.checkInTime)
+ },
+ {
+ key: "checkOutTime",
+ label: "Check Out",
+ render: (_, log) => log.checkOutTime ? (
+ <span className="text-sm font-bold text-main">{formatTime(log.checkOutTime)}</span>
+ ) : (
+ <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 uppercase tracking-wider">Active</span>
+ )
+ },
+ {
+ key: "duration",
+ label: "Duration",
+ render: (_, log) => log.checkInTime && log.checkOutTime ? (
+ <span className="text-muted">{log.totalHours} hrs</span>
+ ) : (
+ log.checkInTime ? <LiveTimer startTime={log.checkInTime} /> : <span className="text-muted text-xs italic">N/A</span>
+ )
+ }
+ ] : []),
+ {
+ key: "status",
+ label: "Status",
+ render: (_, log) => getStatusBadge(log.status)
+ },
+ ...(canEdit ? [
+ {
+ key: "actions",
+ label: "Actions",
+ align: "right",
+ render: (_, log) => (
+ <div className="flex justify-end gap-1">
+ {log._id ? (
+ <>
+ <button onClick={(e) => { e.stopPropagation(); handleEditClick(log); }} className="p-2 text-muted hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit Record">
+ <Edit2 size={16} />
+ </button>
+ <button onClick={(e) => { e.stopPropagation(); handleDeleteRecord(log._id); }} className="p-2 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete Record">
+ <Trash2 size={16} />
+ </button>
+ </>
+ ) : (
+ <button onClick={(e) => { e.stopPropagation(); handleEditClick(log); }} className="p-2 text-muted hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Add/Update Record">
+ <Edit2 size={16} />
+ </button>
+ )}
+ </div>
+ )
+ }
+ ] : [])
+ ];
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white p-2 rounded-xl shadow-sm border border-border-subtle flex flex-col sm:flex-row gap-2 h-auto sm:h-16">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted">
-              <Search size={18} />
-            </div>
-            <input
-              type="text"
-              placeholder="Search Employee..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-full bg-surface border border-border-subtle rounded-lg pl-10 pr-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-amber-100 transition-all"
-            />
-          </div>
-          <div className="relative sm:w-48">
-            <DatePicker
-              selected={filterDate}
-              onChange={(date) => {
-                setFilterDate(date);
-                if (date) {
-                  localStorage.setItem('admin_attendance_date', date.toISOString());
-                } else {
-                  localStorage.removeItem('admin_attendance_date');
-                }
-              }}
-              dateFormat="yyyy-MM-dd"
-              wrapperClassName="w-full h-full" // Ensure the wrapper fills the div
-              className="w-full h-full bg-surface border border-border-subtle rounded-lg px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-amber-100 transition-all text-muted cursor-pointer"
-              placeholderText="Filter by Date"
-            />
-          </div>
-        </div>
+ return (
+ <PageContainer
+ title="Employee Attendance"
+ subtitle="Monitor daily check-ins, check-outs, and working hours."
+ headerActions={
+ <div className="flex flex-wrap items-center gap-2">
+ {canEdit && (
+ <button
+ onClick={() => setIsAddAttendanceOpen(true)}
+ className="btn btn-primary"
+ >
+ + Check In/Out
+ </button>
+ )}
+ <button
+ onClick={handleDownload}
+ className="btn btn-secondary flex items-center gap-2"
+ >
+ <Download size={16} /> Export CSV
+ </button>
+ </div>
+ }
+ filters={
+ <FilterRow>
+ {/* Search */}
+ <GlassInput
+ placeholder="Search Employee..."
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ className="flex-1 min-w-[160px]"
+ />
 
-        <div className="grid grid-cols-4 gap-0 bg-white border border-border-subtle rounded-xl overflow-hidden divide-x divide-slate-100 shadow-sm">
-          <div className="px-2 py-3 flex flex-col justify-center text-center bg-amber-50/30">
-            <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">TOTAL</p>
-            <p className="text-xl font-black text-main">{summaryData.counts.total}</p>
-          </div>
-          <div 
-            onClick={() => {
-              setActiveTab("present");
-              localStorage.setItem('admin_attendance_tab', 'present');
-            }}
-            className={`px-2 py-3 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'present' ? 'bg-emerald-100/50' : 'bg-emerald-50/30 hover:bg-emerald-50'}`}
-          >
-            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">PRESENT</p>
-            <p className="text-xl font-black text-emerald-700">{summaryData.counts.present}</p>
-          </div>
-          <div 
-            onClick={() => {
-              setActiveTab("absent");
-              localStorage.setItem('admin_attendance_tab', 'absent');
-            }}
-            className={`px-2 py-3 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'absent' ? 'bg-rose-100/50' : 'bg-rose-50/30 hover:bg-rose-50'}`}
-          >
-            <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">ABSENT</p>
-            <p className="text-xl font-black text-rose-700">{summaryData.counts.absent}</p>
-          </div>
-          <div 
-            onClick={() => {
-              setActiveTab("leave");
-              localStorage.setItem('admin_attendance_tab', 'leave');
-            }}
-            className={`px-2 py-3 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'leave' ? 'bg-amber-100/50' : 'bg-amber-50/30 hover:bg-amber-50'}`}
-          >
-            <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">LEAVE</p>
-            <p className="text-xl font-black text-amber-700">{summaryData.counts.onLeave}</p>
-          </div>
-        </div>
-      </div>
+ {/* Date Picker */}
+ <div className="flex items-center bg-surface border border-border-subtle rounded-xl px-3 h-[42px]">
+ <Calendar size={16} className="text-muted mr-2 flex-shrink-0" />
+ <DatePicker
+ selected={filterDate}
+ onChange={(date) => {
+ setFilterDate(date);
+ if (date) {
+ localStorage.setItem('admin_attendance_date', date.toISOString());
+ } else {
+ localStorage.removeItem('admin_attendance_date');
+ }
+ }}
+ dateFormat="yyyy-MM-dd"
+ className="w-32 bg-transparent border-none text-xs font-semibold text-main outline-none cursor-pointer !py-0 !px-0 !rounded-none !shadow-none"
+ placeholderText="Filter by Date"
+ />
+ </div>
 
-      <div className="flex gap-2 mb-4">
-        {["present", "absent", "leave"].map((t) => (
-          <button
-            key={t}
-            onClick={() => {
-              setActiveTab(t);
-              localStorage.setItem('admin_attendance_tab', t);
-            }}
-            className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${
-              activeTab === t 
-                ? "bg-slate-800 text-white border-slate-800 shadow-lg shadow-slate-200" 
-                : "bg-white text-muted border-border-subtle hover:border-border-subtle"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+ {/* Department Filter */}
+ <div className="min-w-[160px]">
+ <ModernSelect
+ value={deptFilter}
+ onChange={(e) => setDeptFilter(e.target.value)}
+ options={departmentOptions}
+ placeholder="All Departments"
+ />
+ </div>
+ </FilterRow>
+ }
+ topWidgets={
+ <div className="grid grid-cols-4 gap-0 glass-card p-0 overflow-hidden divide-x divide-slate-100">
+ <div className="px-4 py-4 flex flex-col justify-center text-center bg-amber-50/30">
+ <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">TOTAL</p>
+ <p className="text-2xl font-black text-main">{summaryData.counts.total}</p>
+ </div>
+ <div
+ onClick={() => { setActiveTab("present"); localStorage.setItem('admin_attendance_tab', 'present'); }}
+ className={`px-4 py-4 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'present' ? 'bg-emerald-100/50' : 'bg-emerald-50/30 hover:bg-emerald-50'}`}
+ >
+ <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">PRESENT</p>
+ <p className="text-2xl font-black text-emerald-700">{summaryData.counts.present}</p>
+ </div>
+ <div
+ onClick={() => { setActiveTab("absent"); localStorage.setItem('admin_attendance_tab', 'absent'); }}
+ className={`px-4 py-4 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'absent' ? 'bg-rose-100/50' : 'bg-rose-50/30 hover:bg-rose-50'}`}
+ >
+ <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">ABSENT</p>
+ <p className="text-2xl font-black text-rose-700">{summaryData.counts.absent}</p>
+ </div>
+ <div
+ onClick={() => { setActiveTab("leave"); localStorage.setItem('admin_attendance_tab', 'leave'); }}
+ className={`px-4 py-4 flex flex-col justify-center text-center cursor-pointer transition-all ${activeTab === 'leave' ? 'bg-amber-100/50' : 'bg-amber-50/30 hover:bg-amber-50'}`}
+ >
+ <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">ON LEAVE</p>
+ <p className="text-2xl font-black text-amber-700">{summaryData.counts.onLeave}</p>
+ </div>
+ </div>
+ }
+ isCard={false}
+ >
+ {/* Tab Buttons */}
+ <div className="flex gap-2 mb-4">
+ {["present", "absent", "leave"].map((t) => (
+ <button
+ key={t}
+ onClick={() => {
+ setActiveTab(t);
+ localStorage.setItem('admin_attendance_tab', t);
+ }}
+ className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${
+ activeTab === t 
+ ? "bg-slate-800 text-white border-slate-800 shadow-lg shadow-slate-200" 
+ : "bg-surface text-muted border-border-subtle hover:border-subtle"
+ }`}
+ >
+ {t}
+ </button>
+ ))}
+ </div>
 
-      <div className="bg-white rounded-[1.5rem] shadow-sm border border-border-subtle overflow-hidden">
-        <TableWithPagination
-          columns={attendanceColumns}
-          data={activeTabLogs}
-          loading={loading}
-          emptyMessage="No records found for this category."
-        />
-      </div>
+ <div className="glass-card p-0 overflow-hidden">
+ <TableWithPagination
+ columns={attendanceColumns}
+ data={activeTabLogs}
+ loading={loading}
+ emptyMessage="No records found for this category."
+ />
+ </div>
 
-      {isEditModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex justify-center items-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
-            <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-white/40 dark:bg-black/20">
-              <h3 className="text-sm font-black text-heading uppercase tracking-widest">Edit Attendance</h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-muted hover:text-red-500"><X size={20} /></button>
-            </div>
+ {isEditModalOpen && (
+ <div className="fixed inset-0 bg-slate-900/40 z-[9999] flex justify-center items-center p-4">
+ <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
+ <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-surface dark:bg-app">
+ <h3 className="text-sm font-black text-heading uppercase tracking-widest">Edit Attendance</h3>
+ <button onClick={() => setIsEditModalOpen(false)} className="text-muted hover:text-red-500"><X size={20} /></button>
+ </div>
 
-            <div className="p-6 space-y-4 ">
-              <div>
-                <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Check In Time</label>
-                <DatePicker
-                  selected={editFormData.checkInTime}
-                  onChange={(date) => setEditFormData({ ...editFormData, checkInTime: date })}
-                  showTimeSelect
-                  dateFormat="Pp"
-                  wrapperClassName="w-full"
-                  className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none"
-                  popperProps={{ strategy: "fixed" }}
-                  portalId="portal-root"
-                />
-              </div>
+ <div className="p-6 space-y-4 ">
+ <div>
+ <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Check In Time</label>
+ <DatePicker
+ selected={editFormData.checkInTime}
+ onChange={(date) => setEditFormData({ ...editFormData, checkInTime: date })}
+ showTimeSelect
+ dateFormat="Pp"
+ wrapperClassName="w-full"
+ className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none"
+ popperProps={{ strategy: "fixed" }}
+ portalId="portal-root"
+ />
+ </div>
 
-              <div>
-                <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Check Out Time</label>
-                <DatePicker
-                  selected={editFormData.checkOutTime}
-                  onChange={(date) => setEditFormData({ ...editFormData, checkOutTime: date })}
-                  showTimeSelect
-                  dateFormat="Pp"
-                  wrapperClassName="w-full"
-                  className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none"
-                  popperProps={{ strategy: "fixed" }}
-                  portalId="portal-root"
-                />
-              </div>
+ <div>
+ <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Check Out Time</label>
+ <DatePicker
+ selected={editFormData.checkOutTime}
+ onChange={(date) => setEditFormData({ ...editFormData, checkOutTime: date })}
+ showTimeSelect
+ dateFormat="Pp"
+ wrapperClassName="w-full"
+ className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none"
+ popperProps={{ strategy: "fixed" }}
+ portalId="portal-root"
+ />
+ </div>
 
-              <div>
-                <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Status</label>
-                <select
-                  className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none bg-white"
-                  value={editFormData.status}
-                  onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
-                >
-                  <option value="Present">Present</option>
-                  <option value="Half Day">Half Day</option>
-                  <option value="Absent">Absent</option>
-                  <option value="Late">Late</option>
-                  <option value="Leave">Leave</option>
-                  <option value="On Leave">On Leave</option>
-                </select>
-              </div>
-            </div>
+ <div>
+ <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Status</label>
+ <select
+ className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none bg-surface"
+ value={editFormData.status}
+ onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+ >
+ <option value="Present">Present</option>
+ <option value="Half Day">Half Day</option>
+ <option value="Absent">Absent</option>
+ <option value="Late">Late</option>
+ <option value="Leave">Leave</option>
+ <option value="On Leave">On Leave</option>
+ </select>
+ </div>
+ </div>
 
-            <div className="px-6 py-4 border-t border-border-subtle flex gap-3 bg-white/40 dark:bg-black/20">
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="flex-1 py-2 text-xs font-bold text-muted hover:text-main uppercase tracking-wider"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveChanges}
-                className="flex-1 py-2 bg-amber-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-700 shadow-md shadow-amber-200 flex justify-center items-center gap-2"
-              >
-                <Save size={14} /> Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+ <div className="px-6 py-4 border-t border-border-subtle flex gap-3 bg-surface dark:bg-app">
+ <button
+ onClick={() => setIsEditModalOpen(false)}
+ className="flex-1 py-2 text-xs font-bold text-muted hover:text-main uppercase tracking-wider"
+ >
+ Cancel
+ </button>
+ <button
+ onClick={handleSaveChanges}
+ className="flex-1 py-2 bg-amber-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-700 shadow-md shadow-amber-200 flex justify-center items-center gap-2"
+ >
+ <Save size={14} /> Save Changes
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
 
-      {/* NEW MODALS */}
-      {isAddAttendanceOpen && (
-          <AdminAddAttendanceModal
-              open={isAddAttendanceOpen}
-              onClose={() => setIsAddAttendanceOpen(false)}
-              onSuccess={() => fetchSummary(filterDate)}
-              allUsers={allUsers}
-          />
-      )}
+ {/* NEW MODALS */}
+ {isAddAttendanceOpen && (
+ <AdminAddAttendanceModal
+ open={isAddAttendanceOpen}
+ onClose={() => setIsAddAttendanceOpen(false)}
+ onSuccess={() => fetchSummary(filterDate)}
+ allUsers={allUsers}
+ />
+ )}
 
-    </PageContainer>
-  );
+ </PageContainer>
+ );
 };
 
 export default AdminAttendance;

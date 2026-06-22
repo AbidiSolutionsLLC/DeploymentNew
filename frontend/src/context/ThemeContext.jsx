@@ -1,59 +1,52 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { predefinedThemes } from "../styles/theme";
 
 const ThemeContext = createContext();
-function safeJSONParse(key, fallback) {
-  const raw = localStorage.getItem(key);
-  if (!raw) return fallback;
-  try {
-    return JSON.parse(raw);
-  } catch (err) {
-    console.warn(`Couldn’t parse "${key}" from localStorage:`, err);
-    return fallback;
-  }
+
+function getSystemTheme() {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 export const ThemeProvider = ({ children }) => {
-  const [themes] = useState(() => {
-    const parsed = safeJSONParse("themes", []);
-    return Array.isArray(parsed) && parsed.length 
-      ? parsed 
-      : predefinedThemes;
-  });
-
-  const [selectedTheme, setSelectedTheme] = useState(() => {
-    return safeJSONParse("selectedTheme", themes[0]);
+  const [themeMode, setThemeMode] = useState(() => {
+    return localStorage.getItem("themeMode") || "system"; // light, dark, system
   });
 
   useEffect(() => {
-    applyTheme(selectedTheme);
-  }, [selectedTheme]);
-
-  const applyTheme = (theme) => {
     const root = document.documentElement;
     
-    // Toggle dark mode class for Tailwind
-    if (theme.isDark) {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-    
-    // Inject any custom CSS variables from the theme definition
-    if (theme.colors) {
-      for (let key in theme.colors) {
-        root.style.setProperty(`--color-${key}`, theme.colors[key]);
+    const applyThemeClass = (mode) => {
+      if (mode === "dark") {
+        root.classList.add("dark");
+      } else if (mode === "light") {
+        root.classList.remove("dark");
+      } else if (mode === "system") {
+        if (getSystemTheme() === "dark") {
+          root.classList.add("dark");
+        } else {
+          root.classList.remove("dark");
+        }
       }
-    }
+    };
+
+    applyThemeClass(themeMode);
+    localStorage.setItem("themeMode", themeMode);
+
+    // Listen for system changes if system mode is selected
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => {
+      if (themeMode === "system") {
+        applyThemeClass("system");
+      }
+    };
     
-    localStorage.setItem("selectedTheme", JSON.stringify(theme));
-  };
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [themeMode]);
 
   const value = {
-    themes,
-    selectedTheme,
-    setSelectedTheme,
-    applyTheme,
+    themeMode,
+    setThemeMode,
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

@@ -3,75 +3,75 @@ import api from '../axios';
 const API_URL = '/timesheets';
 
 const getEmployeeTimesheets = async (month, year) => {
-  const response = await api.get(API_URL, { 
-    params: { month, year } 
-  });
-  return response.data?.data || response.data;
+ const response = await api.get(API_URL, { 
+ params: { month, year } 
+ });
+ return response.data?.data || response.data;
 };
 
 // New function for weekly timesheets
 const getWeeklyTimesheets = async (weekStart) => {
-  const response = await api.get(`${API_URL}/weekly`, {
-    params: { weekStart }
-  });
-  return response.data?.data || response.data;
+ const response = await api.get(`${API_URL}/weekly`, {
+ params: { weekStart }
+ });
+ return response.data?.data || response.data;
 };
 
 const createTimesheet = async (timesheetData) => {
-  const response = await api.post(API_URL, timesheetData);
-  return response.data?.data || response.data;
+ const response = await api.post(API_URL, timesheetData);
+ return response.data?.data || response.data;
 };
 
 const getTimesheetById = async (id) => {
-  const response = await api.get(`${API_URL}/${id}`);
-  return response.data?.data || response.data;
+ const response = await api.get(`${API_URL}/${id}`);
+ return response.data?.data || response.data;
 };
 
 const getAllTimesheets = async (params) => {
-  const response = await api.get(`${API_URL}/all`, {
-    params
-  });
-  return response.data?.data || response.data;
+ const response = await api.get(`${API_URL}/all`, {
+ params
+ });
+ return response.data?.data || response.data;
 };
 
 const updateTimesheetStatus = async (id, updateData) => {
-  const response = await api.put(`${API_URL}/${id}/status`, updateData);
-  return response.data?.data || response.data;
+ const response = await api.put(`${API_URL}/${id}/status`, updateData);
+ return response.data?.data || response.data;
 };
 
 const addTimesheetComment = async (id, content) => {
-  const response = await api.post(`${API_URL}/${id}/comment`, { content });
-  return response.data?.data || response.data;
+ const response = await api.post(`${API_URL}/${id}/comment`, { content });
+ return response.data?.data || response.data;
 };
 
 const downloadAttachment = async (timesheetId, attachmentId) => {
-  const response = await api.get(`/timesheets/${timesheetId}/attachments/${attachmentId}/download`, {
-    responseType: 'blob'
-  });
-  return response.data;
+ const response = await api.get(`/timesheets/${timesheetId}/attachments/${attachmentId}/download`, {
+ responseType: 'blob'
+ });
+ return response.data;
 }
 
 const updateTimesheet = async (id, timesheetData) => {
-  const response = await api.put(`/timesheets/${id}/edit`, timesheetData);
-  return response.data?.data || response.data;
+ const response = await api.put(`/timesheets/${id}/edit`, timesheetData);
+ return response.data?.data || response.data;
 };
 
 const deleteTimesheet = async (id) => {
-  const response = await api.delete(`/timesheets/${id}`);
-  return response.data?.data || response.data;
+ const response = await api.delete(`/timesheets/${id}`);
+ return response.data?.data || response.data;
 };
 
 const timesheetApi = {
-  getEmployeeTimesheets,
-  getWeeklyTimesheets, // Add this
-  createTimesheet,
-  getTimesheetById,
-  getAllTimesheets,
-  updateTimesheetStatus,
-  addTimesheetComment,
-  downloadAttachment, // Add this
-  updateTimesheet,
-  deleteTimesheet
+ getEmployeeTimesheets,
+ getWeeklyTimesheets, // Add this
+ createTimesheet,
+ getTimesheetById,
+ getAllTimesheets,
+ updateTimesheetStatus,
+ addTimesheetComment,
+ downloadAttachment, // Add this
+ updateTimesheet,
+ deleteTimesheet
 };
 
 export default timesheetApi;

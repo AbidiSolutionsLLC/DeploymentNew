@@ -28,7 +28,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 10 });
+const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 100 });
 app.use('/api/v1/auth', authLimiter);
 
 // Serve static files from uploads directory

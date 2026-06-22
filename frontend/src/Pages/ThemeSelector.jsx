@@ -1,48 +1,33 @@
 import { useTheme } from "../context/ThemeContext";
 
 const ThemeSelector = () => {
-  const { themes, selectedTheme, setSelectedTheme, applyTheme } = useTheme();
+  const { themeMode, setThemeMode } = useTheme();
+
+  const themes = [
+    { id: "light", label: "Light Mode", icon: "☀️" },
+    { id: "dark", label: "Dark Mode", icon: "🌙" },
+    { id: "system", label: "System Preference", icon: "💻" }
+  ];
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl mb-4 text-text">Select a Theme</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {themes.map((theme) => (
-          <div
-            key={theme.name}
-            className={`rounded-lg shadow-md p-4 border-2 ${
-              selectedTheme.name === theme.name ? "border-primary" : "border-gray-300"
-            }`}
-            style={{
-              backgroundColor: theme.colors.background,
-              color: theme.colors.text,
-            }}
+    <div className="p-8 bg-surface rounded-lg shadow-sm border border-subtle">
+      <h2 className="text-2xl font-bold mb-6 text-main">Appearance</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {themes.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setThemeMode(t.id)}
+            className={`
+              flex flex-col items-center justify-center p-6 border-2 rounded-xl transition-all duration-200
+              ${themeMode === t.id 
+                ? 'border-brand-primary bg-brand-primary/10 text-brand-primary' 
+                : 'border-subtle bg-surface text-main hover:border-brand-sec'
+              }
+            `}
           >
-            <h3 className="text-lg font-bold">{theme.name}</h3>
-            <div className="mt-2">
-              <button
-                style={{ backgroundColor: theme.colors.primary }}
-                className="text-white px-3 py-1 rounded mr-2"
-              >
-                Primary
-              </button>
-              <button
-                style={{ backgroundColor: theme.colors.secondary }}
-                className="text-white px-3 py-1 rounded"
-              >
-                Secondary
-              </button>
-            </div>
-            <button
-              className="mt-4 px-3 py-1 border border-text rounded"
-              onClick={() => {
-                setSelectedTheme(theme);
-                applyTheme(theme);
-              }}
-            >
-              Apply Theme
-            </button>
-          </div>
+            <span className="text-4xl mb-3">{t.icon}</span>
+            <span className="font-medium">{t.label}</span>
+          </button>
         ))}
       </div>
     </div>

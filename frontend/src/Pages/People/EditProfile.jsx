@@ -15,736 +15,736 @@ import ModernDatePicker from "../../components/ui/ModernDatePicker";
 import PageContainer from "../../components/ui/PageContainer";
 
 export default function EditProfile() {
-  const navigate = useNavigate();
+ const navigate = useNavigate();
 
-  const [userId, setUserId] = useState(null);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
+ const [userId, setUserId] = useState(null);
+ const [user, setUser] = useState(null);
+ const [loading, setLoading] = useState(true);
+ const [errors, setErrors] = useState({});
+ const [saving, setSaving] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phoneNumber: "",
-    designation: "",
-    branch: "",
-    empType: "Permanent",
-    about: "",
-    address: "",
-    DOB: "",
-    maritalStatus: "",
-    emergencyContact: [],
-    education: [],
-    experience: []
-  });
+ const [formData, setFormData] = useState({
+ name: "",
+ email: "",
+ phoneNumber: "",
+ designation: "",
+ branch: "",
+ empType: "Permanent",
+ about: "",
+ address: "",
+ DOB: "",
+ maritalStatus: "",
+ emergencyContact: [],
+ education: [],
+ experience: []
+ });
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await api.get("/auth/me", {
-          withCredentials: true,
-        });
+ useEffect(() => {
+ const fetchUser = async () => {
+ try {
+ const res = await api.get("/auth/me", {
+ withCredentials: true,
+ });
 
-        const user = res.data.user;
-        setUser(user);
-        setUserId(user._id);
-        
-        // Set form data with proper formatting
-        setFormData({
-          name: user.name || "",
-          email: user.email || "",
-          phoneNumber: user.phoneNumber || "",
-          designation: user.designation || "",
-          branch: user.branch || "",
-          empType: user.empType || "Permanent",
-          about: user.about || "",
-          address: user.address || "",
-          DOB: user.DOB ? format(new Date(user.DOB), "yyyy-MM-dd") : "",
-          maritalStatus: user.maritalStatus || "",
-          emergencyContact: user.emergencyContact || [],
-          education: user.education || [],
-          experience: user.experience || []
-        });
-      } catch (error) {
-        console.error("Failed to load user profile", error);
-        toast.error(getApiError(error, "Failed to load profile"));
-      } finally {
-        setLoading(false);
-      }
-    };
+ const user = res.data.user;
+ setUser(user);
+ setUserId(user._id);
+ 
+ // Set form data with proper formatting
+ setFormData({
+ name: user.name || "",
+ email: user.email || "",
+ phoneNumber: user.phoneNumber || "",
+ designation: user.designation || "",
+ branch: user.branch || "",
+ empType: user.empType || "Permanent",
+ about: user.about || "",
+ address: user.address || "",
+ DOB: user.DOB ? format(new Date(user.DOB), "yyyy-MM-dd") : "",
+ maritalStatus: user.maritalStatus || "",
+ emergencyContact: user.emergencyContact || [],
+ education: user.education || [],
+ experience: user.experience || []
+ });
+ } catch (error) {
+ console.error("Failed to load user profile", error);
+ toast.error(getApiError(error, "Failed to load profile"));
+ } finally {
+ setLoading(false);
+ }
+ };
 
-    fetchUser();
-  }, []);
+ fetchUser();
+ }, []);
 
-  // Client-side validation
-  const validateForm = () => {
-    const errors = [];
+ // Client-side validation
+ const validateForm = () => {
+ const errors = [];
 
-    if (!formData.name.trim()) errors.push("Name is required");
-    if (!formData.email.trim()) errors.push("Email is required");
-    if (!formData.designation.trim()) errors.push("Designation is required");
-    if (!formData.branch.trim()) errors.push("Branch is required");
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (formData.email && !emailRegex.test(formData.email)) {
-      errors.push("Invalid email format");
-    }
-    
-    if (formData.phoneNumber && !/^\d+$/.test(formData.phoneNumber.toString())) {
-      errors.push("Phone number must contain only digits");
-    }
+ if (!formData.name.trim()) errors.push("Name is required");
+ if (!formData.email.trim()) errors.push("Email is required");
+ if (!formData.designation.trim()) errors.push("Designation is required");
+ if (!formData.branch.trim()) errors.push("Branch is required");
+ 
+ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+ if (formData.email && !emailRegex.test(formData.email)) {
+ errors.push("Invalid email format");
+ }
+ 
+ if (formData.phoneNumber && !/^\d+$/.test(formData.phoneNumber.toString())) {
+ errors.push("Phone number must contain only digits");
+ }
 
-    if (formData.DOB) {
-      const dobDate = new Date(formData.DOB);
-      if (isNaN(dobDate.getTime())) {
-        errors.push("Invalid date of birth");
-      }
-    }
+ if (formData.DOB) {
+ const dobDate = new Date(formData.DOB);
+ if (isNaN(dobDate.getTime())) {
+ errors.push("Invalid date of birth");
+ }
+ }
 
-    formData.education.forEach((edu, index) => {
-      if (edu.institution && !edu.degree) {
-        errors.push(`Education #${index + 1}: Degree is required if institution is provided`);
-      }
-      if (edu.startYear && edu.endYear && parseInt(edu.startYear) > parseInt(edu.endYear)) {
-        errors.push(`Education #${index + 1}: Start year cannot be after end year`);
-      }
-    });
+ formData.education.forEach((edu, index) => {
+ if (edu.institution && !edu.degree) {
+ errors.push(`Education #${index + 1}: Degree is required if institution is provided`);
+ }
+ if (edu.startYear && edu.endYear && parseInt(edu.startYear) > parseInt(edu.endYear)) {
+ errors.push(`Education #${index + 1}: Start year cannot be after end year`);
+ }
+ });
 
-    formData.experience.forEach((exp, index) => {
-      if (exp.startDate && exp.endDate) {
-        const start = new Date(exp.startDate);
-        const end = new Date(exp.endDate);
-        if (start > end) {
-          errors.push(`Experience #${index + 1}: Start date cannot be after end date`);
-        }
-      }
-    });
+ formData.experience.forEach((exp, index) => {
+ if (exp.startDate && exp.endDate) {
+ const start = new Date(exp.startDate);
+ const end = new Date(exp.endDate);
+ if (start > end) {
+ errors.push(`Experience #${index + 1}: Start date cannot be after end date`);
+ }
+ }
+ });
 
-    formData.emergencyContact.forEach((contact, index) => {
-      if (contact.name && !contact.phone) {
-        errors.push(`Emergency contact #${index + 1}: Phone number is required if name is provided`);
-      }
-    });
+ formData.emergencyContact.forEach((contact, index) => {
+ if (contact.name && !contact.phone) {
+ errors.push(`Emergency contact #${index + 1}: Phone number is required if name is provided`);
+ }
+ });
 
-    return errors;
-  };
+ return errors;
+ };
 
-  const handleSave = async () => {
-    // Basic validations
-    const phoneErr = /^\d*$/.test(formData.phoneNumber) ? null : "Phone number must contain only digits";
-    const aboutErr = validateDescription(formData.about, { min: 0, max: 1000, required: false });
-    const addressErr = validateText(formData.address, { min: 0, max: 200, required: false });
+ const handleSave = async () => {
+ // Basic validations
+ const phoneErr = /^\d*$/.test(formData.phoneNumber) ? null : "Phone number must contain only digits";
+ const aboutErr = validateDescription(formData.about, { min: 0, max: 1000, required: false });
+ const addressErr = validateText(formData.address, { min: 0, max: 200, required: false });
 
-    if (phoneErr || aboutErr || addressErr) {
-      setErrors({ phoneNumber: phoneErr, about: aboutErr, address: addressErr });
-      toast.error("PLEASE FIX VALIDATION ERRORS");
-      return;
-    }
+ if (phoneErr || aboutErr || addressErr) {
+ setErrors({ phoneNumber: phoneErr, about: aboutErr, address: addressErr });
+ toast.error("PLEASE FIX VALIDATION ERRORS");
+ return;
+ }
 
-    try {
-      setSaving(true);
-      
-      const payload = {
-        phoneNumber: formData.phoneNumber || undefined,
-        about: sanitizeText(formData.about),
-        address: sanitizeText(formData.address),
-        DOB: formData.DOB || null,
-        maritalStatus: formData.maritalStatus.trim(),
-        emergencyContact: formData.emergencyContact
-          .filter(contact => contact.name && contact.phone)
-          .map(contact => ({
-            name: contact.name.trim(),
-            relation: contact.relation?.trim() || "",
-            phone: contact.phone
-          })),
-        education: formData.education
-          .filter(edu => edu.institution && edu.degree)
-          .map(edu => ({
-            institution: edu.institution.trim(),
-            degree: edu.degree.trim(),
-            startYear: parseInt(edu.startYear) || undefined,
-            endYear: parseInt(edu.endYear) || undefined
-          })),
-        experience: formData.experience
-          .filter(exp => exp.company)
-          .map(exp => ({
-            company: exp.company.trim(),
-            jobType: exp.jobType?.trim() || "Full-time",
-            description: exp.description?.trim() || "",
-            startDate: exp.startDate ? new Date(exp.startDate) : undefined,
-            endDate: exp.endDate ? new Date(exp.endDate) : undefined
-          }))
-      };
+ try {
+ setSaving(true);
+ 
+ const payload = {
+ phoneNumber: formData.phoneNumber || undefined,
+ about: sanitizeText(formData.about),
+ address: sanitizeText(formData.address),
+ DOB: formData.DOB || null,
+ maritalStatus: formData.maritalStatus.trim(),
+ emergencyContact: formData.emergencyContact
+ .filter(contact => contact.name && contact.phone)
+ .map(contact => ({
+ name: contact.name.trim(),
+ relation: contact.relation?.trim() || "",
+ phone: contact.phone
+ })),
+ education: formData.education
+ .filter(edu => edu.institution && edu.degree)
+ .map(edu => ({
+ institution: edu.institution.trim(),
+ degree: edu.degree.trim(),
+ startYear: parseInt(edu.startYear) || undefined,
+ endYear: parseInt(edu.endYear) || undefined
+ })),
+ experience: formData.experience
+ .filter(exp => exp.company)
+ .map(exp => ({
+ company: exp.company.trim(),
+ jobType: exp.jobType?.trim() || "Full-time",
+ description: exp.description?.trim() || "",
+ startDate: exp.startDate ? new Date(exp.startDate) : undefined,
+ endDate: exp.endDate ? new Date(exp.endDate) : undefined
+ }))
+ };
 
-      await api.put(`/users/${userId}`, payload, {
-        withCredentials: true,
-      });
-      toast.success("Profile updated successfully!");
-      navigate("/people/profile");
-    } catch (err) {
-      toast.error(getApiError(err, "Failed to update profile"));
-      console.error("Error updating profile:", err);
-    } finally {
-      setSaving(false);
-    }
-  };
+ await api.put(`/users/${userId}`, payload, {
+ withCredentials: true,
+ });
+ toast.success("Profile updated successfully!");
+ navigate("/people/profile");
+ } catch (err) {
+ toast.error(getApiError(err, "Failed to update profile"));
+ console.error("Error updating profile:", err);
+ } finally {
+ setSaving(false);
+ }
+ };
 
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+ const handleAvatarUpload = async (e) => {
+ const file = e.target.files[0];
+ if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error("Please select an image file");
-      return;
-    }
+ if (!file.type.startsWith('image/')) {
+ toast.error("Please select an image file");
+ return;
+ }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size should be less than 5MB");
-      return;
-    }
+ if (file.size > 5 * 1024 * 1024) {
+ toast.error("Image size should be less than 5MB");
+ return;
+ }
 
-    const formData = new FormData();
-    formData.append('avatar', file);
+ const formData = new FormData();
+ formData.append('avatar', file);
 
-    try {
-      setLoading(true);
-      const response = await api.post(`/users/${userId}/upload-avatar`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+ try {
+ setLoading(true);
+ const response = await api.post(`/users/${userId}/upload-avatar`, formData, {
+ headers: {
+ 'Content-Type': 'multipart/form-data'
+ }
+ });
 
-      setUser(prev => ({ ...prev, avatar: response.data.avatarUrl }));
-      toast.success("Profile picture updated successfully!");
-    } catch (err) {
-      toast.error(getApiError(err, "Failed to update profile picture"));
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+ setUser(prev => ({ ...prev, avatar: response.data.avatarUrl }));
+ toast.success("Profile picture updated successfully!");
+ } catch (err) {
+ toast.error(getApiError(err, "Failed to update profile picture"));
+ console.error(err);
+ } finally {
+ setLoading(false);
+ }
+ };
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+ const handleInputChange = (field, value) => {
+ setFormData(prev => ({
+ ...prev,
+ [field]: value
+ }));
 
-    // Inline validation
-    if (field === "phoneNumber") {
-      const isDigits = /^\d*$/.test(value);
-      setErrors(prev => ({ ...prev, phoneNumber: isDigits ? null : "Phone number must contain only digits" }));
-    }
-    if (field === "about") {
-      const err = validateDescription(value, { min: 0, max: 1000, required: false });
-      setErrors(prev => ({ ...prev, about: err }));
-    }
-    if (field === "address") {
-      const err = validateText(value, { min: 0, max: 200, required: false });
-      setErrors(prev => ({ ...prev, address: err }));
-    }
-  };
+ // Inline validation
+ if (field === "phoneNumber") {
+ const isDigits = /^\d*$/.test(value);
+ setErrors(prev => ({ ...prev, phoneNumber: isDigits ? null : "Phone number must contain only digits" }));
+ }
+ if (field === "about") {
+ const err = validateDescription(value, { min: 0, max: 1000, required: false });
+ setErrors(prev => ({ ...prev, about: err }));
+ }
+ if (field === "address") {
+ const err = validateText(value, { min: 0, max: 200, required: false });
+ setErrors(prev => ({ ...prev, address: err }));
+ }
+ };
 
-  const addEducation = () => {
-    setFormData(prev => ({
-      ...prev,
-      education: [...prev.education, { institution: "", degree: "", startYear: "", endYear: "" }]
-    }));
-  };
+ const addEducation = () => {
+ setFormData(prev => ({
+ ...prev,
+ education: [...prev.education, { institution: "", degree: "", startYear: "", endYear: "" }]
+ }));
+ };
 
-  const updateEducation = (index, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      education: prev.education.map((edu, i) => 
-        i === index ? { ...edu, [field]: value } : edu
-      )
-    }));
-  };
+ const updateEducation = (index, field, value) => {
+ setFormData(prev => ({
+ ...prev,
+ education: prev.education.map((edu, i) => 
+ i === index ? { ...edu, [field]: value } : edu
+ )
+ }));
+ };
 
-  const removeEducation = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      education: prev.education.filter((_, i) => i !== index)
-    }));
-  };
+ const removeEducation = (index) => {
+ setFormData(prev => ({
+ ...prev,
+ education: prev.education.filter((_, i) => i !== index)
+ }));
+ };
 
-  const addExperience = () => {
-    setFormData(prev => ({
-      ...prev,
-      experience: [...prev.experience, { 
-        company: "", 
-        jobType: "Full-time", 
-        description: "", 
-        startDate: "", 
-        endDate: "" 
-      }]
-    }));
-  };
+ const addExperience = () => {
+ setFormData(prev => ({
+ ...prev,
+ experience: [...prev.experience, { 
+ company: "", 
+ jobType: "Full-time", 
+ description: "", 
+ startDate: "", 
+ endDate: "" 
+ }]
+ }));
+ };
 
-  const updateExperience = (index, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      experience: prev.experience.map((exp, i) => {
-        if (i === index) {
-          const updatedExp = { ...exp, [field]: value };
-          if (field === 'jobType' && value !== 'Contract' && value !== 'Internship') {
-            updatedExp.endDate = "";
-          }
-          return updatedExp;
-        }
-        return exp;
-      })
-    }));
-  };
+ const updateExperience = (index, field, value) => {
+ setFormData(prev => ({
+ ...prev,
+ experience: prev.experience.map((exp, i) => {
+ if (i === index) {
+ const updatedExp = { ...exp, [field]: value };
+ if (field === 'jobType' && value !== 'Contract' && value !== 'Internship') {
+ updatedExp.endDate = "";
+ }
+ return updatedExp;
+ }
+ return exp;
+ })
+ }));
+ };
 
-  const removeExperience = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      experience: prev.experience.filter((_, i) => i !== index)
-    }));
-  };
+ const removeExperience = (index) => {
+ setFormData(prev => ({
+ ...prev,
+ experience: prev.experience.filter((_, i) => i !== index)
+ }));
+ };
 
-  const addEmergencyContact = () => {
-    setFormData(prev => ({
-      ...prev,
-      emergencyContact: [...prev.emergencyContact, { name: "", relation: "", phone: "" }]
-    }));
-  };
+ const addEmergencyContact = () => {
+ setFormData(prev => ({
+ ...prev,
+ emergencyContact: [...prev.emergencyContact, { name: "", relation: "", phone: "" }]
+ }));
+ };
 
-  const updateEmergencyContact = (index, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      emergencyContact: prev.emergencyContact.map((contact, i) => 
-        i === index ? { ...contact, [field]: value } : contact
-      )
-    }));
-  };
+ const updateEmergencyContact = (index, field, value) => {
+ setFormData(prev => ({
+ ...prev,
+ emergencyContact: prev.emergencyContact.map((contact, i) => 
+ i === index ? { ...contact, [field]: value } : contact
+ )
+ }));
+ };
 
-  const removeEmergencyContact = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      emergencyContact: prev.emergencyContact.filter((_, i) => i !== index)
-    }));
-  };
+ const removeEmergencyContact = (index) => {
+ setFormData(prev => ({
+ ...prev,
+ emergencyContact: prev.emergencyContact.filter((_, i) => i !== index)
+ }));
+ };
 
-  if (loading) {
-    return (
-      <div className="text-center p-6 glass-card">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
-        <p className="mt-3 text-muted text-xs font-medium uppercase tracking-wide">Loading profile...</p>
-      </div>
-    );
-  }
+ if (loading) {
+ return (
+ <div className="text-center p-6 glass-card">
+ <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
+ <p className="mt-3 text-muted text-xs font-medium uppercase tracking-wide">Loading profile...</p>
+ </div>
+ );
+ }
 
-  return (
-    <PageContainer
-      title="Edit Your Profile"
-      subtitle="Update your personal and professional details"
-      headerActions={
-        <button
-          onClick={() => navigate("/people/profile")}
-          className="bg-white/30 backdrop-blur-lg text-heading font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 hover:scale-105 text-sm ring-1 ring-white/20 flex items-center gap-2"
-        >
-          <IoArrowBack className="text-base" />
-          Back
-        </button>
-      }
-    >
-      <div className="relative flex flex-col bg-transparent text-heading p-0 rounded-[1.2rem] min-h-[700px]">
-        {/* --- BANNER (READONLY in edit mode) --- */}
-      <div className="relative h-28 md:h-40 rounded-[1.5rem] overflow-hidden shadow-md bg-slate-200">
-        <img
-          src={user.coverImage || "https://data3262.blob.core.windows.net/hr-portal/abidiPro/users/profile_photos/Abidi-Solutions-Banner%201_1774560002057.jpg"}
-          alt="Banner"
-          className="w-full h-full object-cover"
-          onError={(e) => {e.target.src = 'https://via.placeholder.com/1200x300?text=No+Cover+Image'}}
-        />
-        <div className="absolute inset-0 bg-black/20"></div>
-      </div>
+ return (
+ <PageContainer
+ title="Edit Your Profile"
+ subtitle="Update your personal and professional details"
+ headerActions={
+ <button
+ onClick={() => navigate("/people/profile")}
+ className="bg-surface text-heading font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 hover:scale-105 text-sm ring-1 ring-white/20 flex items-center gap-2"
+ >
+ <IoArrowBack className="text-base" />
+ Back
+ </button>
+ }
+ >
+ <div className="relative flex flex-col bg-transparent text-heading p-0 rounded-[1.2rem] min-h-[700px]">
+ {/* --- BANNER (READONLY in edit mode) --- */}
+ <div className="relative h-28 md:h-40 rounded-[1.5rem] overflow-hidden shadow-md bg-slate-200">
+ <img
+ src={user.coverImage || "https://data3262.blob.core.windows.net/hr-portal/abidiPro/users/profile_photos/Abidi-Solutions-Banner%201_1774560002057.jpg"}
+ alt="Banner"
+ className="w-full h-full object-cover"
+ onError={(e) => {e.target.src = 'https://via.placeholder.com/1200x300?text=No+Cover+Image'}}
+ />
+ <div className="absolute inset-0 bg-app"></div>
+ </div>
 
-      {/* --- PROFILE PIC SECTION --- */}
-      <div className="relative -mt-14 pl-6 z-10 mb-8 pointer-events-none">
-        <div className="relative group pointer-events-auto">
-          <img
-            src={user.avatar || `https://randomuser.me/api/portraits/lego/${user?._id ? user._id.length % 10 : 1}.jpg`}
-            alt={user?.name || "User"}
-            className="w-28 h-28 rounded-full object-cover shadow-lg border-2 border-white"
-          />
-          <label
-            htmlFor="avatar-upload-edit"
-            className="w-28 h-28 absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-          >
-            <FiCamera className="text-white text-xl" />
-          </label>
-          <input
-            id="avatar-upload-edit"
-            type="file"
-            accept="image/png,image/jpeg,image/jpg"
-            className="hidden"
-            onChange={handleAvatarUpload}
-            disabled={loading}
-          />
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-            </div>
-          )}
-        </div>
-      </div>
+ {/* --- PROFILE PIC SECTION --- */}
+ <div className="relative -mt-14 pl-6 z-10 mb-8 pointer-events-none">
+ <div className="relative group pointer-events-auto">
+ <img
+ src={user.avatar || `https://randomuser.me/api/portraits/lego/${user?._id ? user._id.length % 10 : 1}.jpg`}
+ alt={user?.name || "User"}
+ className="w-28 h-28 rounded-full object-cover shadow-lg border-2 border-white"
+ />
+ <label
+ htmlFor="avatar-upload-edit"
+ className="w-28 h-28 absolute inset-0 bg-app rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+ >
+ <FiCamera className="text-white text-xl" />
+ </label>
+ <input
+ id="avatar-upload-edit"
+ type="file"
+ accept="image/png,image/jpeg,image/jpg"
+ className="hidden"
+ onChange={handleAvatarUpload}
+ disabled={loading}
+ />
+ {loading && (
+ <div className="absolute inset-0 flex items-center justify-center bg-app rounded-full">
+ <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+ </div>
+ )}
+ </div>
+ </div>
 
 
-      {/* Basic Information */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] p-4 mb-6 shadow-md border border-white/50">
-        <h3 className="font-semibold mb-4 text-sm text-heading uppercase tracking-wide">Basic Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-main mb-1">Full Name *</label>
-            <input
-              type="text"
-              className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-white/80 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              required
-              disabled
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-main mb-1">Email *</label>
-            <input
-              type="email"
-              className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-white/80 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              required
-              disabled
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-main mb-1">Phone Number</label>
-            <input
-              type="tel"
-              className={`w-full p-3 border ${errors.phoneNumber ? 'border-red-400' : 'border-border-subtle'} rounded-lg text-sm bg-white/80 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent transition-all`}
-              value={formData.phoneNumber}
-              onChange={(e) => handleInputChange('phoneNumber', e.target.value.replace(/\D/g, ''))}
-              placeholder="Digits only"
-            />
-            {errors.phoneNumber && (
-              <p className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.phoneNumber}</p>
-            )}
-          </div>
-          
-          {/* UPDATED: Modern Date Picker */}
-          <div>
-            <ModernDatePicker
-              label="Date of Birth"
-              name="DOB"
-              value={formData.DOB}
-              onChange={(e) => handleInputChange('DOB', e.target.value)}
-              placeholder="Select Date"
-            />
-          </div>
+ {/* Basic Information */}
+ <div className="bg-surface rounded-[1.2rem] p-4 mb-6 shadow-md border border-white/50">
+ <h3 className="font-semibold mb-4 text-sm text-heading uppercase tracking-wide">Basic Information</h3>
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div>
+ <label className="block text-sm font-medium text-main mb-1">Full Name *</label>
+ <input
+ type="text"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ value={formData.name}
+ onChange={(e) => handleInputChange('name', e.target.value)}
+ required
+ disabled
+ />
+ </div>
+ <div>
+ <label className="block text-sm font-medium text-main mb-1">Email *</label>
+ <input
+ type="email"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ value={formData.email}
+ onChange={(e) => handleInputChange('email', e.target.value)}
+ required
+ disabled
+ />
+ </div>
+ <div>
+ <label className="block text-sm font-medium text-main mb-1">Phone Number</label>
+ <input
+ type="tel"
+ className={`w-full p-3 border ${errors.phoneNumber ? 'border-red-400' : 'border-border-subtle'} rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent transition-all`}
+ value={formData.phoneNumber}
+ onChange={(e) => handleInputChange('phoneNumber', e.target.value.replace(/\D/g, ''))}
+ placeholder="Digits only"
+ />
+ {errors.phoneNumber && (
+ <p className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.phoneNumber}</p>
+ )}
+ </div>
+ 
+ {/* UPDATED: Modern Date Picker */}
+ <div>
+ <ModernDatePicker
+ label="Date of Birth"
+ name="DOB"
+ value={formData.DOB}
+ onChange={(e) => handleInputChange('DOB', e.target.value)}
+ placeholder="Select Date"
+ />
+ </div>
 
-          <div>
-            <label className="block text-sm font-medium text-main mb-1">Designation *</label>
-            <input
-              type="text"
-              className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-white/80 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-              value={formData.designation}
-              onChange={(e) => handleInputChange('designation', e.target.value)}
-              required
-              disabled
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-main mb-1">Branch *</label>
-            <input
-              type="text"
-              className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-white/80 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-              value={formData.branch}
-              onChange={(e) => handleInputChange('branch', e.target.value)}
-              required
-              disabled
-            />
-          </div>
-          
-          {/* UPDATED: Modern Select for Employment Type */}
-          <div>
-            <ModernSelect
-              label="Employment Type"
-              name="empType"
-              value={formData.empType}
-              onChange={(e) => handleInputChange('empType', e.target.value)}
-              options={[
-                { value: "Permanent", label: "Permanent" },
-                { value: "Contractor", label: "Contractor" },
-                { value: "Intern", label: "Intern" },
-                { value: "Part Time", label: "Part Time" }
-              ]}
-              disabled={true} // Keep disabled logic as per original
-            />
-          </div>
+ <div>
+ <label className="block text-sm font-medium text-main mb-1">Designation *</label>
+ <input
+ type="text"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ value={formData.designation}
+ onChange={(e) => handleInputChange('designation', e.target.value)}
+ required
+ disabled
+ />
+ </div>
+ <div>
+ <label className="block text-sm font-medium text-main mb-1">Branch *</label>
+ <input
+ type="text"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ value={formData.branch}
+ onChange={(e) => handleInputChange('branch', e.target.value)}
+ required
+ disabled
+ />
+ </div>
+ 
+ {/* UPDATED: Modern Select for Employment Type */}
+ <div>
+ <ModernSelect
+ label="Employment Type"
+ name="empType"
+ value={formData.empType}
+ onChange={(e) => handleInputChange('empType', e.target.value)}
+ options={[
+ { value: "Permanent", label: "Permanent" },
+ { value: "Contractor", label: "Contractor" },
+ { value: "Intern", label: "Intern" },
+ { value: "Part Time", label: "Part Time" }
+ ]}
+ disabled={true} // Keep disabled logic as per original
+ />
+ </div>
 
-          <div>
-            <label className="block text-sm font-medium text-main mb-1">Marital Status</label>
-            <input
-              type="text"
-              className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-white/80 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-              value={formData.maritalStatus}
-              onChange={(e) => handleInputChange('maritalStatus', e.target.value)}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-main mb-1">Address</label>
-            <textarea
-              className={`w-full p-3 border ${errors.address ? 'border-red-400' : 'border-border-subtle'} rounded-lg text-sm bg-white/80 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent transition-all resize-none`}
-              rows={3}
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-            />
-            <div className="flex justify-between items-center mt-1">
-              {errors.address ? (
-                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.address}</p>
-              ) : <div />}
-              <p className="text-[10px] text-muted uppercase tracking-widest">{formData.address.length}/200</p>
-            </div>
-            </div>
-          </div>
-        </div>
+ <div>
+ <label className="block text-sm font-medium text-main mb-1">Marital Status</label>
+ <input
+ type="text"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ value={formData.maritalStatus}
+ onChange={(e) => handleInputChange('maritalStatus', e.target.value)}
+ />
+ </div>
+ <div className="md:col-span-2">
+ <label className="block text-sm font-medium text-main mb-1">Address</label>
+ <textarea
+ className={`w-full p-3 border ${errors.address ? 'border-red-400' : 'border-border-subtle'} rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent transition-all resize-none`}
+ rows={3}
+ value={formData.address}
+ onChange={(e) => handleInputChange('address', e.target.value)}
+ />
+ <div className="flex justify-between items-center mt-1">
+ {errors.address ? (
+ <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.address}</p>
+ ) : <div />}
+ <p className="text-[10px] text-muted uppercase tracking-widest">{formData.address.length}/200</p>
+ </div>
+ </div>
+ </div>
+ </div>
 
-      {/* About */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] p-4 mb-6 shadow-md border border-white/50">
-        <h3 className="font-semibold mb-3 text-sm text-heading uppercase tracking-wide">About</h3>
-        <textarea
-          className={`w-full p-3 border ${errors.about ? 'border-red-400' : 'border-border-subtle'} rounded-lg text-sm bg-white/80 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent transition-all resize-none`}
-          rows={5}
-          value={formData.about}
-          onChange={(e) => handleInputChange('about', e.target.value)}
-        />
-        <div className="flex justify-between items-center mt-1">
-          {errors.about ? (
-            <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.about}</p>
-          ) : <div />}
-          <p className="text-[10px] text-muted uppercase tracking-widest">{formData.about.length}/1000</p>
-        </div>
-      </div>
+ {/* About */}
+ <div className="bg-surface rounded-[1.2rem] p-4 mb-6 shadow-md border border-white/50">
+ <h3 className="font-semibold mb-3 text-sm text-heading uppercase tracking-wide">About</h3>
+ <textarea
+ className={`w-full p-3 border ${errors.about ? 'border-red-400' : 'border-border-subtle'} rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent transition-all resize-none`}
+ rows={5}
+ value={formData.about}
+ onChange={(e) => handleInputChange('about', e.target.value)}
+ />
+ <div className="flex justify-between items-center mt-1">
+ {errors.about ? (
+ <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.about}</p>
+ ) : <div />}
+ <p className="text-[10px] text-muted uppercase tracking-widest">{formData.about.length}/1000</p>
+ </div>
+ </div>
 
-      {/* Emergency Contacts */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] p-4 mb-6 shadow-md border border-white/50">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-semibold text-sm text-heading uppercase tracking-wide">Emergency Contacts</h3>
-          <button
-            onClick={addEmergencyContact}
-            className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
-            title="Add Contact"
-          >
-            <FiPlus className="text-lg" />
-          </button>
-        </div>
-        {formData.emergencyContact.map((contact, idx) => (
-          <div key={idx} className="relative bg-white/80 backdrop-blur-sm rounded-lg p-4 mb-4 border border-border-subtle">
-            {idx > 0 && (
-              <button
-                onClick={() => removeEmergencyContact(idx)}
-                className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors p-1"
-                title="Remove"
-              >
-                <FiX className="text-lg" />
-              </button>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-muted mb-1">Name</label>
-                <input
-                  type="text"
-                  placeholder="Contact Name"
-                  className="w-full p-2 border border-border-subtle rounded text-sm bg-white/90 text-main focus:outline-none focus:ring-1 focus:ring-amber-300"
-                  value={contact.name}
-                  onChange={(e) => updateEmergencyContact(idx, 'name', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted mb-1">Relation</label>
-                <input
-                  type="text"
-                  placeholder="Relationship"
-                  className="w-full p-2 border border-border-subtle rounded text-sm bg-white/90 text-main focus:outline-none focus:ring-1 focus:ring-amber-300"
-                  value={contact.relation}
-                  onChange={(e) => updateEmergencyContact(idx, 'relation', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted mb-1">Phone *</label>
-                <input
-                  type="tel"
-                  placeholder="Phone Number"
-                  className="w-full p-2 border border-border-subtle rounded text-sm bg-white/90 text-main focus:outline-none focus:ring-1 focus:ring-amber-300"
-                  value={contact.phone}
-                  onChange={(e) => updateEmergencyContact(idx, 'phone', e.target.value.replace(/\D/g, ''))}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+ {/* Emergency Contacts */}
+ <div className="bg-surface rounded-[1.2rem] p-4 mb-6 shadow-md border border-white/50">
+ <div className="flex justify-between items-center mb-4">
+ <h3 className="font-semibold text-sm text-heading uppercase tracking-wide">Emergency Contacts</h3>
+ <button
+ onClick={addEmergencyContact}
+ className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
+ title="Add Contact"
+ >
+ <FiPlus className="text-lg" />
+ </button>
+ </div>
+ {formData.emergencyContact.map((contact, idx) => (
+ <div key={idx} className="relative bg-surface rounded-lg p-4 mb-4 border border-border-subtle">
+ {idx > 0 && (
+ <button
+ onClick={() => removeEmergencyContact(idx)}
+ className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors p-1"
+ title="Remove"
+ >
+ <FiX className="text-lg" />
+ </button>
+ )}
+ <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+ <div>
+ <label className="block text-xs font-medium text-muted mb-1">Name</label>
+ <input
+ type="text"
+ placeholder="Contact Name"
+ className="w-full p-2 border border-border-subtle rounded text-sm bg-surface text-main focus:outline-none focus:ring-1 focus:ring-amber-300"
+ value={contact.name}
+ onChange={(e) => updateEmergencyContact(idx, 'name', e.target.value)}
+ />
+ </div>
+ <div>
+ <label className="block text-xs font-medium text-muted mb-1">Relation</label>
+ <input
+ type="text"
+ placeholder="Relationship"
+ className="w-full p-2 border border-border-subtle rounded text-sm bg-surface text-main focus:outline-none focus:ring-1 focus:ring-amber-300"
+ value={contact.relation}
+ onChange={(e) => updateEmergencyContact(idx, 'relation', e.target.value)}
+ />
+ </div>
+ <div>
+ <label className="block text-xs font-medium text-muted mb-1">Phone *</label>
+ <input
+ type="tel"
+ placeholder="Phone Number"
+ className="w-full p-2 border border-border-subtle rounded text-sm bg-surface text-main focus:outline-none focus:ring-1 focus:ring-amber-300"
+ value={contact.phone}
+ onChange={(e) => updateEmergencyContact(idx, 'phone', e.target.value.replace(/\D/g, ''))}
+ />
+ </div>
+ </div>
+ </div>
+ ))}
+ </div>
 
-      {/* Education & Experience */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Education */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] p-4 shadow-md border border-white/50">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-sm text-heading uppercase tracking-wide">Education</h3>
-            <button
-              onClick={addEducation}
-              className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
-              title="Add Education"
-            >
-              <FiPlus className="text-lg" />
-            </button>
-          </div>
-          {formData.education.map((edu, idx) => (
-            <div
-              key={idx}
-              className="relative bg-white/80 backdrop-blur-sm rounded-lg p-4 mb-4 border border-border-subtle"
-            >
-              {idx > 0 && (
-                <button
-                  onClick={() => removeEducation(idx)}
-                  className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors p-1"
-                  title="Remove"
-                >
-                  <FiX className="text-lg" />
-                </button>
-              )}
-              <input
-                type="text"
-                placeholder="Institution *"
-                className="w-full mb-3 p-3 border border-border-subtle rounded-lg text-sm bg-white/90 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-                value={edu.institution}
-                onChange={(e) => updateEducation(idx, 'institution', e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Degree / Program *"
-                className="w-full mb-3 p-3 border border-border-subtle rounded-lg text-sm bg-white/90 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-                value={edu.degree}
-                onChange={(e) => updateEducation(idx, 'degree', e.target.value)}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="number"
-                  placeholder="Start Year"
-                  className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-white/90 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-                  value={edu.startYear}
-                  onChange={(e) => updateEducation(idx, 'startYear', e.target.value)}
-                />
-                <input
-                  type="number"
-                  placeholder="End Year"
-                  className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-white/90 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-                  value={edu.endYear}
-                  onChange={(e) => updateEducation(idx, 'endYear', e.target.value)}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+ {/* Education & Experience */}
+ <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+ {/* Education */}
+ <div className="bg-surface rounded-[1.2rem] p-4 shadow-md border border-white/50">
+ <div className="flex justify-between items-center mb-4">
+ <h3 className="font-semibold text-sm text-heading uppercase tracking-wide">Education</h3>
+ <button
+ onClick={addEducation}
+ className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
+ title="Add Education"
+ >
+ <FiPlus className="text-lg" />
+ </button>
+ </div>
+ {formData.education.map((edu, idx) => (
+ <div
+ key={idx}
+ className="relative bg-surface rounded-lg p-4 mb-4 border border-border-subtle"
+ >
+ {idx > 0 && (
+ <button
+ onClick={() => removeEducation(idx)}
+ className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors p-1"
+ title="Remove"
+ >
+ <FiX className="text-lg" />
+ </button>
+ )}
+ <input
+ type="text"
+ placeholder="Institution *"
+ className="w-full mb-3 p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ value={edu.institution}
+ onChange={(e) => updateEducation(idx, 'institution', e.target.value)}
+ />
+ <input
+ type="text"
+ placeholder="Degree / Program *"
+ className="w-full mb-3 p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ value={edu.degree}
+ onChange={(e) => updateEducation(idx, 'degree', e.target.value)}
+ />
+ <div className="grid grid-cols-2 gap-3">
+ <input
+ type="number"
+ placeholder="Start Year"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ value={edu.startYear}
+ onChange={(e) => updateEducation(idx, 'startYear', e.target.value)}
+ />
+ <input
+ type="number"
+ placeholder="End Year"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ value={edu.endYear}
+ onChange={(e) => updateEducation(idx, 'endYear', e.target.value)}
+ />
+ </div>
+ </div>
+ ))}
+ </div>
 
-        {/* Experience */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] p-4 shadow-md border border-white/50">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-sm text-heading uppercase tracking-wide">Work Experience</h3>
-            <button
-              onClick={addExperience}
-              className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
-              title="Add Experience"
-            >
-              <FiPlus className="text-lg" />
-            </button>
-          </div>
-          {formData.experience.map((exp, idx) => (
-            <div
-              key={idx}
-              className="relative bg-white/80 backdrop-blur-sm rounded-lg p-4 mb-4 border border-border-subtle"
-            >
-              {idx > 0 && (
-                <button
-                  onClick={() => removeExperience(idx)}
-                  className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors p-1"
-                  title="Remove"
-                >
-                  <FiX className="text-lg" />
-                </button>
-              )}
-              <input
-                type="text"
-                placeholder="Company Name *"
-                className="w-full mb-3 p-3 border border-border-subtle rounded-lg text-sm bg-white/90 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-                value={exp.company}
-                onChange={(e) => updateExperience(idx, 'company', e.target.value)}
-              />
-              
-              {/* UPDATED: Modern Select for Job Type */}
-              <div className="mb-3">
-                <ModernSelect
-                  value={exp.jobType}
-                  onChange={(e) => updateExperience(idx, 'jobType', e.target.value)}
-                  placeholder="Select Job Type"
-                  options={[
-                    { value: "Full-time", label: "Full-time" },
-                    { value: "Part-time", label: "Part-time" },
-                    { value: "Contract", label: "Contract" },
-                    { value: "Internship", label: "Internship" }
-                  ]}
-                />
-              </div>
+ {/* Experience */}
+ <div className="bg-surface rounded-[1.2rem] p-4 shadow-md border border-white/50">
+ <div className="flex justify-between items-center mb-4">
+ <h3 className="font-semibold text-sm text-heading uppercase tracking-wide">Work Experience</h3>
+ <button
+ onClick={addExperience}
+ className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
+ title="Add Experience"
+ >
+ <FiPlus className="text-lg" />
+ </button>
+ </div>
+ {formData.experience.map((exp, idx) => (
+ <div
+ key={idx}
+ className="relative bg-surface rounded-lg p-4 mb-4 border border-border-subtle"
+ >
+ {idx > 0 && (
+ <button
+ onClick={() => removeExperience(idx)}
+ className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors p-1"
+ title="Remove"
+ >
+ <FiX className="text-lg" />
+ </button>
+ )}
+ <input
+ type="text"
+ placeholder="Company Name *"
+ className="w-full mb-3 p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ value={exp.company}
+ onChange={(e) => updateExperience(idx, 'company', e.target.value)}
+ />
+ 
+ {/* UPDATED: Modern Select for Job Type */}
+ <div className="mb-3">
+ <ModernSelect
+ value={exp.jobType}
+ onChange={(e) => updateExperience(idx, 'jobType', e.target.value)}
+ placeholder="Select Job Type"
+ options={[
+ { value: "Full-time", label: "Full-time" },
+ { value: "Part-time", label: "Part-time" },
+ { value: "Contract", label: "Contract" },
+ { value: "Internship", label: "Internship" }
+ ]}
+ />
+ </div>
 
-              {/* UPDATED: Modern Date Pickers for Start/End Date */}
-              <div className={`grid ${exp.jobType === 'Contract' || exp.jobType === 'Internship' ? 'grid-cols-2' : 'grid-cols-1'} gap-3 mb-3`}>
-                <ModernDatePicker
-                  placeholder="Start Date"
-                  value={exp.startDate ? format(new Date(exp.startDate), "yyyy-MM-dd") : ""}
-                  onChange={(e) => updateExperience(idx, 'startDate', e.target.value)}
-                />
-                
-                {(exp.jobType === "Contract" || exp.jobType === "Internship") && (
-                  <ModernDatePicker
-                    placeholder="End Date"
-                    value={exp.endDate ? format(new Date(exp.endDate), "yyyy-MM-dd") : ""}
-                    onChange={(e) => updateExperience(idx, 'endDate', e.target.value)}
-                  />
-                )}
-              </div>
+ {/* UPDATED: Modern Date Pickers for Start/End Date */}
+ <div className={`grid ${exp.jobType === 'Contract' || exp.jobType === 'Internship' ? 'grid-cols-2' : 'grid-cols-1'} gap-3 mb-3`}>
+ <ModernDatePicker
+ placeholder="Start Date"
+ value={exp.startDate ? format(new Date(exp.startDate), "yyyy-MM-dd") : ""}
+ onChange={(e) => updateExperience(idx, 'startDate', e.target.value)}
+ />
+ 
+ {(exp.jobType === "Contract" || exp.jobType === "Internship") && (
+ <ModernDatePicker
+ placeholder="End Date"
+ value={exp.endDate ? format(new Date(exp.endDate), "yyyy-MM-dd") : ""}
+ onChange={(e) => updateExperience(idx, 'endDate', e.target.value)}
+ />
+ )}
+ </div>
 
-              <textarea
-                placeholder="Job Description"
-                className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-white/90 backdrop-blur-sm text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-                rows={3}
-                value={exp.description}
-                onChange={(e) => updateExperience(idx, 'description', e.target.value)}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+ <textarea
+ placeholder="Job Description"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ rows={3}
+ value={exp.description}
+ onChange={(e) => updateExperience(idx, 'description', e.target.value)}
+ />
+ </div>
+ ))}
+ </div>
+ </div>
 
-      {/* Save Button */}
-      <div className="flex justify-end mt-6 pt-6 border-t border-border-subtle">
-        <button
-          className={`bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2.5 rounded-lg transition-all text-sm font-medium shadow-sm hover:shadow-md ${saving ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <span className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Saving...
-            </span>
-          ) : 'Save Changes'}
-        </button>
-      </div>
-      </div>
-    </PageContainer>
-  );
+ {/* Save Button */}
+ <div className="flex justify-end mt-6 pt-6 border-t border-border-subtle">
+ <button
+ className={`bg-brand-primary hover:bg-brand-primary/90 text-white px-6 py-2.5 rounded-lg transition-all text-sm font-medium shadow-sm hover:shadow-md ${saving ? 'opacity-50 cursor-not-allowed' : ''
+ }`}
+ onClick={handleSave}
+ disabled={saving}
+ >
+ {saving ? (
+ <span className="flex items-center gap-2">
+ <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+ Saving...
+ </span>
+ ) : 'Save Changes'}
+ </button>
+ </div>
+ </div>
+ </PageContainer>
+ );
 }

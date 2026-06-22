@@ -176,6 +176,53 @@
   --z-tooltip: 70;
 }
 
+.dark {
+  /* ===== DARK MODE COLOR PALETTE ===== */
+  
+  /* Background Colors */
+  --color-bg-app: #0f172a;                
+  --bg-app-gradient: radial-gradient(circle at 10% 20%, rgba(218, 165, 32, 0.1) 0%, transparent 45%),
+                     radial-gradient(circle at 90% 80%, rgba(212, 175, 55, 0.1) 0%, transparent 45%),
+                     var(--color-bg-app);
+  --color-bg-primary: #1e293b;            
+  --color-bg-secondary: rgba(30, 41, 59, 0.7); 
+  --color-bg-tertiary: rgba(15, 23, 42, 0.8);  
+  --color-bg-navbar: rgba(30, 41, 59, 0.85);   
+  --color-bg-sidebar: rgba(15, 23, 42, 0.85);  
+  --color-bg-card: rgba(30, 41, 59, 0.8);      
+  --color-bg-hover: rgba(212, 175, 55, 0.15);  
+  --color-bg-active: rgba(212, 175, 55, 0.25); 
+  
+  /* Text Colors */
+  --color-text-primary: #f8fafc;          
+  --color-text-secondary: #cbd5e1;        
+  --color-text-tertiary: #94a3b8;         
+  --color-text-heading: #ffffff;          
+  --color-text-muted: #64748b;            
+  --color-text-light: #f1f5f9;            
+  --color-text-on-brand: #ffffff;         
+  
+  /* Border Colors */
+  --color-border-primary: rgba(255, 255, 255, 0.1);   
+  --color-border-secondary: rgba(255, 255, 255, 0.05); 
+  --color-border-accent: rgba(212, 175, 55, 0.2);   
+  
+  /* Component Specific */
+  --navbar-bg: var(--color-bg-navbar);
+  --navbar-text: var(--color-text-primary);
+  
+  --sidebar-bg: transparent;
+  --sidebar-item-active-bg: rgba(255, 255, 255, 0.1);
+  --sidebar-item-hover-color: var(--color-text-primary);
+  
+  --subnav-bg: var(--color-bg-navbar);
+  
+  --card-bg: var(--color-bg-secondary);
+  --card-border: var(--color-border-primary);
+  
+  --rightsidebar-bg: rgba(30, 41, 59, 0.95);
+}
+
 /* ===== BASE STYLES ===== */
 
 * {
@@ -336,20 +383,54 @@ body {
   border-color: var(--color-border-accent);
 }
 
-/* Glass Input */
+/* Glass Input — standardized for modal forms: clean white card, slate border, gold focus */
 .glass-input {
-  background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border-secondary);
-  border-radius: var(--radius-xl);
-  color: var(--color-text-primary);
-  padding: var(--spacing-3) var(--spacing-4);
-  transition: all var(--transition-fast) var(--transition-timing);
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;           /* slate-200 */
+  border-radius: 0.5rem;               /* rounded-lg */
+  color: #1e293b;                      /* slate-800 */
+  padding: 0.625rem 1rem;             /* py-2.5 px-4 */
+  font-size: 0.875rem;                 /* text-sm */
+  font-weight: 500;
+  width: 100%;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
   outline: none;
 }
 
+.glass-input::placeholder {
+  color: #94a3b8;                      /* slate-400 */
+  font-weight: 400;
+}
+
+.glass-input:hover {
+  border-color: #cbd5e1;               /* slate-300 */
+}
+
 .glass-input:focus {
-  border-color: var(--color-brand-primary);
+  border-color: var(--color-brand-primary);   /* gold #D4AF37 */
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+  background-color: #ffffff;
+}
+
+/* Dark mode overrides for glass-input */
+.dark .glass-input {
+  background-color: #1e293b;           /* slate-800 */
+  border-color: #334155;               /* slate-700 */
+  color: #f1f5f9;                      /* slate-100 */
+}
+
+.dark .glass-input::placeholder {
+  color: #475569;                      /* slate-600 */
+}
+
+.dark .glass-input:hover {
+  border-color: #475569;               /* slate-600 */
+}
+
+.dark .glass-input:focus {
+  border-color: #FBBF24;               /* bright gold */
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
+  background-color: #1e293b;
 }
 
 /* Base Buttons */
@@ -614,38 +695,238 @@ body {
   width: 100%;
 }
 
+/* --- DARK MODE CALENDAR OVERRIDES --- */
+.dark .react-datepicker {
+  background-color: #1e293b !important;     /* slate-800 */
+  border-color: #334155 !important;          /* slate-700 */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .react-datepicker__header {
+  background-color: rgba(251, 191, 36, 0.08) !important;
+  border-bottom-color: #334155 !important;
+}
+
+.dark .react-datepicker__current-month,
+.dark .react-datepicker__day-names {
+  color: #fde68a !important;                 /* amber-200 */
+}
+
+.dark .react-datepicker__day-name {
+  color: #fbbf24 !important;                 /* amber-400 */
+}
+
+.dark .react-datepicker__day {
+  color: #e2e8f0 !important;                 /* slate-200 */
+}
+
+.dark .react-datepicker__day:hover {
+  background-color: #334155 !important;      /* slate-700 */
+  color: #fbbf24 !important;
+}
+
+.dark .react-datepicker__day--selected,
+.dark .react-datepicker__day--keyboard-selected {
+  background-color: #f59e0b !important;
+  color: #0f172a !important;
+}
+
+.dark .react-datepicker__day--today {
+  color: #fbbf24 !important;
+  border-color: #d97706 !important;
+  background-color: transparent !important;
+}
+
+.dark .react-datepicker__day--disabled {
+  color: #475569 !important;                 /* slate-600 */
+}
+
+.dark .react-datepicker__navigation-icon::before {
+  border-color: #fbbf24 !important;
+}
+
+.dark .react-datepicker__month-select,
+.dark .react-datepicker__year-select {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+.dark .react-datepicker__time-container {
+  border-left-color: #334155 !important;
+}
+
+.dark .react-datepicker__time-container .react-datepicker__time {
+  background-color: #1e293b !important;
+}
+
+.dark .react-datepicker__time-container .react-datepicker__time-list-item {
+  color: #e2e8f0 !important;
+}
+
+.dark .react-datepicker__time-container .react-datepicker__time-list-item:hover {
+  background-color: #334155 !important;
+}
+
+.dark .react-datepicker__time-container .react-datepicker__time-list-item--selected {
+  background-color: #f59e0b !important;
+  color: #0f172a !important;
+}
+
 @layer components {
-  /* --- Clean up the inputs globally (Glassmorphism) --- */
-  input[type="text"], input[type="date"], select, textarea {
-    transition: all 0.2s ease-in-out;
-    background-color: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: var(--radius-xl);
-    color: #78350f; /* amber-900 */
+  /* --- Modal & form input standardization ---
+     Clean white background (light) / dark slate (dark), gold focus ring.
+     This applies to all native inputs inside modal forms.
+     The ModernSelect component manages its own styling via inline classes. */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="date"],
+  textarea {
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;          /* slate-200 */
+    border-radius: 0.5rem;              /* rounded-lg */
+    color: #1e293b;                     /* slate-800 */
     padding-left: 1rem;
     padding-right: 1rem;
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
-    font-weight: 600;
+    padding-top: 0.625rem;              /* py-2.5 */
+    padding-bottom: 0.625rem;
+    font-weight: 500;
     font-size: 0.875rem;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
   }
 
+  input[type="text"]::placeholder,
+  input[type="email"]::placeholder,
+  input[type="password"]::placeholder,
+  input[type="number"]::placeholder,
+  input[type="tel"]::placeholder,
+  input[type="date"]::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;                     /* slate-400 */
+    font-weight: 400;
+  }
+
+  input[type="text"]:hover,
+  input[type="email"]:hover,
+  input[type="password"]:hover,
+  input[type="number"]:hover,
+  input[type="tel"]:hover,
+  input[type="date"]:hover,
+  textarea:hover {
+    border-color: #cbd5e1;              /* slate-300 */
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus,
+  input[type="tel"]:focus,
+  input[type="date"]:focus,
+  textarea:focus {
+    outline: none;
+    border-color: #D4AF37;              /* brand gold */
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+    background-color: #ffffff;
+  }
+
+  /* ── Dark mode overrides for all native inputs ── */
+  .dark input[type="text"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="number"],
+  .dark input[type="tel"],
+  .dark input[type="date"],
+  .dark textarea {
+    background-color: #1e293b;          /* slate-800 */
+    border-color: #334155;              /* slate-700 */
+    color: #f1f5f9;                     /* slate-100 */
+    box-shadow: none;
+  }
+
+  .dark input[type="text"]::placeholder,
+  .dark input[type="email"]::placeholder,
+  .dark input[type="password"]::placeholder,
+  .dark input[type="number"]::placeholder,
+  .dark input[type="tel"]::placeholder,
+  .dark input[type="date"]::placeholder,
+  .dark textarea::placeholder {
+    color: #475569;                     /* slate-600 */
+  }
+
+  .dark input[type="text"]:hover,
+  .dark input[type="email"]:hover,
+  .dark input[type="password"]:hover,
+  .dark input[type="number"]:hover,
+  .dark input[type="tel"]:hover,
+  .dark input[type="date"]:hover,
+  .dark textarea:hover {
+    border-color: #475569;              /* slate-600 */
+  }
+
+  .dark input[type="text"]:focus,
+  .dark input[type="email"]:focus,
+  .dark input[type="password"]:focus,
+  .dark input[type="number"]:focus,
+  .dark input[type="tel"]:focus,
+  .dark input[type="date"]:focus,
+  .dark textarea:focus {
+    outline: none;
+    border-color: #FBBF24;              /* bright gold */
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
+    background-color: #1e293b;
+  }
+
+  /* Native <select> — used only as fallback; ModernSelect replaces most selects */
   select {
     appearance: none;
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23b45309%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    color: #1e293b;
+    padding-left: 1rem;
+    padding-right: 2.5rem;
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
     background-repeat: no-repeat;
     background-position: right 1rem top 50%;
     background-size: 0.65rem auto;
-    padding-right: 2.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    transition: border-color 150ms ease, box-shadow 150ms ease;
   }
 
-  input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
+  select:hover {
+    border-color: #cbd5e1;
+  }
+
+  select:focus {
     outline: none;
-    border-color: #fbbf24; /* amber-400 */
+    border-color: #D4AF37;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+  }
+
+ /* Dark mode native select */
+  .dark select {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  }
+
+  .dark select:hover {
+    border-color: #475569;
+  }
+
+  .dark select:focus {
+    outline: none;
+    border-color: #FBBF24;
     box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
-    background-color: rgba(255, 255, 255, 0.9);
   }
 }
 
@@ -707,4 +988,118 @@ body {
   margin-left: auto;
   margin-right: auto;
 }
-
+
+/* ===== THEME-AWARE SIDEBAR / NAV UTILITIES ===== */
+
+/* Generic sidebar nav item — uses brand CSS vars */
+.theme-sidebar-item {
+  color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast) var(--transition-timing),
+              color var(--transition-fast) var(--transition-timing);
+}
+.theme-sidebar-item:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-brand-primary);
+}
+.theme-sidebar-item.theme-active {
+  background-color: var(--color-bg-active);
+  color: var(--color-brand-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Sidebar container panel */
+.theme-sidebar-panel {
+  background-color: var(--color-bg-sidebar);
+  border-color: var(--color-border-primary);
+}
+
+/* Top badge / logo mark */
+.theme-brand-badge {
+  background-color: var(--color-brand-primary);
+  color: var(--color-text-on-brand);
+}
+
+/* Sidebar top header strip */
+.theme-sidebar-header {
+  background-color: var(--color-bg-hover);
+}
+
+/* Sidebar section label */
+.theme-sidebar-label {
+  color: var(--color-text-heading);
+}
+
+/* Tooltip bubble — follows brand accent */
+.theme-tooltip {
+  background-color: var(--color-brand-accent);
+  color: #ffffff;
+}
+
+/* Notification bell — default state */
+.theme-bell-default {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.theme-bell-default:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-brand-primary);
+}
+
+/* Notification bell — active/on state */
+.theme-bell-active {
+  background-color: var(--color-brand-primary);
+  color: var(--color-text-on-brand);
+}
+
+/* Settings dropdown panel */
+.theme-settings-panel {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-accent);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Settings dropdown header label */
+.theme-settings-header {
+  border-bottom: 1px solid var(--color-border-accent);
+  color: var(--color-text-tertiary);
+}
+
+/* Settings dropdown item */
+.theme-settings-item {
+  color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.theme-settings-item:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-brand-primary);
+}
+
+/* Theme swatch button */
+.theme-swatch {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  width: 1.75rem;
+  height: 1.75rem;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: pointer;
+  outline: none;
+}
+.theme-swatch:hover {
+  transform: scale(1.15);
+}
+.theme-swatch.selected {
+  box-shadow: 0 0 0 2px var(--color-bg-primary), 0 0 0 4px currentColor;
+}
+
+/* Logout confirm modal */
+.theme-confirm-modal {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  color: var(--color-text-primary);
+}
+
+/* Mobile header label */
+.theme-mobile-label {
+  color: var(--color-text-heading);
+}

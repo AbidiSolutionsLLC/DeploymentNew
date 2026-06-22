@@ -3,50 +3,50 @@ import api from '../axios';
 const API_URL = '/time-logs';
 
 const getEmployeeTimeLogs = async (date = null, userId = null) => {
-  const params = {};
-  if (date) {
-    params.date = date;
-  }
-  if (userId) {
-    params.userId = userId;
-  }
-  const response = await api.get(API_URL, { params });
-  return response.data.data || response.data;
+ const params = {};
+ if (date) {
+ params.date = date;
+ }
+ if (userId) {
+ params.userId = userId;
+ }
+ const response = await api.get(API_URL, { params });
+ return response.data.data || response.data;
 };
 
 const createTimeLog = async (timeLogData) => {
-  const config = {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  };
-  const response = await api.post(API_URL, timeLogData, config);
-  return response.data.data || response.data;
+ const config = {
+ headers: {
+ 'Content-Type': 'multipart/form-data'
+ }
+ };
+ const response = await api.post(API_URL, timeLogData, config);
+ return response.data.data || response.data;
 };
 
 const updateTimeLog = async (id, updates) => {
-  const response = await api.put(`${API_URL}/${id}`, updates);
-  return response.data.data || response.data;
+ const response = await api.put(`${API_URL}/${id}`, updates);
+ return response.data.data || response.data;
 };
 
 const deleteTimeLog = async (id) => {
-  const response = await api.delete(`${API_URL}/${id}`);
-  return response.data.data || response.data;
+ const response = await api.delete(`${API_URL}/${id}`);
+ return response.data.data || response.data;
 };
 
 const downloadAttachment = async (logId, attachmentId) => {
-  const response = await api.get(`/time-logs/${logId}/attachments/${attachmentId}/download`, {
-    responseType: 'blob'
-  });
-  return response.data;
+ const response = await api.get(`/time-logs/${logId}/attachments/${attachmentId}/download`, {
+ responseType: 'blob'
+ });
+ return response.data;
 }
 
 const timeLogApi = {
-  getEmployeeTimeLogs,
-  createTimeLog,
-  updateTimeLog,
-  deleteTimeLog,
-  downloadAttachment
+ getEmployeeTimeLogs,
+ createTimeLog,
+ updateTimeLog,
+ deleteTimeLog,
+ downloadAttachment
 };
 
 export default timeLogApi;

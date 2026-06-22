@@ -3,157 +3,184 @@ import { FiChevronDown } from "react-icons/fi";
 import { createPortal } from "react-dom";
 
 const ModernSelect = ({
-  label,
-  name,
-  value,
-  onChange,
-  options,
-  placeholder = "Select Option",
-  required = false,
-  className = "",
-  error = null,
+ label,
+ name,
+ value,
+ onChange,
+ options,
+ placeholder = "Select Option",
+ required = false,
+ className = "",
+ error = null,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef(null);
-  const dropdownRef = useRef(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+ const [isOpen, setIsOpen] = useState(false);
+ const containerRef = useRef(null);
+ const dropdownRef = useRef(null);
+ const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
-  // Find the label for the currently selected value
-  const selectedOption = options.find((opt) => opt.value === value);
+ // Find the label for the currently selected value
+ const selectedOption = options.find((opt) => opt.value === value);
 
-  // Update dropdown position when open
-  useEffect(() => {
-    const updatePosition = () => {
-      if (isOpen && containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDropdownPosition({
-          top: rect.bottom + window.scrollY + 8,
-          left: rect.left + window.scrollX,
-          width: rect.width,
-        });
-      }
-    };
+ // Detect dark mode from the root element
+ const isDark = () => document.documentElement.classList.contains("dark");
 
-    updatePosition();
+ // Update dropdown position when open
+ useEffect(() => {
+ const updatePosition = () => {
+ if (isOpen && containerRef.current) {
+ const rect = containerRef.current.getBoundingClientRect();
+ setDropdownPosition({
+ top: rect.bottom + window.scrollY + 8,
+ left: rect.left + window.scrollX,
+ width: rect.width,
+ });
+ }
+ };
 
-    // Update position on scroll
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [isOpen]);
+ updatePosition();
 
-  // Close dropdown if clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-          setIsOpen(false);
-        }
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+ // Update position on scroll
+ window.addEventListener('scroll', updatePosition, true);
+ window.addEventListener('resize', updatePosition);
+ 
+ return () => {
+ window.removeEventListener('scroll', updatePosition, true);
+ window.removeEventListener('resize', updatePosition);
+ };
+ }, [isOpen]);
 
-  // Handle selection (mimics a native event so your form works without changes)
-  const handleSelect = (optionValue) => {
-    onChange({
-      target: {
-        name: name,
-        value: optionValue,
-      },
-    });
-    setIsOpen(false);
-  };
+ // Close dropdown if clicking outside
+ useEffect(() => {
+ const handleClickOutside = (event) => {
+ if (containerRef.current && !containerRef.current.contains(event.target)) {
+ if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+ setIsOpen(false);
+ }
+ }
+ };
+ document.addEventListener("mousedown", handleClickOutside);
+ return () => document.removeEventListener("mousedown", handleClickOutside);
+ }, []);
 
-  // Dropdown content using Portal
-  const renderDropdown = () => {
-    if (!isOpen) return null;
+ // Handle selection (mimics a native event so your form works without changes)
+ const handleSelect = (optionValue) => {
+ onChange({
+ target: {
+ name: name,
+ value: optionValue,
+ },
+ });
+ setIsOpen(false);
+ };
 
-    return (
-      <div
-        ref={dropdownRef}
-        data-modern-select-dropdown="true"
-        className="fixed z-[99999] bg-white border border-slate-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar animate-fadeIn text-left"
-        style={{
-          top: `${dropdownPosition.top}px`,
-          left: `${dropdownPosition.left}px`,
-          width: `${dropdownPosition.width}px`,
-        }}
-        onMouseDown={(e) => e.stopPropagation()} // Prevent mousedown from closing dropdown
-      >
-        {options.length > 0 ? (
-          options.map((opt) => (
-            <div
-              key={opt.value}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleSelect(opt.value);
-              }}
-              className={`px-4 py-2.5 text-sm cursor-pointer transition-colors text-left
-                ${
-                  opt.value === value
-                    ? "bg-amber-50 text-amber-600 font-semibold"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }
-              `}
-            >
-              {opt.label}
-            </div>
-          ))
-        ) : (
-          <div className="px-4 py-3 text-xs text-slate-400 text-center" onMouseDown={(e) => e.stopPropagation()}>
-            No options available
-          </div>
-        )}
-      </div>
-    );
-  };
+ // Dropdown content using Portal
+ const renderDropdown = () => {
+ if (!isOpen) return null;
+ const dark = isDark();
 
-  return (
-    <>
-      <div className={`w-full ${className}`} ref={containerRef}>
-        {/* Label */}
-        {label && (
-          <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
-            {label} {required && <span className="text-red-500">*</span>}
-          </label>
-        )}
+ return (
+ <div
+ ref={dropdownRef}
+ data-modern-select-dropdown="true"
+ className={`fixed z-[99999] rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar animate-fadeIn text-left
+ ${dark
+ ? "bg-slate-800 border border-slate-700 shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+ : "bg-surface border border-slate-100 shadow-xl"
+ }`}
+ style={{
+ top: `${dropdownPosition.top}px`,
+ left: `${dropdownPosition.left}px`,
+ width: `${dropdownPosition.width}px`,
+ }}
+ onMouseDown={(e) => e.stopPropagation()} // Prevent mousedown from closing dropdown
+ >
+ {options.length > 0 ? (
+ options.map((opt) => (
+ <div
+ key={opt.value}
+ onMouseDown={(e) => {
+ e.preventDefault();
+ e.stopPropagation();
+ handleSelect(opt.value);
+ }}
+ className={`px-4 py-2.5 text-sm cursor-pointer transition-colors text-left
+ ${
+ opt.value === value
+ ? dark
+ ? "bg-amber-500/20 text-amber-400 font-semibold"
+ : "bg-amber-50 text-amber-600 font-semibold"
+ : dark
+ ? "text-slate-300 hover:bg-slate-700 hover:text-white"
+ : "text-muted hover:bg-app hover:text-main"
+ }
+ `}
+ >
+ {opt.label}
+ </div>
+ ))
+ ) : (
+ <div
+ className={`px-4 py-3 text-xs text-center ${dark ? "text-muted" : "text-muted"}`}
+ onMouseDown={(e) => e.stopPropagation()}
+ >
+ No options available
+ </div>
+ )}
+ </div>
+ );
+ };
 
-        {/* The Trigger Box */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className={`w-full bg-white border rounded-xl px-4 py-3 text-sm font-medium outline-none flex justify-between items-center transition-all shadow-sm text-left
-              ${isOpen ? "border-amber-400 ring-2 ring-amber-100" : (error ? "border-red-400" : "border-slate-200 hover:border-slate-300")}
-              ${!selectedOption ? "text-slate-400" : "text-slate-700"}
-            `}
-          >
-            <span className="truncate">
-              {selectedOption ? selectedOption.label : placeholder}
-            </span>
-            <FiChevronDown
-              className={`w-4 h-4 text-slate-400 transition-transform duration-200 flex-shrink-0 ml-2 ${
-                isOpen ? "rotate-180 text-amber-500" : ""
-              }`}
-            />
-          </button>
-        </div>
-      </div>
+ return (
+ <>
+ <div className={`w-full ${className}`} ref={containerRef}>
+ {/* Label */}
+ {label && (
+ <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">
+ {label} {required && <span className="text-red-500">*</span>}
+ </label>
+ )}
 
-      {/* Render dropdown via Portal to escape overflow constraints */}
-      {typeof document !== 'undefined' && createPortal(
-        renderDropdown(),
-        document.body
-      )}
-    </>
-  );
+ {/* The Trigger Box */}
+ <div className="relative">
+ <button
+ type="button"
+ onClick={() => setIsOpen(!isOpen)}
+ className={`w-full rounded-xl px-4 py-3 text-sm font-medium outline-none flex justify-between items-center transition-all shadow-sm text-left
+ bg-surface dark:bg-slate-800
+ ${isOpen
+ ? "border-amber-400 ring-2 ring-amber-100 dark:ring-amber-500/20 dark:border-amber-500"
+ : error
+ ? "border-red-400 dark:border-red-500"
+ : "border-subtle dark:border-slate-600 hover:border-subtle dark:hover:border-slate-500"
+ }
+ border
+ ${!selectedOption
+ ? "text-muted dark:text-muted"
+ : "text-main dark:text-slate-100"
+ }
+ `}
+ >
+ <span className="truncate">
+ {selectedOption ? selectedOption.label : placeholder}
+ </span>
+ <FiChevronDown
+ className={`w-4 h-4 transition-transform duration-200 flex-shrink-0 ml-2
+ ${isOpen
+ ? "rotate-180 text-amber-500 dark:text-amber-400"
+ : "text-muted dark:text-muted"
+ }`}
+ />
+ </button>
+ </div>
+ </div>
+
+ {/* Render dropdown via Portal to escape overflow constraints */}
+ {typeof document !== 'undefined' && createPortal(
+ renderDropdown(),
+ document.body
+ )}
+ </>
+ );
 };
 
 export default ModernSelect;

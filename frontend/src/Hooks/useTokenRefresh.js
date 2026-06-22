@@ -3,17 +3,17 @@
 // import { silentRefresh } from "../slices/authSlice";
 
 // const useTokenRefresh = () => {
-//   const dispatch = useDispatch();
-//   const { isAuthenticated, token } = useSelector((state) => state.auth);
+// const dispatch = useDispatch();
+// const { isAuthenticated, token } = useSelector((state) => state.auth);
 
 // useEffect(() => {
-//   if (!isAuthenticated || !token) return;
+// if (!isAuthenticated || !token) return;
 
-//   const refreshInterval = setInterval(() => {
-//     dispatch(silentRefresh());
-//   }, 10 * 60 * 1000);
+// const refreshInterval = setInterval(() => {
+// dispatch(silentRefresh());
+// }, 10 * 60 * 1000);
 
-//   return () => clearInterval(refreshInterval);
+// return () => clearInterval(refreshInterval);
 // }, [dispatch, isAuthenticated, token]);
 // };
 

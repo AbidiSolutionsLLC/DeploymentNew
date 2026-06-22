@@ -52,144 +52,144 @@ import { useSelector, useDispatch } from "react-redux";
 import MobileBlock from "./components/MobileBlock";
 
 function App() {
-  useAutoLogin();
+ useAutoLogin();
 
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
+ const [isMobileDevice, setIsMobileDevice] = useState(false);
 
-  useEffect(() => {
-    const checkMobile = () => {
-      // 1. Check for pointer: coarse (Primary indicator for touch devices)
-      const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
-      
-      // 2. Check for touch points (survives "Desktop site" mode)
-      const hasTouchPoints = navigator.maxTouchPoints > 0;
+ useEffect(() => {
+ const checkMobile = () => {
+ // 1. Check for pointer: coarse (Primary indicator for touch devices)
+ const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+ 
+ // 2. Check for touch points (survives "Desktop site" mode)
+ const hasTouchPoints = navigator.maxTouchPoints > 0;
 
-      // Only block if BOTH or either? User said "all mobile devices".
-      // Coarse pointer is the most accurate for "Mobile UI being used".
-      setIsMobileDevice(isCoarsePointer || hasTouchPoints);
-    };
+ // Only block if BOTH or either? User said "all mobile devices".
+ // Coarse pointer is the most accurate for "Mobile UI being used".
+ setIsMobileDevice(isCoarsePointer || hasTouchPoints);
+ };
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+ checkMobile();
+ window.addEventListener("resize", checkMobile);
+ return () => window.removeEventListener("resize", checkMobile);
+ }, []);
 
-  // Activate real-time notification stream (uses MSAL token internally)
-  const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
-  const authStateUser = useSelector((s) => s.auth.user);
-  const dispatch = useDispatch();
+ // Activate real-time notification stream (uses MSAL token internally)
+ const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
+ const authStateUser = useSelector((s) => s.auth.user);
+ const dispatch = useDispatch();
 
-  // PERMANENT FIX: Auto-normalize cached nested user objects from Redux Persist
-  useEffect(() => {
-    if (authStateUser && (authStateUser.data?.user || authStateUser.user)) {
-      const normalizedUser = authStateUser.data?.user || authStateUser.user;
-      dispatch({ type: 'auth/setAuthUser', payload: normalizedUser });
-      console.log("Auto-normalized Redux Persist user object structure");
-    }
-  }, [authStateUser, dispatch]);
+ // PERMANENT FIX: Auto-normalize cached nested user objects from Redux Persist
+ useEffect(() => {
+ if (authStateUser && (authStateUser.data?.user || authStateUser.user)) {
+ const normalizedUser = authStateUser.data?.user || authStateUser.user;
+ dispatch({ type: 'auth/setAuthUser', payload: normalizedUser });
+ console.log("Auto-normalized Redux Persist user object structure");
+ }
+ }, [authStateUser, dispatch]);
 
-  useNotificationSSE(isAuthenticated);
+ useNotificationSSE(isAuthenticated);
 
-  if (isMobileDevice) {
-    return <MobileBlock />;
-  }
+ if (isMobileDevice) {
+ return <MobileBlock />;
+ }
 
-  return (
+ return (
 
-    <>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={true}
-        newestOnTop
-        closeOnClick
-        pauseOnHover
-        draggable
-        theme="light"
-        limit={1}
-        style={{ zIndex: 9999999 }}
-      />
-      <Routes>
-        <Route path="/" element={<Navigate to="/auth/login" />} />
+ <>
+ <ToastContainer
+ position="top-right"
+ autoClose={3000}
+ hideProgressBar={true}
+ newestOnTop
+ closeOnClick
+ pauseOnHover
+ draggable
+ theme="light"
+ limit={1}
+ style={{ zIndex: 9999999 }}
+ />
+ <Routes>
+ <Route path="/" element={<Navigate to="/auth/login" />} />
 
-        <Route
-          path="/auth"
-          element={
-            <PublicRoute>
-              <AuthLayout />
-            </PublicRoute>
-          }
-        >
-          <Route index path="login" element={<Login />} />
-        </Route>
+ <Route
+ path="/auth"
+ element={
+ <PublicRoute>
+ <AuthLayout />
+ </PublicRoute>
+ }
+ >
+ <Route index path="login" element={<Login />} />
+ </Route>
 
-        <Route path="/theme-selector" element={<ThemeSelector />} />
+ <Route path="/theme-selector" element={<ThemeSelector />} />
 
-        {/* --- GLOBAL PORTAL LAYOUT --- */}
-        <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+ {/* --- GLOBAL PORTAL LAYOUT --- */}
+ <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
 
-          {/* --- PEOPLE PORTAL --- */}
-          <Route path="/people/*">
-            <Route index element={<Navigate to="/people/home" />} />
-            <Route path='home' element={<Home />} />
-            <Route path="timetracker" element={<TimeTracker />} />
-            <Route index path="summary" element={<LeaveTracker />} />
-            <Route index path="shared" element={<Files />} />
-            <Route index path="raise" element={<Ticket />} />
-            <Route path="assigned-tickets" element={<AssignedTickets />} />
-            <Route index path="history" element={<TimeTracker />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="edit-profile" element={<EditProfile />} />
-            <Route path="FAQs" element={<FAQs />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="profile/:id" element={<Profile />} />
-            <Route path="org-chart" element={<OrgChartPage />} />
-          </Route>
+ {/* --- PEOPLE PORTAL --- */}
+ <Route path="/people/*">
+ <Route index element={<Navigate to="/people/home" />} />
+ <Route path='home' element={<Home />} />
+ <Route path="timetracker" element={<TimeTracker />} />
+ <Route index path="summary" element={<LeaveTracker />} />
+ <Route index path="shared" element={<Files />} />
+ <Route index path="raise" element={<Ticket />} />
+ <Route path="assigned-tickets" element={<AssignedTickets />} />
+ <Route index path="history" element={<TimeTracker />} />
+ <Route path="attendance" element={<Attendance />} />
+ <Route path="edit-profile" element={<EditProfile />} />
+ <Route path="FAQs" element={<FAQs />} />
+ <Route path="profile" element={<Profile />} />
+ <Route path="profile/:id" element={<Profile />} />
+ <Route path="org-chart" element={<OrgChartPage />} />
+ </Route>
 
-          <Route path="/leave/*">
-            <Route index element={<Navigate to="/leave/summary" />} />
-            <Route index path="summary" element={<LeaveTracker />} />
-            <Route path="request" element={<LeaveRequest />} />
-            <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
-          </Route>
+ <Route path="/leave/*">
+ <Route index element={<Navigate to="/leave/summary" />} />
+ <Route index path="summary" element={<LeaveTracker />} />
+ <Route path="request" element={<LeaveRequest />} />
+ <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
+ </Route>
 
-          <Route path="/file/*">
-            <Route index element={<Navigate to="/file/shared" />} />
-            <Route index path="shared" element={<Files />} />
-            <Route path="role" element={<Role />} />
-            <Route path="upload" element={<UploadDocument />} />
-          </Route>
+ <Route path="/file/*">
+ <Route index element={<Navigate to="/file/shared" />} />
+ <Route index path="shared" element={<Files />} />
+ <Route path="role" element={<Role />} />
+ <Route path="upload" element={<UploadDocument />} />
+ </Route>
 
-          <Route path="/project/*">
-            <Route index element={<ComingSoon />} />
-            <Route path="projectDashboard" element={<ComingSoon />} />
-            <Route path="projects" element={<ComingSoon />} />
-            <Route path="projectDetailed/:id" element={<ComingSoon />} />
-          </Route>
+ <Route path="/project/*">
+ <Route index element={<ComingSoon />} />
+ <Route path="projectDashboard" element={<ComingSoon />} />
+ <Route path="projects" element={<ComingSoon />} />
+ <Route path="projectDetailed/:id" element={<ComingSoon />} />
+ </Route>
 
-          <Route path="/faq/*">
-            <Route index element={<FAQs />} />
-          </Route>
+ <Route path="/faq/*">
+ <Route index element={<FAQs />} />
+ </Route>
 
-          <Route path="/admin/*">
-            <Route index element={<Navigate to="adminDashboard" replace />} />
-            <Route index path="adminDashboard" element={<AdminDashBoard />} />
-            <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
-            <Route path="upload" element={<UploadDocument />} />
-            <Route path="userManagement" element={<UserManagement />} />
-            <Route path="approve" element={<ApproveTimesheets />} />
-            <Route path="assign-ticket" element={<AdminTickets />} />
-            <Route path="assign-ticket/:ticketId" element={<AssignTicket />} />
-            <Route path="attendance" element={<AdminAttendance />} />
-            <Route path="ExpenseManagement" element={<ExpenseManagement />} />
-          </Route>
+ <Route path="/admin/*">
+ <Route index element={<Navigate to="adminDashboard" replace />} />
+ <Route index path="adminDashboard" element={<AdminDashBoard />} />
+ <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
+ <Route path="upload" element={<UploadDocument />} />
+ <Route path="userManagement" element={<UserManagement />} />
+ <Route path="approve" element={<ApproveTimesheets />} />
+ <Route path="assign-ticket" element={<AdminTickets />} />
+ <Route path="assign-ticket/:ticketId" element={<AssignTicket />} />
+ <Route path="attendance" element={<AdminAttendance />} />
+ <Route path="ExpenseManagement" element={<ExpenseManagement />} />
+ </Route>
 
-          {/* Notifications Page */}
-          <Route path="/notifications" element={<NotificationsPage />} />
-        </Route>
-      </Routes>
-    </>
-  );
+ {/* Notifications Page */}
+ <Route path="/notifications" element={<NotificationsPage />} />
+ </Route>
+ </Routes>
+ </>
+ );
 }
 
 export default App;

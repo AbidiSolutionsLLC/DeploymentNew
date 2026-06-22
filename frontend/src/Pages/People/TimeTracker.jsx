@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import SubNavbar from "../../components/PeopleSubNavbar";
 import AddTimeLogModal from "../People/AddTimeLogModal";
 import {
-  IoCalendarNumberOutline,
-  IoEye,
-  IoPencil,
-  IoTrash,
+ IoCalendarNumberOutline,
+ IoEye,
+ IoPencil,
+ IoTrash,
 } from "react-icons/io5";
 import { FaAngleLeft, FaAngleRight } from 'react-icons/fa';
 import { AnimatePresence, motion } from "framer-motion";
@@ -24,515 +24,515 @@ import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
 
 const TimeTracker = () => {
-  const [activeTab, setActiveTab] = useState(0);
-  const [isAddTimeLogModalOpen, setIsAddTimeLogModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("add");
-  const [editingLogId, setEditingLogId] = useState(null);
-  const [viewingLog, setViewingLog] = useState(null);
-  const [timeLogs, setTimeLogs] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [isCreateTimesheetModalOpen, setIsCreateTimesheetModalOpen] = useState(false);
-  const [timesheets, setTimesheets] = useState([]);
-  const [refreshTimesheetTrigger, setRefreshTimesheetTrigger] = useState(0);
-  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ show: false, logId: null });
+ const [activeTab, setActiveTab] = useState(0);
+ const [isAddTimeLogModalOpen, setIsAddTimeLogModalOpen] = useState(false);
+ const [modalMode, setModalMode] = useState("add");
+ const [editingLogId, setEditingLogId] = useState(null);
+ const [viewingLog, setViewingLog] = useState(null);
+ const [timeLogs, setTimeLogs] = useState([]);
+ const [selectedDate, setSelectedDate] = useState(() => new Date());
+ const [showCalendar, setShowCalendar] = useState(false);
+ const [loading, setLoading] = useState(false);
+ const [error, setError] = useState(null);
+ const [isCreateTimesheetModalOpen, setIsCreateTimesheetModalOpen] = useState(false);
+ const [timesheets, setTimesheets] = useState([]);
+ const [refreshTimesheetTrigger, setRefreshTimesheetTrigger] = useState(0);
+ const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ show: false, logId: null });
 
-  const tabs = [
-    { title: "Time Logs" },
-    { title: "Timesheets" },
-  ];
+ const tabs = [
+ { title: "Time Logs" },
+ { title: "Timesheets" },
+ ];
 
-  const calendarRef = useRef(null);
+ const calendarRef = useRef(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
-        setShowCalendar(false);
-      }
-    };
+ useEffect(() => {
+ const handleClickOutside = (event) => {
+ if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+ setShowCalendar(false);
+ }
+ };
 
-    if (showCalendar) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+ if (showCalendar) {
+ document.addEventListener("mousedown", handleClickOutside);
+ }
 
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showCalendar]);
+ return () => {
+ document.removeEventListener("mousedown", handleClickOutside);
+ };
+ }, [showCalendar]);
 
-  const fetchTimeLogs = async () => {
-    try {
-      setLoading(true);
-      const response = await timeLogApi.getEmployeeTimeLogs();
-      setTimeLogs(response);
-      setError(null);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to load time logs");
-      toast.error("Failed to load time logs");
-    } finally {
-      setLoading(false);
-    }
-  };
+ const fetchTimeLogs = async () => {
+ try {
+ setLoading(true);
+ const response = await timeLogApi.getEmployeeTimeLogs();
+ setTimeLogs(response);
+ setError(null);
+ } catch (err) {
+ setError(err.response?.data?.message || "Failed to load time logs");
+ toast.error("Failed to load time logs");
+ } finally {
+ setLoading(false);
+ }
+ };
 
-  const fetchTimesheets = async (month, year) => {
-    try {
-      const today = new Date();
-      const targetMonth = month || today.getMonth() + 1;
-      const targetYear = year || today.getFullYear();
+ const fetchTimesheets = async (month, year) => {
+ try {
+ const today = new Date();
+ const targetMonth = month || today.getMonth() + 1;
+ const targetYear = year || today.getFullYear();
 
-      const response = await timesheetApi.getEmployeeTimesheets(targetMonth, targetYear);
-      setTimesheets(response);
-    } catch (error) {
-      console.error("Failed to fetch timesheets:", error);
-      toast.error("Failed to load timesheets");
-    }
-  };
+ const response = await timesheetApi.getEmployeeTimesheets(targetMonth, targetYear);
+ setTimesheets(response);
+ } catch (error) {
+ console.error("Failed to fetch timesheets:", error);
+ toast.error("Failed to load timesheets");
+ }
+ };
 
-  useEffect(() => {
-    if (activeTab === 0) {
-      fetchTimeLogs();
-    }
-  }, [activeTab]);
+ useEffect(() => {
+ if (activeTab === 0) {
+ fetchTimeLogs();
+ }
+ }, [activeTab]);
 
-  useEffect(() => {
-    if (activeTab === 1) {
-      fetchTimesheets();
-    }
-  }, [activeTab]);
+ useEffect(() => {
+ if (activeTab === 1) {
+ fetchTimesheets();
+ }
+ }, [activeTab]);
 
-  const handleTimesheetCreated = async () => {
-    if (activeTab === 1) {
-      setRefreshTimesheetTrigger(prev => prev + 1);
-    }
-    setIsCreateTimesheetModalOpen(false);
-  };
-
-
-  // Helper to safely parse backend date without timezone shift
-  const getBackendDateParts = (dateStr) => {
-    if (!dateStr) return null;
-    const date = new Date(dateStr);
-    return {
-      day: date.getUTCDate(),
-      month: date.getUTCMonth(),
-      year: date.getUTCFullYear()
-    };
-  };
-
-  const filteredData = selectedDate
-    ? timeLogs.filter(item => {
-      const parts = getBackendDateParts(item.date);
-      return (
-        parts &&
-        parts.day === selectedDate.getDate() &&
-        parts.month === selectedDate.getMonth() &&
-        parts.year === selectedDate.getFullYear()
-      );
-    })
-    : timeLogs;
-
-  const totalHours = filteredData.reduce((sum, log) => sum + (log.hours || 0), 0);
-
-  useEffect(() => {
-    // Current page is managed internally by TableWithPagination
-  }, [selectedDate, timeLogs]);
-
-  const handleSaveLogs = async (newLogs) => {
-    try {
-      if (modalMode === "add") {
-        for (const log of newLogs) {
-          const formData = new FormData();
-          formData.append('job', log.jobTitle);
-          formData.append('date', log.date);
-          formData.append('hours', log.totalHours);
-          formData.append('description', log.description);
-          if (log.attachment) {
-            formData.append('attachments', log.attachment);
-          }
-          await timeLogApi.createTimeLog(formData);
-        }
-      } else if (modalMode === "edit" && editingLogId) {
-        const log = newLogs[0];
-        const formData = new FormData();
-        formData.append('job', log.jobTitle);
-        formData.append('date', log.date);
-        formData.append('hours', log.totalHours);
-        formData.append('description', log.description);
-        if (log.attachment) {
-          formData.append('attachments', log.attachment);
-        }
-        await timeLogApi.updateTimeLog(editingLogId, formData);
-      }
-
-      await fetchTimeLogs();
-      setIsAddTimeLogModalOpen(false);
-      setEditingLogId(null);
-      setModalMode("add");
-      toast.success("Time log saved successfully");
-    } catch (error) {
-      console.error("Failed to save time log:", error);
-      toast.error(error.response?.data?.message || "Failed to save time log");
-    }
-  };
-
-  const handleDeleteClick = (id) => {
-    setDeleteConfirmDialog({ show: true, logId: id });
-  };
-
-  const handleConfirmDelete = async () => {
-    const id = deleteConfirmDialog.logId;
-    if (!id) return;
-
-    try {
-      await timeLogApi.deleteTimeLog(id);
-      fetchTimeLogs();
-      toast.success("Time log deleted successfully");
-    } catch (error) {
-      console.error("Failed to delete time log:", error);
-      toast.error(error.response?.data?.message || "Failed to delete time log");
-    } finally {
-      setDeleteConfirmDialog({ show: false, logId: null });
-    }
-  };
-
-  const handleCancelDelete = () => {
-    setDeleteConfirmDialog({ show: false, logId: null });
-  };
-
-  const handleViewLog = (log) => {
-    setViewingLog({
-      ...log,
-      jobTitle: log.job,
-      totalHours: log.hours,
-      attachmentName: log.attachments?.[0]?.originalname
-    });
-  };
-
-  const formatDate = (date) => {
-    return date ? new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }) : '';
-  };
-
-  // Display backend date correctly (using UTC)
-  const formatBackendDate = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      timeZone: 'UTC',
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric'
-    });
-  };
-
-  const navigateToPreviousDay = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - 1);
-    setSelectedDate(newDate);
-  };
-
-  const navigateToNextDay = () => {
-    const newDate = new Date(selectedDate);
-    const today = new Date();
-    // Optional: Limit next day navigation to not go beyond today
-    if (newDate < today.setHours(0, 0, 0, 0)) {
-      newDate.setDate(newDate.getDate() + 1);
-      setSelectedDate(newDate);
-    } else {
-      // Allow going to today
-      const nextDate = new Date(selectedDate);
-      nextDate.setDate(nextDate.getDate() + 1);
-      if (nextDate <= new Date()) setSelectedDate(nextDate);
-    }
-  };
+ const handleTimesheetCreated = async () => {
+ if (activeTab === 1) {
+ setRefreshTimesheetTrigger(prev => prev + 1);
+ }
+ setIsCreateTimesheetModalOpen(false);
+ };
 
 
-  const timeLogColumns = [
-    {
-      key: "job",
-      label: "Job Title",
-      sortable: true,
-      render: (row) => (
-        <span className="font-medium text-main">{row.job || "-"}</span>
-      )
-    },
-    {
-      key: "date",
-      label: "Date",
-      sortable: true,
-      render: (row) => (
-        <span className="text-muted">{formatBackendDate(row.date)}</span>
-      )
-    },
-    {
-      key: "description",
-      label: "Description",
-      sortable: false,
-      render: (row) => (
-        <div className="max-w-xs truncate text-muted">{row.description}</div>
-      )
-    },
-    {
-      key: "hours",
-      label: "Hours",
-      sortable: true,
-      render: (row) => (
-        <span className="font-medium text-main">{row.hours}</span>
-      )
-    }
-  ];
+ // Helper to safely parse backend date without timezone shift
+ const getBackendDateParts = (dateStr) => {
+ if (!dateStr) return null;
+ const date = new Date(dateStr);
+ return {
+ day: date.getUTCDate(),
+ month: date.getUTCMonth(),
+ year: date.getUTCFullYear()
+ };
+ };
 
-  // Define actions for Time Logs
-  const timeLogActions = [
-    {
-      icon: <IoEye size={16} />,
-      title: "View",
-      className: "bg-amber-50 text-amber-600 hover:bg-amber-100",
-      onClick: (row) => handleViewLog(row)
-    },
-    {
-      icon: <IoPencil size={16} />,
-      title: "Edit",
-      className: "bg-green-50 text-green-600 hover:bg-green-100",
-      onClick: (row) => {
-        setEditingLogId(row._id);
-        setModalMode("edit");
-        setIsAddTimeLogModalOpen(true);
-      }
-    },
-    {
-      icon: <IoTrash size={16} />,
-      title: "Delete",
-      className: "bg-red-50 text-red-600 hover:bg-red-100",
-      onClick: (row) => handleDeleteClick(row._id)
-    }
-  ];
+ const filteredData = selectedDate
+ ? timeLogs.filter(item => {
+ const parts = getBackendDateParts(item.date);
+ return (
+ parts &&
+ parts.day === selectedDate.getDate() &&
+ parts.month === selectedDate.getMonth() &&
+ parts.year === selectedDate.getFullYear()
+ );
+ })
+ : timeLogs;
 
-  // Table rendering is handled below in the return
+ const totalHours = filteredData.reduce((sum, log) => sum + (log.totalHours || log.hours || 0), 0);
 
-  return (
-    <>
-      <div className="flex flex-col gap-4 h-full">
-        {/* Tab Bar & Action Button Container */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="inline-flex flex-row flex-wrap items-center justify-center bg-white/90 backdrop-blur-sm p-1.5 rounded-[1.2rem] shadow-sm border border-white/50">
-            {tabs.map((item, index) => (
-              <div key={item.title} className="flex items-center">
-                <button
-                  className={`px-5 py-2.5 text-sm font-medium transition-all duration-200 rounded-xl
-                  ${activeTab === index
-                      ? "text-heading bg-white shadow-sm font-bold"
-                      : "text-muted hover:text-heading hover:bg-surface/50"
-                    }`}
-                  onClick={() => setActiveTab(index)}
-                >
-                  {item.title}
-                </button>
-                {index !== tabs.length - 1 && (
-                  <span className="w-px h-5 bg-slate-200 mx-1.5"></span>
-                )}
-              </div>
-            ))}
-          </div>
+ useEffect(() => {
+ // Current page is managed internally by TableWithPagination
+ }, [selectedDate, timeLogs]);
 
-          {/* Dynamic Action Button */}
-          <button
-            onClick={() => {
-              if (activeTab === 0) {
-                setModalMode("add");
-                setIsAddTimeLogModalOpen(true);
-              } else {
-                setIsCreateTimesheetModalOpen(true);
-              }
-            }}
-            className="w-full sm:w-auto btn btn-primary flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            {activeTab === 0 ? "Add Time Log" : "Create Timesheet"}
-          </button>
-        </div>
+ const handleSaveLogs = async (newLogs) => {
+ try {
+ if (modalMode === "add") {
+ for (const log of newLogs) {
+ const formData = new FormData();
+ formData.append('job', log.jobTitle);
+ formData.append('date', log.date);
+ formData.append('hours', log.totalHours);
+ formData.append('description', log.description);
+ if (log.attachment) {
+ formData.append('attachments', log.attachment);
+ }
+ await timeLogApi.createTimeLog(formData);
+ }
+ } else if (modalMode === "edit" && editingLogId) {
+ const log = newLogs[0];
+ const formData = new FormData();
+ formData.append('job', log.jobTitle);
+ formData.append('date', log.date);
+ formData.append('hours', log.totalHours);
+ formData.append('description', log.description);
+ if (log.attachment) {
+ formData.append('attachments', log.attachment);
+ }
+ await timeLogApi.updateTimeLog(editingLogId, formData);
+ }
 
-        {activeTab === 0 && (
-          <PageContainer
-            title="Time Logs"
-            subtitle="Track your daily work entries"
-            loading={loading}
-            isCard={true}
-            headerActions={
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={navigateToPreviousDay}
-                    className="p-2.5 rounded-lg bg-surface text-muted hover:bg-hover border border-border-subtle transition shadow-sm"
-                  >
-                    <FaAngleLeft size={18} />
-                  </button>
+ await fetchTimeLogs();
+ setIsAddTimeLogModalOpen(false);
+ setEditingLogId(null);
+ setModalMode("add");
+ toast.success("Time log saved successfully");
+ } catch (error) {
+ console.error("Failed to save time log:", error);
+ toast.error(error.response?.data?.message || "Failed to save time log");
+ }
+ };
 
-                  <div className="relative" ref={calendarRef}>
-                    <button
-                      className="px-3 py-2 bg-surface border border-border-subtle text-main rounded-lg flex items-center gap-2 hover:bg-hover transition shadow-sm text-sm font-medium"
-                      onClick={() => setShowCalendar(!showCalendar)}
-                    >
-                      <IoCalendarNumberOutline size={18} className="text-muted" />
-                      {selectedDate && (
-                        <span className="text-sm font-medium">{formatDate(selectedDate)}</span>
-                      )}
-                    </button>
+ const handleDeleteClick = (id) => {
+ setDeleteConfirmDialog({ show: true, logId: id });
+ };
 
-                    <AnimatePresence>
-                      {showCalendar && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="absolute z-50 mt-2 bg-white dark:bg-slate-800 shadow-2xl rounded-xl border border-border-subtle p-2"
-                        >
-                          <DatePicker
-                            selected={selectedDate}
-                            onChange={(date) => {
-                              setSelectedDate(date);
-                              setShowCalendar(false);
-                            }}
-                            maxDate={new Date()} // Block future dates
-                            inline
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+ const handleConfirmDelete = async () => {
+ const id = deleteConfirmDialog.logId;
+ if (!id) return;
 
-                  <button
-                    onClick={navigateToNextDay}
-                    disabled={selectedDate >= new Date().setHours(0, 0, 0, 0)} // Disable if today
-                    className={`p-2.5 rounded-lg border border-border-subtle transition shadow-sm ${selectedDate >= new Date().setHours(0, 0, 0, 0) ? 'bg-surface/50 text-muted/50 cursor-not-allowed' : 'bg-surface text-muted hover:bg-hover'}`}
-                  >
-                    <FaAngleRight size={18} />
-                  </button>
-                </div>
-                <div className="bg-brand-primary/10 border border-brand-primary/20 px-3 py-2 rounded-lg shadow-sm">
-                  <span className="text-xs font-medium text-brand-primary uppercase tracking-wide">
-                    Submitted Hours: <span className="font-bold text-brand-primary">{totalHours.toFixed(2)}</span>
-                  </span>
-                </div>
-              </div>
-            }
-          >
-            {/* Error State */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-[1.2rem] p-4 text-center text-red-700 text-sm mb-4">
-                {error}
-              </div>
-            )}
+ try {
+ await timeLogApi.deleteTimeLog(id);
+ fetchTimeLogs();
+ toast.success("Time log deleted successfully");
+ } catch (error) {
+ console.error("Failed to delete time log:", error);
+ toast.error(error.response?.data?.message || "Failed to delete time log");
+ } finally {
+ setDeleteConfirmDialog({ show: false, logId: null });
+ }
+ };
 
-            {!loading && !error && (
-              <div className="space-y-6">
-                <TableWithPagination
-                  columns={timeLogColumns}
-                  data={filteredData}
-                  loading={loading}
-                  error={error}
-                  emptyMessage={selectedDate
-                    ? `No time logs found for ${formatDate(selectedDate)}`
-                    : "No time logs found. Try selecting a different date or add a new time log."}
-                  onRowClick={handleViewLog}
-                  actions={timeLogActions}
-                  rowsPerPage={5}
-                />
-                
-                <div className="flex justify-center sm:justify-end pb-8">
-                  <button
-                    onClick={() => setIsCreateTimesheetModalOpen(true)}
-                    className="group relative flex items-center gap-3 px-8 py-4 bg-brand-primary text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.15em] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 overflow-hidden"
-                  >
-                    <svg className="w-5 h-5 text-white transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span>Create Timesheet for this date</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </PageContainer>
-        )}
-        {activeTab === 1 && <Timesheet refreshTrigger={refreshTimesheetTrigger} />}
-      </div>
+ const handleCancelDelete = () => {
+ setDeleteConfirmDialog({ show: false, logId: null });
+ };
 
-      <AddTimeLogModal
-        isOpen={modalMode === "add" && isAddTimeLogModalOpen}
-        onClose={() => setIsAddTimeLogModalOpen(false)}
-        onSave={handleSaveLogs}
-        onTimeLogAdded={fetchTimeLogs}
-      />
+ const handleViewLog = (log) => {
+ setViewingLog({
+ ...log,
+ jobTitle: log.jobTitle || log.job,
+ totalHours: log.totalHours || log.hours,
+ attachmentName: log.attachments?.[0]?.originalname
+ });
+ };
 
-      {/* Pass selectedDate so the modal knows for which date to create the timesheet */}
-      <CreateTimesheetModal
-        open={isCreateTimesheetModalOpen}
-        onClose={() => setIsCreateTimesheetModalOpen(false)}
-        onTimesheetCreated={handleTimesheetCreated}
-        selectedDate={selectedDate}
-      />
+ const formatDate = (date) => {
+ return date ? new Date(date).toLocaleDateString('en-US', {
+ year: 'numeric',
+ month: 'long',
+ day: 'numeric'
+ }) : '';
+ };
 
-      <EditTimeLogModal
-        isOpen={modalMode === "edit" && isAddTimeLogModalOpen}
-        onClose={() => {
-          setIsAddTimeLogModalOpen(false);
-          setEditingLogId(null);
-        }}
-        onTimeLogUpdated={fetchTimeLogs}
-        timeLogId={editingLogId}
-        initialData={timeLogs.find(log => log._id === editingLogId)}
-      />
+ // Display backend date correctly (using UTC)
+ const formatBackendDate = (dateStr) => {
+ if (!dateStr) return '';
+ const date = new Date(dateStr);
+ return date.toLocaleDateString('en-US', {
+ timeZone: 'UTC',
+ year: 'numeric',
+ month: 'numeric',
+ day: 'numeric'
+ });
+ };
 
-      {viewingLog && (
-        <ViewTimeLogModal
-          key={viewingLog._id}
-          log={viewingLog}
-          onClose={() => setViewingLog(null)}
-        />
-      )}
+ const navigateToPreviousDay = () => {
+ const newDate = new Date(selectedDate);
+ newDate.setDate(newDate.getDate() - 1);
+ setSelectedDate(newDate);
+ };
 
-      <GlassModal
-        isOpen={deleteConfirmDialog.show}
-        onClose={handleCancelDelete}
-        title="Delete Time Log"
-        maxWidth="sm"
-        footer={
-          <div className="flex w-full gap-3">
-            <button
-              onClick={handleCancelDelete}
-              className="flex-1 py-3 font-bold text-xs text-muted uppercase hover:text-heading transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleConfirmDelete}
-              className="flex-1 py-3 bg-red-500/10 text-red-600 rounded-xl font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-all border border-red-500/20 hover:border-transparent active:scale-95"
-            >
-              Delete
-            </button>
-          </div>
-        }
-      >
-        <div className="text-center py-4">
-          <div className="w-16 h-16 mx-auto mb-4 bg-red-500/10 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </div>
-          <p className="text-sm text-heading font-medium">
-            Are you sure you want to delete this time log? This action cannot be undone.
-          </p>
-        </div>
-      </GlassModal>
-    </>
-  );
+ const navigateToNextDay = () => {
+ const newDate = new Date(selectedDate);
+ const today = new Date();
+ // Optional: Limit next day navigation to not go beyond today
+ if (newDate < today.setHours(0, 0, 0, 0)) {
+ newDate.setDate(newDate.getDate() + 1);
+ setSelectedDate(newDate);
+ } else {
+ // Allow going to today
+ const nextDate = new Date(selectedDate);
+ nextDate.setDate(nextDate.getDate() + 1);
+ if (nextDate <= new Date()) setSelectedDate(nextDate);
+ }
+ };
+
+
+ const timeLogColumns = [
+ {
+ key: "jobTitle",
+ label: "Job Title",
+ sortable: true,
+ render: (value, row) => (
+ <span className="font-medium text-main">{row.jobTitle || row.job || "-"}</span>
+ )
+ },
+ {
+ key: "date",
+ label: "Date",
+ sortable: true,
+ render: (value, row) => (
+ <span className="text-muted">{formatBackendDate(row.date)}</span>
+ )
+ },
+ {
+ key: "description",
+ label: "Description",
+ sortable: false,
+ render: (value, row) => (
+ <div className="max-w-xs truncate text-muted">{row.description}</div>
+ )
+ },
+ {
+ key: "totalHours",
+ label: "Hours",
+ sortable: true,
+ render: (value, row) => (
+ <span className="font-medium text-main">{row.totalHours || row.hours}</span>
+ )
+ }
+ ];
+
+ // Define actions for Time Logs
+ const timeLogActions = [
+ {
+ icon: <IoEye size={16} />,
+ title: "View",
+ className: "bg-amber-50 text-amber-600 hover:bg-amber-100",
+ onClick: (row) => handleViewLog(row)
+ },
+ {
+ icon: <IoPencil size={16} />,
+ title: "Edit",
+ className: "bg-green-50 text-green-600 hover:bg-green-100",
+ onClick: (row) => {
+ setEditingLogId(row._id);
+ setModalMode("edit");
+ setIsAddTimeLogModalOpen(true);
+ }
+ },
+ {
+ icon: <IoTrash size={16} />,
+ title: "Delete",
+ className: "bg-red-50 text-red-600 hover:bg-red-100",
+ onClick: (row) => handleDeleteClick(row._id)
+ }
+ ];
+
+ // Table rendering is handled below in the return
+
+ return (
+ <>
+ <div className="flex flex-col gap-4 h-full">
+ {/* Tab Bar & Action Button Container */}
+ <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+ <div className="inline-flex flex-row flex-wrap items-center justify-center bg-surface p-1.5 rounded-[1.2rem] shadow-sm border border-white/50">
+ {tabs.map((item, index) => (
+ <div key={item.title} className="flex items-center">
+ <button
+ className={`px-5 py-2.5 text-sm font-medium transition-all duration-200 rounded-xl
+ ${activeTab === index
+ ? "text-heading bg-surface shadow-sm font-bold"
+ : "text-muted hover:text-heading hover:bg-surface/50"
+ }`}
+ onClick={() => setActiveTab(index)}
+ >
+ {item.title}
+ </button>
+ {index !== tabs.length - 1 && (
+ <span className="w-px h-5 bg-slate-200 mx-1.5"></span>
+ )}
+ </div>
+ ))}
+ </div>
+
+ {/* Dynamic Action Button */}
+ <button
+ onClick={() => {
+ if (activeTab === 0) {
+ setModalMode("add");
+ setIsAddTimeLogModalOpen(true);
+ } else {
+ setIsCreateTimesheetModalOpen(true);
+ }
+ }}
+ className="w-full sm:w-auto btn btn-primary flex items-center justify-center gap-2"
+ >
+ <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+ </svg>
+ {activeTab === 0 ? "Add Time Log" : "Create Timesheet"}
+ </button>
+ </div>
+
+ {activeTab === 0 && (
+ <PageContainer
+ title="Time Logs"
+ subtitle="Track your daily work entries"
+ loading={loading}
+ isCard={true}
+ headerActions={
+ <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+ <div className="flex flex-wrap items-center gap-3">
+ <button
+ onClick={navigateToPreviousDay}
+ className="p-2.5 rounded-lg bg-surface text-muted hover:bg-hover border border-border-subtle transition shadow-sm"
+ >
+ <FaAngleLeft size={18} />
+ </button>
+
+ <div className="relative" ref={calendarRef}>
+ <button
+ className="px-3 py-2 bg-surface border border-border-subtle text-main rounded-lg flex items-center gap-2 hover:bg-hover transition shadow-sm text-sm font-medium"
+ onClick={() => setShowCalendar(!showCalendar)}
+ >
+ <IoCalendarNumberOutline size={18} className="text-muted" />
+ {selectedDate && (
+ <span className="text-sm font-medium">{formatDate(selectedDate)}</span>
+ )}
+ </button>
+
+ <AnimatePresence>
+ {showCalendar && (
+ <motion.div
+ initial={{ opacity: 0, y: -10 }}
+ animate={{ opacity: 1, y: 0 }}
+ exit={{ opacity: 0, y: -10 }}
+ className="absolute z-50 mt-2 bg-surface dark:bg-slate-800 shadow-2xl rounded-xl border border-border-subtle p-2"
+ >
+ <DatePicker
+ selected={selectedDate}
+ onChange={(date) => {
+ setSelectedDate(date);
+ setShowCalendar(false);
+ }}
+ maxDate={new Date()} // Block future dates
+ inline
+ />
+ </motion.div>
+ )}
+ </AnimatePresence>
+ </div>
+
+ <button
+ onClick={navigateToNextDay}
+ disabled={selectedDate >= new Date().setHours(0, 0, 0, 0)} // Disable if today
+ className={`p-2.5 rounded-lg border border-border-subtle transition shadow-sm ${selectedDate >= new Date().setHours(0, 0, 0, 0) ? 'bg-surface/50 text-muted/50 cursor-not-allowed' : 'bg-surface text-muted hover:bg-hover'}`}
+ >
+ <FaAngleRight size={18} />
+ </button>
+ </div>
+ <div className="bg-brand-primary/10 border border-brand-primary/20 px-3 py-2 rounded-lg shadow-sm">
+ <span className="text-xs font-medium text-brand-primary uppercase tracking-wide">
+ Submitted Hours: <span className="font-bold text-brand-primary">{totalHours.toFixed(2)}</span>
+ </span>
+ </div>
+ </div>
+ }
+ >
+ {/* Error State */}
+ {error && (
+ <div className="bg-red-50 border border-red-200 rounded-[1.2rem] p-4 text-center text-red-700 text-sm mb-4">
+ {error}
+ </div>
+ )}
+
+ {!loading && !error && (
+ <div className="space-y-6">
+ <TableWithPagination
+ columns={timeLogColumns}
+ data={filteredData}
+ loading={loading}
+ error={error}
+ emptyMessage={selectedDate
+ ? `No time logs found for ${formatDate(selectedDate)}`
+ : "No time logs found. Try selecting a different date or add a new time log."}
+ onRowClick={handleViewLog}
+ actions={timeLogActions}
+ rowsPerPage={5}
+ />
+ 
+ <div className="flex justify-center sm:justify-end pb-8">
+ <button
+ onClick={() => setIsCreateTimesheetModalOpen(true)}
+ className="group relative flex items-center gap-3 px-8 py-4 bg-brand-primary text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.15em] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 overflow-hidden"
+ >
+ <svg className="w-5 h-5 text-white transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+ </svg>
+ <span>Create Timesheet for this date</span>
+ </button>
+ </div>
+ </div>
+ )}
+ </PageContainer>
+ )}
+ {activeTab === 1 && <Timesheet refreshTrigger={refreshTimesheetTrigger} />}
+ </div>
+
+ <AddTimeLogModal
+ isOpen={modalMode === "add" && isAddTimeLogModalOpen}
+ onClose={() => setIsAddTimeLogModalOpen(false)}
+ onSave={handleSaveLogs}
+ onTimeLogAdded={fetchTimeLogs}
+ />
+
+ {/* Pass selectedDate so the modal knows for which date to create the timesheet */}
+ <CreateTimesheetModal
+ open={isCreateTimesheetModalOpen}
+ onClose={() => setIsCreateTimesheetModalOpen(false)}
+ onTimesheetCreated={handleTimesheetCreated}
+ selectedDate={selectedDate}
+ />
+
+ <EditTimeLogModal
+ isOpen={modalMode === "edit" && isAddTimeLogModalOpen}
+ onClose={() => {
+ setIsAddTimeLogModalOpen(false);
+ setEditingLogId(null);
+ }}
+ onTimeLogUpdated={fetchTimeLogs}
+ timeLogId={editingLogId}
+ initialData={timeLogs.find(log => log._id === editingLogId)}
+ />
+
+ {viewingLog && (
+ <ViewTimeLogModal
+ key={viewingLog._id}
+ log={viewingLog}
+ onClose={() => setViewingLog(null)}
+ />
+ )}
+
+ <GlassModal
+ isOpen={deleteConfirmDialog.show}
+ onClose={handleCancelDelete}
+ title="Delete Time Log"
+ maxWidth="sm"
+ footer={
+ <div className="flex w-full gap-3">
+ <button
+ onClick={handleCancelDelete}
+ className="flex-1 py-3 font-bold text-xs text-muted uppercase hover:text-heading transition-colors"
+ >
+ Cancel
+ </button>
+ <button
+ onClick={handleConfirmDelete}
+ className="flex-1 py-3 bg-red-500/10 text-red-600 rounded-xl font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-all border border-red-500/20 hover:border-transparent active:scale-95"
+ >
+ Delete
+ </button>
+ </div>
+ }
+ >
+ <div className="text-center py-4">
+ <div className="w-16 h-16 mx-auto mb-4 bg-red-500/10 rounded-full flex items-center justify-center">
+ <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+ </svg>
+ </div>
+ <p className="text-sm text-heading font-medium">
+ Are you sure you want to delete this time log? This action cannot be undone.
+ </p>
+ </div>
+ </GlassModal>
+ </>
+ );
 };
 
 export default TimeTracker;

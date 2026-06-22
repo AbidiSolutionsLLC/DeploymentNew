@@ -10,46 +10,46 @@ import attendanceReducer from "../slices/attendanceSlice";
 import notificationReducer from "../slices/notificationSlice";
 
 const rootReducer = combineReducers({
-  auth: authReducer,
-  user: userReducer, // Add user slice here
-  attendance: attendanceReducer,
-  projects: projectReducer,
-  tasks: taskReducer,
-  attendanceTimer: attendanceTimerSlice,
-  notifications: notificationReducer, // NOT persisted — always fresh from server
+ auth: authReducer,
+ user: userReducer, // Add user slice here
+ attendance: attendanceReducer,
+ projects: projectReducer,
+ tasks: taskReducer,
+ attendanceTimer: attendanceTimerSlice,
+ notifications: notificationReducer, // NOT persisted — always fresh from server
 });
 
 const persistConfig = {
-  key: "root",
-  storage,
-  whitelist: ["auth", "attendanceTimer", "user"], // Add user to whitelist
+ key: "root",
+ storage,
+ whitelist: ["auth", "attendanceTimer", "user"], // Add user to whitelist
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 const store = configureStore({
-  reducer: persistedReducer,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false,
-    }),
+ reducer: persistedReducer,
+ middleware: (getDefaultMiddleware) =>
+ getDefaultMiddleware({
+ serializableCheck: false,
+ }),
 });
 
 const persistor = persistStore(store);
 
 export const clearPersistedStore = async () => {
-  try {
+ try {
  
-    console.log("✅ Persisted store cleared"); 
-    
-    return true;
-  } catch (error) {
-    console.error("Failed to clear store:", error);
-    return false;
-  }
+ console.log("✅ Persisted store cleared"); 
+ 
+ return true;
+ } catch (error) {
+ console.error("Failed to clear store:", error);
+ return false;
+ }
 };
 // clearPersistedStore()
-  //  await persistor.purge();
-    //  localStorage.clear();
-    // sessionStorage.clear();
+ // await persistor.purge();
+ // localStorage.clear();
+ // sessionStorage.clear();
 export { store, persistor };
