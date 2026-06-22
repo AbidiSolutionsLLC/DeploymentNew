@@ -335,7 +335,7 @@ const AdminAttendance = () => {
  key: "duration",
  label: "Duration",
  render: (_, log) => log.checkInTime && log.checkOutTime ? (
- <span className="text-muted">{log.totalHours} hrs</span>
+ <span className="text-muted">{Math.floor(log.totalHours || 0)}h {Math.round(((log.totalHours || 0) - Math.floor(log.totalHours || 0)) * 60)}m</span>
  ) : (
  log.checkInTime ? <LiveTimer startTime={log.checkInTime} /> : <span className="text-muted text-xs italic">N/A</span>
  )

@@ -50,7 +50,13 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
  let error = null;
  switch (name) {
  case "firstName":
+ if (!value || !value.trim()) { error = "First name is required"; break; }
+ error = validateText(value);
+ if (!error && value.length < 2) error = "Must be at least 2 characters.";
+ if (!error && !/^[a-zA-Z\s'-]+$/.test(value)) error = "Only letters allowed.";
+ break;
  case "lastName":
+ if (!value || !value.trim()) { error = "Last name is required"; break; }
  error = validateText(value);
  if (!error && value.length < 2) error = "Must be at least 2 characters.";
  if (!error && !/^[a-zA-Z\s'-]+$/.test(value)) error = "Only letters allowed.";

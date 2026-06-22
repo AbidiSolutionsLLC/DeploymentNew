@@ -13,7 +13,7 @@ const ActivityFeed = ({ logs }) => {
  <div className="w-16 h-16 bg-app rounded-full flex items-center justify-center mb-4">
  <InformationCircleIcon className="w-8 h-8 text-slate-300" />
  </div>
- <p className="text-sm font-bold text-muted uppercase tracking-widest">No recent activity</p>
+ <p className="text-sm font-bold text-muted uppercase tracking-widest">No recent activity yet</p>
  </div>
  );
  }

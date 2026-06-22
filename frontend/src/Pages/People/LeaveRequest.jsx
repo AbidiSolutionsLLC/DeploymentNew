@@ -12,6 +12,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
  const [quotaError, setQuotaError] = useState("");
  const [daysRequested, setDaysRequested] = useState(0);
  const [isSubmitting, setIsSubmitting] = useState(false);
+ const [errors, setErrors] = useState({});
 
  // Get user data from both auth and user slices
  const { user: authUser } = useSelector((state) => state.auth);
@@ -43,6 +44,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
  setReason("");
  setQuotaError("");
  setDaysRequested(0);
+ setErrors({});
  }
  }, [isOpen]);
 
@@ -67,7 +69,11 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
  const handleSubmit = async (e) => {
  e.preventDefault();
  if (!leaveType || !startDate || !endDate) {
- toast.error("PLEASE FILL ALL REQUIRED FIELDS.");
+ setErrors({
+ leaveType: !leaveType ? "Please select an option." : null,
+ startDate: !startDate ? "Please select a valid date." : null,
+ endDate: !endDate ? "Please select a valid date." : null,
+ });
  return;
  }
  
@@ -107,6 +113,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
  setReason("");
  setQuotaError("");
  setDaysRequested(0);
+ setErrors({});
  
  // Call the callback if provided
  if (onLeaveAdded) {
@@ -163,6 +170,9 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
  <option value="PTO">PTO (PAID TIME OFF)</option>
  <option value="Sick">SICK LEAVE</option>
  </select>
+ {errors.leaveType && (
+ <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.leaveType}</p>
+ )}
  {availableBalance !== null && (
  <p className="mt-2 text-[11px] font-bold text-brand-stroke-green uppercase">
  AVAILABLE: {availableBalance} DAYS

@@ -46,8 +46,10 @@ const GreetingTimerCard = () => {
  {firstName.charAt(0).toUpperCase()}
  </div>
  <div className="flex flex-col min-w-0 justify-center">
- <h2 className="text-lg sm:text-xl text-heading font-semibold truncate uppercase">
- Hey, {firstName}!
+ <h2 className="text-lg sm:text-xl text-heading font-semibold uppercase flex items-center min-w-0">
+   <span className="shrink-0 mr-1 whitespace-nowrap">Hey,</span>
+   <span className="truncate" title={firstName}>{firstName}</span>
+   <span className="shrink-0 whitespace-nowrap">!</span>
  </h2>
  <p className="text-description text-sm uppercase tracking-wide">Have a great day</p>
  </div>

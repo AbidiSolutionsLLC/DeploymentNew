@@ -61,12 +61,15 @@ export const validateText = (value) => {
  * @returns {string|null} Error message or null if valid
  */
 export const validateDescription = (value, options = {}) => {
- const { required = true } = options;
+ const { required = true, min = 0, max = Infinity } = options;
  const sanitized = value?.trim() || '';
 
  if (!sanitized) {
  return required ? "Description is required." : null;
  }
+
+ if (sanitized.length > max) return `Cannot exceed ${max} characters.`;
+ if (sanitized.length < min) return `Must be at least ${min} characters.`;
 
  // Check for emojis first
  const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F700}-\u{1F77F}]|[\u{1F780}-\u{1F7FF}]|[\u{1F800}-\u{1F8FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F170}-\u{1F1FF}]|[\u{200D}]|[\u{20E3}]|[\u{E0020}-\u{E007F}]/u;
@@ -99,13 +102,17 @@ export const validateDescription = (value, options = {}) => {
  * @returns {string[]} Array of error messages (empty if valid)
  */
 export const validateDescriptionAllErrors = (value, options = {}) => {
- const { required = true, min = 10 } = options;
+ const { required = true, min = 10, max = Infinity } = options;
  const errors = [];
  const sanitized = value?.trim() || '';
 
  if (!sanitized) {
  if (required) errors.push("Description is required.");
  return errors;
+ }
+
+ if (sanitized.length > max) {
+ errors.push(`Cannot exceed ${max} characters.`);
  }
 
  // Check for emojis

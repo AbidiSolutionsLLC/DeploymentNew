@@ -98,7 +98,6 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  const reasonError = validateField("reason", reason);
 
  if (typeError || startError || endError || reasonError || quotaError || !leaveType || !startDate || !endDate) {
- toast.error("PLEASE FIX VALIDATION ERRORS BEFORE SUBMITTING.");
  validateField("leaveType", leaveType);
  validateField("startDate", startDate);
  validateField("endDate", endDate);
@@ -208,7 +207,6 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  onChange={(date) => {
  if (endDate && date > endDate) {
  setErrors(prev => ({ ...prev, startDate: 'Start date must be before end date' }));
- toast.error("Start date should be less than end date.");
  return;
  }
  setErrors(prev => ({ ...prev, startDate: null }));
@@ -237,7 +235,6 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  onChange={(date) => {
  if (startDate && date < startDate) {
  setErrors(prev => ({ ...prev, endDate: 'End date must be after start date' }));
- toast.error("End date should be greater than start date.");
  return;
  }
  setErrors(prev => ({ ...prev, endDate: null }));

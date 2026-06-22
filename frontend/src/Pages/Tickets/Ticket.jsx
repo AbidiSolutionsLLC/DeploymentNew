@@ -32,7 +32,7 @@ const Ticket = () => {
  const allTickets = res.data || [];
  
  const myCreatedTickets = allTickets.filter(ticket => 
- ticket.closedBy && (ticket.closedBy._id === currentUserId || ticket.closedBy === currentUserId)
+ ticket.user && (ticket.user._id === currentUserId || ticket.user === currentUserId)
  );
  // --------------------------------------------------------
 

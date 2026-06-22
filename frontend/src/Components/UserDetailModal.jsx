@@ -49,12 +49,18 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
  const validateField = (name, value) => {
  let error = "";
  switch (name) {
- case "firstName":
- case "lastName":
- error = validateText(value);
- if (!error && value.length < 2) error = "Min 2 characters";
- if (!error && !/^[a-zA-Z\s'-]+$/.test(value)) error = "Only letters allowed.";
- break;
+      case "firstName":
+        if (!value || !value.trim()) { error = "First name is required"; break; }
+        error = validateText(value);
+        if (!error && value.length < 2) error = "Min 2 characters";
+        if (!error && !/^[a-zA-Z\s'-]+$/.test(value)) error = "Only letters allowed.";
+        break;
+      case "lastName":
+        if (!value || !value.trim()) { error = "Last name is required"; break; }
+        error = validateText(value);
+        if (!error && value.length < 2) error = "Min 2 characters";
+        if (!error && !/^[a-zA-Z\s'-]+$/.test(value)) error = "Only letters allowed.";
+        break;
  case "email":
  error = validateEmail(value);
  break;

@@ -34,7 +34,7 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
  const handleSubmit = async (e) => {
  if (e) e.preventDefault();
  const newErrors = {};
- if (!formData.user) newErrors.user = "Employee is required.";
+ if (!formData.user) newErrors.user = "Employee name is required";
  if (!formData.checkInTime) newErrors.checkInTime = "Check-in time is required.";
  
  if (formData.checkInTime && formData.checkOutTime) {
@@ -107,7 +107,7 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
  value={formData.user}
  onChange={(e) => {
  setFormData({ ...formData, user: e.target.value });
- setErrors(prev => ({ ...prev, user: e.target.value ? null : "Employee is required." }));
+ setErrors(prev => ({ ...prev, user: e.target.value ? null : "Employee name is required" }));
  }}
  required
  placeholder="Select Employee"

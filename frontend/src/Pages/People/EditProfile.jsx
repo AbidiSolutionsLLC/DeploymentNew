@@ -132,7 +132,7 @@ export default function EditProfile() {
 
  const handleSave = async () => {
  // Basic validations
- const phoneErr = /^\d*$/.test(formData.phoneNumber) ? null : "Phone number must contain only digits";
+    const phoneErr = /^\d*$/.test(formData.phoneNumber) ? null : "Only numbers allowed";
  const aboutErr = validateDescription(formData.about, { min: 0, max: 1000, required: false });
  const addressErr = validateText(formData.address, { min: 0, max: 200, required: false });
 
@@ -234,7 +234,7 @@ export default function EditProfile() {
  // Inline validation
  if (field === "phoneNumber") {
  const isDigits = /^\d*$/.test(value);
- setErrors(prev => ({ ...prev, phoneNumber: isDigits ? null : "Phone number must contain only digits" }));
+ setErrors(prev => ({ ...prev, phoneNumber: isDigits ? null : "Only numbers allowed" }));
  }
  if (field === "about") {
  const err = validateDescription(value, { min: 0, max: 1000, required: false });
@@ -426,7 +426,7 @@ export default function EditProfile() {
  type="tel"
  className={`w-full p-3 border ${errors.phoneNumber ? 'border-red-400' : 'border-border-subtle'} rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent transition-all`}
  value={formData.phoneNumber}
- onChange={(e) => handleInputChange('phoneNumber', e.target.value.replace(/\D/g, ''))}
+ onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
  placeholder="Digits only"
  />
  {errors.phoneNumber && (

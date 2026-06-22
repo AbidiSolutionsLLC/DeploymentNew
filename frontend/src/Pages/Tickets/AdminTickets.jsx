@@ -313,9 +313,10 @@ const AdminTickets = () => {
  >
  <TableWithPagination
  columns={ticketColumns}
- data={filteredTickets.slice(0, entriesPerPage)}
+ data={filteredTickets}
  loading={loading}
  emptyMessage="No tickets found"
+ rowsPerPage={entriesPerPage}
  />
  </PageContainer>
 

@@ -5,6 +5,7 @@ import { moduleConfigs } from "../routeConfig";
 import { useDispatch, useSelector } from "react-redux";
 import { useMsal } from "@azure/msal-react";
 import { logout } from "../slices/authSlice";
+import api from "../axios";
 import { useTheme } from "../context/ThemeContext";
 import {
  HomeIcon, TicketIcon, CalendarDaysIcon, ClockIcon,
@@ -43,10 +44,22 @@ const SubNavbarVertical = () => {
  return () => document.removeEventListener("mousedown", handleClickOutside);
  }, []);
 
- const handleLogout = () => {
- dispatch(logout());
- instance.logoutRedirect({ postLogoutRedirectUri: window.location.origin });
- };
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout", {}, {
+        headers: { _isLogoutRequest: true }
+      });
+      dispatch(logout());
+      
+      const accounts = instance.getAllAccounts();
+      if (accounts && accounts.length > 0) {
+        instance.logoutRedirect({ postLogoutRedirectUri: window.location.origin });
+      }
+    } catch (err) {
+      console.warn("Logout API failed:", err.message);
+      dispatch(logout());
+    }
+  };
 
  // --- RBAC Link Filtering Logic ---
  const filteredLinks = rawLinks.filter(link => {

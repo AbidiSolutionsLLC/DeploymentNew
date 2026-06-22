@@ -328,7 +328,7 @@ const LeaveSummary = () => {
  columns={columns}
  data={appliedLeaves}
  loading={refreshing}
- emptyMessage="No leave records found"
+ emptyMessage="No records found"
  actions={actions}
  rowsPerPage={5}
  />

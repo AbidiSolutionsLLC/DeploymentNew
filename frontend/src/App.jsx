@@ -186,6 +186,15 @@ function App() {
 
  {/* Notifications Page */}
  <Route path="/notifications" element={<NotificationsPage />} />
+
+ {/* Catch-all 404 Route for broken links */}
+ <Route path="*" element={
+ <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+ <h1 className="text-6xl font-black text-amber-500 mb-4">404</h1>
+ <h2 className="text-2xl font-bold text-heading mb-2">Page Not Found</h2>
+ <p className="text-muted mb-6">The page or feature you are looking for doesn't exist or has been removed.</p>
+ </div>
+ } />
  </Route>
  </Routes>
  </>

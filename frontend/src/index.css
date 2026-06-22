@@ -599,6 +599,21 @@ body {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
+.Toastify__toast--error {
+  background: #ef4444 !important;
+  color: white !important;
+  border-color: #ef4444 !important;
+}
+
+.Toastify__toast--error .Toastify__toast-icon svg {
+  fill: white !important;
+}
+
+.Toastify__toast--error .Toastify__close-button {
+  color: white !important;
+  opacity: 0.8;
+}
+
 /* The progress bar at the bottom */
 .Toastify__progress-bar {
   height: 3px !important;
@@ -1103,3 +1118,15 @@ body {
 .theme-mobile-label {
   color: var(--color-text-heading);
 }
+
+/* Fix for icons overlapping inputs due to specificity issues */
+.pl-8 { padding-left: 2rem !important; }
+.pl-9 { padding-left: 2.25rem !important; }
+.pl-10 { padding-left: 2.5rem !important; }
+.pl-11 { padding-left: 2.75rem !important; }
+.pl-12 { padding-left: 3rem !important; }
+.pr-8 { padding-right: 2rem !important; }
+.pr-9 { padding-right: 2.25rem !important; }
+.pr-10 { padding-right: 2.5rem !important; }
+.pr-11 { padding-right: 2.75rem !important; }
+.pr-12 { padding-right: 3rem !important; }

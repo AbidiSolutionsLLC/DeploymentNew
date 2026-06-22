@@ -227,11 +227,11 @@ export default function Profile({ userId: propUserId }) {
  {/* Grid Cards */}
  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 my-6">
  {profileCards.map((item, idx) => (
- <div key={idx} className="flex items-center gap-3 p-4 bg-surface rounded-[1.2rem] shadow-sm border border-border-subtle/50 hover:shadow-md transition-all">
+ <div key={idx} className="flex items-center gap-3 p-4 bg-surface rounded-[1.2rem] shadow-sm border border-border-subtle/50 hover:shadow-md transition-all min-w-0">
  <div className={`w-10 h-10 flex items-center justify-center rounded-xl shadow-sm ${item.bg} shrink-0`}>
  <item.icon className={`h-5 w-5 ${item.iconColor}`} />
  </div>
- <div className="overflow-hidden">
+ <div className="overflow-hidden min-w-0 flex-1">
  <div className="text-[10px] text-muted font-black uppercase tracking-wider truncate">{item.label}</div>
  <div className="text-sm font-bold text-main truncate" title={item.value}>{item.value}</div>
  </div>
