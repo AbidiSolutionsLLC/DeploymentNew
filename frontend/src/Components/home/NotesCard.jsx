@@ -102,7 +102,7 @@ const NotesCard = ({ onDelete }) => {
  />
  <button
  onClick={addNote}
- className="bg-amber-100 text-amber-700 px-3 py-2 rounded-lg text-xs font-medium hover:bg-amber-200 transition flex items-center justify-center gap-1.5"
+ className="btn btn-secondary flex items-center justify-center gap-1.5"
  >
  <FiPlus className="w-3 h-3" />
  Add

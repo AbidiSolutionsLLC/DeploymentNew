@@ -316,7 +316,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
  type="button"
  onClick={handleProcessReceipt}
  disabled={processingReceipt}
- className="w-full px-4 py-4 bg-gradient-to-r from-amber-600 to-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center gap-2"
+ className="btn btn-primary w-full flex justify-center items-center gap-2"
  >
  {processingReceipt ? (
  <>
@@ -336,7 +336,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
  <button
  type="button"
  onClick={onCancel}
- className="w-full px-6 py-3 bg-surface text-muted rounded-xl font-black text-[11px] uppercase tracking-widest shadow-sm border border-subtle hover:bg-app active:scale-95 transition-all"
+ className="btn btn-secondary w-full"
  >
  Cancel
  </button>
@@ -465,7 +465,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
  <button
  type="button"
  onClick={handleBackToUpload}
- className="text-[10px] font-bold text-amber-600 uppercase tracking-widest hover:underline"
+ className="btn-ghost"
  >
  Change
  </button>
@@ -477,14 +477,14 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
  <button
  type="button"
  onClick={handleBackToUpload}
- className="flex-1 px-6 py-3 bg-surface text-muted rounded-xl font-black text-[11px] uppercase tracking-widest shadow-sm border border-subtle hover:bg-app active:scale-95 transition-all"
+ className="btn btn-secondary flex-1"
  >
  Back
  </button>
  <button
  type="submit"
  disabled={loading}
- className="flex-1 px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center gap-2"
+ className="flex-1 px-6 text-[11px] shadow-slate-100 active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center gap-2 btn btn-primary"
  >
  {loading ? (
  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

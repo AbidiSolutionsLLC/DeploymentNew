@@ -170,7 +170,7 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
           <button
             onClick={handleSendResponse}
             disabled={sending || !commentText.trim()}
-            className="absolute right-2 top-2 p-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-all"
+            className="absolute right-2 top-2 p-2 rounded-lg disabled:opacity-50 btn btn-primary"
           >
             {sending ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <FaPaperPlane className="w-3 h-3" />}
           </button>

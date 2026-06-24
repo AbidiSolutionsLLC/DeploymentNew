@@ -54,7 +54,7 @@ const TabNavigation = ({
  </div>
  <button
  onClick={onAddTask}
- className="flex items-center justify-center gap-2 text-white text-xs sm:text-sm px-4 py-2 rounded-lg hover:opacity-90 transition-all whitespace-nowrap shadow-sm bg-primary"
+ className="btn btn-primary flex items-center justify-center gap-2"
  >
  <FaPlus className="w-3 h-3 sm:w-4 sm:h-4" />
  Add Task

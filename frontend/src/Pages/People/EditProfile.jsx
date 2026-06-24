@@ -535,7 +535,7 @@ export default function EditProfile() {
  <h3 className="font-semibold text-sm text-heading uppercase tracking-wide">Emergency Contacts</h3>
  <button
  onClick={addEmergencyContact}
- className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
+ className="btn-ghost p-2 rounded-lg"
  title="Add Contact"
  >
  <FiPlus className="text-lg" />
@@ -596,7 +596,7 @@ export default function EditProfile() {
  <h3 className="font-semibold text-sm text-heading uppercase tracking-wide">Education</h3>
  <button
  onClick={addEducation}
- className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
+ className="btn-ghost p-2 rounded-lg"
  title="Add Education"
  >
  <FiPlus className="text-lg" />
@@ -656,7 +656,7 @@ export default function EditProfile() {
  <h3 className="font-semibold text-sm text-heading uppercase tracking-wide">Work Experience</h3>
  <button
  onClick={addExperience}
- className="p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition shadow-sm"
+ className="btn-ghost p-2 rounded-lg"
  title="Add Experience"
  >
  <FiPlus className="text-lg" />

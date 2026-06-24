@@ -93,7 +93,7 @@ const FilterBar = ({
  {onExport && (
  <button
  onClick={onExport}
- className="btn btn-outline gap-2 px-4 py-2"
+ className="btn-ghost gap-2"
  >
  <Download className="w-4 h-4" />
  <span className="hidden sm:inline">Export</span>

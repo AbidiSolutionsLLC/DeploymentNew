@@ -49,7 +49,7 @@ const FAQs = () => {
  className="border border-border-subtle rounded-md overflow-hidden"
  >
  <button
- className="w-full flex justify-between items-center p-4 text-left bg-surface hover:bg-app"
+ className="btn-ghost w-full flex justify-between items-center p-4"
  onClick={() => toggleFAQ(faq.title)}
  >
  <span className="text-sm font-medium">{faq.title}</span>

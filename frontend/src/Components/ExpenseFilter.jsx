@@ -115,7 +115,7 @@ const ExpenseFilters = ({
  {hasActiveFilters && (
  <button
  onClick={clearFilters}
- className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-muted hover:text-red-500 transition-colors"
+ className="btn btn-primary flex items-center gap-1"
  >
  <X size={14} /> Clear
  </button>

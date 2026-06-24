@@ -9,7 +9,7 @@ const CardWrapper = ({ title, icon, children, onDelete }) => (
  </div>
  <button
  onClick={onDelete}
- className="text-[10px] text-muted hover:text-red-500 font-medium px-2 py-1 rounded-lg hover:bg-red-50 transition"
+ className="btn btn-primary"
  >
  Remove
  </button>

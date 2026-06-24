@@ -440,7 +440,7 @@ const ToDoCard = ({ onDelete, userId }) => {
  <div className="shrink-0 mb-3">
  <button
  onClick={openAddModal}
- className="text-xs text-green-600 hover:text-green-800 flex items-center gap-1.5 font-medium"
+ className="btn-ghost flex items-center gap-1.5"
  >
  <FiPlus className="h-3.5 w-3.5" />
  Add Task
@@ -536,7 +536,7 @@ const ToDoCard = ({ onDelete, userId }) => {
           <button
             type="button"
             onClick={closeDetailModal}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-muted bg-surface border border-subtle hover:bg-app transition"
+            className="btn btn-secondary w-full"
           >
             Cancel
           </button>
@@ -544,7 +544,7 @@ const ToDoCard = ({ onDelete, userId }) => {
             type="button"
             onClick={handleModalSave}
             disabled={modalSaveDisabled}
-            className="w-full sm:w-auto px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white bg-[#64748b] shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-8 text-[10px] shadow-slate-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
           >
             {updatingTaskId === detailModal.task._id ? "Saving..." : "Save changes"}
           </button>
@@ -637,7 +637,7 @@ const ToDoCard = ({ onDelete, userId }) => {
           <button
             type="button"
             onClick={closeAddModal}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-muted bg-surface border border-subtle hover:bg-app transition"
+            className="btn btn-secondary w-full"
           >
             Cancel
           </button>
@@ -645,7 +645,7 @@ const ToDoCard = ({ onDelete, userId }) => {
             type="button"
             onClick={addTask}
             disabled={addDisabled}
-            className="w-full sm:w-auto px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white bg-[#64748b] shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-8 text-[10px] shadow-slate-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
           >
             {saving ? "Saving..." : "Save task"}
           </button>
@@ -722,7 +722,7 @@ const ToDoCard = ({ onDelete, userId }) => {
           </button>
           <button
             onClick={removeTask}
-            className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+            className="flex-1 text-[10px] shadow-red-100 btn btn-danger"
           >
             Delete
           </button>

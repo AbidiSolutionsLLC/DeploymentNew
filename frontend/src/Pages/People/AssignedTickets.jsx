@@ -18,6 +18,7 @@ import { Paperclip } from "lucide-react";
 import { validateDescription, getApiError } from "../../utils/validationUtils";
 import PageContainer from "../../components/ui/PageContainer";
 import TableWithPagination from "../../components/TableWithPagination";
+import GlassModal from "../../components/ui/GlassModal";
 
 export default function AssignedTickets() {
  const [tickets, setTickets] = useState([]);
@@ -318,122 +319,116 @@ export default function AssignedTickets() {
  />
  </div>
 
- {/* --- TICKET DETAIL MODAL --- */}
- {selectedTicket && (
- <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
- <div className="absolute inset-0 bg-app " onClick={() => setSelectedTicket(null)}></div>
- 
- <div className="relative bg-[#F8FAFC] w-full max-w-4xl max-h-[85vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-slideUp">
- <div className="bg-surface px-8 py-5 border-b border-border-subtle flex justify-between items-center shrink-0">
- <div>
- <h2 className="text-xl font-black text-heading flex items-center gap-3">
- {selectedTicket.subject}
- <span className={`text-[10px] px-2 py-1 rounded-md border uppercase tracking-wider ${getPriorityColor(selectedTicket.priority)}`}>
- {selectedTicket.priority}
- </span>
- </h2>
- <p className="text-muted text-xs font-mono mt-1 font-bold">Ticket ID: {selectedTicket.ticketID}</p>
- </div>
- <button onClick={() => setSelectedTicket(null)} className="p-2 hover:bg-surface rounded-full transition-colors">
- <XMarkIcon className="w-6 h-6 text-muted" />
- </button>
- </div>
+        {/* --- TICKET DETAIL MODAL --- */}
+        {selectedTicket && (
+          <GlassModal
+            isOpen={!!selectedTicket}
+            onClose={() => setSelectedTicket(null)}
+            maxWidth="max-w-4xl"
+            title={
+              <div>
+                <div className="flex items-center gap-3">
+                  {selectedTicket.subject}
+                  <span className={`text-[10px] px-2 py-1 rounded-md border uppercase tracking-wider ${getPriorityColor(selectedTicket.priority)}`}>
+                    {selectedTicket.priority}
+                  </span>
+                </div>
+                <p className="text-muted text-xs font-mono mt-1 font-bold">Ticket ID: {selectedTicket.ticketID}</p>
+              </div>
+            }
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-surface p-6 rounded-[1.5rem] shadow-sm border border-border-subtle">
+                  <h3 className="text-xs font-black text-muted uppercase tracking-widest mb-3">Description</h3>
+                  <p className="text-main text-sm leading-relaxed font-medium whitespace-pre-wrap">{selectedTicket.description}</p>
+                </div>
 
- <div className="flex-1 overflow-y-auto p-8">
- <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
- <div className="lg:col-span-2 space-y-6">
- <div className="bg-surface p-6 rounded-[1.5rem] shadow-sm border border-border-subtle">
- <h3 className="text-xs font-black text-muted uppercase tracking-widest mb-3">Description</h3>
- <p className="text-main text-sm leading-relaxed font-medium whitespace-pre-wrap">{selectedTicket.description}</p>
- </div>
+                <div className="bg-surface p-6 rounded-[1.5rem] shadow-sm border border-border-subtle">
+                  <h3 className="text-xs font-black text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <PaperClipIcon className="w-4 h-4" /> Attachments
+                  </h3>
+                  {selectedTicket.attachments && selectedTicket.attachments.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {selectedTicket.attachments.map((file, idx) => (
+                        <button 
+                          key={idx}
+                          onClick={() => handleDownload(file.blobName, file.name)}
+                          className="w-full flex items-center justify-between p-3 bg-surface rounded-xl border border-border-subtle hover:bg-amber-50 hover:border-amber-200 transition-all group text-left"
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 font-bold text-xs shrink-0">
+                              {file.name.split('.').pop().toUpperCase()}
+                            </div>
+                            <span className="text-xs font-bold text-main truncate">{file.name}</span>
+                          </div>
+                          <div className="text-muted group-hover:text-amber-600">
+                            <Paperclip size={16}/>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted italic">No files attached.</p>
+                  )}
+                </div>
 
- <div className="bg-surface p-6 rounded-[1.5rem] shadow-sm border border-border-subtle">
- <h3 className="text-xs font-black text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
- <PaperClipIcon className="w-4 h-4" /> Attachments
- </h3>
- {selectedTicket.attachments && selectedTicket.attachments.length > 0 ? (
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
- {selectedTicket.attachments.map((file, idx) => (
- <button 
- key={idx}
- onClick={() => handleDownload(file.blobName, file.name)}
- className="w-full flex items-center justify-between p-3 bg-surface rounded-xl border border-border-subtle hover:bg-amber-50 hover:border-amber-200 transition-all group text-left"
- >
- <div className="flex items-center gap-2 overflow-hidden">
- <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 font-bold text-xs shrink-0">
- {file.name.split('.').pop().toUpperCase()}
- </div>
- <span className="text-xs font-bold text-main truncate">{file.name}</span>
- </div>
- <div className="text-muted group-hover:text-amber-600">
- <Paperclip size={16}/>
- </div>
- </button>
- ))}
- </div>
- ) : (
- <p className="text-xs text-muted italic">No files attached.</p>
- )}
- </div>
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-muted uppercase tracking-widest pl-2">Discussion</h3>
+                  {selectedTicket.responses?.map((res, idx) => (
+                    <div key={idx} className="bg-surface p-5 rounded-[1.5rem] shadow-sm border border-border-subtle flex gap-4">
+                      <img src={res.avatar || `https://ui-avatars.com/api/?name=${res.author}`} className="w-8 h-8 rounded-full border border-border-subtle" />
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-bold text-sm text-heading">{res.author}</span>
+                          <span className="text-[10px] text-muted font-bold">{format(new Date(res.time), "MMM dd, hh:mm a")}</span>
+                        </div>
+                        <p className="text-sm text-muted font-medium">{res.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="bg-surface p-2 rounded-[1.5rem] shadow-sm border border-border-subtle flex items-center gap-2 focus-within:ring-2 focus-within:ring-amber-100 transition-all">
+                    <textarea 
+                      value={commentText}
+                      onChange={(e) => {
+                        setCommentText(e.target.value);
+                        setCommentError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
+                      }}
+                      onBlur={() => setCommentError(validateDescription(commentText, { min: 10, max: 500, required: true }))}
+                      placeholder="Type your reply (min 10 chars, at least 3 words)..."
+                      className={`flex-1 bg-transparent border-none focus:ring-0 text-sm p-3 resize-none h-12 font-medium ${commentError ? "placeholder:text-red-300" : ""}`}
+                    ></textarea>
+                    <button 
+                      onClick={() => {
+                        if (!commentError) handleAddComment();
+                      }}
+                      disabled={sendingComment || !!commentError}
+                      className="p-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    >
+                      {sendingComment ? <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"/> : <PaperAirplaneIcon className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {commentError && (
+                    <p className="text-xs text-red-500 mt-1 pl-2">{commentError}</p>
+                  )}
+                </div>
+              </div>
 
- <div className="space-y-4">
- <h3 className="text-xs font-black text-muted uppercase tracking-widest pl-2">Discussion</h3>
- {selectedTicket.responses?.map((res, idx) => (
- <div key={idx} className="bg-surface p-5 rounded-[1.5rem] shadow-sm border border-border-subtle flex gap-4">
- <img src={res.avatar || `https://ui-avatars.com/api/?name=${res.author}`} className="w-8 h-8 rounded-full border border-border-subtle" />
- <div className="flex-1">
- <div className="flex justify-between items-center mb-1">
- <span className="font-bold text-sm text-heading">{res.author}</span>
- <span className="text-[10px] text-muted font-bold">{format(new Date(res.time), "MMM dd, hh:mm a")}</span>
- </div>
- <p className="text-sm text-muted font-medium">{res.content}</p>
- </div>
- </div>
- ))}
- <div className="bg-surface p-2 rounded-[1.5rem] shadow-sm border border-border-subtle flex items-center gap-2 focus-within:ring-2 focus-within:ring-amber-100 transition-all">
- <textarea 
- value={commentText}
- onChange={(e) => {
- setCommentText(e.target.value);
- setCommentError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
- }}
- onBlur={() => setCommentError(validateDescription(commentText, { min: 10, max: 500, required: true }))}
- placeholder="Type your reply (min 10 chars, at least 3 words)..."
- className={`flex-1 bg-transparent border-none focus:ring-0 text-sm p-3 resize-none h-12 font-medium ${commentError ? "placeholder:text-red-300" : ""}`}
- ></textarea>
- <button 
- onClick={() => {
- if (!commentError) handleAddComment();
- }}
- disabled={sendingComment || !!commentError}
- className="p-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors disabled:opacity-50"
- >
- {sendingComment ? <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"/> : <PaperAirplaneIcon className="w-5 h-5" />}
- </button>
- </div>
- {commentError && (
- <p className="text-xs text-red-500 mt-1 pl-2">{commentError}</p>
- )}
- </div>
- </div>
-
- <div className="space-y-4">
- <div className="bg-surface p-6 rounded-[1.5rem] shadow-sm border border-border-subtle">
- <h3 className="text-xs font-black text-muted uppercase tracking-widest mb-4">Requester</h3>
- <div className="flex items-center gap-3">
- <img src={selectedTicket.user?.avatar || `https://ui-avatars.com/api/?name=${selectedTicket.emailAddress}`} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
- <div>
- <p className="text-sm font-bold text-main">{selectedTicket.user?.name || "Unknown"}</p>
- <p className="text-xs text-muted font-medium">{selectedTicket.emailAddress}</p>
- </div>
- </div>
- </div>
- </div>
- </div>
- </div>
- </div>
- </div>
- )}
+              <div className="space-y-4">
+                <div className="bg-surface p-6 rounded-[1.5rem] shadow-sm border border-border-subtle">
+                  <h3 className="text-xs font-black text-muted uppercase tracking-widest mb-4">Requester</h3>
+                  <div className="flex items-center gap-3">
+                    <img src={selectedTicket.user?.avatar || `https://ui-avatars.com/api/?name=${selectedTicket.emailAddress}`} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
+                    <div>
+                      <p className="text-sm font-bold text-main">{selectedTicket.user?.name || "Unknown"}</p>
+                      <p className="text-xs text-muted font-medium">{selectedTicket.emailAddress}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </GlassModal>
+        )}
  </PageContainer>
  );
 }

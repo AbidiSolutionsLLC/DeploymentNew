@@ -7,7 +7,7 @@ const Toast = ({ message, type, onClose }) => (
  } text-white font-medium animate-slideIn`}>
  <div className="flex items-center gap-3">
  <span>{message}</span>
- <button onClick={onClose} className="hover:opacity-80">
+ <button onClick={onClose} className="btn-ghost">
  <FaTimes />
  </button>
  </div>

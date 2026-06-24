@@ -36,7 +36,7 @@ const ActiveProjectsCard = () => {
  Ongoing projects and their current status
  </p>
  </div>
- <button className="flex items-center text-amber-600 text-sm hover:underline transition-colors duration-200 whitespace-nowrap">
+ <button className="btn-ghost flex items-center">
  View All
  <ArrowRightIcon className="h-4 w-4 ml-1" />
  </button>

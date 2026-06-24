@@ -19,7 +19,7 @@ const ViewTimeLogModal = ({ log, onClose }) => {
  <div className="flex w-full">
  <button
  onClick={onClose}
- className="w-full py-3 bg-brand-primary text-white rounded-xl font-bold text-xs uppercase hover:bg-brand-primary/90 active:scale-95 transition-all"
+ className="btn btn-primary w-full"
  >
  Close View
  </button>

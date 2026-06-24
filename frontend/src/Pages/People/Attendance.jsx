@@ -219,14 +219,14 @@ const Attendance = () => {
  <div className="flex flex-row items-center gap-3">
  <button
  onClick={navigateToPreviousPeriod}
- className="p-2.5 rounded-lg bg-surface text-muted hover:bg-hover border border-border-subtle transition shadow-sm"
+ className="btn-ghost p-2.5 rounded-lg text-muted"
  >
  <FaAngleLeft size={18} />
  </button>
 
  <div className="relative">
  <button
- className="px-3 py-2 bg-surface border border-border-subtle text-main rounded-lg flex items-center gap-2 hover:bg-hover transition shadow-sm text-sm font-medium"
+ className="px-3 bg-surface rounded-lg flex items-center gap-2 hover:bg-hover btn btn-secondary"
  onClick={() => setShowCalendar(!showCalendar)}
  >
  <IoCalendarNumberOutline size={18} className="text-muted" />
@@ -248,7 +248,7 @@ const Attendance = () => {
 
  <button
  onClick={navigateToNextPeriod}
- className="p-2.5 rounded-lg bg-surface text-muted hover:bg-hover border border-border-subtle transition shadow-sm"
+ className="btn-ghost p-2.5 rounded-lg text-muted"
  >
  <FaAngleRight size={18} />
  </button>

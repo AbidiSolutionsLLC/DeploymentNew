@@ -256,13 +256,13 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
 
  const footer = (
  <div className="flex w-full gap-3">
- <button onClick={onClose} className="flex-1 py-3 font-bold text-xs text-muted uppercase hover:text-heading transition-colors">
+ <button onClick={onClose} className="btn-ghost flex-1 text-muted">
  Cancel
  </button>
  <button
  onClick={handleSubmit}
  disabled={loading || fetchingLogs}
- className="flex-[2] py-3 bg-brand-primary text-white rounded-xl font-bold text-xs uppercase hover:bg-brand-primary/90 active:scale-95 transition-all disabled:opacity-50"
+ className="btn btn-primary flex-[2]"
  >
  {loading ? "Creating..." : "Create Timesheet"}
  </button>

@@ -27,7 +27,7 @@ const CalendarNavigator = () => {
  <div className="flex items-center gap-1 group">
  {/* Navigation & Calendar */}
  <div className="flex items-center bg-surface rounded-md shadow py-1 relative md:py-2 md:px-2">
- <button onClick={handlePrev} className="p-1 hover:bg-app rounded">
+ <button onClick={handlePrev} className="btn-ghost p-1 rounded">
  <FiChevronLeft />
  </button>
 
@@ -35,7 +35,7 @@ const CalendarNavigator = () => {
  selected={selectedDate}
  onChange={(date) => updateDate(date)}
  customInput={
- <button className="p-1 hover:bg-app rounded">
+ <button className="btn-ghost p-1 rounded">
  <FiCalendar />
  </button>
  }
@@ -44,7 +44,7 @@ const CalendarNavigator = () => {
  portalId="root-portal"
  />
 
- <button onClick={handleNext} className="p-1 hover:bg-app rounded">
+ <button onClick={handleNext} className="btn-ghost p-1 rounded">
  <FiChevronRight />
  </button>
 

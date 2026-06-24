@@ -65,7 +65,7 @@ const TasksAssignedToMeCard = ({ onDelete }) => {
  </div>
 
  {item.action && (
- <button className="text-xs px-3 py-1 rounded font-medium shrink-0 bg-purple-100 text-purple-700">
+ <button className="btn btn-primary">
  {item.action}
  </button>
  )}

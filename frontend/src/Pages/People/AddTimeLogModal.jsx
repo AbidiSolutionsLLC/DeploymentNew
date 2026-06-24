@@ -256,7 +256,7 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  type="button"
  onClick={handleAddAnother}
  disabled={!isCurrentInputValid}
- className="flex-1 py-3 bg-brand-primary/10 text-brand-primary rounded-xl font-bold text-xs uppercase hover:bg-brand-primary/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+ className="btn btn-primary flex-1"
  >
  + Add Another
  </button>
@@ -264,14 +264,14 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  <div className="flex gap-3 flex-[2]">
  <button
  onClick={onClose}
- className="flex-1 py-3 font-bold text-xs text-muted uppercase hover:text-heading transition-colors"
+ className="btn-ghost flex-1 text-muted"
  >
  Cancel
  </button>
  <button
  onClick={handleSave}
  disabled={(!isCurrentInputValid && logs.length === 0) || isLoading}
- className="flex-[2] py-3 bg-brand-primary text-white rounded-xl font-bold text-xs uppercase hover:bg-brand-primary/90 active:scale-95 transition-all disabled:opacity-50"
+ className="btn btn-primary flex-[2]"
  >
  {isLoading
  ? "Saving..."

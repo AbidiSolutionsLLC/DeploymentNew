@@ -301,7 +301,7 @@ const ApproveTimesheetViewModal = ({
  <button 
  onClick={handleAddComment}
  disabled={sendingComment || !newComment.trim()}
- className="p-3 bg-brand-primary text-white rounded-xl hover:bg-brand-secondary transition-colors disabled:opacity-50 flex items-center justify-center"
+ className="btn-ghost flex items-center justify-center p-3 rounded-xl"
  >
  {sendingComment ? <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"/> : <FaPaperPlane className="w-4 h-4" />}
  </button>

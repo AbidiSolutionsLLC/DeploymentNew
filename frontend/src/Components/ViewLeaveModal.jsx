@@ -573,7 +573,7 @@ const ViewLeaveModal = ({
  <button
  onClick={handleSubmitResponse}
  disabled={!newResponse.trim() || isSubmitting}
- className="absolute right-3 bottom-8 p-2 bg-brand-primary text-white rounded-lg hover:bg-brand-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+ className="btn-ghost absolute right-3 p-2 rounded-lg"
  title="Send response"
  >
  <Send size={16} />

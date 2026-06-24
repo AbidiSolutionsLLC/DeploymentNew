@@ -69,7 +69,7 @@ const Login = () => {
  ) : (
  <button
  onClick={handleLogin}
- className="w-full bg-brand hover:bg-brand-accent text-white font-semibold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all"
+ className="btn btn-primary w-full flex items-center justify-center gap-2"
  >
  <img src="https://learn.microsoft.com/en-us/azure/active-directory/develop/media/howto-add-branding-in-azure-ad-apps/ms-symbollockup_mssymbol_19.png" alt="" className="h-5"/>
  Sign in with Microsoft

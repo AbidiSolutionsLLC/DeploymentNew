@@ -267,12 +267,15 @@ const LeaveSummary = () => {
  Refreshing...
  </div>
  )}
- <button
- onClick={() => setIsOpen(true)}
- className="px-6 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
- >
- Apply Now
- </button>
+              <button
+                onClick={() => setIsOpen(true)}
+                className="group relative flex items-center gap-3 px-8 py-4 bg-brand-primary text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.15em] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 overflow-hidden"
+              >
+                <svg className="w-5 h-5 text-white transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Apply Leave</span>
+              </button>
  </div>
  </div>
  </div>

@@ -328,8 +328,10 @@ const AdminAttendance = () => {
  label: "Check Out",
  render: (_, log) => log.checkOutTime ? (
  <span className="text-sm font-bold text-main">{formatTime(log.checkOutTime)}</span>
- ) : (
+ ) : log.checkInTime ? (
  <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 uppercase tracking-wider">Active</span>
+ ) : (
+ <span className="text-muted">--:--</span>
  )
  },
  {
@@ -514,7 +516,7 @@ const AdminAttendance = () => {
           </button>
           <button
             onClick={handleSaveChanges}
-            className="flex-1 py-2 bg-amber-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-700 shadow-md shadow-amber-200 flex justify-center items-center gap-2"
+            className="btn btn-primary flex-1 flex justify-center items-center gap-2"
           >
             <Save size={14} /> Save Changes
           </button>

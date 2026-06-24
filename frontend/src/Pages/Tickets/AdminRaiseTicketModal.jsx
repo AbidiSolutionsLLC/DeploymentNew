@@ -179,14 +179,14 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
       <button
         type="button"
         onClick={handleCancelClick}
-        className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-muted uppercase tracking-widest hover:text-muted transition-colors"
+        className="btn-ghost flex-1 text-muted"
       >
         CANCEL
       </button>
       <button
         type="submit"
         form="ticketForm"
-        className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all"
+        className="flex-1 sm:py-4 text-[10px] sm:text-[11px] shadow-slate-100 active:scale-95 btn btn-primary"
       >
         SUBMIT TICKET
       </button>
@@ -336,13 +336,13 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
             <div className="flex w-full gap-3">
               <button
                 onClick={handleConfirmStay}
-                className="flex-1 py-3 bg-surface text-main rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                className="btn btn-secondary flex-1"
               >
                 Stay
               </button>
               <button
                 onClick={handleConfirmLeave}
-                className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+                className="flex-1 text-[10px] shadow-red-100 btn btn-danger"
               >
                 Leave
               </button>

@@ -3,103 +3,102 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export default function GlassModal({
- isOpen,
- onClose,
- title,
- children,
- footer,
- maxWidth = "max-w-lg", // max-w-sm, max-w-md, max-w-lg, max-w-xl, max-w-2xl
+  isOpen,
+  onClose,
+  title,
+  description, // Added description for the new design
+  children,
+  footer,
+  maxWidth = "max-w-lg",
 }) {
- // Handle escape key
- useEffect(() => {
- const handleKeyDown = (e) => {
- if (e.key === "Escape" && isOpen) {
- onClose();
- }
- };
- window.addEventListener("keydown", handleKeyDown);
- return () => window.removeEventListener("keydown", handleKeyDown);
- }, [isOpen, onClose]);
+  // Handle escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
- // Prevent scrolling on body when modal is open
- useEffect(() => {
- if (isOpen) {
- document.body.style.overflow = "hidden";
- } else {
- document.body.style.overflow = "unset";
- }
- return () => {
- document.body.style.overflow = "unset";
- };
- }, [isOpen]);
+  // Prevent scrolling on body when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
 
- if (!isOpen) return null;
+  if (!isOpen) return null;
 
   const modalContent = (
-  /* ── Full-viewport backdrop — rendered directly on document.body via Portal ──
-  .app-modal-backdrop is the single source of truth for blur/opacity/z-index
-  so every modal (this one + any hand-rolled ones) stays perfectly in sync. */
-  <div
-  className="app-modal-backdrop"
-  role="dialog"
-  aria-modal="true"
-  aria-labelledby="modal-title"
-  >
- {/* Click-away backdrop layer */}
- <div
- className="absolute inset-0"
- onClick={onClose}
- aria-hidden="true"
- />
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      {/* Click-away backdrop layer */}
+      <div
+        className="absolute inset-0"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
- {/* ── Modal Card ──
- Pure white (#fff), not translucent — pops cleanly on the beige app bg.
- max-h-[90vh] + flex flex-col lets the body scroll independently. */}
-  <div
-  className={`relative w-full ${maxWidth} bg-surface rounded-xl shadow-[var(--shadow-2xl)] border border-border-subtle flex flex-col max-h-[90vh] animate-slideInUp overflow-hidden`}
-  onClick={(e) => e.stopPropagation()}
-  >
- {/* ── Header ── */}
- <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border-subtle flex-shrink-0">
- <div>
- {typeof title === "string" ? (
- <h2
- id="modal-title"
- className="text-lg font-bold text-main leading-tight"
- >
- {title}
- </h2>
- ) : (
- /* Allow passing a React node (e.g. ExportSelectionModal passes a <div>) */
- <div id="modal-title" className="text-lg font-bold text-main leading-tight">
- {title}
- </div>
- )}
- </div>
- <button
- onClick={onClose}
- className="ml-4 flex-shrink-0 p-1.5 rounded-lg text-muted hover:text-main hover:bg-app transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
- aria-label="Close modal"
- >
- <X className="h-5 w-5" />
- </button>
- </div>
+      {/* Modal Card */}
+      <div
+        className={`relative z-[10000] w-full ${maxWidth} bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col max-h-[90vh] mx-4 animate-in fade-in zoom-in-95 duration-200 overflow-hidden`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex flex-col space-y-1.5 px-6 pt-6 pb-4 border-b border-slate-100 flex-shrink-0">
+          <div className="flex items-start justify-between">
+            <div>
+              {typeof title === "string" ? (
+                <h2
+                  id="modal-title"
+                  className="text-lg font-semibold leading-none tracking-tight text-slate-900"
+                >
+                  {title}
+                </h2>
+              ) : (
+                <div id="modal-title">{title}</div>
+              )}
+              {description && (
+                <p className="mt-1.5 text-sm text-slate-500">
+                  {description}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="btn-ghost ml-4 flex-shrink-0 rounded-sm"
+              aria-label="Close modal"
+            >
+              <X className="h-5 w-5 text-slate-500" />
+            </button>
+          </div>
+        </div>
 
- {/* ── Scrollable Body ── */}
- <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 custom-scrollbar-visible">
- {children}
- </div>
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 custom-scrollbar-visible text-slate-700">
+          {children}
+        </div>
 
- {/* ── Footer (Optional) ── */}
- {footer && (
- <div className="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-surface rounded-b-xl">
- {footer}
- </div>
- )}
- </div>
- </div>
- );
+        {/* Footer (Optional) */}
+        {footer && (
+          <div className="flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
- // Mount directly on document.body — escapes any overflow:hidden parent
- return createPortal(modalContent, document.body);
+  return createPortal(modalContent, document.body);
 }

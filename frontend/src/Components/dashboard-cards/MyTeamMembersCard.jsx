@@ -61,7 +61,7 @@ export default function MyTeamMembersCard() {
  </div>
 
  <div className="flex items-start gap-2">
- <button className="flex items-center text-amber-600 text-sm hover:underline">
+ <button className="btn-ghost flex items-center">
  View All
  <ArrowRightIcon className="h-4 w-4 ml-1" />
  </button>

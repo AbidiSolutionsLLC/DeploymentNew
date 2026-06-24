@@ -10,7 +10,7 @@ const NewProjectDrawer = ({ isOpen, onClose }) => {
  {/* Header */}
  <div className="flex justify-between items-center mb-6">
  <h2 className="text-lg font-semibold">New Projects</h2>
- <button onClick={onClose} className="text-muted hover:text-main text-xl">&times;</button>
+ <button onClick={onClose} className="btn-ghost text-muted">&times;</button>
  </div>
 
  {/* Form */}
@@ -69,7 +69,7 @@ const NewProjectDrawer = ({ isOpen, onClose }) => {
  </select>
 
  <div className="flex justify-end mt-4">
- <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+ <button type="submit" className="btn btn-primary">
  Save Project
  </button>
  </div>

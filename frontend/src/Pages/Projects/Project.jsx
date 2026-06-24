@@ -37,12 +37,12 @@ const Project = () => {
  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
  <SearchBar />
  <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
- <button className="flex items-center justify-center gap-2 bg-[#86B2AA] text-white text-sm px-4 py-2 rounded-md hover:brightness-110 w-full sm:w-auto">
+ <button className="flex items-center justify-center gap-2 w-full sm:w-auto btn btn-primary">
  Sort By <FaSortDown className="text-xs" />
  </button>
  <button
  onClick={openModal}
- className="flex items-center justify-center gap-2 bg-[#86B2AA] text-white text-sm px-4 py-2 rounded-md hover:brightness-110 w-full sm:w-auto"
+ className="flex items-center justify-center gap-2 w-full sm:w-auto btn btn-primary"
  >
  <FaPlus /> Add Task
  </button>

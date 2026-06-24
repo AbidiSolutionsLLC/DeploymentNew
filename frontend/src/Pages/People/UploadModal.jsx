@@ -92,14 +92,14 @@ const UploadModal = ({ onCreate }) => {
           <button
             type="button"
             onClick={handleClose}
-            className="flex-1 py-3 sm:py-4 font-black text-[10px] text-muted uppercase tracking-widest hover:text-muted transition-colors"
+            className="btn-ghost flex-1 text-muted"
           >
             CANCEL
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all"
+            className="flex-1 sm:py-4 text-[10px] shadow-slate-100 active:scale-95 btn btn-primary"
           >
             CREATE FOLDER
           </button>

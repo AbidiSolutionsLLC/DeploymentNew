@@ -144,7 +144,7 @@
 
 // <button
 // type="submit"
-// className="w-full bg-orange-400 hover:bg-orange-500 py-2 rounded text-orange-950 font-semibold transition duration-300 ease-in-out hover:-translate-y-1 hover:scale-10"
+// className="btn btn-primary w-full"
 // disabled={loading || isSubmitting}
 // >
 // {loading || isSubmitting ? "Verifying..." : "Verify"}

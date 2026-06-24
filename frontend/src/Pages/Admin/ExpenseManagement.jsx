@@ -648,7 +648,7 @@ const ExpenseManagement = () => {
  </button>
  <button
  onClick={handleSaveEdit}
- className="flex-1 py-2 bg-primary-color text-primary-color/50 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-primary-color/80 shadow-md shadow-primary-color/10 flex justify-center items-center gap-2 transition-all"
+ className="btn btn-primary flex-1 flex justify-center items-center gap-2"
  >
  <Save size={14} /> Save Changes
  </button>

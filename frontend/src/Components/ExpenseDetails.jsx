@@ -219,7 +219,7 @@ const ExpenseDetail = ({
           </p>
           <button 
             onClick={handleViewReceipt}
-            className="w-full flex items-center justify-between p-3 bg-app rounded-xl border border-subtle hover:bg-amber-50 hover:border-amber-200 transition-all group text-left"
+            className="btn-ghost w-full flex items-center justify-between p-3 rounded-xl"
           >
             <div className="flex items-center gap-2 overflow-hidden">
               <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">

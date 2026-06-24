@@ -208,7 +208,7 @@ const AssignTicket = () => {
  </button>
  <button
  onClick={handleDeleteTicket}
- className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
+ className="btn-ghost p-2 rounded-lg"
  title="Delete Ticket"
  >
  <Trash2 size={18} />
@@ -325,7 +325,7 @@ const AssignTicket = () => {
             type="button"
             onClick={handlePromoteToTechnician}
             disabled={!selectedUserToPromote || promoting}
-            className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[10px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 sm:py-4 text-[10px] sm:text-[10px] shadow-slate-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
           >
             {promoting ? (
               <span className="flex items-center justify-center gap-2">
@@ -440,7 +440,7 @@ const AssignTicket = () => {
  <button
  onClick={handleSubmitResponse}
  disabled={!newResponse.trim() || !!responseError}
- className="absolute right-2 bottom-2 p-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-all"
+ className="btn-ghost absolute right-2 p-2 rounded-lg"
  >
  <Send size={16} />
  </button>

@@ -41,7 +41,7 @@ const MyTask = () => {
  return (
  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
  <SearchBar />
- <button className="flex items-center justify-center gap-2 bg-[#86B2AA] text-white text-sm px-4 py-2 rounded-md hover:brightness-110 w-full sm:w-auto">
+ <button className="flex items-center justify-center gap-2 w-full sm:w-auto btn btn-primary">
  Sort By <FaSortDown className="text-xs" />
  </button>
  </div>

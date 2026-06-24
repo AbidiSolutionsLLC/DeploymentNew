@@ -106,7 +106,7 @@ export default function NotificationBell() {
  {unreadCount > 0 && (
  <button
  onClick={handleMarkAll}
- className="flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800 font-medium transition-colors"
+ className="btn-ghost flex items-center gap-1"
  title="Mark all as read"
  >
  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>

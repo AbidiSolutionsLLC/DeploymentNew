@@ -185,7 +185,7 @@ export default function NotificationsPage() {
  <div className="bg-surface p-4 md:p-6 border-b border-border-subtle flex items-center gap-4">
  <button 
  onClick={handleBackToList}
- className="md:hidden p-2 -ml-2 text-muted hover:text-teal-600"
+ className="btn-ghost p-2 text-muted"
  >
  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -199,7 +199,7 @@ export default function NotificationsPage() {
  <h2 className="text-xl font-extrabold text-heading leading-tight">{selectedNotif.title}</h2>
  <button 
  onClick={handleBackToList}
- className="p-2 text-muted hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+ className="btn-ghost p-2 rounded-full text-muted"
  title="Close detail"
  >
  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

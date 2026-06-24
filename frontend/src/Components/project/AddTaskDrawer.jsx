@@ -45,7 +45,7 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
  </h2>
  <button
  onClick={onClose}
- className="p-2 rounded-md hover:opacity-70 transition-opacity text-description"
+ className="btn-ghost p-2 rounded-md"
  >
  <FaTimes className="w-5 h-5" />
  </button>
@@ -114,13 +114,13 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
  <button
  type="button"
  onClick={onClose}
- className="flex-1 px-4 py-2 border border-primary rounded-lg text-sm font-medium hover:opacity-70 transition-opacity text-primary"
+ className="btn btn-secondary flex-1"
  >
  Cancel
  </button>
  <button
  type="submit"
- className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity bg-primary"
+ className="btn btn-primary flex-1 flex items-center justify-center gap-2"
  >
  <FaPlus className="w-4 h-4" />
  Add Task

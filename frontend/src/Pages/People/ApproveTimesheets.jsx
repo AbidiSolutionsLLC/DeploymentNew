@@ -572,7 +572,7 @@ const ApproveTimesheets = () => {
  <button
  onClick={handleBulkApprove}
  disabled={updating}
- className="btn btn-primary shadow-lg shadow-brand-primary/20 active:scale-95 disabled:opacity-50"
+ className="btn btn-primary shadow-brand-primary/20 active:scale-95 disabled:opacity-50"
  >
  Bulk Approve ({selectedIds.length})
  </button>
@@ -655,7 +655,7 @@ const ApproveTimesheets = () => {
  <button
  onClick={navigateToPreviousWeek}
  disabled={loading}
- className="w-[42px] h-[42px] flex items-center justify-center rounded-xl bg-surface text-muted hover:bg-amber-50 hover:text-amber-600 transition-all border border-border-subtle"
+ className="btn btn-secondary w-[42px] h-[42px] flex items-center justify-center"
  >
  <FaAngleLeft size={14} />
  </button>
@@ -691,7 +691,7 @@ const ApproveTimesheets = () => {
  <button
  onClick={navigateToNextWeek}
  disabled={loading}
- className="w-[42px] h-[42px] flex items-center justify-center rounded-xl bg-surface text-muted hover:bg-amber-50 hover:text-amber-600 transition-all border border-border-subtle"
+ className="btn btn-secondary w-[42px] h-[42px] flex items-center justify-center"
  >
  <FaAngleRight size={14} />
  </button>

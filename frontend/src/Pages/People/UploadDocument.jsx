@@ -16,6 +16,7 @@ import { toast } from "react-toastify"
 import { IoEllipsisVertical } from "react-icons/io5"
 import { FaFolder, FaFile, FaShare, FaTrash } from "react-icons/fa"
 import { Paperclip } from "lucide-react"
+import GlassModal from "../../components/ui/GlassModal"
 
 const UploadDocument = () => {
  const [folderStack, setFolderStack] = useState([])
@@ -217,113 +218,116 @@ const UploadDocument = () => {
 
  return (
  <>
- {/* Share Modal */}
- {shareModalOpen && (
- <div className="fixed inset-0 bg-app flex items-center justify-center z-50">
- <div className="bg-surface rounded-[1.2rem] shadow-lg border border-white/50 p-6 w-full max-w-md">
- <h3 className="text-base font-bold text-heading uppercase tracking-tight mb-4">
- Share {currentFile?.name || files.find(f => f._id === selectedFileId)?.name}
- </h3>
- 
- <div className="mb-4">
- <label className="flex items-center text-sm text-main">
- <input 
- type="checkbox" 
- checked={accessSettings.isPublic}
- onChange={(e) => setAccessSettings({
- ...accessSettings,
- isPublic: e.target.checked
- })}
- className="mr-2 h-4 w-4 text-amber-600"
- />
- Make public (anyone with link can view)
- </label>
- </div>
+  {/* Share Modal */}
+  {shareModalOpen && (
+    <GlassModal
+      isOpen={true}
+      onClose={() => {
+        setShareModalOpen(false);
+        setCurrentFile(null);
+      }}
+      title={`Share ${currentFile?.name || files.find(f => f._id === selectedFileId)?.name}`}
+      maxWidth="max-w-md"
+      footer={
+        <div className="flex justify-end gap-2 w-full">
+          <button
+            onClick={() => {
+              setShareModalOpen(false);
+              setCurrentFile(null);
+            }}
+            className="px-4 py-2.5 border border-border-subtle text-main rounded-xl text-sm font-medium hover:bg-surface/50 transition shadow-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveAccessSettings}
+            className="btn btn-primary"
+            disabled={uploading}
+          >
+            {uploading ? 'Saving...' : 'Save Settings'}
+          </button>
+        </div>
+      }
+    >
+      <div className="mb-4">
+        <label className="flex items-center text-sm text-main">
+          <input 
+            type="checkbox" 
+            checked={accessSettings.isPublic}
+            onChange={(e) => setAccessSettings({
+              ...accessSettings,
+              isPublic: e.target.checked
+            })}
+            className="mr-2 h-4 w-4 text-amber-600"
+          />
+          Make public (anyone with link can view)
+        </label>
+      </div>
 
- <div className="mb-4">
- <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-2">
- Share with roles:
- </label>
- <div className="flex flex-wrap gap-2">
- {['manager', 'employee', 'hr'].map(role => (
- <label key={role} className="flex items-center">
- <input
- type="checkbox"
- checked={accessSettings.SharedWithRoles.includes(role)}
- onChange={(e) => {
- const newRoles = e.target.checked
- ? [...accessSettings.SharedWithRoles, role]
- : accessSettings.SharedWithRoles.filter(r => r !== role);
- setAccessSettings({
- ...accessSettings,
- SharedWithRoles: newRoles
- });
- }}
- className="mr-1.5 h-3.5 w-3.5 text-amber-600"
- />
- <span className="text-sm text-main capitalize">{role}</span>
- </label>
- ))}
- </div>
- </div>
+      <div className="mb-4">
+        <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-2">
+          Share with roles:
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {['manager', 'employee', 'hr'].map(role => (
+            <label key={role} className="flex items-center">
+              <input
+                type="checkbox"
+                checked={accessSettings.SharedWithRoles.includes(role)}
+                onChange={(e) => {
+                  const newRoles = e.target.checked
+                    ? [...accessSettings.SharedWithRoles, role]
+                    : accessSettings.SharedWithRoles.filter(r => r !== role);
+                  setAccessSettings({
+                    ...accessSettings,
+                    SharedWithRoles: newRoles
+                  });
+                }}
+                className="mr-1.5 h-3.5 w-3.5 text-amber-600"
+              />
+              <span className="text-sm text-main capitalize">{role}</span>
+            </label>
+          ))}
+        </div>
+      </div>
 
- <div className="mb-4">
- <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-2">
- Share with specific people:
- </label>
- <input
- type="email"
- placeholder="Enter email"
- onKeyDown={(e) => {
- if (e.key === 'Enter' && e.target.value) {
- setAccessSettings({
- ...accessSettings,
- userEmails: [...accessSettings.userEmails, e.target.value]
- });
- e.target.value = '';
- }
- }}
- className="w-full p-2.5 border border-border-subtle rounded-lg text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-amber-300"
- />
- <div className="mt-2 flex flex-wrap gap-2">
- {accessSettings.userEmails.map(email => (
- <span key={email} className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full text-xs font-medium flex items-center">
- {email}
- <button
- onClick={() => setAccessSettings({
- ...accessSettings,
- userEmails: accessSettings.userEmails.filter(e => e !== email)
- })}
- className="ml-2 text-amber-500 hover:text-amber-700"
- >
- ×
- </button>
- </span>
- ))}
- </div>
- </div>
-
- <div className="flex justify-end gap-2">
- <button
- onClick={() => {
- setShareModalOpen(false);
- setCurrentFile(null);
- }}
- className="px-4 py-2.5 border border-border-subtle text-main rounded-xl text-sm font-medium hover:bg-surface/50 transition shadow-sm"
- >
- Cancel
- </button>
- <button
- onClick={handleSaveAccessSettings}
- className="px-4 py-2.5 bg-[#64748b] text-white rounded-xl text-sm font-medium hover:brightness-110 transition shadow-sm"
- disabled={uploading}
- >
- {uploading ? 'Saving...' : 'Save Settings'}
- </button>
- </div>
- </div>
- </div>
- )}
+      <div className="mb-4">
+        <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-2">
+          Share with specific people:
+        </label>
+        <input
+          type="email"
+          placeholder="Enter email"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.target.value) {
+              setAccessSettings({
+                ...accessSettings,
+                userEmails: [...accessSettings.userEmails, e.target.value]
+              });
+              e.target.value = '';
+            }
+          }}
+          className="w-full p-2.5 border border-border-subtle rounded-lg text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-amber-300"
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {accessSettings.userEmails.map(email => (
+            <span key={email} className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full text-xs font-medium flex items-center">
+              {email}
+              <button
+                onClick={() => setAccessSettings({
+                  ...accessSettings,
+                  userEmails: accessSettings.userEmails.filter(e => e !== email)
+                })}
+                className="ml-2 text-amber-500 hover:text-amber-700"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      </div>
+    </GlassModal>
+  )}
 
  {/* Create Folder Drawer */}
  <Drawer anchor="right" open={drawerOpen} onClose={toggleDrawer(false)}>
@@ -341,7 +345,7 @@ const UploadDocument = () => {
  <button
  onClick={handleNewFolder}
  disabled={creating}
- className="mt-2 bg-[#64748b] text-white text-sm font-medium py-2.5 rounded-xl hover:brightness-110 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+ className="mt-2 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
  >
  {creating ? "Creating…" : "Create Folder"}
  </button>
@@ -355,7 +359,7 @@ const UploadDocument = () => {
  {/* Breadcrumb */}
  <div className="flex items-center gap-1 text-sm text-muted mb-3">
  <button 
- className="hover:text-amber-600 transition"
+ className="btn-ghost"
  onClick={() => setFolderStack([])}
  >
  Root
@@ -364,7 +368,7 @@ const UploadDocument = () => {
  <span key={folder._id}>
  <span className="mx-1">/</span>
  <button 
- className="hover:text-amber-600 transition"
+ className="btn-ghost"
  onClick={() => setFolderStack(folderStack.slice(0, index + 1))}
  >
  {folder.name}
@@ -423,7 +427,7 @@ const UploadDocument = () => {
  </label>
  <button
  onClick={toggleDrawer(true)}
- className="flex items-center gap-2 bg-[#64748b] text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:brightness-110 transition shadow-sm hover:shadow-md"
+ className="flex items-center gap-2 hover: btn btn-primary"
  >
  <FiFolderPlus size={14} />
  New Folder
@@ -431,7 +435,7 @@ const UploadDocument = () => {
  {folderStack.length > 0 && (
  <button 
  onClick={handleGoBack} 
- className="bg-surface text-main text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-slate-200 transition shadow-sm hover:shadow-md"
+ className="btn btn-secondary"
  >
  Go Back
  </button>

@@ -199,7 +199,7 @@ const handleSubmit = async (e) => {
             <button
               type="button"
               onClick={handleCancelClick}
-              className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-muted uppercase tracking-widest hover:text-muted transition-colors"
+              className="btn-ghost flex-1 text-muted"
             >
               CANCEL
             </button>
@@ -207,7 +207,7 @@ const handleSubmit = async (e) => {
               type="submit"
               form="ticketForm"
               disabled={submitting}
-              className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 sm:py-4 text-[10px] sm:text-[11px] shadow-slate-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
             >
               {submitting ? "SUBMITTING..." : "SUBMIT TICKET"}
             </button>
@@ -222,11 +222,11 @@ const handleSubmit = async (e) => {
         >
           {/* Subject */}
           <div>
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">Subject*</label>
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Subject*</label>
             <input
               name="subject"
-              placeholder="brief issue summary"
-              className={`w-full bg-surface border ${errors.subject ? 'border-red-400' : 'border-border-subtle'} rounded-xl px-4 py-3 text-sm text-main font-medium outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-300 transition-all placeholder:text-slate-300`}
+              placeholder="e.g. Cannot access dashboard"
+              className={`w-full bg-surface/50 border ${errors.subject ? 'border-red-400' : 'border-border-subtle'} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all`}
               value={form.subject}
               onChange={handleChange}
               required
@@ -241,12 +241,12 @@ const handleSubmit = async (e) => {
 
           {/* Description */}
           <div>
-            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">Detailed Description*</label>
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Detailed Description*</label>
             <textarea
               name="description"
-              placeholder="describe issue details"
+              placeholder="describe issue details..."
               rows={4}
-              className={`w-full bg-surface border ${errors.description && errors.description.length > 0 ? 'border-red-400' : 'border-border-subtle'} rounded-xl px-4 py-3 text-sm text-main font-medium outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-300 transition-all placeholder:text-slate-300 resize-none`}
+              className={`w-full bg-surface/50 border ${errors.description && errors.description.length > 0 ? 'border-red-400' : 'border-border-subtle'} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all resize-none`}
               value={form.description}
               onChange={handleChange}
               required
@@ -260,20 +260,29 @@ const handleSubmit = async (e) => {
           </div>
 
           {/* File Upload */}
-          <div className="flex flex-col gap-2 p-4 bg-surface rounded-xl border border-dashed border-border-subtle">
-            <label className="text-[10px] font-black text-muted uppercase tracking-widest">
+          <div className="flex flex-col gap-2">
+            <label className="block text-xs font-bold text-muted uppercase">
               Attachments {form.attachments.length > 0 && `(${form.attachments.length}/${MAX_FILES})`}
             </label>
-            <input
-              ref={fileInputRef}
-              name="attachment"
-              type="file"
-              multiple
-              accept=".bmp,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*,video/mp4,audio/mpeg"
-              className="text-[10px] text-muted font-bold file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-slate-200 file:text-muted hover:file:bg-slate-300 cursor-pointer"
-              onChange={handleChange}
-              disabled={form.attachments.length >= MAX_FILES}
-            />
+            <div className="flex items-center justify-center w-full">
+              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-border-subtle border-dashed rounded-xl cursor-pointer bg-surface hover:bg-surface/80 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <p className="text-xs text-muted font-bold uppercase tracking-tight">
+                    {form.attachments.length > 0 ? `${form.attachments.length} file(s) selected` : "click to upload file(s)"}
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  name="attachment"
+                  type="file"
+                  multiple
+                  accept=".bmp,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*,video/mp4,audio/mpeg"
+                  className="hidden"
+                  onChange={handleChange}
+                  disabled={form.attachments.length >= MAX_FILES}
+                />
+              </label>
+            </div>
             {errors.attachment && (
               <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.attachment}</p>
             )}
@@ -284,11 +293,11 @@ const handleSubmit = async (e) => {
                 {form.attachments.map((file, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-2 bg-surface rounded-lg border border-border-subtle"
+                    className="flex items-center justify-between p-2 bg-surface/50 rounded-lg border border-border-subtle"
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-[10px] font-bold text-main truncate">{file.name}</span>
-                      <span className="text-[9px] text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
+                      <span className="text-xs font-bold text-heading truncate">{file.name}</span>
+                      <span className="text-[10px] text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
                     </div>
                     <button
                       type="button"
@@ -316,13 +325,13 @@ const handleSubmit = async (e) => {
             <div className="flex w-full gap-3">
               <button
                 onClick={handleConfirmStay}
-                className="flex-1 py-3 bg-surface text-main rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                className="btn btn-secondary flex-1"
               >
                 Stay
               </button>
               <button
                 onClick={handleConfirmLeave}
-                className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+                className="flex-1 text-[10px] shadow-red-100 btn btn-danger"
               >
                 Leave
               </button>

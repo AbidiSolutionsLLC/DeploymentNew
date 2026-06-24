@@ -111,7 +111,7 @@ export default function TimeTrackingOverviewCard() {
  </div>
 
  {/* Action */}
- <button className="mt-4 w-full py-2 text-sm font-medium bg-green-100 text-green-800 rounded hover:bg-green-200 transition">
+ <button className="btn btn-primary mt-4 w-full">
  Log Time
  </button>
  </div>

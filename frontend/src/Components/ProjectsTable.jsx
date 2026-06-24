@@ -127,7 +127,7 @@ const ProjectsTable = ({
  <SearchBar />
  <button
  onClick={openModal}
- className="flex items-center gap-2 bg-[#86B2AA] text-white text-sm px-4 py-2 rounded-md hover:brightness-110 w-full sm:w-auto justify-center"
+ className="flex items-center gap-2 w-full sm:w-auto justify-center btn btn-primary"
  >
  <FaPlus /> New Project
  </button>

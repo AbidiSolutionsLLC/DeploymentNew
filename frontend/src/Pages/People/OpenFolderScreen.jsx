@@ -44,7 +44,7 @@ const OpenFolderScreen = ({ folder, onClose }) => {
  <div className="flex items-center justify-between mb-4">
  <button
  onClick={onClose}
- className="flex items-center text-sm text-muted hover:text-main"
+ className="btn-ghost flex items-center text-muted"
  >
  <FiArrowLeft className="mr-1" />
  </button>

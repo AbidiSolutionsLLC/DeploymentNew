@@ -223,7 +223,7 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
  <button
  onClick={handleSendComment}
  disabled={sending || !commentText.trim()}
- className="absolute right-2 top-2 p-2 bg-brand-primary text-white rounded-lg hover:bg-brand-secondary disabled:opacity-50 transition-all flex items-center justify-center"
+ className="btn-ghost absolute right-2 top-2 flex items-center justify-center p-2 rounded-lg"
  >
  {sending ? (
  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
