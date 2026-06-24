@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import api from "../../axios";
 import { toast } from "react-toastify";
 import { validateText, validateDescription, validateDescriptionAllErrors, sanitizeText, getApiError } from "../../utils/validationUtils";
+import GlassModal from "../../components/ui/GlassModal";
 
 const RaiseTicketModal = ({ onClose, onSubmit }) => {
  const [form, setForm] = useState({ subject: "", description: "", attachments: [] });
@@ -180,180 +181,168 @@ const handleSubmit = async (e) => {
  setSubmitting(false);
  }
  };
- return (
- <div 
- className="fixed inset-0 bg-slate-900/40 z-[100] flex justify-center items-center p-4 sm:p-6" 
- onClick={handleBackdropClick}
- >
- <div 
- ref={modalRef} 
- className="w-full max-w-md bg-surface rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
- >
- {/* Close Button */}
- <button 
- onClick={handleCancelClick} 
- className="absolute top-4 right-4 sm:top-5 sm:right-6 w-10 h-10 flex items-center justify-center rounded-full text-muted hover:bg-surface hover:text-red-500 transition-all text-2xl font-light z-10"
- >
- &times;
- </button>
+  return (
+    <>
+      <GlassModal
+        isOpen={true}
+        onClose={handleCancelClick}
+        title={
+          <div>
+            <div className="text-base sm:text-lg font-black text-heading tracking-widest uppercase">
+              RAISE A TICKET
+            </div>
+            <p className="text-[9px] text-muted font-black tracking-[0.2em] mt-1 uppercase">Customer Support Portal</p>
+          </div>
+        }
+        footer={
+          <div className="flex w-full gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={handleCancelClick}
+              className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-muted uppercase tracking-widest hover:text-muted transition-colors"
+            >
+              CANCEL
+            </button>
+            <button
+              type="submit"
+              form="ticketForm"
+              disabled={submitting}
+              className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? "SUBMITTING..." : "SUBMIT TICKET"}
+            </button>
+          </div>
+        }
+        maxWidth="max-w-md"
+      >
+        <form 
+          id="ticketForm" 
+          onSubmit={handleSubmit} 
+          className="space-y-5 sm:space-y-6"
+        >
+          {/* Subject */}
+          <div>
+            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">Subject*</label>
+            <input
+              name="subject"
+              placeholder="brief issue summary"
+              className={`w-full bg-surface border ${errors.subject ? 'border-red-400' : 'border-border-subtle'} rounded-xl px-4 py-3 text-sm text-main font-medium outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-300 transition-all placeholder:text-slate-300`}
+              value={form.subject}
+              onChange={handleChange}
+              required
+            />
+            <div className="flex justify-between items-center mt-1">
+              {errors.subject ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.subject}</p>
+              ) : <div />}
+              <p className="text-[10px] text-muted uppercase tracking-widest">{form.subject.length}/100</p>
+            </div>
+          </div>
 
- {/* Header */}
- <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
- <h2 className="text-base sm:text-lg font-black text-heading tracking-widest uppercase">
- RAISE A TICKET
- </h2>
- <p className="text-[9px] text-muted font-black tracking-[0.2em] mt-1 uppercase">Customer Support Portal</p>
- </div>
+          {/* Description */}
+          <div>
+            <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">Detailed Description*</label>
+            <textarea
+              name="description"
+              placeholder="describe issue details"
+              rows={4}
+              className={`w-full bg-surface border ${errors.description && errors.description.length > 0 ? 'border-red-400' : 'border-border-subtle'} rounded-xl px-4 py-3 text-sm text-main font-medium outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-300 transition-all placeholder:text-slate-300 resize-none`}
+              value={form.description}
+              onChange={handleChange}
+              required
+            />
+            <div className="flex justify-between items-center mt-1">
+              {errors.description ? (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.description}</p>
+              ) : <div />}
+              <p className="text-[10px] text-muted uppercase tracking-widest">{form.description.length}/1000</p>
+            </div>
+          </div>
 
- {/* Form Body */}
- <form 
- id="ticketForm" 
- onSubmit={handleSubmit} 
- className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar"
- >
- {/* Subject */}
- <div>
- <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">Subject*</label>
- <input
- name="subject"
- placeholder="brief issue summary"
- className={`w-full bg-surface border ${errors.subject ? 'border-red-400' : 'border-border-subtle'} rounded-xl px-4 py-3 text-sm text-main font-medium outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-300 transition-all placeholder:text-slate-300`}
- value={form.subject}
- onChange={handleChange}
- required
- />
- <div className="flex justify-between items-center mt-1">
- {errors.subject ? (
- <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.subject}</p>
- ) : <div />}
- <p className="text-[10px] text-muted uppercase tracking-widest">{form.subject.length}/100</p>
- </div>
- </div>
+          {/* File Upload */}
+          <div className="flex flex-col gap-2 p-4 bg-surface rounded-xl border border-dashed border-border-subtle">
+            <label className="text-[10px] font-black text-muted uppercase tracking-widest">
+              Attachments {form.attachments.length > 0 && `(${form.attachments.length}/${MAX_FILES})`}
+            </label>
+            <input
+              ref={fileInputRef}
+              name="attachment"
+              type="file"
+              multiple
+              accept=".bmp,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*,video/mp4,audio/mpeg"
+              className="text-[10px] text-muted font-bold file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-slate-200 file:text-muted hover:file:bg-slate-300 cursor-pointer"
+              onChange={handleChange}
+              disabled={form.attachments.length >= MAX_FILES}
+            />
+            {errors.attachment && (
+              <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.attachment}</p>
+            )}
+            
+            {/* Display attached files with remove buttons */}
+            {form.attachments.length > 0 && (
+              <div className="space-y-2 mt-2">
+                {form.attachments.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-surface rounded-lg border border-border-subtle"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-[10px] font-bold text-main truncate">{file.name}</span>
+                      <span className="text-[9px] text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(index)}
+                      className="text-muted hover:text-red-500 transition-colors text-sm font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </form>
+      </GlassModal>
 
- {/* Description */}
- <div>
- <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">Detailed Description*</label>
- <textarea
- name="description"
- placeholder="describe issue details"
- rows={4}
- className={`w-full bg-surface border ${errors.description && errors.description.length > 0 ? 'border-red-400' : 'border-border-subtle'} rounded-xl px-4 py-3 text-sm text-main font-medium outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-300 transition-all placeholder:text-slate-300 resize-none`}
- value={form.description}
- onChange={handleChange}
- required
- />
- <div className="flex justify-between items-center mt-1">
- {errors.description ? (
- <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.description}</p>
- ) : <div />}
- <p className="text-[10px] text-muted uppercase tracking-widest">{form.description.length}/1000</p>
- </div>
- </div>
-
- {/* File Upload */}
- <div className="flex flex-col gap-2 p-4 bg-surface rounded-xl border border-dashed border-border-subtle">
- <label className="text-[10px] font-black text-muted uppercase tracking-widest">
- Attachments {form.attachments.length > 0 && `(${form.attachments.length}/${MAX_FILES})`}
- </label>
- <input
- ref={fileInputRef}
- name="attachment"
- type="file"
- multiple
- accept=".bmp,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*,video/mp4,audio/mpeg"
- className="text-[10px] text-muted font-bold file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-slate-200 file:text-muted hover:file:bg-slate-300 cursor-pointer"
- onChange={handleChange}
- disabled={form.attachments.length >= MAX_FILES}
- />
- {errors.attachment && (
- <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.attachment}</p>
- )}
- 
- {/* Display attached files with remove buttons */}
- {form.attachments.length > 0 && (
- <div className="space-y-2 mt-2">
- {form.attachments.map((file, index) => (
- <div
- key={index}
- className="flex items-center justify-between p-2 bg-surface rounded-lg border border-border-subtle"
- >
- <div className="flex items-center gap-2 flex-1 min-w-0">
- <span className="text-[10px] font-bold text-main truncate">{file.name}</span>
- <span className="text-[9px] text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
- </div>
- <button
- type="button"
- onClick={() => removeAttachment(index)}
- className="text-muted hover:text-red-500 transition-colors text-sm font-bold"
- >
- ✕
- </button>
- </div>
- ))}
- </div>
- )}
- </div>
- </form>
-
- {/* Footer */}
- <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-border-subtle flex gap-3 sm:gap-4 bg-surface flex-shrink-0">
- <button
- type="button"
- onClick={handleCancelClick}
- className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-muted uppercase tracking-widest hover:text-muted transition-colors"
- >
- CANCEL
- </button>
- <button
- type="submit"
- form="ticketForm"
- disabled={submitting}
- className="flex-1 py-3 sm:py-4 bg-[#64748b] text-white rounded-2xl font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
- >
- {submitting ? "SUBMITTING..." : "SUBMIT TICKET"}
- </button>
- </div>
- </div>
-
- {/* Unsaved Changes Confirmation Dialog */}
- {showConfirmDialog && (
- <div 
- className="fixed inset-0 bg-slate-900/60 z-[110] flex justify-center items-center p-4"
- onClick={(e) => e.stopPropagation()}
- >
- <div className="w-full max-w-sm bg-surface rounded-2xl shadow-2xl p-6 animate-fadeIn">
- <div className="text-center">
- <div className="w-16 h-16 mx-auto mb-4 bg-amber-50 rounded-full flex items-center justify-center">
- <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
- </svg>
- </div>
- <h3 className="text-base font-black text-heading uppercase tracking-wider mb-2">
- Unsaved Changes
- </h3>
- <p className="text-xs text-muted font-medium mb-6">
- You have unsaved data. Are you sure you want to leave? All progress will be lost.
- </p>
- <div className="flex gap-3">
- <button
- onClick={handleConfirmStay}
- className="flex-1 py-3 bg-surface text-main rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
- >
- Stay
- </button>
- <button
- onClick={handleConfirmLeave}
- className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
- >
- Leave
- </button>
- </div>
- </div>
- </div>
- </div>
- )}
- </div>
- );
+      {/* Unsaved Changes Confirmation Dialog */}
+      {showConfirmDialog && (
+        <GlassModal
+          isOpen={true}
+          onClose={handleConfirmStay}
+          title="Unsaved Changes"
+          maxWidth="max-w-sm"
+          footer={
+            <div className="flex w-full gap-3">
+              <button
+                onClick={handleConfirmStay}
+                className="flex-1 py-3 bg-surface text-main rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+              >
+                Stay
+              </button>
+              <button
+                onClick={handleConfirmLeave}
+                className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+              >
+                Leave
+              </button>
+            </div>
+          }
+        >
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-amber-50 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <p className="text-xs text-muted font-medium mb-2">
+              You have unsaved data. Are you sure you want to leave? All progress will be lost.
+            </p>
+          </div>
+        </GlassModal>
+      )}
+    </>
+  );
 };
 
 export default RaiseTicketModal;

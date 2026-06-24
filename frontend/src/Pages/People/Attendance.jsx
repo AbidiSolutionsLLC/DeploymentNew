@@ -4,31 +4,34 @@ import { IoCalendarNumberOutline } from "react-icons/io5";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
- FaCheckCircle,
- FaTimesCircle,
- FaClock,
- FaUmbrellaBeach,
- FaRegClock,
- FaBusinessTime,
- FaInfoCircle,
- FaRegCalendarAlt,
- FaTimes
+  FaCheckCircle,
+  FaTimesCircle,
+  FaClock,
+  FaUmbrellaBeach,
+  FaRegClock,
+  FaBusinessTime,
+  FaInfoCircle,
+  FaRegCalendarAlt,
+  FaTimes
 } from "react-icons/fa";
+import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 import api from "../../axios";
 import { toast } from "react-toastify";
 import PageContainer from "../../components/ui/PageContainer";
+import GlassModal from "../../components/ui/GlassModal";
 
 const StatusBadge = ({ status }) => {
  const statusConfig = {
- Present: { icon: <FaCheckCircle className="mr-1" />, color: "bg-green-100 text-green-800" },
- Absent: { icon: <FaTimesCircle className="mr-1" />, color: "bg-red-100 text-red-800" },
- "Half Day": { icon: <FaClock className="mr-1" />, color: "bg-yellow-100 text-yellow-800" },
- Leave: { icon: <FaUmbrellaBeach className="mr-1" />, color: "bg-amber-100 text-amber-800" },
- Holiday: { icon: <FaBusinessTime className="mr-1" />, color: "bg-purple-100 text-purple-800" }
+ Present: { icon: <FaCheckCircle className="mr-1" /> },
+ Absent: { icon: <FaTimesCircle className="mr-1" /> },
+ "Half Day": { icon: <FaClock className="mr-1" /> },
+ Leave: { icon: <FaUmbrellaBeach className="mr-1" /> },
+ Holiday: { icon: <FaBusinessTime className="mr-1" /> }
  };
+ const variant = resolveStatusVariant(status);
 
  return (
- <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${statusConfig[status]?.color || "bg-surface text-heading"}`}>
+ <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${STATUS_VARIANTS[variant]?.badge || "bg-surface text-heading"}`}>
  {statusConfig[status]?.icon || <FaRegClock className="mr-1" />}
  {status}
  </span>
@@ -364,48 +367,39 @@ const Attendance = () => {
  </div>
  </PageContainer>
 
- {isModalOpen && selectedAbsentDay && (
- <div className="fixed inset-0 bg-slate-900/40 z-[9999] flex justify-center items-center p-4">
- <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-fadeIn">
- <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center bg-surface dark:bg-app">
- <h3 className="text-sm font-black text-rose-600 uppercase tracking-widest flex items-center gap-2">
- <FaTimesCircle /> Absence Reason
- </h3>
- <button 
- onClick={() => setIsModalOpen(false)} 
- className="text-muted hover:text-muted transition-colors"
- title="Close"
- >
- <div className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-200 transition-all">
- <FaTimes />
- </div>
- </button>
- </div>
- 
- <div className="p-6">
- <div className="mb-5">
- <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-1">Date</p>
- <p className="text-sm font-bold text-heading">{selectedAbsentDay.fullDate}</p>
- </div>
- <div>
- <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-1">Reason / Notes</p>
- <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-4 text-sm text-rose-800 font-medium whitespace-pre-wrap shadow-sm">
- {selectedAbsentDay.notes || "No reason specified."}
- </div>
- </div>
- </div>
-
- <div className="px-6 py-4 border-t border-border-subtle bg-surface dark:bg-app flex justify-end">
- <button 
- onClick={() => setIsModalOpen(false)}
- className="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-700 shadow-md hover:shadow-lg shadow-slate-200 transition-all cursor-pointer"
- >
- Close
- </button>
- </div>
- </div>
- </div>
- )}
+  {isModalOpen && selectedAbsentDay && (
+    <GlassModal
+      isOpen={true}
+      onClose={() => setIsModalOpen(false)}
+      maxWidth="max-w-sm"
+      title={
+        <h3 className="text-sm font-black text-rose-600 uppercase tracking-widest flex items-center gap-2">
+          <FaTimesCircle /> Absence Reason
+        </h3>
+      }
+      footer={
+        <div className="flex justify-end w-full">
+          <button 
+            onClick={() => setIsModalOpen(false)}
+            className="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-700 shadow-md hover:shadow-lg shadow-slate-200 transition-all cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="mb-5">
+        <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-1">Date</p>
+        <p className="text-sm font-bold text-heading">{selectedAbsentDay.fullDate}</p>
+      </div>
+      <div>
+        <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-1">Reason / Notes</p>
+        <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-4 text-sm text-rose-800 font-medium whitespace-pre-wrap shadow-sm">
+          {selectedAbsentDay.notes || "No reason specified."}
+        </div>
+      </div>
+    </GlassModal>
+  )}
  </>
  );
 };

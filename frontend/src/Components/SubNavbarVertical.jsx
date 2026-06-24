@@ -16,6 +16,7 @@ import {
  Cog6ToothIcon, ArrowRightOnRectangleIcon, SwatchIcon
 } from "@heroicons/react/20/solid";
 import { DollarSignIcon } from "lucide-react";
+import GlassModal from "./ui/GlassModal";
 
 const SubNavbarVertical = () => {
  const { pathname } = useLocation();
@@ -232,51 +233,51 @@ const SubNavbarVertical = () => {
  </div>
  </aside>
 
- {/* ── Logout Confirm Modal (Portal) ── */}
- {isLogoutModalOpen &&
- createPortal(
- <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 ">
- <div
- className="p-6 rounded-[2rem] shadow-2xl w-[90%] max-w-sm animate-in fade-in zoom-in-95 duration-200 theme-confirm-modal"
- >
- <div className="flex items-center gap-3 mb-4">
- <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 shrink-0">
- <ArrowRightOnRectangleIcon className="w-5 h-5" />
- </div>
- <h3 className="text-lg font-bold" style={{ color: "var(--color-text-heading)" }}>
- Confirm Sign Out
- </h3>
- </div>
-
- <p className="text-sm mb-6 pl-1 leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
- Are you sure you want to sign out? You will need to log back in to access your dashboard.
- </p>
-
- <div className="flex justify-end gap-3">
- <button
- id="logout-cancel-btn"
- onClick={() => setIsLogoutModalOpen(false)}
- className="px-5 py-2.5 text-sm font-bold rounded-xl transition-colors theme-settings-item"
- style={{ backgroundColor: "var(--color-bg-secondary)" }}
- >
- Cancel
- </button>
- <button
- id="logout-confirm-btn"
- onClick={() => {
- setIsLogoutModalOpen(false);
- handleLogout();
- }}
- className="px-5 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-sm shadow-red-500/20 rounded-xl transition-colors flex items-center gap-2"
- >
- Sign Out
- </button>
- </div>
- </div>
- </div>,
- document.body
- )}
- </>
+      {/* ── Logout Confirm Modal (Portal) ── */}
+      {isLogoutModalOpen && (
+        <GlassModal
+          isOpen={true}
+          onClose={() => setIsLogoutModalOpen(false)}
+          title={
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 shrink-0">
+                <ArrowRightOnRectangleIcon className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-bold" style={{ color: "var(--color-text-heading)" }}>
+                Confirm Sign Out
+              </h3>
+            </div>
+          }
+          footer={
+            <div className="flex justify-end gap-3 w-full">
+              <button
+                id="logout-cancel-btn"
+                onClick={() => setIsLogoutModalOpen(false)}
+                className="px-5 py-2.5 text-sm font-bold rounded-xl transition-colors theme-settings-item"
+                style={{ backgroundColor: "var(--color-bg-secondary)" }}
+              >
+                Cancel
+              </button>
+              <button
+                id="logout-confirm-btn"
+                onClick={() => {
+                  setIsLogoutModalOpen(false);
+                  handleLogout();
+                }}
+                className="px-5 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-sm shadow-red-500/20 rounded-xl transition-colors flex items-center gap-2"
+              >
+                Sign Out
+              </button>
+            </div>
+          }
+          maxWidth="max-w-sm"
+        >
+          <p className="text-sm pl-1 leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+            Are you sure you want to sign out? You will need to log back in to access your dashboard.
+          </p>
+        </GlassModal>
+      )}
+    </>
  );
 };
 

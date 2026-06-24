@@ -11,6 +11,7 @@ import PageContainer from "../../components/ui/PageContainer";
 import GlassInput from "../../components/ui/GlassInput";
 import FilterRow from "../../components/ui/FilterRow";
 import TableWithPagination from "../../components/TableWithPagination";
+import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 
 const AdminTickets = () => {
  const [entriesPerPage, setEntriesPerPage] = useState(10);
@@ -95,13 +96,8 @@ const AdminTickets = () => {
  <span className="text-xs text-muted font-mono">
  #{ticket.ticketID || ticket._id?.slice(0, 6)}
  </span>
- <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide 
- ${ticket.status === "opened"
- ? "bg-green-100 text-green-800"
- : ticket.status === "in progress"
- ? "bg-yellow-100 text-yellow-800"
- : "bg-red-100 text-red-800"
- }`}>
+  <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide 
+  ${STATUS_VARIANTS[resolveStatusVariant(ticket.status)]?.badge || STATUS_VARIANTS.neutral.badge}`}>
  {ticket.status}
  </span>
  <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide 

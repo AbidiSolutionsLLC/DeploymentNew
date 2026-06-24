@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import api from "../../axios";
 import EmptyCardState from "./EmptyCardState";
 import ModernDatePicker from "../ui/ModernDatePicker";
+import GlassModal from "../ui/GlassModal";
 
 const EMPTY_FORM = {
  title: "",
@@ -210,7 +211,7 @@ const ToDoCard = ({ onDelete, userId }) => {
  : task
  )
  );
- return data;
+ return updatedTodo;
  } catch (error) {
  setTasks(previousTasks);
  toast.error(error.response?.data?.message || "Failed to update task");
@@ -515,249 +516,229 @@ const ToDoCard = ({ onDelete, userId }) => {
  )}
  </div>
  </div>
- {detailModal.open && detailModal.task && (
- <div
- className="fixed inset-0 bg-slate-900/60 z-[110] flex justify-center items-center p-4 sm:p-6"
- onClick={(e) => {
- if (e.target === e.currentTarget) closeDetailModal();
- }}
- >
- <div className="w-full max-w-3xl max-h-[90vh] bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden">
- <div className="shrink-0 flex items-start justify-between gap-4 px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-slate-100">
- <div>
- <h3 className="text-base font-black text-main uppercase tracking-wider">
- Todo
- </h3>
- <p className="text-[11px] text-muted mt-1 font-medium">
- View and update this task
- </p>
- </div>
- <button
- type="button"
- onClick={closeDetailModal}
- className="shrink-0 text-xs text-muted hover:text-main font-semibold px-3 py-1.5 rounded-lg hover:bg-app transition"
- >
- Close
- </button>
- </div>
+  {detailModal.open && detailModal.task && (
+    <GlassModal
+      isOpen={true}
+      onClose={closeDetailModal}
+      maxWidth="max-w-3xl"
+      title={
+        <div>
+          <h3 className="text-base font-black text-main uppercase tracking-wider">
+            Todo
+          </h3>
+          <p className="text-[11px] text-muted mt-1 font-medium">
+            View and update this task
+          </p>
+        </div>
+      }
+      footer={
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 w-full">
+          <button
+            type="button"
+            onClick={closeDetailModal}
+            className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-muted bg-surface border border-subtle hover:bg-app transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleModalSave}
+            disabled={modalSaveDisabled}
+            className="w-full sm:w-auto px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white bg-[#64748b] shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {updatingTaskId === detailModal.task._id ? "Saving..." : "Save changes"}
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-5 text-sm">
+        <div>
+          <label className="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1.5">
+            Title
+          </label>
+          <input
+            type="text"
+            className={`w-full border rounded-xl px-4 py-3 text-sm text-main bg-surface ${
+              modalTouched.title && modalErrors.title ? "border-red-400" : "border-subtle"
+            }`}
+            value={modalForm.title}
+            onChange={(e) => handleModalFieldChange("title", e.target.value)}
+            onBlur={() => handleModalFieldBlur("title")}
+          />
+          {modalTouched.title && modalErrors.title && (
+            <p className="text-[11px] text-red-500 mt-1.5">{modalErrors.title}</p>
+          )}
+        </div>
 
- <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 sm:px-8 py-6">
- <div className="space-y-5 text-sm">
- <div>
- <label className="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1.5">
- Title
- </label>
- <input
- type="text"
- className={`w-full border rounded-xl px-4 py-3 text-sm text-main bg-surface ${
- modalTouched.title && modalErrors.title ? "border-red-400" : "border-subtle"
- }`}
- value={modalForm.title}
- onChange={(e) => handleModalFieldChange("title", e.target.value)}
- onBlur={() => handleModalFieldBlur("title")}
- />
- {modalTouched.title && modalErrors.title && (
- <p className="text-[11px] text-red-500 mt-1.5">{modalErrors.title}</p>
- )}
- </div>
+        <div>
+          <label className="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1.5">
+            Description
+          </label>
+          <textarea
+            rows={8}
+            className={`w-full border rounded-xl px-4 py-3 text-sm text-main bg-surface resize-y min-h-[140px] ${
+              modalTouched.description && modalErrors.description ? "border-red-400" : "border-subtle"
+            }`}
+            value={modalForm.description}
+            onChange={(e) => handleModalFieldChange("description", e.target.value)}
+            onBlur={() => handleModalFieldBlur("description")}
+            placeholder="Describe the task..."
+          />
+          {modalTouched.description && modalErrors.description && (
+            <p className="text-[11px] text-red-500 mt-1.5">{modalErrors.description}</p>
+          )}
+        </div>
 
- <div>
- <label className="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1.5">
- Description
- </label>
- <textarea
- rows={8}
- className={`w-full border rounded-xl px-4 py-3 text-sm text-main bg-surface resize-y min-h-[140px] ${
- modalTouched.description && modalErrors.description ? "border-red-400" : "border-subtle"
- }`}
- value={modalForm.description}
- onChange={(e) => handleModalFieldChange("description", e.target.value)}
- onBlur={() => handleModalFieldBlur("description")}
- placeholder="Describe the task..."
- />
- {modalTouched.description && modalErrors.description && (
- <p className="text-[11px] text-red-500 mt-1.5">{modalErrors.description}</p>
- )}
- </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <ModernDatePicker
+              label="Due Date"
+              name="dueDate"
+              value={modalForm.dueDate}
+              onChange={(e) => handleModalFieldChange("dueDate", e.target.value)}
+              required
+              placeholder="Select Date"
+              error={modalTouched.dueDate && modalErrors.dueDate ? modalErrors.dueDate : null}
+            />
+          </div>
+          <div className="flex flex-col justify-end">
+            <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-subtle px-4 py-3 bg-app/80 hover:bg-app transition">
+              <input
+                type="checkbox"
+                checked={modalForm.completed}
+                onChange={(e) => handleModalFieldChange("completed", e.target.checked)}
+                className="w-4 h-4 rounded accent-green-600"
+              />
+              <span className="text-sm font-semibold text-main">Mark as completed</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </GlassModal>
+  )}
 
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
- <div>
- <ModernDatePicker
- label="Due Date"
- name="dueDate"
- value={modalForm.dueDate}
- onChange={(e) => handleModalFieldChange("dueDate", e.target.value)}
- required
- placeholder="Select Date"
- error={modalTouched.dueDate && modalErrors.dueDate ? modalErrors.dueDate : null}
- />
- </div>
- <div className="flex flex-col justify-end">
- <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-subtle px-4 py-3 bg-app/80 hover:bg-app transition">
- <input
- type="checkbox"
- checked={modalForm.completed}
- onChange={(e) => handleModalFieldChange("completed", e.target.checked)}
- className="w-4 h-4 rounded accent-green-600"
- />
- <span className="text-sm font-semibold text-main">Mark as completed</span>
- </label>
- </div>
- </div>
- </div>
- </div>
+  {addModalOpen && (
+    <GlassModal
+      isOpen={true}
+      onClose={closeAddModal}
+      maxWidth="max-w-2xl"
+      title={
+        <div>
+          <h3 className="text-base font-black text-main uppercase tracking-wider">
+            Add To-Do
+          </h3>
+          <p className="text-[11px] text-muted mt-1 font-medium">
+            Enter task details and save to your to-do list.
+          </p>
+        </div>
+      }
+      footer={
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 w-full">
+          <button
+            type="button"
+            onClick={closeAddModal}
+            className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-muted bg-surface border border-subtle hover:bg-app transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={addTask}
+            disabled={addDisabled}
+            className="w-full sm:w-auto px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white bg-[#64748b] shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Saving..." : "Save task"}
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-5 text-sm">
+        <div>
+          <label className="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1.5">
+            Title
+          </label>
+          <input
+            type="text"
+            className={`w-full border rounded-xl px-4 py-3 text-sm text-main bg-surface ${
+              addModalTouched.title && addErrors.title ? "border-red-400" : "border-subtle"
+            }`}
+            value={addModalForm.title}
+            onChange={(e) => handleAddFieldChange("title", e.target.value)}
+            onBlur={() => handleAddFieldBlur("title")}
+            placeholder="Task name"
+          />
+          {addModalTouched.title && addErrors.title && (
+            <p className="text-[11px] text-red-500 mt-1.5">{addErrors.title}</p>
+          )}
+        </div>
 
- <div className="shrink-0 flex flex-col-reverse sm:flex-row justify-end gap-3 px-6 sm:px-8 py-5 border-t border-slate-100 bg-app/50">
- <button
- type="button"
- onClick={closeDetailModal}
- className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-muted bg-surface border border-subtle hover:bg-app transition"
- >
- Cancel
- </button>
- <button
- type="button"
- onClick={handleModalSave}
- disabled={modalSaveDisabled}
- className="w-full sm:w-auto px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white bg-[#64748b] shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
- >
- {updatingTaskId === detailModal.task._id ? "Saving..." : "Save changes"}
- </button>
- </div>
- </div>
- </div>
- )}
- {addModalOpen && (
- <div
- className="fixed inset-0 bg-slate-900/60 z-[110] flex justify-center items-center p-4 sm:p-6"
- onClick={(e) => {
- if (e.target === e.currentTarget) closeAddModal();
- }}
- >
- <div className="w-full max-w-2xl max-h-[90vh] bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden">
- <div className="shrink-0 flex items-start justify-between gap-4 px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-slate-100">
- <div>
- <h3 className="text-base font-black text-main uppercase tracking-wider">
- Add To-Do
- </h3>
- <p className="text-[11px] text-muted mt-1 font-medium">
- Enter task details and save to your to-do list.
- </p>
- </div>
- <button
- type="button"
- onClick={closeAddModal}
- className="shrink-0 text-xs text-muted hover:text-main font-semibold px-3 py-1.5 rounded-lg hover:bg-app transition"
- >
- Close
- </button>
- </div>
+        <div>
+          <label className="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1.5">
+            Description
+          </label>
+          <textarea
+            rows={5}
+            className={`w-full border rounded-xl px-4 py-3 text-sm text-main bg-surface resize-y min-h-[120px] ${
+              addModalTouched.description && addErrors.description ? "border-red-400" : "border-subtle"
+            }`}
+            value={addModalForm.description}
+            onChange={(e) => handleAddFieldChange("description", e.target.value)}
+            onBlur={() => handleAddFieldBlur("description")}
+            placeholder="Describe the task..."
+          />
+          {addModalTouched.description && addErrors.description && (
+            <p className="text-[11px] text-red-500 mt-1.5">{addErrors.description}</p>
+          )}
+        </div>
 
- <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 sm:px-8 py-6">
- <div className="space-y-5 text-sm">
- <div>
- <label className="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1.5">
- Title
- </label>
- <input
- type="text"
- className={`w-full border rounded-xl px-4 py-3 text-sm text-main bg-surface ${
- addModalTouched.title && addErrors.title ? "border-red-400" : "border-subtle"
- }`}
- value={addModalForm.title}
- onChange={(e) => handleAddFieldChange("title", e.target.value)}
- onBlur={() => handleAddFieldBlur("title")}
- placeholder="Task name"
- />
- {addModalTouched.title && addErrors.title && (
- <p className="text-[11px] text-red-500 mt-1.5">{addErrors.title}</p>
- )}
- </div>
+        <div>
+          <ModernDatePicker
+            label="Due Date"
+            name="dueDate"
+            value={addModalForm.dueDate}
+            onChange={(e) => handleAddFieldChange("dueDate", e.target.value)}
+            required
+            placeholder="Select Date"
+            error={addModalTouched.dueDate && addErrors.dueDate ? addErrors.dueDate : null}
+          />
+        </div>
+      </div>
+    </GlassModal>
+  )}
 
- <div>
- <label className="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1.5">
- Description
- </label>
- <textarea
- rows={5}
- className={`w-full border rounded-xl px-4 py-3 text-sm text-main bg-surface resize-y min-h-[120px] ${
- addModalTouched.description && addErrors.description ? "border-red-400" : "border-subtle"
- }`}
- value={addModalForm.description}
- onChange={(e) => handleAddFieldChange("description", e.target.value)}
- onBlur={() => handleAddFieldBlur("description")}
- placeholder="Describe the task..."
- />
- {addModalTouched.description && addErrors.description && (
- <p className="text-[11px] text-red-500 mt-1.5">{addErrors.description}</p>
- )}
- </div>
-
- <div>
- <ModernDatePicker
- label="Due Date"
- name="dueDate"
- value={addModalForm.dueDate}
- onChange={(e) => handleAddFieldChange("dueDate", e.target.value)}
- required
- placeholder="Select Date"
- error={addModalTouched.dueDate && addErrors.dueDate ? addErrors.dueDate : null}
- />
- </div>
- </div>
- </div>
-
- <div className="shrink-0 flex flex-col-reverse sm:flex-row justify-end gap-3 px-6 sm:px-8 py-5 border-t border-slate-100 bg-app/50">
- <button
- type="button"
- onClick={closeAddModal}
- className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-muted bg-surface border border-subtle hover:bg-app transition"
- >
- Cancel
- </button>
- <button
- type="button"
- onClick={addTask}
- disabled={addDisabled}
- className="w-full sm:w-auto px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white bg-[#64748b] shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
- >
- {saving ? "Saving..." : "Save task"}
- </button>
- </div>
- </div>
- </div>
- )}
- {deleteDialog.open && (
- <div className="fixed inset-0 bg-slate-900/60 z-[110] flex justify-center items-center p-4">
- <div className="w-full max-w-sm bg-surface rounded-2xl shadow-2xl p-6">
- <div className="text-center">
- <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
- <FiTrash2 className="w-8 h-8 text-red-500" />
- </div>
- <h3 className="text-base font-black text-main uppercase tracking-wider mb-2">
- Delete Todo
- </h3>
- <p className="text-xs text-muted font-medium mb-6">
- Are you sure you want to delete this todo? You can undo it for a few seconds after deleting.
- </p>
- <div className="flex gap-3">
- <button
- onClick={() => setDeleteDialog({ open: false, task: null })}
- className="flex-1 py-3 bg-app text-main rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
- >
- Cancel
- </button>
- <button
- onClick={removeTask}
- className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
- >
- Delete
- </button>
- </div>
- </div>
- </div>
- </div>
- )}
+  {deleteDialog.open && (
+    <GlassModal
+      isOpen={true}
+      onClose={() => setDeleteDialog({ open: false, task: null })}
+      maxWidth="max-w-sm"
+      title="Delete Todo"
+      footer={
+        <div className="flex gap-3 w-full">
+          <button
+            onClick={() => setDeleteDialog({ open: false, task: null })}
+            className="flex-1 py-3 bg-app text-main rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={removeTask}
+            className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+          >
+            Delete
+          </button>
+        </div>
+      }
+    >
+      <div className="text-center">
+        <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
+          <FiTrash2 className="w-8 h-8 text-red-500" />
+        </div>
+        <p className="text-xs text-muted font-medium mb-6">
+          Are you sure you want to delete this todo? You can undo it for a few seconds after deleting.
+        </p>
+      </div>
+    </GlassModal>
+  )}
  </>
  );
 };

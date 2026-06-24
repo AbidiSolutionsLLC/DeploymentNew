@@ -12,6 +12,7 @@ import AdminAddAttendanceModal from "../../components/AdminAddAttendanceModal";
 import GlassInput from "../../components/ui/GlassInput";
 import ModernSelect from "../../components/ui/ModernSelect";
 import FilterRow from "../../components/ui/FilterRow";
+import GlassModal from "../../components/ui/GlassModal";
 
 // --- SUB-COMPONENT: LIVE TIMER ---
 const LiveTimer = ({ startTime }) => {
@@ -497,77 +498,76 @@ const AdminAttendance = () => {
  </div>
  </PageContainer>
 
- {isEditModalOpen && (
- <div className="fixed inset-0 bg-slate-900/40 z-[9999] flex justify-center items-center p-4">
- <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
- <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-surface dark:bg-app">
- <h3 className="text-sm font-black text-heading uppercase tracking-widest">Edit Attendance</h3>
- <button onClick={() => setIsEditModalOpen(false)} className="text-muted hover:text-red-500"><X size={20} /></button>
- </div>
+  {isEditModalOpen && (
+    <GlassModal
+      isOpen={true}
+      onClose={() => setIsEditModalOpen(false)}
+      maxWidth="max-w-md"
+      title="Edit Attendance"
+      footer={
+        <div className="flex gap-3 w-full">
+          <button
+            onClick={() => setIsEditModalOpen(false)}
+            className="flex-1 py-2 text-xs font-bold text-muted hover:text-main uppercase tracking-wider"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveChanges}
+            className="flex-1 py-2 bg-amber-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-700 shadow-md shadow-amber-200 flex justify-center items-center gap-2"
+          >
+            <Save size={14} /> Save Changes
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Check In Time</label>
+          <DatePicker
+            selected={editFormData.checkInTime}
+            onChange={(date) => setEditFormData({ ...editFormData, checkInTime: date })}
+            showTimeSelect
+            dateFormat="Pp"
+            wrapperClassName="w-full"
+            className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none"
+            popperProps={{ strategy: "fixed" }}
+            portalId="portal-root"
+          />
+        </div>
 
- <div className="p-6 space-y-4 ">
- <div>
- <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Check In Time</label>
- <DatePicker
- selected={editFormData.checkInTime}
- onChange={(date) => setEditFormData({ ...editFormData, checkInTime: date })}
- showTimeSelect
- dateFormat="Pp"
- wrapperClassName="w-full"
- className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none"
- popperProps={{ strategy: "fixed" }}
- portalId="portal-root"
- />
- </div>
+        <div>
+          <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Check Out Time</label>
+          <DatePicker
+            selected={editFormData.checkOutTime}
+            onChange={(date) => setEditFormData({ ...editFormData, checkOutTime: date })}
+            showTimeSelect
+            dateFormat="Pp"
+            wrapperClassName="w-full"
+            className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none"
+            popperProps={{ strategy: "fixed" }}
+            portalId="portal-root"
+          />
+        </div>
 
- <div>
- <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Check Out Time</label>
- <DatePicker
- selected={editFormData.checkOutTime}
- onChange={(date) => setEditFormData({ ...editFormData, checkOutTime: date })}
- showTimeSelect
- dateFormat="Pp"
- wrapperClassName="w-full"
- className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none"
- popperProps={{ strategy: "fixed" }}
- portalId="portal-root"
- />
- </div>
-
- <div>
- <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Status</label>
- <select
- className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none bg-surface"
- value={editFormData.status}
- onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
- >
- <option value="Present">Present</option>
- <option value="Half Day">Half Day</option>
- <option value="Absent">Absent</option>
- <option value="Late">Late</option>
- <option value="Leave">Leave</option>
- <option value="On Leave">On Leave</option>
- </select>
- </div>
- </div>
-
- <div className="px-6 py-4 border-t border-border-subtle flex gap-3 bg-surface dark:bg-app">
- <button
- onClick={() => setIsEditModalOpen(false)}
- className="flex-1 py-2 text-xs font-bold text-muted hover:text-main uppercase tracking-wider"
- >
- Cancel
- </button>
- <button
- onClick={handleSaveChanges}
- className="flex-1 py-2 bg-amber-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-700 shadow-md shadow-amber-200 flex justify-center items-center gap-2"
- >
- <Save size={14} /> Save Changes
- </button>
- </div>
- </div>
- </div>
- )}
+        <div>
+          <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">Status</label>
+          <select
+            className="w-full border border-border-subtle rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-100 outline-none bg-surface"
+            value={editFormData.status}
+            onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+          >
+            <option value="Present">Present</option>
+            <option value="Half Day">Half Day</option>
+            <option value="Absent">Absent</option>
+            <option value="Late">Late</option>
+            <option value="Leave">Leave</option>
+            <option value="On Leave">On Leave</option>
+          </select>
+        </div>
+      </div>
+    </GlassModal>
+  )}
 
  {/* NEW MODALS */}
  {isAddAttendanceOpen && (

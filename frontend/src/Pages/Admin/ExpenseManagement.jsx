@@ -18,6 +18,7 @@ import { downloadFile } from "../../utils/downloadFile";
 import PageContainer from "../../components/ui/PageContainer";
 import TableWithPagination from "../../components/TableWithPagination";
 import expensesApi from "../../api/expensesApi";
+import GlassModal from "../../components/ui/GlassModal";
 
 // --- MAIN COMPONENT ---
 const ExpenseManagement = () => {
@@ -465,33 +466,20 @@ const ExpenseManagement = () => {
  </div>
 
  {/* Submit Expense Modal */}
- {isSubmitModalOpen && (
- <div className="fixed inset-0 bg-slate-900/40 z-[9999] flex justify-center items-center p-4 overflow-y-auto">
- <div className="bg-surface rounded-[1.2rem] shadow-2xl w-full max-w-2xl my-8 overflow-hidden animate-fadeIn border border-white/50">
- <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-surface dark:bg-app sticky top-0">
- <h3 className="text-xs font-bold text-heading uppercase tracking-widest">
- Submit New Expense
- </h3>
- <button 
- onClick={() => setIsSubmitModalOpen(false)} 
- className="text-primary-color/40 hover:text-error transition-colors"
+ <GlassModal
+   isOpen={isSubmitModalOpen}
+   onClose={() => setIsSubmitModalOpen(false)}
+   title={<span className="text-xs font-bold text-heading uppercase tracking-widest">Submit New Expense</span>}
+   maxWidth="max-w-2xl"
  >
- <X size={20} />
- </button>
- </div>
-
- <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
- <ExpenseForm
- onSubmitSuccess={() => {
- setIsSubmitModalOpen(false);
- fetchExpenses();
- }}
- onCancel={() => setIsSubmitModalOpen(false)}
- />
- </div>
- </div>
- </div>
- )}
+   <ExpenseForm
+     onSubmitSuccess={() => {
+       setIsSubmitModalOpen(false);
+       fetchExpenses();
+     }}
+     onCancel={() => setIsSubmitModalOpen(false)}
+   />
+ </GlassModal>
 
  {/* Expense Detail Modal */}
  {isDetailModalOpen && selectedExpense && (
@@ -517,26 +505,17 @@ const ExpenseManagement = () => {
  )}
 
  {/* Edit/Reject Modal */}
- {isEditModalOpen && editingExpense && (
- <div className="fixed inset-0 bg-slate-900/40 z-[9999] flex justify-center items-center p-4">
- <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn border border-border-subtle">
- <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-surface dark:bg-app">
- <h3 className="text-sm font-black text-heading uppercase tracking-widest">
- {editMode === "reject" ? 'Reject Expense' : 'Edit Expense'}
- </h3>
- <button
- onClick={() => {
- setIsEditModalOpen(false);
- setEditingExpense(null);
- setEditMode("edit");
- }}
- className="text-muted hover:text-rose-500 transition-colors"
+ <GlassModal
+   isOpen={isEditModalOpen && !!editingExpense}
+   onClose={() => {
+     setIsEditModalOpen(false);
+     setEditingExpense(null);
+     setEditMode("edit");
+   }}
+   title={<span className="text-sm font-black text-heading uppercase tracking-widest">{editMode === "reject" ? 'Reject Expense' : 'Edit Expense'}</span>}
+   maxWidth="max-w-md"
  >
- <X size={20} />
- </button>
- </div>
-
- <div className="p-6 space-y-4">
+ <div className="space-y-4">
  {editMode === "reject" ? (
  // Reject Form
  <div>
@@ -677,9 +656,7 @@ const ExpenseManagement = () => {
  </>
  )}
  </div>
- </div>
- </div>
- )}
+ </GlassModal>
  </PageContainer>
  );
 };

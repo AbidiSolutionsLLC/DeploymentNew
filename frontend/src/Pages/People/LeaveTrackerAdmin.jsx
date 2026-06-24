@@ -13,6 +13,7 @@ import { useSelector } from "react-redux";
 import TableWithPagination from "../../components/TableWithPagination";
 import { getApiError } from "../../utils/validationUtils";
 import { parseISOToLocalDate, formatDisplayDate } from "../../utils/dateUtils";
+import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 import PageContainer from "../../components/ui/PageContainer";
 
 const LeaveTrackerAdmin = () => {
@@ -256,13 +257,7 @@ const LeaveTrackerAdmin = () => {
  }
  };
 
- const getStatusColor = (status) => {
- switch (status) {
- case "Approved": return "bg-green-100 text-green-800";
- case "Rejected": return "bg-red-100 text-red-800";
- default: return "bg-yellow-100 text-yellow-800";
- }
- };
+ const getStatusColor = (status) => STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
 
  // Derive unique leave types from records for filter options
  const leaveTypeOptions = useMemo(() => {

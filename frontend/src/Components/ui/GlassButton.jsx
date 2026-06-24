@@ -11,9 +11,9 @@ export default function GlassButton({
  icon: Icon,
  ...props
 }) {
- // Base classes that are applied to all variants
- const baseClasses =
- "inline-flex items-center justify-center font-bold transition-all duration-200 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed";
+  // Base classes that are applied to all variants
+  const baseClasses =
+  "inline-flex items-center justify-center font-bold transition-all duration-200 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed";
 
  // Size classes
  const sizeClasses = {
@@ -22,17 +22,17 @@ export default function GlassButton({
  lg: "px-6 py-3 text-base uppercase tracking-widest",
  };
 
- // Variant classes — fully themed for both gold-white & gold-black
-  const variantClasses = {
-    primary:
-      "bg-brand text-main shadow-md hover:bg-brand-accent hover:-translate-y-px",
-    secondary:
-      "bg-surface text-main border border-brand shadow-sm hover:bg-card-hover hover:-translate-y-px",
-    danger:
-      "bg-red-500 text-white shadow-md hover:bg-red-600 hover:-translate-y-px",
-    ghost:
-      "bg-transparent text-muted hover:bg-card-hover hover:text-main",
-  };
+  // Variant classes — fully themed for both golden white & golden black
+   const variantClasses = {
+     primary:
+       "bg-brand text-on-brand shadow-md hover:bg-brand-accent hover:-translate-y-px",
+     secondary:
+       "bg-surface text-main border border-border-primary shadow-sm hover:bg-card-hover hover:-translate-y-px",
+     danger:
+       "bg-[var(--color-error)] text-white shadow-md hover:brightness-90 hover:-translate-y-px",
+     ghost:
+       "bg-transparent text-muted hover:bg-card-hover hover:text-main",
+   };
 
  return (
  <button

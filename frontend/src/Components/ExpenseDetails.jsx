@@ -2,6 +2,7 @@ import React from "react";
 import { X, CheckCircle, XCircle, Trash2, Calendar, User, Paperclip, AlertCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import { downloadFile } from "../utils/downloadFile";
+import GlassModal from "./ui/GlassModal";
 
 const ExpenseDetail = ({
  expense,
@@ -63,186 +64,180 @@ const ExpenseDetail = ({
 
  const isOwner = currentUser?.id === expense.submittedBy?._id || currentUser?.id === expense.submittedBy;
 
- return (
- <div className="fixed inset-0 bg-slate-900/40 z-[9999] flex justify-center items-center p-4 overflow-y-auto">
- <div className="bg-surface rounded-[1.2rem] shadow-2xl w-full max-w-2xl my-8 overflow-hidden animate-fadeIn border border-white/50">
- {/* Header */}
- <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-app/50 sticky top-0">
- <div className="flex items-center gap-3">
- <h3 className="text-xs font-bold text-main uppercase tracking-widest">
- Expense Details
- </h3>
- <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${expense.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : expense.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-amber-50 text-amber-600 border-amber-100'} uppercase tracking-wide`}>
- {expense.status}
- </span>
- </div>
- <button 
- onClick={onClose} 
- className="text-muted hover:text-rose-500 transition-colors"
- >
- <X size={20} />
- </button>
- </div>
+  const titleContent = (
+    <div className="flex items-center gap-3">
+      <h3 className="text-xs font-bold text-main uppercase tracking-widest">
+        Expense Details
+      </h3>
+      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${expense.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : expense.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-amber-50 text-amber-600 border-amber-100'} uppercase tracking-wide`}>
+        {expense.status}
+      </span>
+    </div>
+  );
 
- {/* Content */}
- <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
- {/* Title & Amount */}
- <div className="flex justify-between items-start mb-8">
- <div>
- <h2 className="text-2xl font-bold text-main mb-1">{expense.title}</h2>
- <p className="text-sm font-medium text-muted">{expense.description || "No description provided"}</p>
- </div>
- <div className="text-right">
- <p className="text-3xl font-bold text-main">${expense.amount?.toFixed(2)}</p>
- <span className="text-[10px] font-bold bg-app px-2.5 py-1 rounded-md border border-subtle uppercase tracking-tight text-muted">
- {expense.category}
- </span>
- </div>
- </div>
+  const footerContent = (
+    <div className="flex gap-3 w-full">
+      {expense.status === 'pending' && canApprove && (currentUser?.role?.toLowerCase() === 'superadmin' || !isOwner) && (
+        <>
+          <button
+            onClick={() => onApprove(expense._id)}
+            className="flex-1 px-4 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex justify-center items-center gap-2"
+          >
+            <CheckCircle size={14} /> Approve
+          </button>
+          <button
+            onClick={() => onReject(expense)}
+            className="flex-1 px-4 py-3 bg-surface text-rose-600 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-md border border-rose-100 hover:bg-rose-50 active:scale-95 transition-all flex justify-center items-center gap-2"
+          >
+            <XCircle size={14} /> Reject
+          </button>
+        </>
+      )}
 
- {/* Info Grid */}
- <div className="grid grid-cols-2 gap-4 mb-8">
- <div className="bg-app/80 rounded-xl p-4 border border-slate-100">
- <div className="flex items-center gap-2 mb-2">
- <User size={14} className="text-muted" />
- <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
- Submitted By
- </p>
- </div>
- <p className="text-sm font-bold text-main">
- {expense.submittedByName || expense.submittedBy?.name || "Unknown"}
- </p>
- </div>
+      {(canEdit || (isOwner && expense.status === 'pending')) && (
+        <button
+          onClick={() => {
+            if (window.confirm("Are you sure you want to delete this expense?")) {
+              onDelete(expense._id);
+              onClose();
+            }
+          }}
+          className="flex-1 px-4 py-3 bg-surface text-rose-500 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-sm border border-rose-100 hover:bg-rose-50 active:scale-95 transition-all flex justify-center items-center gap-2"
+        >
+          <Trash2 size={14} /> Delete
+        </button>
+      )}
+    </div>
+  );
 
- <div className="bg-app/80 rounded-xl p-4 border border-slate-100">
- <div className="flex items-center gap-2 mb-2">
- <Calendar size={14} className="text-muted" />
- <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
- Submitted On
- </p>
- </div>
- <p className="text-sm font-bold text-main">
- {formatDate(expense.createdAt)}
- </p>
- </div>
+  return (
+    <GlassModal
+      isOpen={true}
+      onClose={onClose}
+      title={titleContent}
+      footer={footerContent}
+      maxWidth="max-w-2xl"
+    >
+      {/* Title & Amount */}
+      <div className="flex justify-between items-start mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-main mb-1">{expense.title}</h2>
+          <p className="text-sm font-medium text-muted">{expense.description || "No description provided"}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-3xl font-bold text-main">${expense.amount?.toFixed(2)}</p>
+          <span className="text-[10px] font-bold bg-app px-2.5 py-1 rounded-md border border-subtle uppercase tracking-tight text-muted">
+            {expense.category}
+          </span>
+        </div>
+      </div>
 
- {expense.approvedBy && (
- <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100">
- <div className="flex items-center gap-2 mb-2">
- <CheckCircle size={14} className="text-emerald-500" />
- <p className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-wider">
- Approved By
- </p>
- </div>
- <p className="text-sm font-bold text-emerald-700">
- {expense.approvedByName || expense.approvedBy?.name || "Unknown"}
- </p>
- {expense.approvedAt && (
- <p className="text-[10px] text-emerald-600/50 font-medium">
- {formatDate(expense.approvedAt)}
- </p>
- )}
- </div>
- )}
+      {/* Info Grid */}
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="bg-app/80 rounded-xl p-4 border border-slate-100">
+          <div className="flex items-center gap-2 mb-2">
+            <User size={14} className="text-muted" />
+            <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
+              Submitted By
+            </p>
+          </div>
+          <p className="text-sm font-bold text-main">
+            {expense.submittedByName || expense.submittedBy?.name || "Unknown"}
+          </p>
+        </div>
 
- {expense.status === 'rejected' && (
- <div className="col-span-2 bg-rose-50/50 rounded-xl p-4 border border-rose-100 grid grid-cols-2 gap-4">
- <div>
- <div className="flex items-center gap-2 mb-2">
- <XCircle size={14} className="text-rose-500" />
- <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
- Rejection Reason
- </p>
- </div>
- <p className="text-sm font-bold text-rose-700">{expense.rejectionReason}</p>
- </div>
+        <div className="bg-app/80 rounded-xl p-4 border border-slate-100">
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar size={14} className="text-muted" />
+            <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
+              Submitted On
+            </p>
+          </div>
+          <p className="text-sm font-bold text-main">
+            {formatDate(expense.createdAt)}
+          </p>
+        </div>
 
- {(expense.rejectedByName || expense.rejectedBy) && (
- <div>
- <div className="flex items-center gap-2 mb-2">
- <User size={14} className="text-rose-400" />
- <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
- Rejected By
- </p>
- </div>
- <p className="text-sm font-bold text-rose-700">
- {expense.rejectedByName || expense.rejectedBy?.name || "Unknown"}
- </p>
- {expense.rejectedAt && (
- <p className="text-[10px] text-rose-600/50 font-medium">
- {formatDate(expense.rejectedAt)}
- </p>
- )}
- </div>
- )}
- </div>
- )}
- </div>
+        {expense.approvedBy && (
+          <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle size={14} className="text-emerald-500" />
+              <p className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-wider">
+                Approved By
+              </p>
+            </div>
+            <p className="text-sm font-bold text-emerald-700">
+              {expense.approvedByName || expense.approvedBy?.name || "Unknown"}
+            </p>
+            {expense.approvedAt && (
+              <p className="text-[10px] text-emerald-600/50 font-medium">
+                {formatDate(expense.approvedAt)}
+              </p>
+            )}
+          </div>
+        )}
 
- {/* Receipt */}
- {expense.receiptUrl && (
- <div className="mb-6">
- <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-3">
- Receipt
- </p>
- <button 
- onClick={handleViewReceipt}
- className="w-full flex items-center justify-between p-3 bg-app rounded-xl border border-subtle hover:bg-amber-50 hover:border-amber-200 transition-all group text-left"
- >
- <div className="flex items-center gap-2 overflow-hidden">
- <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">
- {(expense.receiptUrl?.split('.').pop().split('?')[0] || "IMG").toUpperCase()}
- </div>
- <div>
- <p className="text-xs font-bold text-main truncate">Expense Receipt</p>
- <p className="text-[10px] text-muted font-medium">Click to download recipient</p>
- </div>
- </div>
- <div className="text-muted group-hover:text-amber-600">
- <Paperclip size={16} />
- </div>
- </button>
- </div>
- )}
- </div>
+        {expense.status === 'rejected' && (
+          <div className="col-span-2 bg-rose-50/50 rounded-xl p-4 border border-rose-100 grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <XCircle size={14} className="text-rose-500" />
+                <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
+                  Rejection Reason
+                </p>
+              </div>
+              <p className="text-sm font-bold text-rose-700">{expense.rejectionReason}</p>
+            </div>
 
- <div className="px-6 py-4 border-t border-slate-100 flex gap-3 bg-app/50 mt-auto">
- {expense.status === 'pending' && canApprove && (currentUser?.role?.toLowerCase() === 'superadmin' || !isOwner) && (
- <>
- <button
- onClick={() => onApprove(expense._id)}
- className="flex-1 px-4 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex justify-center items-center gap-2"
- >
- <CheckCircle size={14} /> Approve
- </button>
- <button
- onClick={() => onReject(expense)}
- className="flex-1 px-4 py-3 bg-surface text-rose-600 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-md border border-rose-100 hover:bg-rose-50 active:scale-95 transition-all flex justify-center items-center gap-2"
- >
- <XCircle size={14} /> Reject
- </button>
- </>
- )}
+            {(expense.rejectedByName || expense.rejectedBy) && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <User size={14} className="text-rose-400" />
+                  <p className="text-[10px] font-bold text-rose-600/60 uppercase tracking-wider">
+                    Rejected By
+                  </p>
+                </div>
+                <p className="text-sm font-bold text-rose-700">
+                  {expense.rejectedByName || expense.rejectedBy?.name || "Unknown"}
+                </p>
+                {expense.rejectedAt && (
+                  <p className="text-[10px] text-rose-600/50 font-medium">
+                    {formatDate(expense.rejectedAt)}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-
-
- {(canEdit || (isOwner && expense.status === 'pending')) && (
- <button
- onClick={() => {
- if (window.confirm("Are you sure you want to delete this expense?")) {
- onDelete(expense._id);
- onClose();
- }
- }}
- className="flex-1 px-4 py-3 bg-surface text-rose-500 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-sm border border-rose-100 hover:bg-rose-50 active:scale-95 transition-all flex justify-center items-center gap-2"
- >
- <Trash2 size={14} /> Delete
- </button>
- )}
- </div>
- </div>
- </div>
- );
+      {/* Receipt */}
+      {expense.receiptUrl && (
+        <div className="mb-6">
+          <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-3">
+            Receipt
+          </p>
+          <button 
+            onClick={handleViewReceipt}
+            className="w-full flex items-center justify-between p-3 bg-app rounded-xl border border-subtle hover:bg-amber-50 hover:border-amber-200 transition-all group text-left"
+          >
+            <div className="flex items-center gap-2 overflow-hidden">
+              <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">
+                {(expense.receiptUrl?.split('.').pop().split('?')[0] || "IMG").toUpperCase()}
+              </div>
+              <div>
+                <p className="text-xs font-bold text-main truncate">Expense Receipt</p>
+                <p className="text-[10px] text-muted font-medium">Click to download recipient</p>
+              </div>
+            </div>
+            <div className="text-muted group-hover:text-amber-600">
+              <Paperclip size={16} />
+            </div>
+          </button>
+        </div>
+      )}
+    </GlassModal>
+  );
 };
 
 export default ExpenseDetail;

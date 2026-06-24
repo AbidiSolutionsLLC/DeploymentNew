@@ -13,6 +13,7 @@ import EditTimesheetModal from "../../components/EditTimesheetModal";
 import { moment, TIMEZONE } from "../../utils/dateUtils";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
+import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 
 const Timesheet = ({ refreshTrigger }) => {
  const [showCalendar, setShowCalendar] = useState(false);
@@ -286,12 +287,7 @@ const Timesheet = ({ refreshTrigger }) => {
  sortable: true,
  render: (row) => (
  <span
- className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${row.status === "Approved"
- ? "bg-green-100 text-green-800"
- : row.status === "Rejected"
- ? "bg-red-100 text-red-800"
- : "bg-yellow-100 text-yellow-800"
- }`}
+ className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${STATUS_VARIANTS[resolveStatusVariant(row.status)]?.badge || STATUS_VARIANTS.neutral.badge}`}
  >
  {row.status || "Pending"}
  </span>

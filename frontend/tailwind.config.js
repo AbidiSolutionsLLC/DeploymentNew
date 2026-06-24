@@ -22,12 +22,30 @@ export default {
         border: 'var(--color-border-primary)',
         'border-subtle': 'var(--color-border-secondary)',
         'border-accent': 'var(--color-border-accent)',
+        // Text that sits on the brand gold — readable in BOTH themes
+        // (dark gold text in light mode, dark text on bright gold in dark mode).
+        'on-brand': 'var(--color-text-on-brand)',
         // Semantic status tokens — readable in BOTH themes.
+        // Foreground / background / border for soft status badges.
         success: 'var(--status-fg)',
+        'success-bg': 'var(--status-bg)',
+        'success-border': 'var(--status-border)',
         warning: 'var(--status-warning-fg)',
+        'warning-bg': 'var(--status-warning-bg)',
+        'warning-border': 'var(--status-warning-border)',
         danger: 'var(--status-danger-fg)',
         error: 'var(--status-danger-fg)',
+        'danger-bg': 'var(--status-danger-bg)',
+        'danger-border': 'var(--status-danger-border)',
+        'error-bg': 'var(--status-danger-bg)',
+        'error-border': 'var(--status-danger-border)',
         info: 'var(--status-info-fg)',
+        'info-bg': 'var(--status-info-bg)',
+        'info-border': 'var(--status-info-border)',
+        // Neutral status — subtle slate/gray, theme-aware.
+        neutral: 'var(--color-text-tertiary)',
+        'neutral-bg': 'var(--color-bg-tertiary)',
+        'neutral-border': 'var(--color-border-secondary)',
         amber: {
           50: 'color-mix(in srgb, var(--color-brand-secondary) 25%, transparent)',
           100: 'var(--color-brand-secondary)',

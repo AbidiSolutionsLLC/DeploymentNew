@@ -13,6 +13,7 @@ import ApproveTimesheetViewModal from "../../components/ApproveTimesheetViewModa
 import AdminAddTimeLogModal from "../../components/AdminAddTimeLogModal";
 import AdminCreateTimesheetModal from "../../components/AdminCreateTimesheetModal";
 import ExportSelectionModal from "../../components/ExportSelectionModal";
+import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 import PageContainer from "../../components/ui/PageContainer";
 
 
@@ -534,8 +535,7 @@ const ApproveTimesheets = () => {
  sortable: true,
  render: (row) => (
  <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${
- row.status === "Approved" ? "bg-green-100 text-green-800" : 
- row.status === "Rejected" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"
+ STATUS_VARIANTS[resolveStatusVariant(row.status)]?.badge || STATUS_VARIANTS.neutral.badge
  }`}>
  {row.status || "Pending"}
  </span>

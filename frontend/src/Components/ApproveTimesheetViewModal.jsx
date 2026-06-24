@@ -8,6 +8,7 @@ import { Paperclip } from "lucide-react";
 import { validateDescription, getApiError } from "../utils/validationUtils";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import { STATUS_VARIANTS, resolveStatusVariant } from "./StatusBadge";
 
 const ApproveTimesheetViewModal = ({ 
  timesheet, 
@@ -68,13 +69,7 @@ const ApproveTimesheetViewModal = ({
  }
  };
 
- const getStatusColor = (status) => {
- switch (status) {
- case "Approved": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
- case "Rejected": return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
- default: return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
- }
- };
+ const getStatusColor = (status) => STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
 
  return (
  <GlassModal

@@ -8,6 +8,7 @@ import RaiseTicketModal from "../../pages/tickets/RaiseTicketModal";
 import ViewTicketDetailsModal from "../../pages/tickets/ViewTicketDetailsModal";
 import { toast } from "react-toastify";
 import PageContainer from "../../components/ui/PageContainer";
+import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 
 const Ticket = () => {
  const [tickets, setTickets] = useState([]);
@@ -82,18 +83,18 @@ const Ticket = () => {
  };
 
  const StatusBadge = ({ status }) => {
- const statusConfig = {
- open: { color: "bg-green-100 text-green-800", label: "Open" },
- opened: { color: "bg-green-100 text-green-800", label: "Open" },
- closed: { color: "bg-red-100 text-red-800", label: "Closed" },
- "in progress": { color: "bg-amber-100 text-amber-800", label: "In Progress" }
+ const labelMap = {
+ open: "Open",
+ opened: "Open",
+ closed: "Closed",
+ "in progress": "In Progress"
  };
-
- const config = statusConfig[status?.toLowerCase()] || { color: "bg-surface text-heading", label: status || "Unknown" };
+ const variant = STATUS_VARIANTS[resolveStatusVariant(status)] || STATUS_VARIANTS.neutral;
+ const label = labelMap[status?.toLowerCase()] || status || "Unknown";
 
  return (
- <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${config.color}`}>
- {config.label}
+ <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${variant.badge}`}>
+ {label}
  </span>
  );
  };
@@ -145,9 +146,9 @@ const Ticket = () => {
  sortable: true,
  render: (row) => (
  <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${
- row.priority?.toLowerCase().includes('high') ? 'bg-red-100 text-red-800' :
- row.priority?.toLowerCase().includes('medium') ? 'bg-yellow-100 text-yellow-800' :
- 'bg-amber-100 text-amber-800'
+ row.priority?.toLowerCase().includes('high') ? STATUS_VARIANTS.danger.badge :
+ row.priority?.toLowerCase().includes('medium') ? STATUS_VARIANTS.warning.badge :
+ STATUS_VARIANTS.neutral.badge
  }`}>
  {row.priority?.replace(' Priority', '') || 'Normal'}
  </span>

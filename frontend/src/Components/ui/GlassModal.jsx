@@ -35,16 +35,16 @@ export default function GlassModal({
 
  if (!isOpen) return null;
 
- const modalContent = (
- /* ── Full-viewport backdrop — rendered directly on document.body via Portal ──
- fixed + inset-0 + w-screen + h-screen ensures it covers sidebar & navbar.
- z-[9999] places it above all app chrome (sidebar z ~30, navbar z ~30). */
- <div
- className="fixed inset-0 w-screen h-screen z-[9999] bg-slate-900/40 flex items-center justify-center p-4"
- role="dialog"
- aria-modal="true"
- aria-labelledby="modal-title"
- >
+  const modalContent = (
+  /* ── Full-viewport backdrop — rendered directly on document.body via Portal ──
+  .app-modal-backdrop is the single source of truth for blur/opacity/z-index
+  so every modal (this one + any hand-rolled ones) stays perfectly in sync. */
+  <div
+  className="app-modal-backdrop"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-title"
+  >
  {/* Click-away backdrop layer */}
  <div
  className="absolute inset-0"
@@ -55,10 +55,10 @@ export default function GlassModal({
  {/* ── Modal Card ──
  Pure white (#fff), not translucent — pops cleanly on the beige app bg.
  max-h-[90vh] + flex flex-col lets the body scroll independently. */}
- <div
- className={`relative w-full ${maxWidth} bg-surface rounded-xl shadow-2xl border border-border-subtle flex flex-col max-h-[90vh] animate-slideInUp overflow-hidden`}
- onClick={(e) => e.stopPropagation()}
- >
+  <div
+  className={`relative w-full ${maxWidth} bg-surface rounded-xl shadow-[var(--shadow-2xl)] border border-border-subtle flex flex-col max-h-[90vh] animate-slideInUp overflow-hidden`}
+  onClick={(e) => e.stopPropagation()}
+  >
  {/* ── Header ── */}
  <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border-subtle flex-shrink-0">
  <div>
