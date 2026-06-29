@@ -21,7 +21,13 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        "img-src": ["'self'", "data:", "https://cdn-icons-png.flaticon.com", "https://learn.microsoft.com"],
+        "img-src": [
+          "'self'", 
+          "data:", 
+          "https://cdn-icons-png.flaticon.com", 
+          "https://learn.microsoft.com",
+          "https://data3262.blob.core.windows.net"
+        ],
         "connect-src": ["'self'", "https://login.microsoftonline.com", "https://abidipro.abidisolutions.com"],
         "frame-src": ["'self'", "https://login.microsoftonline.com"],
       },

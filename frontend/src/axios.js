@@ -31,7 +31,7 @@ export const injectStore = (_store) => {
  store = _store;
 };
 
-let msalInitialized = false;
+
 
 const api = axios.create({
  baseURL: "/api/v1",
@@ -42,10 +42,6 @@ const api = axios.create({
 api.interceptors.request.use(
  async (config) => {
  try {
- if (!msalInitialized) {
- await msalInstance.initialize();
- msalInitialized = true;
- }
  const accounts = msalInstance.getAllAccounts();
  const activeAccount = msalInstance.getActiveAccount() || accounts[0];
 

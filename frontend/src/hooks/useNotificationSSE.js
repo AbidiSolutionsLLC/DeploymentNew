@@ -5,7 +5,7 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import { msalConfig, loginRequest, msalInstance } from '../authConfig';
 import axios from '../axios';
 
-let msalReady = false;
+
 
 /**
  * Establishes a Server-Sent Events connection once the user is authenticated.
@@ -21,10 +21,6 @@ export const useNotificationSSE = (isAuthenticated) => {
 
  const connect = async () => {
  try {
- if (!msalReady) {
- await msalInstance.initialize();
- msalReady = true;
- }
 
  const accounts = msalInstance.getAllAccounts();
  const activeAccount = msalInstance.getActiveAccount() || accounts[0];
