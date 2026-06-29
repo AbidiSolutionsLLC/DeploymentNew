@@ -138,6 +138,7 @@ const ProjectsTable = ({
  data={projects}
  loading={loading}
  emptyMessage="No projects found"
+ defaultSort={{ key: "createdAt", direction: "desc" }}
  />
  </div>
  );

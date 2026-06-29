@@ -207,23 +207,27 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  setErrors({});
  };
 
- const handleSave = async () => {
- if (!validateAll() && logs.length === 0) return;
+  const handleSave = async () => {
+ const isFormPartiallyFilled = jobTitle || date || hours || description || attachments.length > 0;
+ 
+ if (logs.length === 0) {
+ if (!validateAll()) return;
+ } else if (isFormPartiallyFilled) {
+ if (!validateAll()) return;
+ }
 
  setIsLoading(true);
  try {
- const logsToSubmit =
- logs.length > 0
- ? logs
- : [
- {
+ const logsToSubmit = [...logs];
+ if (isCurrentInputValid || (logs.length === 0 && validateAll())) {
+ logsToSubmit.push({
  jobTitle: sanitizeText(jobTitle),
  date: formatDateForApi(date),
  hours: parseFloat(hours),
  description: sanitizeText(description),
  attachmentFiles: attachments,
- },
- ];
+ });
+ }
 
  for (const log of logsToSubmit) {
  const formData = new FormData();
@@ -255,7 +259,6 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  <button
  type="button"
  onClick={handleAddAnother}
- disabled={!isCurrentInputValid}
  className="btn btn-primary flex-1"
  >
  + Add Another
@@ -270,7 +273,7 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  </button>
  <button
  onClick={handleSave}
- disabled={(!isCurrentInputValid && logs.length === 0) || isLoading}
+ disabled={isLoading}
  className="btn btn-primary flex-[2]"
  >
  {isLoading
@@ -314,7 +317,7 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  setErrors((prev) => ({ ...prev, date: d ? null : "Please select a valid date." }));
  }}
  maxDate={new Date()}
- dateFormat="yyyy-MM-dd"
+ dateFormat="M/d/yyyy"
  placeholderText="Select Date"
  className={`w-full bg-surface/50 border ${errors.date ? "border-red-400" : "border-border-subtle"} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 cursor-pointer`}
  popperProps={{ strategy: "fixed" }}

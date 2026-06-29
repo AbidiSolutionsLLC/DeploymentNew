@@ -29,11 +29,24 @@ const ModernSelect = ({
  const updatePosition = () => {
  if (isOpen && containerRef.current) {
  const rect = containerRef.current.getBoundingClientRect();
+ const spaceBelow = window.innerHeight - rect.bottom;
+ const placeAbove = spaceBelow < 200 && rect.top > spaceBelow;
+ 
+ if (placeAbove) {
  setDropdownPosition({
- top: rect.bottom + window.scrollY + 8,
- left: rect.left + window.scrollX,
+ top: undefined,
+ bottom: window.innerHeight - rect.top + 8,
+ left: rect.left,
  width: rect.width,
  });
+ } else {
+ setDropdownPosition({
+ top: rect.bottom + 8,
+ bottom: undefined,
+ left: rect.left,
+ width: rect.width,
+ });
+ }
  }
  };
 
@@ -88,7 +101,8 @@ const ModernSelect = ({
  : "bg-surface border border-slate-100 shadow-xl"
  }`}
  style={{
- top: `${dropdownPosition.top}px`,
+ ...(dropdownPosition.top !== undefined ? { top: `${dropdownPosition.top}px` } : {}),
+ ...(dropdownPosition.bottom !== undefined ? { bottom: `${dropdownPosition.bottom}px` } : {}),
  left: `${dropdownPosition.left}px`,
  width: `${dropdownPosition.width}px`,
  }}

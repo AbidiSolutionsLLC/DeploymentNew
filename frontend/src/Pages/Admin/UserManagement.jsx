@@ -274,6 +274,7 @@ const UserManagement = () => {
  loading={loading}
  emptyMessage="No users found"
  onRowClick={handleUserClick}
+ defaultSort={{ key: "createdAt", direction: "desc" }}
  />
  </PageContainer>
 

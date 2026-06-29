@@ -99,6 +99,7 @@ const OpenFolderScreen = ({ folder, onClose }) => {
  columns={fileColumns}
  data={filteredFiles}
  emptyMessage="No files match your search."
+ defaultSort={{ key: "uploadedAt", direction: "desc" }}
  />
  </div>
  ) : (

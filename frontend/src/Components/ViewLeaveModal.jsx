@@ -322,7 +322,10 @@ const ViewLeaveModal = ({
  </div>
  <p className="text-sm font-medium text-heading dark:text-white">
  {leaveData.duration ||
- `${Math.ceil((parseISOToLocalDate(leaveData.endDate) - parseISOToLocalDate(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1} days`}
+ (() => {
+ const daysCount = Math.ceil((parseISOToLocalDate(leaveData.endDate) - parseISOToLocalDate(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+ return `${daysCount} day${daysCount === 1 ? '' : 's'}`;
+ })()}
  </p>
  </div>
  
@@ -360,7 +363,7 @@ const ViewLeaveModal = ({
 
  {/* STATUS UPDATE SECTION */}
  {leaveData.status === "Pending" && canUpdateStatus && (
- <div className="border-t border-border-subtle dark:border-slate-700 pt-6">
+ <div className="border-t border-border-subtle dark:border-slate-700 pt-6 pb-32">
  <h3 className="text-sm font-black text-heading dark:text-white uppercase tracking-widest mb-4">
  Update Status
  </h3>

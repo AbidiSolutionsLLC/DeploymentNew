@@ -89,10 +89,37 @@ const LeaveSummary = () => {
 
   // Format applied leaves
   const formatAppliedLeaves = () => {
-  return leaveHistory.map(leave => {
+  const sortedLeaveHistory = [...leaveHistory].sort((a, b) => {
+    const dateA = new Date(a.appliedAt || a.createdAt || a.startDate || 0);
+    const dateB = new Date(b.appliedAt || b.createdAt || b.startDate || 0);
+    return dateB - dateA;
+  });
+
+  return sortedLeaveHistory.map(leave => {
     const extractedId = leave.leaveId?._id || leave.leaveId || leave._id;
     const extractedAppliedAt = leave.appliedAt || leave.createdAt || leave.startDate;
     
+    let durationVal = leave.daysTaken || leave.duration;
+    if (durationVal === undefined || durationVal === null) {
+      durationVal = calculateWorkingDays(
+        parseISOToLocalDate(leave.startDate), 
+        parseISOToLocalDate(leave.endDate)
+      );
+    }
+    
+    // Check if durationVal is a string like "1 day" or "1 days" from backend
+    let durationStr = durationVal;
+    if (typeof durationVal === 'number' || !isNaN(Number(durationVal))) {
+      const num = Number(durationVal);
+      durationStr = `${num} day${num === 1 ? '' : 's'}`;
+    } else if (typeof durationVal === 'string') {
+      const match = durationVal.match(/^([\d.]+)\s*days?$/i);
+      if (match) {
+        const num = Number(match[1]);
+        durationStr = `${num} day${num === 1 ? '' : 's'}`;
+      }
+    }
+
     return {
   id: extractedId,
   isEditable: !!leave.leaveId,
@@ -101,10 +128,7 @@ const LeaveSummary = () => {
   appliedAt: extractedAppliedAt ? formatDisplayDate(extractedAppliedAt) : '-',
   leaveType: leave.leaveType || leave.type || "-",
   reason: leave.reason || "-",
-  duration: (leave.daysTaken ? `${leave.daysTaken} days` : null) || leave.duration || `${calculateWorkingDays(
-  parseISOToLocalDate(leave.startDate), 
-  parseISOToLocalDate(leave.endDate)
-  )} days`,
+  duration: durationStr,
   status: leave.status || "Pending",
     };
   });
@@ -287,15 +311,15 @@ const LeaveSummary = () => {
 
  {/* Leave Cards */}
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
- {/* Total Leaves Card */}
+  {/* Available Leaves Card */}
  <div className="bg-surface rounded-[1.2rem] shadow-md border border-white/50 p-4">
  <div className="flex items-center justify-between mb-3">
- <div className="text-main text-sm font-medium uppercase tracking-wide">Total Leaves</div>
+ <div className="text-main text-sm font-medium uppercase tracking-wide">Available Leaves</div>
  <div className="text-amber-600 dark:text-amber-400">
  <MdEventAvailable size={20} />
  </div>
  </div>
- <div className="text-2xl font-bold text-main">{totalLeaves}</div>
+ <div className="text-2xl font-bold text-main">{availableLeaves}</div>
  <div className="h-1 w-full bg-gradient-to-r from-teal-500 to-teal-600 rounded-full mt-2"></div>
  </div>
 
@@ -343,6 +367,7 @@ const LeaveSummary = () => {
  emptyMessage="No records found"
  actions={actions}
  rowsPerPage={5}
+ defaultSort={{ key: 'appliedAt', direction: 'desc' }}
  />
  </div>
  )}

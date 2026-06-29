@@ -316,6 +316,7 @@ export default function AssignedTickets() {
  loading={loading}
  emptyMessage="No tickets match your filters."
  onRowClick={(ticket) => setSelectedTicket(ticket)}
+ defaultSort={{ key: "createdAt", direction: "desc" }}
  />
  </div>
 

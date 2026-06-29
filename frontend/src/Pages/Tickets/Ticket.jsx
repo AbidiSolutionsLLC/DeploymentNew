@@ -239,6 +239,7 @@ const Ticket = () => {
  onRowClick={(row) => setSelectedTicket(row)}
  actions={ticketActions}
  rowsPerPage={10}
+ defaultSort={{ key: "createdAt", direction: "desc" }}
  />
 
  </div>

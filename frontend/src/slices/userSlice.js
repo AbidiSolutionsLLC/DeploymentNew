@@ -78,8 +78,8 @@ const userSlice = createSlice({
  })
  .addCase(refreshUserData.fulfilled, (state, action) => {
  state.refreshing = false;
-        // The API returns the unwrapped data due to axios interceptor
-        state.userInfo = action.payload;
+        // Handle both wrapped and unwrapped data formats
+        state.userInfo = action.payload.data || action.payload;
  })
  .addCase(refreshUserData.rejected, (state, action) => {
  state.refreshing = false;

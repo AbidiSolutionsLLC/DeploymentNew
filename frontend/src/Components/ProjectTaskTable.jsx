@@ -20,6 +20,7 @@ const ProjectTasksTable = ({ tasks, children }) => {
  columns={taskColumns}
  data={tasks}
  emptyMessage="No tasks found"
+ defaultSort={{ key: "startDate", direction: "desc" }}
  />
  </div>
  );

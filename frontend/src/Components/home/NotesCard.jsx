@@ -10,8 +10,15 @@ import {
 
 import EmptyCardState from "./EmptyCardState";
 
-const NotesCard = ({ onDelete }) => {
- const [notes, setNotes] = useState([]);
+const NotesCard = ({ onDelete, userId }) => {
+ const [notes, setNotes] = useState(() => {
+ if (!userId) return [];
+ try {
+ return JSON.parse(localStorage.getItem(`notes_${userId}`)) || [];
+ } catch {
+ return [];
+ }
+ });
  const [newNote, setNewNote] = useState("");
  const [editingId, setEditingId] = useState(null);
  const [editingText, setEditingText] = useState("");
@@ -27,6 +34,12 @@ const NotesCard = ({ onDelete }) => {
  document.addEventListener("mousedown", handler);
  return () => document.removeEventListener("mousedown", handler);
  }, []);
+
+ useEffect(() => {
+ if (userId) {
+ localStorage.setItem(`notes_${userId}`, JSON.stringify(notes));
+ }
+ }, [notes, userId]);
 
  const addNote = () => {
  if (newNote.trim()) {

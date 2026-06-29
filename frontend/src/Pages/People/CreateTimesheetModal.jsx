@@ -283,7 +283,7 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
  selected={selectedDate ? new Date(selectedDate) : null}
  onChange={(date) => setSelectedDate(date ? moment(date).format('YYYY-MM-DD') : "")}
  maxDate={new Date()} // replaces max={getTodayString()}
- dateFormat="yyyy-MM-dd"
+ dateFormat="M/d/yyyy"
  wrapperClassName="w-full"
  className="w-full bg-surface/50 border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium cursor-pointer"
  placeholderText="Select date"

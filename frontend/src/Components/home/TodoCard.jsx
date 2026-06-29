@@ -94,8 +94,7 @@ const ToDoCard = ({ onDelete, userId }) => {
 
  try {
  setLoading(true);
- const response = await api.get(`/users/${resolvedUserId}/todos`);
- const todos = response.data?.data || response.data;
+ const todos = JSON.parse(localStorage.getItem(`todos_${resolvedUserId}`) || '[]');
  setTasks(
  todos.map((todo) => ({
  ...todo,
@@ -127,7 +126,9 @@ const ToDoCard = ({ onDelete, userId }) => {
  Object.values(pendingDeleteRef.current).forEach(({ timeoutId, task }) => {
  clearTimeout(timeoutId);
  if (resolvedUserId && task?._id) {
- api.delete(`/users/${resolvedUserId}/todos/${task._id}`).catch(() => {});
+ const todos = JSON.parse(localStorage.getItem(`todos_${resolvedUserId}`) || '[]');
+ const updatedTodos = todos.filter(t => t._id !== task._id);
+ localStorage.setItem(`todos_${resolvedUserId}`, JSON.stringify(updatedTodos));
  }
  });
  };
@@ -174,8 +175,11 @@ const ToDoCard = ({ onDelete, userId }) => {
  description: addModalForm.description.trim(),
  dueDate: addModalForm.dueDate,
  };
- const response = await api.post(`/users/${resolvedUserId}/todos`, payload);
- const newTodo = response.data?.data || response.data;
+ const newTodo = { _id: Date.now().toString(), ...payload, completed: false, createdAt: new Date().toISOString() };
+ const todos = JSON.parse(localStorage.getItem(`todos_${resolvedUserId}`) || '[]');
+ todos.push(newTodo);
+ localStorage.setItem(`todos_${resolvedUserId}`, JSON.stringify(todos));
+ const newTodoData = newTodo;
  setTasks((prev) => [
  {
  ...newTodo,
@@ -186,7 +190,7 @@ const ToDoCard = ({ onDelete, userId }) => {
  resetAddModal();
  toast.success("Task added");
  } catch (error) {
- toast.error(error.response?.data?.message || "Failed to add task");
+ toast.error("Failed to add task");
  } finally {
  setSaving(false);
  }
@@ -198,8 +202,15 @@ const ToDoCard = ({ onDelete, userId }) => {
 
  try {
  setUpdatingTaskId(todoId);
- const response = await api.put(`/users/${resolvedUserId}/todos/${todoId}`, payload);
- const updatedTodo = response.data?.data || response.data;
+ const todos = JSON.parse(localStorage.getItem(`todos_${resolvedUserId}`) || '[]');
+ const index = todos.findIndex(t => t._id === todoId);
+ let updatedTodo = payload;
+ if (index !== -1) {
+ todos[index] = { ...todos[index], ...payload };
+ updatedTodo = todos[index];
+ localStorage.setItem(`todos_${resolvedUserId}`, JSON.stringify(todos));
+ }
+ const updatedTodoData = updatedTodo;
  setTasks((prev) =>
  prev.map((task) =>
  task._id === todoId
@@ -342,7 +353,9 @@ const ToDoCard = ({ onDelete, userId }) => {
 
  const timeoutId = window.setTimeout(async () => {
  try {
- await api.delete(`/users/${resolvedUserId}/todos/${task._id}`);
+ const todos = JSON.parse(localStorage.getItem(`todos_${resolvedUserId}`) || '[]');
+ const newTodos = todos.filter(t => t._id !== task._id);
+ localStorage.setItem(`todos_${resolvedUserId}`, JSON.stringify(newTodos));
  } catch (error) {
  setTasks((prev) => {
  const next = [...prev];

@@ -10,7 +10,8 @@ const TableWithPagination = ({
  rowsPerPage = 5,
  onRowsPerPageChange,
  onRowClick,
- actions = []
+ actions = [],
+ defaultSort = { key: null, direction: 'asc' }
 }) => {
  const [currentPage, setCurrentPage] = useState(1);
  const [localRowsPerPage, setLocalRowsPerPage] = useState(rowsPerPage);
@@ -19,7 +20,7 @@ const TableWithPagination = ({
  setLocalRowsPerPage(rowsPerPage);
  }, [rowsPerPage]);
 
- const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+ const [sortConfig, setSortConfig] = useState(defaultSort);
 
  const effectiveRowsPerPage = localRowsPerPage;
 
@@ -117,9 +118,9 @@ const TableWithPagination = ({
  >
  <div className="flex items-center gap-1">
  {column.label}
- {column.sortable !== false && sortConfig.key === column.key && (
- <span className="text-brand font-bold">
- {sortConfig.direction === 'asc' ? '↑' : '↓'}
+ {column.sortable !== false && (
+ <span className={`font-bold ml-1 ${sortConfig.key === column.key ? 'text-brand' : 'text-muted/30'}`}>
+ {sortConfig.key === column.key ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
  </span>
  )}
  </div>
@@ -184,7 +185,7 @@ const TableWithPagination = ({
  </table>
 
  {/* Pagination Controls */}
- {data.length > effectiveRowsPerPage && (
+ {data.length > 0 && (
  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 p-4 bg-surface rounded-xl border border-white/60 shadow-sm">
  <div className="text-xs text-heading font-bold tracking-wide">
  Showing {startIndex + 1} to {Math.min(startIndex + effectiveRowsPerPage, data.length)} of {data.length} entries

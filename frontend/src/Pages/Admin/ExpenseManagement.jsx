@@ -462,6 +462,7 @@ const ExpenseManagement = () => {
  setSelectedExpense(expense);
  setIsDetailModalOpen(true);
  }}
+ defaultSort={{ key: "date", direction: "desc" }}
  />
  </div>
 

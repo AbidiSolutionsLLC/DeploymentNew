@@ -298,7 +298,7 @@ const TimeTracker = () => {
  {
  icon: <IoPencil size={16} />,
  title: "Edit",
- className: "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:bg-green-900/40",
+ className: (row) => row.isAddedToTimesheet ? "hidden" : "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:bg-green-900/40",
  onClick: (row) => {
  setEditingLogId(row._id);
  setModalMode("edit");
@@ -308,7 +308,7 @@ const TimeTracker = () => {
  {
  icon: <IoTrash size={16} />,
  title: "Delete",
- className: "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:bg-red-900/40",
+ className: (row) => row.isAddedToTimesheet ? "hidden" : "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:bg-red-900/40",
  onClick: (row) => handleDeleteClick(row._id)
  }
  ];
@@ -444,6 +444,7 @@ const TimeTracker = () => {
  onRowClick={handleViewLog}
  actions={timeLogActions}
  rowsPerPage={5}
+ defaultSort={{ key: 'date', direction: 'desc' }}
  />
  
  <div className="flex justify-center sm:justify-end pb-8">

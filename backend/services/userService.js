@@ -139,6 +139,7 @@ class UserService {
 
     const newUser = new User({
       email,
+      company: actor.company,
       ...otherData,
       hourlyWage: Number(hourlyWage) || 0,
       empID: newEmpID,

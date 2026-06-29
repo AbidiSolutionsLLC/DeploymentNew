@@ -141,6 +141,7 @@ const FileTable = ({ files, onDownload, loading, searchTerm = "" }) => {
  data={filtered}
  loading={loading}
  emptyMessage={searchTerm ? `No files found matching "${searchTerm}"` : "No files available"}
+ defaultSort={{ key: "uploadedAt", direction: "desc" }}
  />
  </div>
  );

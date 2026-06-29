@@ -97,7 +97,10 @@ const HistoryViewLeaveModal = ({
  </div>
  <p className="text-sm font-medium text-heading dark:text-white">
  {leaveData.duration ||
- `${Math.ceil((parseISOToLocalDate(leaveData.endDate) - parseISOToLocalDate(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1} days`}
+  (() => {
+ const daysCount = Math.ceil((parseISOToLocalDate(leaveData.endDate) - parseISOToLocalDate(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+ return `${daysCount} day${daysCount === 1 ? '' : 's'}`;
+ })()}
  </p>
  </div>
 

@@ -374,7 +374,7 @@ const Timesheet = ({ refreshTrigger }) => {
  <DatePicker
  selected={ensureDate(selectedWeekStart)}
  onChange={handleWeekSelect}
- dateFormat="MM/dd/yyyy"
+ dateFormat="M/d/yyyy"
  inline
  calendarClassName="week-selector"
  />
@@ -400,7 +400,7 @@ const Timesheet = ({ refreshTrigger }) => {
  </span>
  </div>
  <div className={`px-3 py-2 rounded-lg shadow-sm border ${
- (weeklyData.remainingHours || 0) > 10 ? 'bg-green-50 dark:bg-green-900/30/80 border-green-200 dark:border-green-800/50 text-green-900' :
+ (weeklyData.remainingHours || 0) > 10 ? 'bg-blue-50 dark:bg-blue-900/30/80 border-blue-200 dark:border-blue-800/50 text-blue-900 dark:text-blue-100' :
  (weeklyData.remainingHours || 0) > 0 ? 'bg-yellow-50/80 border-yellow-200 text-yellow-900' : 'bg-red-50 dark:bg-red-900/30/80 border-red-200 dark:border-red-800/50 text-red-900'
  }`}>
  <span className="text-xs font-medium">
@@ -445,6 +445,7 @@ const Timesheet = ({ refreshTrigger }) => {
  rowsPerPage={5}
  actions={tableActions}
  onRowClick={(row) => handleViewDetails(row)}
+ defaultSort={{ key: 'date', direction: 'desc' }}
  />
  )}
  

@@ -62,7 +62,7 @@ export default function EditProfile() {
  address: user.address || "",
  DOB: user.DOB ? format(new Date(user.DOB), "yyyy-MM-dd") : "",
  maritalStatus: user.maritalStatus || "",
- emergencyContact: user.emergencyContact || [],
+ emergencyContact: (user.emergencyContact || []).filter(c => c.name?.trim() || c.phone),
  education: user.education || [],
  experience: user.experience || []
  });
@@ -152,11 +152,11 @@ export default function EditProfile() {
  DOB: formData.DOB || null,
  maritalStatus: formData.maritalStatus.trim(),
  emergencyContact: formData.emergencyContact
- .filter(contact => contact.name && contact.phone)
+ .filter(contact => contact.name?.trim() && contact.phone?.toString().trim())
  .map(contact => ({
  name: contact.name.trim(),
  relation: contact.relation?.trim() || "",
- phone: contact.phone
+ phone: contact.phone?.toString().trim()
  })),
  education: formData.education
  .filter(edu => edu.institution && edu.degree)
@@ -247,10 +247,17 @@ export default function EditProfile() {
  };
 
  const addEducation = () => {
- setFormData(prev => ({
+ setFormData(prev => {
+ const last = prev.education[prev.education.length - 1];
+ if (last && (!last.institution?.trim() || !last.degree?.trim())) {
+ toast.warning("Please fill out the current education entry before adding another.");
+ return prev;
+ }
+ return {
  ...prev,
  education: [...prev.education, { institution: "", degree: "", startYear: "", endYear: "" }]
- }));
+ };
+ });
  };
 
  const updateEducation = (index, field, value) => {
@@ -270,7 +277,13 @@ export default function EditProfile() {
  };
 
  const addExperience = () => {
- setFormData(prev => ({
+ setFormData(prev => {
+ const last = prev.experience[prev.experience.length - 1];
+ if (last && (!last.company?.trim())) {
+ toast.warning("Please fill out the current experience entry before adding another.");
+ return prev;
+ }
+ return {
  ...prev,
  experience: [...prev.experience, { 
  company: "", 
@@ -279,7 +292,8 @@ export default function EditProfile() {
  startDate: "", 
  endDate: "" 
  }]
- }));
+ };
+ });
  };
 
  const updateExperience = (index, field, value) => {
@@ -306,10 +320,17 @@ export default function EditProfile() {
  };
 
  const addEmergencyContact = () => {
- setFormData(prev => ({
+ setFormData(prev => {
+ const last = prev.emergencyContact[prev.emergencyContact.length - 1];
+ if (last && (!last.name?.trim() || !last.phone?.trim())) {
+ toast.warning("Please fill out the current emergency contact before adding another.");
+ return prev;
+ }
+ return {
  ...prev,
  emergencyContact: [...prev.emergencyContact, { name: "", relation: "", phone: "" }]
- }));
+ };
+ });
  };
 
  const updateEmergencyContact = (index, field, value) => {

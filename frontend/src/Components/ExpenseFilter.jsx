@@ -1,5 +1,6 @@
 import React from "react";
 import { Search, ArrowRight, X } from "lucide-react";
+import { IoCalendarNumberOutline } from "react-icons/io5";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ModernSelect from "./ui/ModernSelect";
@@ -42,6 +43,7 @@ const ExpenseFilters = ({
 
  {/* Date Range */}
  <div className="flex items-center gap-2 bg-surface border border-border-subtle rounded-xl px-3 py-2 h-[42px]">
+ <IoCalendarNumberOutline size={16} className="text-muted flex-shrink-0" />
  <DatePicker
  selected={startDate}
  onChange={(date) => onStartDateChange(date)}

@@ -449,9 +449,9 @@ const AdminAttendance = () => {
  }
  topWidgets={
  <div className="grid grid-cols-4 gap-0 glass-card p-0 overflow-hidden divide-x divide-slate-100 dark:divide-slate-700/50">
- <div className="px-4 py-4 flex flex-col justify-center text-center bg-amber-50 dark:bg-amber-900/30/30 dark:bg-amber-900/10">
- <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">TOTAL</p>
- <p className="text-2xl font-black text-main">{summaryData.counts.total}</p>
+ <div className="px-4 py-4 flex flex-col justify-center text-center bg-blue-50 dark:bg-blue-900/10">
+ <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">TOTAL</p>
+ <p className="text-2xl font-black text-blue-700 dark:text-blue-400">{summaryData.counts.total}</p>
  </div>
  <div
  onClick={() => { setActiveTab("present"); localStorage.setItem('admin_attendance_tab', 'present'); }}
@@ -497,13 +497,13 @@ const AdminAttendance = () => {
  </button>
  ))}
  </div>
-
  <div className="glass-card p-0 overflow-hidden">
  <TableWithPagination
  columns={attendanceColumns}
  data={activeTabLogs}
  loading={loading}
  emptyMessage="No records found for this category."
+ defaultSort={{ key: "date", direction: "desc" }}
  />
  </div>
  </PageContainer>

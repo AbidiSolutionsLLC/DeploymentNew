@@ -15,6 +15,7 @@ import AdminCreateTimesheetModal from "../../components/AdminCreateTimesheetModa
 import ExportSelectionModal from "../../components/ExportSelectionModal";
 import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 import PageContainer from "../../components/ui/PageContainer";
+import ModernSelect from "../../components/ui/ModernSelect";
 
 
 const ApproveTimesheets = () => {
@@ -620,20 +621,16 @@ const ApproveTimesheets = () => {
  </div>
 
  {/* Employee Filter — always visible */}
- <div className="relative">
- <select
+ <div className="w-[200px]">
+ <ModernSelect
  value={filterEmployee}
  onChange={(e) => setFilterEmployee(e.target.value)}
- className="h-[42px] pl-3 pr-8 bg-surface border border-border-subtle rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-100 focus:border-brand transition-all min-w-[160px] text-main appearance-none cursor-pointer hover:border-border-accent"
- >
- <option value="All">All Employees</option>
- {allUsers.map(user => (
- <option key={user._id} value={user._id}>{user.name}</option>
- ))}
- </select>
- <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
- <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
- </div>
+ options={[
+ { value: 'All', label: 'All Employees' },
+ ...allUsers.map(user => ({ value: user._id, label: user.name }))
+ ]}
+ placeholder="All Employees"
+ />
  </div>
 
  {/* Date Controls: week navigator for tabs 0–2, date picker for tab 3 */}

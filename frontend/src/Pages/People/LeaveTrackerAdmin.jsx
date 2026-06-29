@@ -86,11 +86,10 @@ const LeaveTrackerAdmin = () => {
  email: item.email,
  leaveType: item.leaveType,
  reason: item.reason || "-",
- duration: `${Math.ceil(
- (parseISOToLocalDate(item.endDate) - parseISOToLocalDate(item.startDate)) /
- (1000 * 60 * 60 * 24) +
- 1
- )} days`,
+ duration: (() => {
+ const daysCount = Math.ceil((parseISOToLocalDate(item.endDate) - parseISOToLocalDate(item.startDate)) / (1000 * 60 * 60 * 24) + 1);
+ return `${daysCount} day${daysCount === 1 ? '' : 's'}`;
+ })(),
  status: item.status || "Pending",
  rawData: item,
  }));
@@ -153,9 +152,10 @@ const LeaveTrackerAdmin = () => {
  employee: { department: fullLeaveData.department || "Department not specified" },
  leaveType: fullLeaveData.leaveType,
  reason: fullLeaveData.reason || "-",
- duration: `${Math.ceil(
- (parseISOToLocalDate(fullLeaveData.endDate) - parseISOToLocalDate(fullLeaveData.startDate)) / (1000 * 60 * 60 * 24) + 1
- )} days`,
+ duration: (() => {
+ const daysCount = Math.ceil((parseISOToLocalDate(fullLeaveData.endDate) - parseISOToLocalDate(fullLeaveData.startDate)) / (1000 * 60 * 60 * 24) + 1);
+ return `${daysCount} day${daysCount === 1 ? '' : 's'}`;
+ })(),
  status: fullLeaveData.status,
  });
  setHistoryViewModalOpen(true);
@@ -282,7 +282,7 @@ const LeaveTrackerAdmin = () => {
 
  const leaveColumns = [
  {
- key: "date",
+ key: "appliedAt",
  label: "Date",
  sortable: true,
  render: (_, row) => <span className="text-main">{row.date}</span>
@@ -354,9 +354,9 @@ const LeaveTrackerAdmin = () => {
 
  const leaveActions = [
  {
- icon: <FaEye size={12} />,
+ icon: <div className="flex items-center gap-1"><FaEye size={12} /> View</div>,
  title: "View",
- className: "bg-surface text-main hover:bg-slate-200",
+ className: "bg-surface text-main hover:bg-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
  onClick: (row) => handleViewLeave(row)
  }
  ];
@@ -538,7 +538,7 @@ const LeaveTrackerAdmin = () => {
  emptyMessage="No leave requests found"
  actions={leaveActions}
  rowsPerPage={10}
- onRowClick={handleViewLeave}
+ defaultSort={{ key: "appliedAt", direction: "desc" }}
  />
  </div>
  </div>
@@ -670,6 +670,7 @@ const LeaveTrackerAdmin = () => {
  emptyMessage="No leave history found"
  actions={historyActions}
  rowsPerPage={10}
+ defaultSort={{ key: 'appliedAt', direction: 'desc' }}
  />
  </div>
  ) : historySelectedUser ? (

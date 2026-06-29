@@ -313,6 +313,7 @@ const AdminTickets = () => {
  loading={loading}
  emptyMessage="No tickets found"
  rowsPerPage={entriesPerPage}
+ defaultSort={{ key: "createdAt", direction: "desc" }}
  />
  </PageContainer>
 

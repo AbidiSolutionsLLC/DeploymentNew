@@ -182,7 +182,7 @@ export default function EditTimesheetModal({ open, onClose, timesheet, onTimeshe
  selected={selectedDate ? new Date(selectedDate) : null}
  onChange={(date) => setSelectedDate(date ? moment(date).format('YYYY-MM-DD') : "")}
  maxDate={new Date()}
- dateFormat="yyyy-MM-dd"
+ dateFormat="M/d/yyyy"
  wrapperClassName="w-full"
  className="glass-input w-full cursor-pointer"
  placeholderText="Select date"

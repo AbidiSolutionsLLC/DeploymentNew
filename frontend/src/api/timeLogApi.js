@@ -31,7 +31,7 @@ const updateTimeLog = async (id, updates) => {
 
 const deleteTimeLog = async (id) => {
  const response = await api.delete(`${API_URL}/${id}`);
- return response.data.data || response.data;
+ return response?.data?.data || response?.data || null;
 };
 
 const downloadAttachment = async (logId, attachmentId) => {

@@ -57,6 +57,7 @@ const MyTasksTable = ({ tasks, setTasks, children }) => {
  data={tasks}
  emptyMessage="No tasks found"
  onRowClick={(task) => openModal(task)}
+ defaultSort={{ key: "startDate", direction: "desc" }}
  />
  {isModalOpen && (
  <TaskDetailModal task={selectedTask} onClose={closeModal} />

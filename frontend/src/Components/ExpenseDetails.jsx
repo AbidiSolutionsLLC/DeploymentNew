@@ -1,5 +1,6 @@
 import React from "react";
 import { X, CheckCircle, XCircle, Trash2, Calendar, User, Paperclip, AlertCircle } from "lucide-react";
+import { IoCalendarNumberOutline } from "react-icons/io5";
 import { toast } from "react-toastify";
 import { downloadFile } from "../utils/downloadFile";
 import GlassModal from "./ui/GlassModal";
@@ -148,7 +149,7 @@ const ExpenseDetail = ({
 
         <div className="bg-app/80 rounded-xl p-4 border border-slate-100">
           <div className="flex items-center gap-2 mb-2">
-            <Calendar size={14} className="text-muted" />
+            <IoCalendarNumberOutline size={14} className="text-muted" />
             <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
               Submitted On
             </p>
