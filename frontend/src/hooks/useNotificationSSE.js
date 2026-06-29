@@ -2,12 +2,9 @@ import { useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { addRealtimeNotification, fetchUnreadCount } from '../slices/notificationSlice';
 import { PublicClientApplication } from '@azure/msal-browser';
-import { msalConfig, loginRequest } from '../authConfig';
+import { msalConfig, loginRequest, msalInstance } from '../authConfig';
 import axios from '../axios';
 
-
-// Shared MSAL instance (same config as axios.js uses)
-const msalInstance = new PublicClientApplication(msalConfig);
 let msalReady = false;
 
 /**

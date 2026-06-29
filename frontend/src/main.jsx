@@ -13,11 +13,8 @@ import { injectStore } from "./axios";
 // MSAL Imports
 import { PublicClientApplication, EventType } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
-import { msalConfig } from "./authConfig";
-
+import { msalConfig, msalInstance } from "./authConfig";
 import ErrorBoundary from "./components/ErrorBoundary";
-
-const msalInstance = new PublicClientApplication(msalConfig);
 
 // Initialize and handle redirect
 msalInstance.initialize().then(() => {
