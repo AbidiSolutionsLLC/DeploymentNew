@@ -51,7 +51,7 @@ api.interceptors.request.use(
  ...loginRequest,
  account: activeAccount
  });
- config.headers.Authorization = `Bearer ${response.accessToken}`;
+ config.headers.Authorization = `Bearer ${response.idToken}`;
  } catch (error) {
  console.error("Silent token acquisition failed:", error);
  }

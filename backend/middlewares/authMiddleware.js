@@ -95,6 +95,7 @@ const isLoggedIn = async (req, res, next) => {
         if (user) {
           // Found them via invite! Link their Azure ID
           user.azureId = decoded.oid;
+          await User.updateOne({ _id: user._id }, { $set: { azureId: decoded.oid } });
           console.log(`Mapped existing user ${user.email} to Azure ID`);
         } else {
           // --- SECURITY: REJECT UNINVITED USERS ---
@@ -108,7 +109,7 @@ const isLoggedIn = async (req, res, next) => {
         console.log(`🚀 Activating user ${user.email} on first login!`);
         user.empStatus = 'Active';
         if (!user.azureId) user.azureId = decoded.oid;
-        await user.save();
+        await User.updateOne({ _id: user._id }, { $set: { empStatus: 'Active', azureId: user.azureId } });
       }
       // --------------------------------
 

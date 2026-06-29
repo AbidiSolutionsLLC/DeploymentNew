@@ -31,7 +31,7 @@ export const useNotificationSSE = (isAuthenticated) => {
  account: activeAccount,
  });
 
- const token = tokenResponse.accessToken;
+ const token = tokenResponse.idToken;
  if (!token) return;
 
  // Close any existing connection

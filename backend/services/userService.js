@@ -137,9 +137,14 @@ class UserService {
       { type: 'leavelog', id: Date.now().toString() + '-3' }
     ];
 
+    // --- TEMPORARY: Hardcode company to Abidi Solutions until SaaS shift ---
+    const Company = require("../models/companySchema");
+    const abidiCompany = await Company.findOne({ name: "Abidi Solutions" });
+    const companyIdToUse = abidiCompany ? abidiCompany._id : actor.company;
+    
     const newUser = new User({
       email,
-      company: actor.company,
+      company: companyIdToUse,
       ...otherData,
       hourlyWage: Number(hourlyWage) || 0,
       empID: newEmpID,
