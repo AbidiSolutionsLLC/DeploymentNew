@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import SubNavbar from "../../components/PeopleSubNavbar";
-import AddTimeLogModal from "../People/AddTimeLogModal";
+import AddTimeLogModal from "./AddTimeLogModal";
 import {
  IoCalendarNumberOutline,
  IoEye,
