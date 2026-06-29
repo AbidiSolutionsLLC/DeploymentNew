@@ -1,9 +1,9 @@
 const Joi = require("joi");
 
 const taskSchema = Joi.object({
-  title: Joi.string().trim().min(2).max(150).required().messages({
+  title: Joi.string().trim().min(1).max(150).required().messages({
     'string.empty': 'Task title is required.',
-    'string.min': 'Task title must be at least 2 characters.',
+    'string.min': 'Task title must be at least 1 character.',
     'any.required': 'Task title is required.'
   }),
   description: Joi.string().trim().allow("", null),
@@ -21,7 +21,7 @@ const taskSchema = Joi.object({
 });
 
 const taskUpdateSchema = Joi.object({
-  title: Joi.string().trim().min(2).max(150).optional(),
+  title: Joi.string().trim().min(1).max(150).optional(),
   description: Joi.string().trim().allow("", null).optional(),
   team: Joi.array().items(Joi.string()).optional(),
   priority: Joi.string().valid("Low", "Medium", "High", "Critical").optional(),

@@ -38,13 +38,12 @@ const LeaveSummary = () => {
 
  // Extract data from user
  const leaveBalances = userData?.leaves || {};
- const availableLeaves = userData?.avalaibleLeaves || 0;
  const bookedLeaves = userData?.bookedLeaves || 0;
  const leaveHistory = userData?.leaveHistory || [];
 
-
  // Calculate total leaves
  const totalLeaves = Object.values(leaveBalances).reduce((sum, balance) => sum + (balance || 0), 0);
+ const availableLeaves = Math.max(0, totalLeaves - bookedLeaves);
 
  // Refresh user data on component mount
  useEffect(() => {
@@ -88,21 +87,27 @@ const LeaveSummary = () => {
  }
  ];
 
- // Format applied leaves
- const formatAppliedLeaves = () => {
- return leaveHistory.map(leave => ({
- id: leave.leaveId,
- startDate: formatDisplayDate(leave.startDate),
- endDate: leave.endDate,
- appliedAt: leave.appliedAt ? formatDisplayDate(leave.appliedAt) : (leave.createdAt ? formatDisplayDate(leave.createdAt) : '-'),
- leaveType: leave.leaveType || leave.type || "-",
- reason: leave.reason || "-",
- duration: (leave.daysTaken ? `${leave.daysTaken} days` : null) || leave.duration || `${calculateWorkingDays(
- parseISOToLocalDate(leave.startDate), 
- parseISOToLocalDate(leave.endDate)
- )} days`,
- status: leave.status || "Pending",
- }));
+  // Format applied leaves
+  const formatAppliedLeaves = () => {
+  return leaveHistory.map(leave => {
+    const extractedId = leave.leaveId?._id || leave.leaveId || leave._id;
+    const extractedAppliedAt = leave.appliedAt || leave.createdAt || leave.startDate;
+    
+    return {
+  id: extractedId,
+  isEditable: !!leave.leaveId,
+  startDate: formatDisplayDate(leave.startDate),
+  endDate: leave.endDate,
+  appliedAt: extractedAppliedAt ? formatDisplayDate(extractedAppliedAt) : '-',
+  leaveType: leave.leaveType || leave.type || "-",
+  reason: leave.reason || "-",
+  duration: (leave.daysTaken ? `${leave.daysTaken} days` : null) || leave.duration || `${calculateWorkingDays(
+  parseISOToLocalDate(leave.startDate), 
+  parseISOToLocalDate(leave.endDate)
+  )} days`,
+  status: leave.status || "Pending",
+    };
+  });
  };
 
  const appliedLeaves = formatAppliedLeaves();
@@ -216,14 +221,14 @@ const LeaveSummary = () => {
  className: "px-3 py-1.5 bg-app text-main rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors",
  onClick: (row) => handleViewLeave(row)
  },
- {
- icon: <div className="flex items-center gap-1"><FaEdit size={12} /> Edit</div>,
- title: "Edit",
- className: (row) => row.status === 'Pending' ? "px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200 transition-colors" : "hidden",
- onClick: (row) => {
- if(row.status === 'Pending') handleEditLeave(row);
- }
- }
+  {
+  icon: <div className="flex items-center gap-1"><FaEdit size={12} /> Edit</div>,
+  title: "Edit",
+  className: (row) => row.status === 'Pending' && row.isEditable ? "px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200 transition-colors" : "hidden",
+  onClick: (row) => {
+  if(row.status === 'Pending' && row.isEditable) handleEditLeave(row);
+  }
+  }
  ];
 
  return (

@@ -105,11 +105,12 @@ const userSlice = createSlice({
         const days = payloadData.daysTaken || payloadData.days || 1;
  
  if (state.userInfo.leaves) {
- if (leaveType === 'PTO' && state.userInfo.leaves.pto !== undefined) {
- state.userInfo.leaves.pto = Math.max(0, state.userInfo.leaves.pto - days);
- } else if (leaveType === 'Sick' && state.userInfo.leaves.sick !== undefined) {
- state.userInfo.leaves.sick = Math.max(0, state.userInfo.leaves.sick - days);
- }
+        const type = String(leaveType).toUpperCase();
+        if (type === 'PTO' && state.userInfo.leaves.pto !== undefined) {
+          state.userInfo.leaves.pto = Math.max(0, state.userInfo.leaves.pto - days);
+        } else if (type === 'SICK' && state.userInfo.leaves.sick !== undefined) {
+          state.userInfo.leaves.sick = Math.max(0, state.userInfo.leaves.sick - days);
+        }
  }
  }
  })

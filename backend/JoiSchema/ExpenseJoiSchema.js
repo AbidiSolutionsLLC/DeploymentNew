@@ -1,9 +1,9 @@
 const Joi = require("joi");
 
 const expenseSchema = Joi.object({
-  title: Joi.string().trim().min(2).max(150).required().messages({
+  title: Joi.string().trim().min(1).max(150).required().messages({
     'string.empty': 'Title is required.',
-    'string.min': 'Title must be at least 2 characters.',
+    'string.min': 'Title must be at least 1 character.',
     'string.max': 'Title cannot exceed 150 characters.',
     'any.required': 'Title is required.'
   }),
@@ -22,7 +22,7 @@ const expenseSchema = Joi.object({
 });
 
 const rejectExpenseSchema = Joi.object({
-  rejectionReason: Joi.string().trim().min(2).max(1000).required().messages({
+  rejectionReason: Joi.string().trim().min(1).max(1000).required().messages({
     'string.empty': 'Rejection reason is required.',
     'any.required': 'Rejection reason is required.'
   })

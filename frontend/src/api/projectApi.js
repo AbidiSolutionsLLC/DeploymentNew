@@ -13,7 +13,7 @@ const getProjectById = async (id) => {
 };
 
 const getProjectTasks = async (projectId) => {
- const response = await api.get(`${API_URL}/${projectId}/tasks`);
+ const response = await api.get(`/tasks/project/${projectId}`);
  return response.data?.data || response.data;
 };
 
@@ -23,7 +23,7 @@ const createProject = async (projectData) => {
 };
 
 const updateProject = async (id, updates) => {
- const response = await api.patch(`${API_URL}/${id}`, updates);
+ const response = await api.put(`${API_URL}/${id}`, updates);
  return response.data?.data || response.data;
 };
 

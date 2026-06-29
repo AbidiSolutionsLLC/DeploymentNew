@@ -475,9 +475,20 @@ body {
   box-shadow: 0 2px 8px rgba(212, 175, 55, 0.1);
   backdrop-filter: blur(8px);
 }
+.dark .btn-secondary, [data-theme="dark"] .btn-secondary {
+  background-color: rgba(251, 191, 36, 0.08);
+  color: var(--color-brand-text);
+  border: 1px solid var(--color-border-accent);
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.05);
+}
 .btn-secondary:hover {
   background-color: var(--color-bg-hover);
   transform: translateY(-1px);
+}
+.dark .btn-secondary:hover, [data-theme="dark"] .btn-secondary:hover {
+  background-color: rgba(251, 191, 36, 0.18);
+  color: #ffffff;
+  border-color: var(--color-brand-primary);
 }
 
 .btn:active {

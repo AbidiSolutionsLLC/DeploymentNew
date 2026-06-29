@@ -265,17 +265,30 @@ class LeaveService {
     if (isOwner && updatedLeaveRequest.employee) {
       const empId = updatedLeaveRequest.employee._id || updatedLeaveRequest.employee;
       
+      const dayDifference = updatedBusinessDays - calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate);
+      
+      const updateData = {
+        $set: {
+          'leaveHistory.$[elem].leaveType': updatedLeaveRequest.leaveType,
+          'leaveHistory.$[elem].startDate': updatedLeaveRequest.startDate,
+          'leaveHistory.$[elem].endDate': updatedLeaveRequest.endDate,
+          'leaveHistory.$[elem].reason': updatedLeaveRequest.reason,
+          'leaveHistory.$[elem].status': updatedLeaveRequest.status,
+          'leaveHistory.$[elem].daysTaken': updatedBusinessDays
+        }
+      };
+
+      if (dayDifference !== 0) {
+        updateData.$inc = {
+          [`leaves.${updatedLeaveRequest.leaveType.toLowerCase()}`]: -dayDifference,
+          bookedLeaves: dayDifference,
+          avalaibleLeaves: -(2 * dayDifference)
+        };
+      }
+
       await User.findByIdAndUpdate(
         empId,
-        {
-          $set: {
-            'leaveHistory.$[elem].leaveType': updatedLeaveRequest.leaveType,
-            'leaveHistory.$[elem].startDate': updatedLeaveRequest.startDate,
-            'leaveHistory.$[elem].endDate': updatedLeaveRequest.endDate,
-            'leaveHistory.$[elem].reason': updatedLeaveRequest.reason,
-            'leaveHistory.$[elem].status': updatedLeaveRequest.status,
-          }
-        },
+        updateData,
         {
           runValidators: true,
           arrayFilters: [{ 'elem.leaveId': updatedLeaveRequest._id }]

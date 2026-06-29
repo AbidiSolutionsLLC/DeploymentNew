@@ -1,9 +1,9 @@
 const Joi = require("joi");
 
 const projectSchema = Joi.object({
-  title: Joi.string().trim().min(2).max(150).required().messages({
+  title: Joi.string().trim().min(1).max(150).required().messages({
     'string.empty': 'Project title is required.',
-    'string.min': 'Project title must be at least 2 characters.',
+    'string.min': 'Project title must be at least 1 character.',
     'any.required': 'Project title is required.'
   }),
   description: Joi.string().trim().allow("", null),

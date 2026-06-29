@@ -4,7 +4,7 @@ import api from '../axios';
 const API_URL = '/tasks';
 
 const getMyTasks = async () => {
- const response = await api.get(`${API_URL}/me`);
+ const response = await api.get(`${API_URL}/user`);
  return response.data?.data || response.data;
 };
 
@@ -14,7 +14,7 @@ const createTask = async (taskData) => {
 };
 
 const updateTask = async (id, updates) => {
- const response = await api.patch(`${API_URL}/${id}`, updates);
+ const response = await api.put(`${API_URL}/${id}`, updates);
  return response.data?.data || response.data;
 };
 

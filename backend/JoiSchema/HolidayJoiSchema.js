@@ -1,9 +1,9 @@
 const Joi = require("joi");
 
 const holidaySchema = Joi.object({
-  holidayName: Joi.string().trim().min(2).max(150).required().messages({
+  holidayName: Joi.string().trim().min(1).max(150).required().messages({
     'string.empty': 'Holiday name is required.',
-    'string.min': 'Holiday name must be at least 2 characters.',
+    'string.min': 'Holiday name must be at least 1 character.',
     'any.required': 'Holiday name is required.'
   }),
   date: Joi.date().required().messages({

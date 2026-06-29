@@ -22,7 +22,7 @@ const peopleLinks = [
  { name: "Profile", path: "/people/profile", icon: UserCircleIcon, roles: ["All"] },
  { name: "Attendance", path: "/people/attendance", icon: CalendarDaysIcon, roles: ["All"] },
  { name: "Time Tracker", path: "/people/timetracker", icon: ClockIcon, roles: ["All"] },
- { name: "Leave Tracker", path: "/leave/summary", icon: BriefcaseIcon, roles: ["All"] },
+ { name: "Leave Tracker", path: "/people/summary", icon: BriefcaseIcon, roles: ["All"] },
  { name: "Raise a Ticket", path: "/people/raise", icon: TicketIcon, roles: ["All"] },
 
  {
@@ -84,7 +84,7 @@ export const moduleConfigs = {
 
  admin: {
  links: [
- { name: "Admin DashBoard", path: "/admin/adminDashboard", icon: ShieldCheckIcon },
+ { name: "Admin DashBoard", path: "/admin/dashboard", icon: ShieldCheckIcon },
  { name: "Attendance", path: "/admin/attendance", icon: CalendarDaysIcon },
  { name: "User Management", path: "/admin/userManagement", icon: UsersIcon },
  { name: "Leave Management", path: "/admin/leaveTrackerAdmin", icon: BriefcaseIcon },

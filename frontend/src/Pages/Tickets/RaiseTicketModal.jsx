@@ -207,7 +207,7 @@ const handleSubmit = async (e) => {
               type="submit"
               form="ticketForm"
               disabled={submitting}
-              className="flex-1 sm:py-4 text-[10px] sm:text-[11px] shadow-slate-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
+              className="flex-1 sm:py-4 text-[10px] sm:text-[11px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
             >
               {submitting ? "SUBMITTING..." : "SUBMIT TICKET"}
             </button>
@@ -226,7 +226,7 @@ const handleSubmit = async (e) => {
             <input
               name="subject"
               placeholder="e.g. Cannot access dashboard"
-              className={`w-full bg-surface/50 border ${errors.subject ? 'border-red-400' : 'border-border-subtle'} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all`}
+              className={`glass-input ${errors.subject ? '!border-red-400' : ''}`}
               value={form.subject}
               onChange={handleChange}
               required
@@ -246,7 +246,7 @@ const handleSubmit = async (e) => {
               name="description"
               placeholder="describe issue details..."
               rows={4}
-              className={`w-full bg-surface/50 border ${errors.description && errors.description.length > 0 ? 'border-red-400' : 'border-border-subtle'} rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all resize-none`}
+              className={`glass-input resize-none ${errors.description && errors.description.length > 0 ? '!border-red-400' : ''}`}
               value={form.description}
               onChange={handleChange}
               required

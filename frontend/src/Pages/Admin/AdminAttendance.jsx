@@ -354,24 +354,32 @@ const AdminAttendance = () => {
  key: "actions",
  label: "Actions",
  align: "right",
- render: (_, log) => (
- <div className="flex justify-end gap-1">
- {log._id ? (
- <>
- <button onClick={(e) => { e.stopPropagation(); handleEditClick(log); }} className="p-2 text-muted hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit Record">
- <Edit2 size={16} />
- </button>
- <button onClick={(e) => { e.stopPropagation(); handleDeleteRecord(log._id); }} className="p-2 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete Record">
- <Trash2 size={16} />
- </button>
- </>
- ) : (
- <button onClick={(e) => { e.stopPropagation(); handleEditClick(log); }} className="p-2 text-muted hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Add/Update Record">
- <Edit2 size={16} />
- </button>
- )}
- </div>
- )
+ render: (_, log) => {
+          const isSessionRunning = log.checkInTime && !log.checkOutTime;
+          return (
+            <div className="flex justify-end gap-1">
+              {log._id ? (
+                <>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); if(!isSessionRunning) handleEditClick(log); }} 
+                    className={`p-2 rounded-lg transition-all ${isSessionRunning ? 'text-slate-300 cursor-not-allowed' : 'text-muted hover:text-amber-600 hover:bg-amber-50'}`} 
+                    title={isSessionRunning ? "Cannot edit active session" : "Edit Record"}
+                    disabled={isSessionRunning}
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeleteRecord(log._id); }} className="p-2 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete Record">
+                    <Trash2 size={16} />
+                  </button>
+                </>
+              ) : (
+                <button onClick={(e) => { e.stopPropagation(); handleEditClick(log); }} className="p-2 text-muted hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Add/Update Record">
+                  <Edit2 size={16} />
+                </button>
+              )}
+            </div>
+          );
+        }
  }
  ] : [])
  ];
@@ -481,7 +489,7 @@ const AdminAttendance = () => {
  }}
  className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${
  activeTab === t 
- ? "bg-slate-800 text-white border-slate-800 shadow-lg shadow-slate-200" 
+ ? "bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/20" 
  : "bg-surface text-muted border-border-subtle hover:border-subtle"
  }`}
  >

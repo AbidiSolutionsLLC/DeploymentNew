@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 const companySchema = Joi.object({
-  companyName: Joi.string().trim().min(2).max(150).required().messages({
+  companyName: Joi.string().trim().min(1).max(150).required().messages({
     'string.empty': 'Company name is required.',
     'any.required': 'Company name is required.'
   }),

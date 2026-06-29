@@ -35,13 +35,13 @@ router
     .delete(isLoggedIn, timesheetController.deleteTimesheet);
 
 router.put("/:id/status", isLoggedIn, validate(updateTimesheetStatusSchema), timesheetController.updateTimesheetStatus);
-// router.put("/:id/edit", isLoggedIn, handleUpload(upload.array("attachments", 5)), timesheetController.updateTimesheet);
+router.put("/:id/edit", isLoggedIn, handleUpload(upload.array("attachments", 5)), timesheetController.updateTimesheet);
 
-// router.post("/:id/comment", isLoggedIn, validate(timesheetCommentSchema), timesheetController.addTimesheetComment);
+router.post("/:id/comment", isLoggedIn, validate(timesheetCommentSchema), timesheetController.addTimesheetComment);
 
-// router.get('/:id/attachments/:attachmentId/download', 
-//   isLoggedIn, 
-//   timesheetController.downloadAttachment
-// );    
+router.get('/:id/attachments/:attachmentId/download', 
+  isLoggedIn, 
+  timesheetController.downloadAttachment
+);    
 
 module.exports = router;

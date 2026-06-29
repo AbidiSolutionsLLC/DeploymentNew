@@ -13,7 +13,15 @@ import GlassButton from "./ui/GlassButton";
 
 const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  const dispatch = useDispatch();
- const [leaveType, setLeaveType] = useState(leaveData?.leaveType || "");
+  const normalizeLeaveType = (type) => {
+    if (!type) return "";
+    const t = String(type).toUpperCase();
+    if (t === 'PTO') return 'PTO';
+    if (t === 'SICK') return 'Sick';
+    return type;
+  };
+
+  const [leaveType, setLeaveType] = useState(normalizeLeaveType(leaveData?.leaveType));
  const [startDate, setStartDate] = useState(leaveData?.startDate ? new Date(leaveData.startDate) : null);
  const [endDate, setEndDate] = useState(leaveData?.endDate ? new Date(leaveData.endDate) : null);
  const [reason, setReason] = useState(leaveData?.reason || "");
@@ -39,7 +47,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
 
  useEffect(() => {
  if (isOpen && leaveData) {
- setLeaveType(leaveData.leaveType || "");
+ setLeaveType(normalizeLeaveType(leaveData.leaveType));
  setStartDate(leaveData.startDate ? parseISOToLocalDate(leaveData.startDate) : null);
  setEndDate(leaveData.endDate ? parseISOToLocalDate(leaveData.endDate) : null);
  setReason(leaveData.reason || "");

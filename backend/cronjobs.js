@@ -20,6 +20,9 @@ class CronJobs {
     cron.schedule('0 9 * * *', this.handleTaskOverdue.bind(this));
 
     console.log('Cron jobs initialized: Abandoned sessions (30min), Task Due Soon (8AM), Task Overdue (9AM).');
+    
+    // Run an initial check immediately on boot
+    this.handleAbandonedSessions();
   }
 
   async handleAbandonedSessions() {
@@ -29,9 +32,12 @@ class CronJobs {
       // and still open must be closed.
       const twelveHoursAgo = new Date(now.getTime() - (12 * 60 * 60 * 1000));
 
-      // Find sessions where checkOutTime is NULL AND checkInTime < 12 hours ago
+      // Find sessions where checkOutTime is NULL or missing AND checkInTime < 12 hours ago
       const abandonedSessions = await TimeTracker.find({
-        checkOutTime: { $exists: false },
+        $or: [
+          { checkOutTime: { $exists: false } },
+          { checkOutTime: null }
+        ],
         checkInTime: { $lt: twelveHoursAgo }
       }).populate('user');
 

@@ -8,7 +8,7 @@ const timesheetCommentSchema = Joi.object({
 });
 
 const createTimesheetSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(150).required().messages({
+  name: Joi.string().trim().min(1).max(150).required().messages({
     'string.empty': 'Timesheet Name is required.',
     'any.required': 'Timesheet Name is required.'
   }),

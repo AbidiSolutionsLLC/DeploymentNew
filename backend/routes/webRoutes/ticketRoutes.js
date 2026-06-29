@@ -38,6 +38,6 @@ router.patch("/:id/assign", isLoggedIn, ticketController.updateTicketAssignee);
 router.post("/:id/response", isLoggedIn, validate(ticketResponseSchema), ticketController.addTicketResponse);
 
 // --- DOWNLOAD ROUTE ---
-router.get("/:id/attachment/:attachmentId", ticketController.downloadTicketAttachment);
+router.get("/:id/attachment/:attachmentId", isLoggedIn, ticketController.downloadTicketAttachment);
 
 module.exports = router;

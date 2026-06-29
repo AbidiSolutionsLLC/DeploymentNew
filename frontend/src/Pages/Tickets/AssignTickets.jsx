@@ -325,7 +325,7 @@ const AssignTicket = () => {
             type="button"
             onClick={handlePromoteToTechnician}
             disabled={!selectedUserToPromote || promoting}
-            className="flex-1 sm:py-4 text-[10px] sm:text-[10px] shadow-slate-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
+            className="flex-1 sm:py-4 text-[10px] sm:text-[10px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
           >
             {promoting ? (
               <span className="flex items-center justify-center gap-2">
@@ -431,7 +431,7 @@ const AssignTicket = () => {
  setResponseError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
  }}
  onBlur={() => setResponseError(validateDescription(newResponse, { min: 10, max: 500, required: true }))}
- className={`w-full border ${responseError ? "border-red-400" : "border-border-subtle"} rounded-xl p-3 pr-12 text-sm focus:ring-2 focus:ring-amber-100 min-h-[60px] resize-none`}
+ className={`glass-input pr-12 min-h-[60px] resize-none ${responseError ? "!border-red-400" : ""}`}
  placeholder="Type a reply (min 10 characters, at least 3 words)..."
  />
  {responseError && (

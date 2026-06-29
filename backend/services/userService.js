@@ -373,8 +373,10 @@ class UserService {
     await user.delete();
   }
 
-  async getUserByRole(role) {
-    return User.find({ role });
+  async getUserByRole(role, companyId) {
+    const query = { role };
+    if (companyId) query.company = companyId;
+    return User.find(query);
   }
 
   async getDashboardCards(id) {
@@ -445,11 +447,15 @@ class UserService {
     return user.leaveHistory || [];
   }
 
-  async getUpcomingBirthdays() {
+  async getUpcomingBirthdays(companyId) {
     const today = new Date();
     const currentMonth = today.getMonth() + 1;
     const currentDay = today.getDate();
+    const matchQuery = {};
+    if (companyId) matchQuery.company = companyId;
+    
     const users = await User.aggregate([
+      { $match: matchQuery },
       { $project: { name: 1, DOB: 1, avatar: 1, birthMonth: { $month: { $toDate: "$DOB" } }, birthDay: { $dayOfMonth: { $toDate: "$DOB" } }, daysUntilBirthday: { $let: { vars: { nextBirthday: { $dateFromParts: { year: { $cond: [{ $and: [{ $gte: [{ $month: { $toDate: "$DOB" } }, currentMonth] }, { $gt: [{ $dayOfMonth: { $toDate: "$DOB" } }, currentDay] }] }, today.getFullYear(), today.getFullYear() + 1] }, month: { $month: { $toDate: "$DOB" } }, day: { $dayOfMonth: { $toDate: "$DOB" } } } } }, in: { $divide: [{ $subtract: ["$$nextBirthday", today] }, 1000 * 60 * 60 * 24] } } } } },
       { $match: { daysUntilBirthday: { $gte: 0, $lte: 30 } } },
       { $sort: { daysUntilBirthday: 1 } },
@@ -470,8 +476,10 @@ class UserService {
     return user.avatar;
   }
 
-  async getOrgChart() {
-    const users = await User.find({ empStatus: "Active" }).select("name designation avatar role email phone reportsTo department").populate("department", "name").lean();
+  async getOrgChart(companyId) {
+    const query = { empStatus: "Active" };
+    if (companyId) query.company = companyId;
+    const users = await User.find(query).select("name designation avatar role email phone reportsTo department").populate("department", "name").lean();
     const buildTree = (users, managerId = null) => {
       return users.filter((user) => { if (managerId === null) return !user.reportsTo; return user.reportsTo && user.reportsTo.toString() === managerId.toString(); }).map((user) => ({ ...user, children: buildTree(users, user._id) }));
     };

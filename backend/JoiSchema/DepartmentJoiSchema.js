@@ -1,9 +1,9 @@
 const Joi = require("joi");
 
 const departmentSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(100).required().messages({
+  name: Joi.string().trim().min(1).max(100).required().messages({
     'string.empty': 'Department name is required.',
-    'string.min': 'Department name must be at least 2 characters.',
+    'string.min': 'Department name must be at least 1 character.',
     'string.max': 'Department name cannot exceed 100 characters.',
     'any.required': 'Department name is required.'
   }),

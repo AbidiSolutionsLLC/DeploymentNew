@@ -35,7 +35,7 @@ exports.getMyTimeLogs = catchAsync(async (req, res) => {
 });
 
 exports.getDailyLog = catchAsync(async (req, res) => {
-  const log = await timeTrackerService.getDailyLog(req.params.userId);
+  const log = await timeTrackerService.getDailyLog(req.user, req.params.userId);
   if (!log) return res.status(200).json(ApiResponse.success({ log: null }, "No log found for today"));
   res.status(200).json(ApiResponse.success({ log }));
 });

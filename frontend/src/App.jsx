@@ -147,8 +147,7 @@ function App() {
  </Route>
 
  <Route path="/leave/*">
- <Route index element={<Navigate to="/leave/summary" />} />
- <Route index path="summary" element={<LeaveTracker />} />
+ <Route index element={<Navigate to="/people/summary" />} />
  <Route path="request" element={<LeaveRequest />} />
  <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
  </Route>
@@ -172,8 +171,8 @@ function App() {
  </Route>
 
  <Route path="/admin/*">
- <Route index element={<Navigate to="adminDashboard" replace />} />
- <Route index path="adminDashboard" element={<AdminDashBoard />} />
+ <Route index element={<Navigate to="dashboard" replace />} />
+ <Route index path="dashboard" element={<AdminDashBoard />} />
  <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
  <Route path="upload" element={<UploadDocument />} />
  <Route path="userManagement" element={<UserManagement />} />

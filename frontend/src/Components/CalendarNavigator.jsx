@@ -26,17 +26,17 @@ const CalendarNavigator = () => {
  return (
  <div className="flex items-center gap-1 group">
  {/* Navigation & Calendar */}
- <div className="flex items-center bg-surface rounded-md shadow py-1 relative md:py-2 md:px-2">
- <button onClick={handlePrev} className="btn-ghost p-1 rounded">
- <FiChevronLeft />
+ <div className="flex items-center bg-surface border border-border-subtle rounded-xl shadow-sm py-1 relative md:py-1 md:px-1 gap-1">
+ <button onClick={handlePrev} className="p-1.5 rounded-full border border-border-subtle text-muted hover:text-main hover:bg-app transition-colors active:scale-95">
+ <FiChevronLeft className="w-4 h-4" />
  </button>
 
  <DatePicker
  selected={selectedDate}
  onChange={(date) => updateDate(date)}
  customInput={
- <button className="btn-ghost p-1 rounded">
- <FiCalendar />
+ <button className="p-1.5 rounded-full bg-amber-500/10 text-brand-text hover:bg-amber-500/20 transition-colors active:scale-95">
+ <FiCalendar className="w-4 h-4" />
  </button>
  }
  popperPlacement="bottom-start"
@@ -44,8 +44,8 @@ const CalendarNavigator = () => {
  portalId="root-portal"
  />
 
- <button onClick={handleNext} className="btn-ghost p-1 rounded">
- <FiChevronRight />
+ <button onClick={handleNext} className="p-1.5 rounded-full border border-border-subtle text-muted hover:text-main hover:bg-app transition-colors active:scale-95">
+ <FiChevronRight className="w-4 h-4" />
  </button>
 
  {/* Popup on date change */}
@@ -57,7 +57,7 @@ const CalendarNavigator = () => {
  </div>
 
  {/* Full date only on hover */}
- <span className="hidden md:block text-main font-medium ">
+ <span className="hidden md:block text-xs font-bold text-main uppercase tracking-widest px-2">
  {formatDate(selectedDate)}
  </span>
  </div>

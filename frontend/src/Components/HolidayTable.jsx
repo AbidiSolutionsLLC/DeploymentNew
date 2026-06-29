@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import holidayApi from '../api/holidayApi';
+import TableWithPagination from './TableWithPagination';
 
 const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 }) => {
  const [holidays, setHolidays] = useState(propHolidays || []);
@@ -69,110 +70,84 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
  .sort((a, b) => extractDate(a.date) - extractDate(b.date))
  .slice(0, 5);
 
- const renderTable = (title, data, isUpcoming = true) => {
- if (data.length === 0) {
- return (
- <div className="mb-6">
- <div className="flex items-center justify-between mb-4">
- <h2 className="text-sm font-bold text-main uppercase tracking-wide flex items-center gap-2">
- <div className={`w-2 h-2 rounded-full ${isUpcoming ? 'bg-green-500' : 'bg-gray-400'}`}></div>
- {title} ({data.length})
- </h2>
- </div>
- <div className="p-6 text-center text-muted text-sm bg-app/80 rounded-lg">
- <div className="flex flex-col items-center gap-2">
- <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
- </svg>
- <p className="font-medium text-muted">
- {searchTerm
- ? `No ${title.toLowerCase()} found matching "${searchTerm}"`
- : `No ${title.toLowerCase()} available`}
- </p>
- </div>
- </div>
- </div>
- );
- }
+  const getColumns = (isUpcoming) => [
+  { 
+    key: "date", 
+    label: "Date",
+    render: (_, row) => {
+      const holidayDate = extractDate(row.date);
+      return holidayDate.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+      });
+    }
+  },
+  { key: "day", label: "Day" },
+  { 
+    key: "holidayName", 
+    label: "Holiday Name",
+    render: (_, row) => (
+      <span className="truncate max-w-[200px]" title={row.holidayName}>
+        {row.holidayName}
+      </span>
+    )
+  },
+  { 
+    key: "holidayType", 
+    label: "Type",
+    render: (_, row) => (
+      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-surface border border-border-subtle text-muted shadow-sm">
+        {row.holidayType || "Holiday"}
+      </span>
+    )
+  },
+  { 
+    key: "daysCount", 
+    label: isUpcoming ? "Days Until" : "Days Ago",
+    render: (_, row) => {
+      const holidayDate = extractDate(row.date);
+      let daysCount;
+      let statusClass;
 
- return (
- <div className="mb-6">
- <div className="flex items-center justify-between mb-4">
- <h2 className="text-sm font-bold text-main uppercase tracking-wide flex items-center gap-2">
- <div className={`w-2 h-2 rounded-full ${isUpcoming ? 'bg-green-500' : 'bg-gray-400'}`}></div>
- {title} ({data.length})
- </h2>
- </div>
- <div className="overflow-x-auto">
- <table className="min-w-full text-sm border-separate border-spacing-0" style={{ tableLayout: 'fixed' }}>
- <colgroup>
- <col style={{ width: '20%' }} />
- <col style={{ width: '15%' }} />
- <col style={{ width: '35%' }} />
- <col style={{ width: '15%' }} />
- <col style={{ width: '15%' }} />
- </colgroup>
- <thead>
- <tr className="bg-app/80 text-main">
- {["Date", "Day", "Holiday Name", "Type", isUpcoming ? "Days Until" : "Days Ago"].map((header, index) => (
- <th
- key={index}
- className="p-3 font-semibold text-xs uppercase tracking-wide border-b border-subtle text-left"
- style={{ width: ['20%', '15%', '35%', '15%', '15%'][index] }}
- >
- {header}
- </th>
- ))}
- </tr>
- </thead>
- <tbody>
- {data.map((holiday, index) => {
- const holidayDate = extractDate(holiday.date);
+      if (isUpcoming) {
+        daysCount = Math.ceil((holidayDate - today) / (1000 * 60 * 60 * 24));
+        statusClass = daysCount === 0
+          ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+          : "bg-amber-500/10 text-amber-600 border border-amber-500/20";
+      } else {
+        daysCount = Math.ceil((today - holidayDate) / (1000 * 60 * 60 * 24));
+        statusClass = "bg-surface text-muted border border-border-subtle";
+      }
 
- let daysCount;
- let statusClass;
+      return (
+        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm ${statusClass}`}>
+          {daysCount === 0 ? 'Today' : `${daysCount} day${daysCount !== 1 ? 's' : ''} ${isUpcoming ? '' : 'ago'}`}
+        </span>
+      );
+    }
+  }
+  ];
 
- if (isUpcoming) {
- daysCount = Math.ceil((holidayDate - today) / (1000 * 60 * 60 * 24));
- statusClass = daysCount === 0
- ? "bg-green-100 text-green-800"
- : "bg-amber-100 text-amber-800";
- } else {
- daysCount = Math.ceil((today - holidayDate) / (1000 * 60 * 60 * 24));
- statusClass = "bg-app text-main";
- }
-
- return (
- <tr key={index} className="border-b border-slate-100 hover:bg-app/80 transition-colors">
- <td className="p-3 text-main font-medium" style={{ width: '20%' }}>
- {holidayDate.toLocaleDateString('en-US', {
- weekday: 'short',
- month: 'short',
- day: 'numeric',
- year: 'numeric'
- })}
- </td>
- <td className="p-3 text-muted" style={{ width: '15%' }}>{holiday.day}</td>
- <td className="p-3 text-main font-bold truncate max-w-[200px]" style={{ width: '35%' }} title={holiday.holidayName}>{holiday.holidayName}</td>
- <td className="p-3" style={{ width: '15%' }}>
- <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide bg-purple-100 text-purple-800">
- {holiday.holidayType || "Holiday"}
- </span>
- </td>
- <td className="p-3" style={{ width: '15%' }}>
- <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${statusClass}`}>
- {daysCount === 0 ? 'Today' : `${daysCount} day${daysCount !== 1 ? 's' : ''} ${isUpcoming ? '' : 'ago'}`}
- </span>
- </td>
- </tr>
- );
- })}
- </tbody>
- </table>
- </div>
- </div>
- );
- };
+  const renderTable = (title, data, isUpcoming = true) => {
+  return (
+    <div className="mb-6">
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-sm font-bold text-main uppercase tracking-wide flex items-center gap-2">
+      <div className={`w-2 h-2 rounded-full ${isUpcoming ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+      {title} ({data.length})
+      </h2>
+    </div>
+    <div className="overflow-x-auto">
+      <TableWithPagination
+      columns={getColumns(isUpcoming)}
+      data={data}
+      loading={false}
+      emptyMessage={searchTerm ? `No ${title.toLowerCase()} found matching "${searchTerm}"` : `No ${title.toLowerCase()} available`}
+      rowsPerPage={isUpcoming ? 10 : 5}
+      />
+    </div>
+    </div>
+  );
+  };
 
  if (loading) {
  return (

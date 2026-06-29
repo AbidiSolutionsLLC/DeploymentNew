@@ -97,6 +97,9 @@ app.all("*", (req, res, next) => {
 
 app.use(globalErrorHandler);
 
+const CronJobs = require('./cronjobs');
+new CronJobs();
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

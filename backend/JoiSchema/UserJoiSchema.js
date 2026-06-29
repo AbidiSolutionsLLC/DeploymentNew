@@ -1,8 +1,8 @@
 const Joi = require("joi");
 
 const userSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(101).required().messages({
-    'string.min': 'Name must be at least 2 characters.',
+  name: Joi.string().trim().min(1).max(101).required().messages({
+    'string.min': 'Name must be at least 1 character.',
     'string.max': 'Name cannot exceed 101 characters.',
     'any.required': 'Name is required.'
   }),
@@ -10,7 +10,7 @@ const userSchema = Joi.object({
     'string.email': 'Please enter a valid email address.',
     'any.required': 'Email is required.'
   }),
-  password: Joi.string().min(6).optional(), 
+  password: Joi.string().min(8).pattern(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/).optional(), 
   
   role: Joi.string().valid("SuperAdmin", "Admin", "HR", "Manager", "Employee").default("Employee"),
   empType: Joi.string().valid("Permanent", "Contractor", "Intern", "Part Time").required(),

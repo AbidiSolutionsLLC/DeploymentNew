@@ -25,6 +25,17 @@ class TimeTrackerService {
     } else {
       const scope = await getSearchScope(user, 'attendance');
       Object.assign(query, scope);
+      // Enforce company isolation
+      if (user.company) {
+         const companyUsers = await User.find({ company: user.company }).select('_id');
+         const companyUserIds = companyUsers.map(u => u._id);
+         if (query.user) {
+             // Intersect
+             query.user = { $in: [].concat(query.user.$in || query.user).filter(id => companyUserIds.some(cId => cId.equals(id))) };
+         } else {
+             query.user = { $in: companyUserIds };
+         }
+      }
     }
 
     return TimeTracker.find(query)
@@ -85,7 +96,17 @@ class TimeTrackerService {
     if (targetUserId && ['superadmin', 'admin', 'manager', 'hr'].includes(roleKey)) {
        query.user = targetUserId;
     } else {
-       query.user = id;
+       if (roleKey === 'superadmin' || roleKey === 'hr') {
+           if (user.company) {
+               const companyUsers = await User.find({ company: user.company }).select('_id');
+               query.user = { $in: companyUsers.map(u => u._id) };
+           }
+       } else if (roleKey === 'manager' || roleKey === 'admin') {
+           const teamIds = await getTeamIds(id);
+           query.user = { $in: teamIds };
+       } else {
+           query.user = id;
+       }
     }
 
     return TimeTracker.find(query)
@@ -175,9 +196,23 @@ class TimeTrackerService {
     return TimeTracker.find({ user: userId }).sort({ date: -1 });
   }
 
-  async getDailyLog(userId) {
+  async getDailyLog(currentUser, targetUserId) {
     const todayStart = getStartOfESTDay();
-    return TimeTracker.findOne({ user: userId, date: todayStart });
+    const roleKey = normalizeRole(currentUser.role);
+    
+    // Security check: only self, or admin/HR, or manager of team
+    if (currentUser.id !== targetUserId && roleKey !== 'superadmin' && roleKey !== 'hr') {
+       if (roleKey === 'manager' || roleKey === 'admin') {
+          const teamIds = await getTeamIds(currentUser.id);
+          if (!teamIds.some(id => id.toString() === targetUserId.toString())) {
+             throw new ForbiddenError("Not authorized to view this log");
+          }
+       } else {
+          throw new ForbiddenError("Not authorized to view this log");
+       }
+    }
+    
+    return TimeTracker.findOne({ user: targetUserId, date: todayStart });
   }
 
   async deleteTimeLog(user, logId) {

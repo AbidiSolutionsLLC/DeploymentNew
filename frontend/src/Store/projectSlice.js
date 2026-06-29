@@ -6,7 +6,7 @@ export const fetchProjects = createAsyncThunk(
  async (_, { rejectWithValue }) => {
  try {
  const response = await api.getProjects();
- return response.data;
+ return response;
  } catch (err) {
  return rejectWithValue(err.response.data);
  }
@@ -18,7 +18,7 @@ export const fetchProjectById = createAsyncThunk(
  async (id, { rejectWithValue }) => {
  try {
  const response = await api.getProjectById(id);
- return response.data;
+ return response;
  } catch (err) {
  return rejectWithValue(err.response.data);
  }
@@ -30,7 +30,7 @@ export const fetchProjectTasks = createAsyncThunk(
  async (projectId, { rejectWithValue }) => {
  try {
  const response = await api.getProjectTasks(projectId);
- return response.data;
+ return response;
  } catch (err) {
  return rejectWithValue(err.response.data);
  }
@@ -42,7 +42,7 @@ export const createProject = createAsyncThunk(
  async (projectData, { rejectWithValue }) => {
  try {
  const response = await api.createProject(projectData);
- return response.data;
+ return response;
  } catch (err) {
  return rejectWithValue(err.response.data);
  }
@@ -54,7 +54,7 @@ export const updateProject = createAsyncThunk(
  async ({ id, updates }, { rejectWithValue }) => {
  try {
  const response = await api.updateProject(id, updates);
- return response.data;
+ return response;
  } catch (err) {
  return rejectWithValue(err.response.data);
  }
@@ -78,7 +78,7 @@ export const fetchProjectDashboard = createAsyncThunk(
  async (_, { rejectWithValue }) => {
  try {
  const response = await api.getProjectDashboard();
- return response.data;
+ return response;
  } catch (err) {
  return rejectWithValue(err.response.data);
  }

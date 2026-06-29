@@ -43,7 +43,7 @@ const NavbarVertical = ({ onNotificationClick }) => {
 
  const handleNotificationToggle = () => {
  if (location.pathname === "/notifications") {
- navigate(-1);
+ navigate("/");
  } else {
  navigate("/notifications");
  }

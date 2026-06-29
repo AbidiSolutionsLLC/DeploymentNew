@@ -292,7 +292,7 @@ const Attendance = () => {
  key={index}
  className="relative flex items-start group transition-all duration-150"
  >
- <div className={`absolute left-[66px] top-6 h-4 w-4 rounded-full transform translate-x-1/2 z-10 border-2 border-white ${
+ <div className={`absolute left-[66px] top-6 h-4 w-4 rounded-full transform translate-x-1/2 z-10 border-2 border-surface ${
  day.status === "Present" ? "bg-green-500" :
  day.status === "Absent" ? "bg-red-500" :
  day.status === "Half Day" ? "bg-yellow-500" :
@@ -381,7 +381,7 @@ const Attendance = () => {
         <div className="flex justify-end w-full">
           <button 
             onClick={() => setIsModalOpen(false)}
-            className="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-700 shadow-md hover:shadow-lg shadow-slate-200 transition-all cursor-pointer"
+            className="btn btn-secondary"
           >
             Close
           </button>

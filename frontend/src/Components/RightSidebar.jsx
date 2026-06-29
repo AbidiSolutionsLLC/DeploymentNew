@@ -182,9 +182,9 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
  {/* Toggle Button */}
  <button
  onClick={toggleSidebar}
- className="absolute -left-0 top-12 z-[70] p-1.5 bg-surface rounded-full text-muted hover: hover: active:scale-90 btn btn-secondary"
+ className="absolute -left-3 top-12 z-[70] p-1.5 bg-surface rounded-full text-muted hover:text-main border border-border-subtle shadow-sm active:scale-90 transition-all"
  >
- {isOpen ? <ChevronRightIcon className="w-4 h-4" /> : <ChevronLeftIcon className="w-4 h-4" />}
+ {isOpen ? <ChevronRightIcon className="w-3 h-3" /> : <ChevronLeftIcon className="w-3 h-3" />}
  </button>
 
  {/* Sidebar Content */}

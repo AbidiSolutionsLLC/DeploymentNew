@@ -55,7 +55,7 @@ exports.deleteUser = catchAsync(async (req, res) => {
 });
 
 exports.getUserByRole = catchAsync(async (req, res) => {
-  const users = await userService.getUserByRole(req.params.role);
+  const users = await userService.getUserByRole(req.params.role, req.user.company);
   res.status(200).json(ApiResponse.success(users));
 });
 
@@ -90,7 +90,7 @@ exports.getUserLeaveHistory = catchAsync(async (req, res) => {
 });
 
 exports.getUpcomingBirthdays = catchAsync(async (req, res) => {
-  const birthdays = await userService.getUpcomingBirthdays();
+  const birthdays = await userService.getUpcomingBirthdays(req.user.company);
   res.status(200).json(ApiResponse.success(birthdays));
 });
 
@@ -105,7 +105,7 @@ exports.uploadAvatar = catchAsync(async (req, res) => {
 });
 
 exports.getOrgChart = catchAsync(async (req, res) => {
-  const chart = await userService.getOrgChart();
+  const chart = await userService.getOrgChart(req.user.company);
   res.status(200).json(ApiResponse.success(chart));
 });
 

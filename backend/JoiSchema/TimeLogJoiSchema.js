@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 const createTimeLogSchema = Joi.object({
-  job: Joi.string().trim().min(2).max(150).required().messages({
+  job: Joi.string().trim().min(1).max(150).required().messages({
     'string.empty': 'Task/Job name is required.',
     'any.required': 'Task/Job name is required.'
   }),
@@ -21,7 +21,7 @@ const createTimeLogSchema = Joi.object({
 });
 
 const updateTimeLogSchema = Joi.object({
-  job: Joi.string().trim().min(2).max(150).optional(),
+  job: Joi.string().trim().min(1).max(150).optional(),
   date: Joi.date().max('now').optional(),
   hours: Joi.number().min(0.1).max(24).optional(),
   description: Joi.string().trim().allow("", null).optional()

@@ -1,11 +1,11 @@
 const Joi = require("joi");
 
 const createTicketSchema = Joi.object({
-  subject: Joi.string().trim().min(2).max(150).required().messages({
+  subject: Joi.string().trim().min(1).max(150).required().messages({
     'string.empty': 'Subject is required.',
     'any.required': 'Subject is required.'
   }),
-  description: Joi.string().trim().min(2).max(5000).required().messages({
+  description: Joi.string().trim().min(1).max(5000).required().messages({
     'string.empty': 'Description is required.',
     'any.required': 'Description is required.'
   }),
@@ -19,7 +19,7 @@ const createTicketSchema = Joi.object({
 });
 
 const ticketResponseSchema = Joi.object({
-  content: Joi.string().trim().min(2).max(2000).required().messages({
+  content: Joi.string().trim().min(1).max(2000).required().messages({
     'string.empty': 'Response cannot be empty.',
     'any.required': 'Response is required.'
   }),

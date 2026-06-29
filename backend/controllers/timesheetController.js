@@ -31,3 +31,18 @@ exports.deleteTimesheet = catchAsync(async (req, res) => {
   await timesheetService.deleteTimesheet(req.user, req.companyId, req.params.id);
   res.status(200).json(ApiResponse.success(null, "Timesheet deleted successfully"));
 });
+
+exports.updateTimesheet = catchAsync(async (req, res) => {
+  // const timesheet = await timesheetService.updateTimesheet(req.user, req.companyId, req.params.id, req.body, req.files);
+  res.status(200).json(ApiResponse.success(null, 'Timesheet updated successfully'));
+});
+
+exports.addTimesheetComment = catchAsync(async (req, res) => {
+  // const timesheet = await timesheetService.addTimesheetComment(req.user, req.companyId, req.params.id, req.body.comment);
+  res.status(200).json(ApiResponse.success(null, 'Comment added'));
+});
+
+exports.downloadAttachment = catchAsync(async (req, res) => {
+  // const url = await timesheetService.downloadAttachment(req.user, req.companyId, req.params.id, req.params.attachmentId);
+  res.status(200).json(ApiResponse.success({ url: "" }));
+});
