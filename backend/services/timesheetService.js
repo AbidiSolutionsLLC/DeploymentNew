@@ -36,7 +36,7 @@ class TimesheetService {
       throw new BadRequestError(`You have already submitted a timesheet for ${moment(timesheetDate).tz(TIMEZONE).format('MM-DD-YYYY')}.`);
     }
 
-    const logs = await TimeLog.find({ _id: { $in: logIds }, employee, isAddedToTimesheet: false, company: companyId });
+    const logs = await TimeLog.find({ _id: { $in: logIds }, employee, isAddedToTimesheet: false });
     if (logs.length !== logIds.length) {
       throw new BadRequestError("Invalid logs or logs already added to another timesheet");
     }
@@ -65,7 +65,7 @@ class TimesheetService {
     });
 
     const savedTimesheet = await timesheet.save();
-    await TimeLog.updateMany({ _id: { $in: logIds }, company: companyId }, { isAddedToTimesheet: true, timesheet: savedTimesheet._id });
+    await TimeLog.updateMany({ _id: { $in: logIds } }, { isAddedToTimesheet: true, timesheet: savedTimesheet._id });
 
     return savedTimesheet;
   }
@@ -162,6 +162,38 @@ class TimesheetService {
     return timesheet;
   }
 
+  async updateTimesheet(user, companyId, id, data, files) {
+    const timesheet = await Timesheet.findOne({ _id: id, company: companyId });
+    if (!timesheet) throw new NotFoundError("Timesheet");
+
+    if (timesheet.status !== 'Pending') {
+      throw new ForbiddenError("You can only edit timesheets that are in Pending status");
+    }
+
+    if (timesheet.employee.toString() !== (user.id || user._id).toString()) {
+      throw new ForbiddenError("You can only edit your own timesheets");
+    }
+
+    // Update fields
+    if (data.name) timesheet.name = data.name;
+    if (data.description !== undefined) timesheet.description = data.description;
+    
+    // Process new attachments if any
+    if (files && files.length > 0) {
+      const newAttachments = files.map(file => ({
+        filename: file.filename || file.originalname,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        path: file.path || `/uploads/timesheets/${file.filename}`
+      }));
+      timesheet.attachments = [...(timesheet.attachments || []), ...newAttachments];
+    }
+
+    const updatedTimesheet = await timesheet.save();
+    return updatedTimesheet;
+  }
+
   async updateTimesheetStatus(user, companyId, id, data) {
     const { status, approvedHours, comment } = data;
     const timesheet = await Timesheet.findOne({ _id: id, company: companyId }).populate('employee', 'name email');
@@ -214,7 +246,7 @@ class TimesheetService {
 
     if (timesheet.timeLogs && timesheet.timeLogs.length > 0) {
       await TimeLog.updateMany(
-        { _id: { $in: timesheet.timeLogs }, company: companyId },
+        { _id: { $in: timesheet.timeLogs } },
         { $set: { isAddedToTimesheet: false, timesheet: null } }
       );
     }

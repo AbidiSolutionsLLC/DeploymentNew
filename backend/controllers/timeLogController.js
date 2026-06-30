@@ -3,12 +3,12 @@ const ApiResponse = require("../utils/ApiResponse");
 const catchAsync = require("../utils/catchAsync");
 
 exports.createTimeLog = catchAsync(async (req, res) => {
-  const timeLog = await timeLogService.createTimeLog(req.user, req.body, req.files);
+  const timeLog = await timeLogService.createTimeLog(req.user, req.companyId, req.body, req.files);
   res.status(201).json(ApiResponse.success(timeLog, 'Time log created successfully'));
 });
 
 exports.getEmployeeTimeLogs = catchAsync(async (req, res) => {
-  const timeLogs = await timeLogService.getEmployeeTimeLogs(req.user, req.query);
+  const timeLogs = await timeLogService.getEmployeeTimeLogs(req.user, req.companyId, req.query);
   res.status(200).json(ApiResponse.success(timeLogs, 'Time logs retrieved successfully'));
 });
 

@@ -24,17 +24,18 @@ const Ticket = () => {
  useEffect(() => {
  const fetchTickets = async () => {
  try {
- if (!user?.user?.email) return;
+ if (!user?.email) return;
  const res = await api.get(`/tickets`);
  
  // --- VISIBILITY FIX: Filter ONLY tickets created by ME ---
  // Even if backend sends assigned tickets (for Technicians), we filter here.
- const currentUserId = user.user.id || user.user._id;
+ const currentUserId = user.id || user._id;
  const allTickets = res.data || [];
  
- const myCreatedTickets = allTickets.filter(ticket => 
- ticket.user && (ticket.user._id === currentUserId || ticket.user === currentUserId)
- );
+ const myCreatedTickets = allTickets.filter(ticket => {
+   const creatorId = ticket.closedBy?._id || ticket.closedBy || ticket.user?._id || ticket.user;
+   return creatorId === currentUserId;
+ });
  // --------------------------------------------------------
 
  setTickets(myCreatedTickets);
@@ -104,7 +105,7 @@ const Ticket = () => {
  key: "ticketID",
  label: "Ticket ID",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <span className="font-bold text-amber-600 dark:text-amber-400" title={row.ticketID || row._id}>
  #{row.ticketID || row._id.slice(0, 8).toUpperCase()}
  </span>
@@ -114,7 +115,7 @@ const Ticket = () => {
  key: "createdAt",
  label: "Date",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <span className="text-muted whitespace-nowrap">
  {formatDate(row.createdAt)}
  </span>
@@ -124,7 +125,7 @@ const Ticket = () => {
  key: "subject",
  label: "Subject",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <div className="font-bold text-main truncate max-w-[180px]" title={row.subject}>
  {row.subject}
  </div>
@@ -134,7 +135,7 @@ const Ticket = () => {
  key: "description",
  label: "Description",
  sortable: false,
- render: (row) => (
+ render: (_, row) => (
  <div className="text-muted truncate max-w-[200px]" title={row.description}>
  {row.description}
  </div>
@@ -144,7 +145,7 @@ const Ticket = () => {
  key: "priority",
  label: "Priority",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${
  row.priority?.toLowerCase().includes('high') ? STATUS_VARIANTS.danger.badge :
  row.priority?.toLowerCase().includes('medium') ? STATUS_VARIANTS.warning.badge :
@@ -158,7 +159,7 @@ const Ticket = () => {
  key: "status",
  label: "Status",
  sortable: true,
- render: (row) => <StatusBadge status={row.status} />
+ render: (_, row) => <StatusBadge status={row.status} />
  },
  ];
 
@@ -225,7 +226,7 @@ const Ticket = () => {
  </div>
  }
  >
- <div className="bg-surface rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden">
+ <div className="bg-surface rounded-2xl border border-border-subtle shadow-sm overflow-hidden flex flex-col">
  <TableWithPagination
  columns={ticketColumns}
  data={filteredTickets}

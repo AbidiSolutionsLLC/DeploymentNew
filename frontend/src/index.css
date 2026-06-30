@@ -419,6 +419,11 @@ body {
    hand-rolled modals). Guarantees identical backdrop blur/opacity, z-index,
    radius, padding and shadow tokens across light & dark mode. */
 
+/* Force react-toastify to always be on top */
+.Toastify__toast-container {
+  z-index: 99999999 !important;
+}
+
 .app-modal-backdrop {
   position: fixed;
   inset: 0;

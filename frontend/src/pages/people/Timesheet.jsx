@@ -245,7 +245,7 @@ const Timesheet = ({ refreshTrigger }) => {
  key: "date",
  label: "Date",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <span className="text-main font-medium">
  {formatTimesheetDate(row.date)}
  </span>
@@ -255,7 +255,7 @@ const Timesheet = ({ refreshTrigger }) => {
  key: "name",
  label: "Timesheet Name",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <span className="text-main font-medium truncate max-w-[150px] inline-block" title={row.name || "Unnamed"}>
  {row.name || "Unnamed"}
  </span>
@@ -265,7 +265,7 @@ const Timesheet = ({ refreshTrigger }) => {
  key: "submittedHours",
  label: "Submitted Hours",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <span className="text-main font-medium">
  {(row.submittedHours || 0).toFixed(1)}
  </span>
@@ -275,7 +275,7 @@ const Timesheet = ({ refreshTrigger }) => {
  key: "approvedHours",
  label: "Approved Hours",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <span className="text-main font-medium">
  {(row.approvedHours || 0).toFixed(1)}
  </span>
@@ -285,7 +285,7 @@ const Timesheet = ({ refreshTrigger }) => {
  key: "status",
  label: "Status",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <span
  className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${STATUS_VARIANTS[resolveStatusVariant(row.status)]?.badge || STATUS_VARIANTS.neutral.badge}`}
  >
@@ -297,7 +297,7 @@ const Timesheet = ({ refreshTrigger }) => {
  key: "comments",
  label: "Comments",
  sortable: false,
- render: (row) => {
+ render: (_, row) => {
  const commentCount = row.comments?.length || 0;
  if (commentCount === 0) {
  return <span className="text-muted text-xs">No comments</span>;
@@ -411,7 +411,7 @@ const Timesheet = ({ refreshTrigger }) => {
  </div>
  }
  >
- <div className="bg-surface rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden">
+ <div className="bg-surface rounded-2xl border border-border-subtle shadow-sm overflow-hidden flex flex-col">
  <AnimatePresence mode="wait">
  <motion.div
  key={selectedWeekStart?.getTime?.() || 'default'}

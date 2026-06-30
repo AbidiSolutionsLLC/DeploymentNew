@@ -19,7 +19,7 @@ import api from "../axios";
 import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
 import { TbUserQuestion } from "react-icons/tb";
-import { logoutUser } from "../slices/authSlice";
+import { logout } from "../slices/authSlice";
 import projectIcon from "../assets/projects.png";
 import adminIcon from "../assets/admin.png";
 import NotificationBell from "./NotificationBell";
@@ -95,12 +95,12 @@ const Navbar = () => {
  _skipAuth: true,
  _isLogoutRequest: true
  });
- dispatch(logoutUser());
+ dispatch(logout());
  navigate("/auth/login");
  toast.success("Logged out successfully");
  } catch (err) {
  console.warn("Logout API failed:", err.message);
- dispatch(logoutUser());
+ dispatch(logout());
  navigate("/auth/login");
  }
  };

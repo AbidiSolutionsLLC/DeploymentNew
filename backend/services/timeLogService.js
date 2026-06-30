@@ -4,7 +4,7 @@ const { moment, TIMEZONE } = require("../utils/dateUtils");
 const { normalizeRole } = require("../utils/rbacUtils");
 
 class TimeLogService {
-  async createTimeLog(user, data, files) {
+  async createTimeLog(user, companyId, data, files) {
     const { job, date, description, hours, employeeId } = data;
     const role = normalizeRole(user.role);
     const employee = (employeeId && ['super admin', 'admin'].includes(role)) ? employeeId : user.id || user._id;
@@ -21,6 +21,7 @@ class TimeLogService {
 
     const timeLog = new TimeLog({
       employee,
+      company: companyId,
       job,
       date: estDate, 
       description,
@@ -31,12 +32,12 @@ class TimeLogService {
     return timeLog.save();
   }
 
-  async getEmployeeTimeLogs(user, query) {
+  async getEmployeeTimeLogs(user, companyId, query) {
     const { date, userId } = query; 
     const roleKey = normalizeRole(user.role);
     const employee = (userId && ['super admin', 'admin', 'manager'].includes(roleKey)) ? userId : user.id || user._id;
 
-    const dbQuery = { employee };
+    const dbQuery = { employee, company: companyId };
     if (date) {
       const startDate = moment.tz(date, TIMEZONE).startOf('day').toDate();
       const endDate = moment.tz(date, TIMEZONE).endOf('day').toDate();

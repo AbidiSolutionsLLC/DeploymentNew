@@ -82,13 +82,13 @@ const ExpenseDetail = ({
         <>
           <button
             onClick={() => onApprove(expense._id)}
-            className="flex-1 px-4 py-3 bg-[#64748b] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-slate-100 hover:brightness-110 active:scale-95 transition-all flex justify-center items-center gap-2"
+            className="btn btn-primary flex-1 flex justify-center items-center gap-2"
           >
             <CheckCircle size={14} /> Approve
           </button>
           <button
             onClick={() => onReject(expense)}
-            className="flex-1 px-4 py-3 bg-surface text-rose-600 dark:text-rose-400 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-md border border-rose-100 hover:bg-rose-50 dark:bg-rose-900/30 active:scale-95 transition-all flex justify-center items-center gap-2"
+            className="btn bg-rose-600 hover:bg-rose-700 text-white flex-1 flex justify-center items-center gap-2 shadow-lg shadow-rose-600/20"
           >
             <XCircle size={14} /> Reject
           </button>
@@ -103,7 +103,7 @@ const ExpenseDetail = ({
               onClose();
             }
           }}
-          className="flex-1 px-4 py-3 bg-surface text-rose-500 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-sm border border-rose-100 hover:bg-rose-50 dark:bg-rose-900/30 active:scale-95 transition-all flex justify-center items-center gap-2"
+          className="btn bg-rose-600 hover:bg-rose-700 text-white flex-1 flex justify-center items-center gap-2 shadow-lg shadow-rose-600/20"
         >
           <Trash2 size={14} /> Delete
         </button>

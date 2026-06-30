@@ -43,7 +43,7 @@ const LeaveSummary = () => {
 
  // Calculate total leaves
  const totalLeaves = Object.values(leaveBalances).reduce((sum, balance) => sum + (balance || 0), 0);
- const availableLeaves = Math.max(0, totalLeaves - bookedLeaves);
+ const availableLeaves = totalLeaves;
 
  // Refresh user data on component mount
  useEffect(() => {

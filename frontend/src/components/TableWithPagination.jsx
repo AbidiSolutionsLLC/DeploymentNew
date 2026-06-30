@@ -77,7 +77,7 @@ const TableWithPagination = ({
  onClick={() => goToPage(i)}
  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border ${currentPage === i
  ? "bg-brand/20 text-brand-text border-brand/30 shadow-inner"
- : "bg-surface text-main hover:bg-surface border-white/60 hover:shadow-md"
+ : "bg-surface text-main hover:bg-surface border-border-subtle hover:shadow-md"
  }`}
  >
  {i}
@@ -90,7 +90,7 @@ const TableWithPagination = ({
 
  if (loading) {
  return (
- <div className="text-center p-6 bg-surface rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)]">
+ <div className="text-center p-6 bg-surface rounded-2xl border border-border-subtle shadow-sm">
  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
  <p className="mt-3 text-heading text-xs font-bold uppercase tracking-wide">Loading...</p>
  </div>
@@ -113,7 +113,7 @@ const TableWithPagination = ({
  {columns.map((column, idx) => (
  <th
  key={column.key}
- className={`p-4 font-black text-[10px] uppercase tracking-widest border-b border-white/50 text-left ${column.sortable !== false ? 'cursor-pointer hover:bg-surface transition-colors' : ''} ${idx === 0 ? 'rounded-tl-xl' : ''} ${idx === columns.length - 1 && actions.length === 0 ? 'rounded-tr-xl' : ''}`}
+ className={`p-4 font-black text-[10px] uppercase tracking-widest border-b border-border-subtle text-left ${column.sortable !== false ? 'cursor-pointer hover:bg-surface transition-colors' : ''} ${idx === 0 ? 'rounded-tl-xl' : ''} ${idx === columns.length - 1 && actions.length === 0 ? 'rounded-tr-xl' : ''}`}
  onClick={() => column.sortable !== false && handleSort(column.key)}
  >
  <div className="flex items-center gap-1">
@@ -127,7 +127,7 @@ const TableWithPagination = ({
  </th>
  ))}
  {actions.length > 0 && (
- <th className="p-4 font-black text-[10px] uppercase tracking-widest border-b border-white/50 text-left rounded-tr-xl">
+ <th className="p-4 font-black text-[10px] uppercase tracking-widest border-b border-border-subtle text-left rounded-tr-xl">
  Actions
  </th>
  )}
@@ -138,16 +138,16 @@ const TableWithPagination = ({
  currentData.map((row, rowIndex) => (
  <tr
  key={row.id || row._id || (startIndex + rowIndex)}
- className={`border-b border-white/30 hover:bg-surface transition-all duration-200 ${onRowClick ? 'cursor-pointer' : ''}`}
+ className={`border-b border-border-subtle hover:bg-surface transition-all duration-200 ${onRowClick ? 'cursor-pointer' : ''}`}
  onClick={() => onRowClick && onRowClick(row)}
  >
  {columns.map((column) => (
- <td key={column.key} className="p-4 border-b border-white/30 text-main font-medium">
+ <td key={column.key} className="p-4 border-b border-border-subtle text-main font-medium">
  {column.render ? column.render(row[column.key], row) : row[column.key]}
  </td>
  ))}
  {actions.length > 0 && (
- <td className="p-4 border-b border-white/30">
+ <td className="p-4 border-b border-border-subtle">
  <div className="flex gap-2">
  {actions.map((action, idx) => (
  <button
@@ -171,7 +171,7 @@ const TableWithPagination = ({
  <tr>
  <td colSpan={columns.length + (actions.length > 0 ? 1 : 0)} className="p-12 text-center text-muted text-sm bg-surface ">
  <div className="flex flex-col items-center gap-3">
- <div className="p-4 bg-surface rounded-full shadow-inner">
+ <div className="p-4 bg-surface rounded-full shadow-sm">
  <svg className="w-8 h-8 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
  </svg>
@@ -186,7 +186,7 @@ const TableWithPagination = ({
 
  {/* Pagination Controls */}
  {data.length > 0 && (
- <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 p-4 bg-surface rounded-xl border border-white/60 shadow-sm">
+ <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 p-4 bg-surface rounded-xl border border-border-subtle shadow-sm">
  <div className="text-xs text-heading font-bold tracking-wide">
  Showing {startIndex + 1} to {Math.min(startIndex + effectiveRowsPerPage, data.length)} of {data.length} entries
  </div>
@@ -243,7 +243,7 @@ const TableWithPagination = ({
  setCurrentPage(1);
  if (onRowsPerPageChange) onRowsPerPageChange(newRowsPerPage);
  }}
- className="text-xs border border-white/60 rounded-xl px-3 py-1.5 bg-surface font-bold text-heading outline-none focus:ring-2 focus:ring-brand/30 transition-all cursor-pointer shadow-sm hover:bg-surface"
+ className="text-xs border border-border-subtle rounded-xl px-3 py-1.5 bg-surface font-bold text-heading outline-none focus:ring-2 focus:ring-brand/30 transition-all cursor-pointer shadow-sm hover:bg-surface"
  >
  {[5, 10, 20, 50, 100].map(num => (
  <option key={num} value={num}>{num}</option>

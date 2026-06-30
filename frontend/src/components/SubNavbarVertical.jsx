@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useLocation, NavLink } from "react-router-dom";
+import { useLocation, NavLink, useNavigate } from "react-router-dom";
 import { moduleConfigs } from "../routeConfig";
 import { useDispatch, useSelector } from "react-redux";
 import { useMsal } from "@azure/msal-react";
@@ -21,6 +21,7 @@ import GlassModal from "./ui/GlassModal";
 
 const SubNavbarVertical = () => {
  const { pathname } = useLocation();
+ const navigate = useNavigate();
  const authStateUser = useSelector((state) => state.auth.user);
  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
 
@@ -56,9 +57,11 @@ const SubNavbarVertical = () => {
     } finally {
       dispatch(logout());
       
-      const accounts = instance.getAllAccounts();
+      const accounts = instance?.getAllAccounts?.();
       if (accounts && accounts.length > 0) {
         instance.logoutRedirect({ postLogoutRedirectUri: window.location.origin });
+      } else {
+        navigate("/auth/login");
       }
     }
   };

@@ -19,6 +19,8 @@ import { validateDescription, getApiError } from "../../utils/validationUtils";
 import PageContainer from "../../components/ui/PageContainer";
 import TableWithPagination from "../../components/TableWithPagination";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassInput from "../../components/ui/GlassInput";
+import ModernSelect from "../../components/ui/ModernSelect";
 
 export default function AssignedTickets() {
  const [tickets, setTickets] = useState([]);
@@ -157,18 +159,18 @@ export default function AssignedTickets() {
  };
 
  // UI Helpers
- const getPriorityColor = (p) => {
- if (p.includes("High")) return "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400";
- if (p.includes("Medium")) return "bg-orange-100 text-orange-700";
- return "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400";
- };
+  const getPriorityColor = (p) => {
+    if (p.includes("High")) return "bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800/50";
+    if (p.includes("Medium")) return "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50";
+    return "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50";
+  };
 
- const getStatusColor = (s) => {
- const status = s.toLowerCase();
- if (status === "open") return "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400";
- if (status === "in progress") return "bg-purple-100 text-purple-700";
- return "bg-app text-muted";
- };
+  const getStatusColor = (s) => {
+    const status = s.toLowerCase();
+    if (status === "open") return "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50";
+    if (status === "in progress") return "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50";
+    return "bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50";
+  };
 
  const assignedTicketColumns = [
  {
@@ -256,60 +258,48 @@ export default function AssignedTickets() {
  title="Assigned Tickets"
  subtitle="Manage your tasks efficiently"
  filters={
+        <div className="flex flex-wrap items-center gap-3 w-full">
+          {/* Search */}
+          <GlassInput
+            placeholder="Search ID or Subject..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 min-w-[160px]"
+          />
+          {/* Priority Filter */}
+          <div className="min-w-[140px]">
+            <ModernSelect
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              options={[
+                { value: "All", label: "All Priorities" },
+                { value: "High", label: "High" },
+                { value: "Medium", label: "Medium" },
+                { value: "Low", label: "Low" }
+              ]}
+              placeholder="PRIORITY"
+            />
+          </div>
 
- <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
- {/* Search */}
- <div className="relative flex-1">
- <MagnifyingGlassIcon className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
- <input 
- type="text" 
- placeholder="Search ID or Subject..." 
- className="pl-9 pr-10 py-2.5 bg-surface border border-border-subtle rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-100 w-full transition-all"
- value={searchTerm}
- onChange={(e) => setSearchTerm(e.target.value)}
- />
- {searchTerm && (
- <button
- onClick={() => setSearchTerm("")}
- className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-muted transition-colors"
- title="Clear search"
- >
- <XMarkIcon className="w-4 h-4" />
- </button>
- )}
- </div>
- 
- {/* Priority Filter */}
- <select 
- className="px-4 py-2.5 bg-surface border border-border-subtle rounded-xl text-xs font-bold text-muted outline-none focus:ring-2 focus:ring-amber-100 cursor-pointer"
- value={priorityFilter}
- onChange={(e) => setPriorityFilter(e.target.value)}
- >
- <option value="All">All Priorities</option>
- <option value="High">High</option>
- <option value="Medium">Medium</option>
- <option value="Low">Low</option>
- </select>
-
- {/* Status Filter */}
- <div className="flex bg-surface p-1 rounded-xl border border-border-subtle overflow-x-auto">
- {["All", "Open", "In Progress", "Closed"].map(s => (
- <button
- key={s}
- onClick={() => setStatusFilter(s)}
- className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all whitespace-nowrap ${
- statusFilter === s ? "bg-surface text-heading shadow-sm" : "text-muted hover:text-muted"
- }`}
- >
- {s}
- </button>
- ))}
- </div>
- </div>
+          {/* Status Filter */}
+          <div className="flex bg-surface/50 dark:bg-slate-800/50 p-1 rounded-xl border border-border-subtle shrink-0">
+            {["All", "Open", "In Progress", "Closed"].map(s => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all whitespace-nowrap ${
+                  statusFilter === s ? "bg-surface shadow-sm text-main" : "text-muted hover:text-main"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
  }
  >
- {/* --- CONTAINER 2: DATA TABLE --- */}
- <div className="bg-surface rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden min-h-[500px] flex flex-col">
+        {/* --- CONTAINER 2: DATA TABLE --- */}
+        <div className="bg-surface rounded-2xl border border-border-subtle shadow-sm overflow-hidden flex flex-col">
  <TableWithPagination
  columns={assignedTicketColumns}
  data={filteredTickets}

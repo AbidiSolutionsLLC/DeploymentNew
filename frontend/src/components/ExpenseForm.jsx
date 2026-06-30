@@ -88,9 +88,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
  formDataToSend.append("documentType", documentType);
 
  try {
- const resData = await expensesApi.processReceipt(formDataToSend);
-
- const extractedData = resData.data;
+ const extractedData = await expensesApi.processReceipt(formDataToSend);
 
  // Auto-fill the form with extracted data
  setFormData({

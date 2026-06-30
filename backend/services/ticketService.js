@@ -174,9 +174,8 @@ class TicketService {
     if (!ticket) throw new NotFoundError("Ticket not found");
 
     const currentUserId = (user.id || user._id).toString();
-    if (ticket.closedBy && ticket.closedBy._id.toString() === currentUserId) {
-      throw new ForbiddenError("You cannot update the status of your own ticket.");
-    }
+    // Allow users to update their own ticket status (e.g. marking it as Closed when resolved)
+    // Removed the restriction that prevented ticket creators from updating status
 
     ticket.status = normalizedStatus;
     await ticket.save();
@@ -242,9 +241,8 @@ class TicketService {
     if (!ticket) throw new NotFoundError("Ticket not found");
 
     const currentUserId = (user.id || user._id).toString();
-    if (ticket.closedBy && ticket.closedBy.toString() === currentUserId) {
-      throw new ForbiddenError("You cannot assign or be assigned to your own ticket.");
-    }
+    // Allow users to assign tickets they created
+    // Removed the restriction that prevented assigning own tickets
 
     const ticketUpdated = await Ticket.findOneAndUpdate(
       { _id: ticketId, company: companyId },

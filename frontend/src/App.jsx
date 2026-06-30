@@ -107,7 +107,8 @@ function App() {
  draggable
  theme="light"
  limit={1}
- style={{ zIndex: 9999999 }}
+ className="!z-[99999999]"
+ style={{ zIndex: 99999999 }}
  />
  <Routes>
  <Route path="/" element={<Navigate to="/auth/login" />} />

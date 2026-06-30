@@ -161,7 +161,7 @@ const handleSubmit = async (e) => {
  setSubmitting(true);
  try {
  const ticketData = new FormData();
- ticketData.append("emailAddress", user?.user?.email);
+ ticketData.append("emailAddress", user?.email);
  ticketData.append("subject", sanitizeText(form.subject));
  ticketData.append("description", sanitizeText(form.description));
  

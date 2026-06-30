@@ -33,8 +33,8 @@ exports.deleteTimesheet = catchAsync(async (req, res) => {
 });
 
 exports.updateTimesheet = catchAsync(async (req, res) => {
-  // const timesheet = await timesheetService.updateTimesheet(req.user, req.companyId, req.params.id, req.body, req.files);
-  res.status(200).json(ApiResponse.success(null, 'Timesheet updated successfully'));
+  const timesheet = await timesheetService.updateTimesheet(req.user, req.companyId, req.params.id, req.body, req.files);
+  res.status(200).json(ApiResponse.success(timesheet, 'Timesheet updated successfully'));
 });
 
 exports.addTimesheetComment = catchAsync(async (req, res) => {

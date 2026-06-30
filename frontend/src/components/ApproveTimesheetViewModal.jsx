@@ -194,10 +194,10 @@ const ApproveTimesheetViewModal = ({
  TIME LOGS
  </label>
  <div className="space-y-2">
- {timesheet.timeLogs.map((log) => (
+ {timesheet.timeLogs?.filter(Boolean).map((log) => (
  <div key={log._id} className="p-4 bg-surface/50 dark:bg-slate-800/50 rounded-xl border border-border-subtle dark:border-slate-700">
  <div className="flex justify-between items-center mb-2">
- <span className="font-bold text-heading dark:text-white text-sm">{log.job}</span>
+ <span className="font-bold text-heading dark:text-white text-sm">{log.job || log.jobTitle || 'Unknown Job'}</span>
  <span className="font-bold text-brand-primary bg-brand-primary/10 px-3 py-1 rounded-full text-xs">
  {log.hours} HRS
  </span>
@@ -211,7 +211,7 @@ const ApproveTimesheetViewModal = ({
  LOG ATTACHMENTS
  </p>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
- {log.attachments.map((file, fIdx) => (
+ {log.attachments?.filter(Boolean).map((file, fIdx) => (
  <div 
  key={file._id || fIdx}
  className="flex items-center justify-between p-2 bg-surface dark:bg-slate-800 rounded-lg border border-border-subtle dark:border-slate-700 group"

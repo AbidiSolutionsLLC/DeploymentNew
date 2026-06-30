@@ -25,6 +25,7 @@ const AssignTicket = () => {
  const [responseError, setResponseError] = useState(null);
  const [assignDropdownOpen, setAssignDropdownOpen] = useState(false);
  const [selectedAssigneeId, setSelectedAssigneeId] = useState(null);
+ const [assigningUserId, setAssigningUserId] = useState(null);
 
  const [technician, setTechnician] = useState([]);
  const [allUsers, setAllUsers] = useState([]);
@@ -89,6 +90,7 @@ const AssignTicket = () => {
  }, [ticketId]);
 
  const assignToUser = async (userId) => {
+ setAssigningUserId(userId);
  try {
  const res = await api.patch(`/tickets/${ticketId}/assign`, { assignedTo: userId });
  setTicket(res.data);
@@ -98,6 +100,7 @@ const AssignTicket = () => {
  showToast(getApiError(error, "Failed to assign ticket"), "error");
  } finally {
  setAssignDropdownOpen(false);
+ setAssigningUserId(null);
  }
  };
 
@@ -216,7 +219,7 @@ const AssignTicket = () => {
 
  <button
  onClick={() => setAddTechnicianModal(true)}
- className="px-4 py-2 rounded-xl flex items-center gap-2 bg-purple-100 text-purple-800 border border-purple-200 hover:brightness-95 transition-all shadow-sm hover:shadow-md"
+ className="px-4 py-2 rounded-xl flex items-center gap-2 bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 hover:brightness-95 transition-all shadow-sm hover:shadow-md"
  title="Add New Technician"
  >
  <UserPlus size={16} />
@@ -247,25 +250,33 @@ const AssignTicket = () => {
  <div className="px-3 py-2 text-xs font-bold text-muted uppercase tracking-wider border-b border-border-subtle">
  Available Technicians
  </div>
- {technician.map((user) => (
- <button
- key={user._id}
- onClick={() => assignToUser(user._id)}
- className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-surface transition ${selectedAssigneeId === user._id ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "text-main"
- }`}
- >
- <User className="w-4 h-4 text-muted" />
- <div className="flex flex-col truncate">
- <span className="font-medium truncate">{user.name}</span>
- <span className="text-[10px] text-muted uppercase">
- {user.designation || user.role}
- </span>
- </div>
- {selectedAssigneeId === user._id && (
- <Check className="w-4 h-4 text-green-500 ml-auto" />
- )}
- </button>
- ))}
+ {technician.map((user) => {
+  const isAssigning = assigningUserId === user._id;
+  return (
+  <button
+  key={user._id}
+  onClick={() => assignToUser(user._id)}
+  disabled={!!assigningUserId}
+  className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition ${
+    !!assigningUserId ? "opacity-50 cursor-not-allowed" : "hover:bg-surface"
+  } ${selectedAssigneeId === user._id ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "text-main"
+  }`}
+  >
+  <User className="w-4 h-4 text-muted" />
+  <div className="flex flex-col truncate flex-1">
+  <span className="font-medium truncate">{user.name}</span>
+  <span className="text-[10px] text-muted uppercase">
+  {user.designation || user.role}
+  </span>
+  </div>
+  {isAssigning ? (
+    <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin ml-auto" />
+  ) : selectedAssigneeId === user._id ? (
+  <Check className="w-4 h-4 text-green-500 ml-auto" />
+  ) : null}
+  </button>
+  );
+  })}
  </>
  ) : (
  <div className="px-3 py-3 text-center">

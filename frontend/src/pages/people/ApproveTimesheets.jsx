@@ -6,7 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
-import { Download, Plus, X, RotateCcw } from "lucide-react";
+import { Download, Plus, X, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "../../axios";
 import TableWithPagination from "../../components/TableWithPagination";
 import ApproveTimesheetViewModal from "../../components/ApproveTimesheetViewModal";
@@ -466,7 +466,7 @@ const ApproveTimesheets = () => {
  />
  ),
  sortable: false,
- render: (row) => (
+ render: (_, row) => (
  <input 
  type="checkbox" 
  className="w-4 h-4 rounded border-border-primary text-amber-600 dark:text-amber-400 focus:ring-amber-500"
@@ -480,7 +480,7 @@ const ApproveTimesheets = () => {
  key: "employeeName",
  label: "Employee",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <div className="flex items-center gap-2">
  {row.employee?.avatar ? (
  <img src={row.employee.avatar} alt="" className="w-6 h-6 rounded-full object-cover" />
@@ -497,7 +497,7 @@ const ApproveTimesheets = () => {
  key: "date",
  label: "Date",
  sortable: true,
- render: (row) => {
+ render: (_, row) => {
  const dateObj = ensureDate(row.date);
  return (
  <span className="text-main font-medium">
@@ -512,7 +512,7 @@ const ApproveTimesheets = () => {
  key: "name",
  label: "Timesheet Name",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <span className="text-main font-medium truncate max-w-[150px] inline-block" title={row.name || "Unnamed"}>
  {row.name || "Unnamed"}
  </span>
@@ -522,19 +522,19 @@ const ApproveTimesheets = () => {
  key: "submittedHours",
  label: "Submitted Hours",
  sortable: true,
- render: (row) => <span className="text-main font-medium">{(row.submittedHours || 0).toFixed(1)}</span>
+ render: (_, row) => <span className="text-main font-medium">{(row.submittedHours || 0).toFixed(1)}</span>
  },
  {
  key: "approvedHours",
  label: activeTab === 0 ? "To Approve" : "Approved Hours",
  sortable: true,
- render: (row) => <span className="text-main font-medium">{(row.approvedHours || 0).toFixed(1)}</span>
+ render: (_, row) => <span className="text-main font-medium">{(row.approvedHours || 0).toFixed(1)}</span>
  },
  {
  key: "status",
  label: "Status",
  sortable: true,
- render: (row) => (
+ render: (_, row) => (
  <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${
  STATUS_VARIANTS[resolveStatusVariant(row.status)]?.badge || STATUS_VARIANTS.neutral.badge
  }`}>
@@ -546,7 +546,7 @@ const ApproveTimesheets = () => {
  key: "comments",
  label: "Comments",
  sortable: false,
- render: (row) => {
+ render: (_, row) => {
  const commentCount = row.comments?.length || 0;
  if (commentCount === 0) {
  return <span className="text-muted text-xs">No comments</span>;
@@ -652,16 +652,16 @@ const ApproveTimesheets = () => {
  <button
  onClick={navigateToPreviousWeek}
  disabled={loading}
- className="btn btn-secondary w-[42px] h-[42px] flex items-center justify-center"
+ className="w-[42px] h-[42px] flex items-center justify-center rounded-xl border border-border-subtle bg-surface text-muted hover:text-main hover:border-amber-400/50 hover:bg-amber-400/5 transition-all shadow-sm group"
  >
- <FaAngleLeft size={14} />
+ <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
  </button>
 
  <div className="relative" ref={calendarRef}>
  <button
  onClick={() => setShowCalendar(!showCalendar)}
  disabled={loading}
- className="h-[42px] px-4 flex items-center gap-2 bg-surface border border-border-subtle text-main rounded-xl font-semibold text-xs hover:border-amber-200 dark:border-amber-800/50 hover:bg-amber-50 dark:bg-amber-900/30/30 transition-all min-w-[190px] justify-center shadow-sm"
+ className="h-[42px] px-4 flex items-center gap-2 bg-surface border border-border-subtle text-main rounded-xl font-semibold text-xs hover:border-amber-400/50 transition-all min-w-[190px] justify-center shadow-sm"
  >
  <IoCalendarNumberOutline size={15} className="text-amber-500 flex-shrink-0" />
  <span>{formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}</span>
@@ -688,9 +688,9 @@ const ApproveTimesheets = () => {
  <button
  onClick={navigateToNextWeek}
  disabled={loading}
- className="btn btn-secondary w-[42px] h-[42px] flex items-center justify-center"
+ className="w-[42px] h-[42px] flex items-center justify-center rounded-xl border border-border-subtle bg-surface text-muted hover:text-main hover:border-amber-400/50 hover:bg-amber-400/5 transition-all shadow-sm group"
  >
- <FaAngleRight size={14} />
+ <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
  </button>
  </div>
  )}

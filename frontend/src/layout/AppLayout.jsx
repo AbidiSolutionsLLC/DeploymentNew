@@ -12,6 +12,7 @@ import {
  XMarkIcon
 } from "@heroicons/react/24/solid";
 import NotificationModal from "../components/Notification";
+import ChangelogModal from "../components/ChangelogModal";
 
 const AppLayout = () => {
  const [isRightBarOpen, setRightBarOpen] = useState(true);
@@ -55,6 +56,7 @@ const AppLayout = () => {
  return (
  <div className="flex flex-col h-screen w-full bg-transparent font-sans overflow-hidden text-main">
  <NotificationModal isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} />
+ <ChangelogModal />
  {/* --- MOBILE HEADER --- */}
  <div className="md:hidden flex items-center justify-between px-4 py-3 bg-transparent z-50 shrink-0">
  <div className="flex items-center gap-2">

@@ -181,9 +181,9 @@ const AdminTickets = () => {
  value={ticket.status}
  onChange={(e) => handleStatusChange(ticket._id, e.target.value)}
  options={[
- { value: "opened", label: "Opened" },
- { value: "in progress", label: "In Progress" },
- { value: "closed", label: "Closed" }
+ { value: "Open", label: "Opened" },
+ { value: "In Progress", label: "In Progress" },
+ { value: "Closed", label: "Closed" }
  ]}
  />
  </div>
