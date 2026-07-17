@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -22,6 +22,7 @@ export default function NotificationsPage() {
  const [page, setPage] = useState(1);
  const [selectedNotif, setSelectedNotif] = useState(null);
  const limit = 20;
+ const listRef = useRef(null);
 
  // Sync selectedNotif with URL 'id'
  useEffect(() => {
@@ -37,7 +38,20 @@ export default function NotificationsPage() {
  dispatch(fetchNotifications({ page, limit }));
  }, [page, dispatch]);
 
+ // Scroll to top of list when page changes
+ useEffect(() => {
+ if (listRef.current) {
+ listRef.current.scrollTop = 0;
+ }
+ }, [page]);
 
+ // Adjust page if it exceeds total pages after deletion
+ useEffect(() => {
+ const totalPages = Math.ceil((pagination?.total || 0) / limit);
+ if (page > totalPages && totalPages > 0) {
+ setPage(totalPages);
+ }
+ }, [pagination?.total]);
 
  const handleClick = (notif) => {
  setSearchParams({ id: notif._id });
@@ -48,9 +62,17 @@ export default function NotificationsPage() {
  setSearchParams({});
  };
 
- const handleDelete = (e, id) => {
+ const handleDelete = async (e, id) => {
  e.stopPropagation();
- dispatch(deleteNotification(id));
+ if (selectedNotif?._id === id) {
+ setSearchParams({});
+ }
+ try {
+ await dispatch(deleteNotification(id)).unwrap();
+ dispatch(fetchNotifications({ page, limit }));
+ } catch (err) {
+ // Error handled silently
+ }
  };
 
  const totalPages = Math.ceil((pagination?.total || 0) / limit);
@@ -72,30 +94,24 @@ export default function NotificationsPage() {
  }
  >
  <div className="flex h-[calc(100vh-180px)] min-h-[600px] w-full bg-surface rounded-2xl shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] border border-white/60 overflow-hidden">
- {/* --- MASTER LIST SIDEBAR --- */}
- <div className={`w-full md:w-[350px] lg:w-[400px] border-r border-border-subtle flex flex-col transition-all bg-surface ${selectedNotif ? 'hidden md:flex' : 'flex'}`}>
- 
- {/* Sidebar Header */}
- <div className="p-3 border-b border-border-subtle bg-surface">
- <button
- onClick={() => {
- if (window.history.state && window.history.state.idx > 0) {
- navigate(-1);
- } else {
- navigate('/');
- }
- }}
- className="px-3 py-1.5 text-xs font-bold text-muted hover:text-main hover:bg-surface rounded-lg transition-all flex items-center gap-2"
- >
- <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7 7-7" />
- </svg>
- Go Back
- </button>
- </div>
+  {/* --- MASTER LIST SIDEBAR --- */}
+  <div className={`w-full md:w-[350px] lg:w-[400px] border-r border-border-subtle flex flex-col transition-all bg-surface ${selectedNotif ? 'hidden md:flex' : 'flex'}`}>
+  
+  {/* Sidebar Header */}
+  <div className="p-3 border-b border-border-subtle bg-surface">
+  <button
+  onClick={() => navigate('/')}
+  className="px-3 py-1.5 text-xs font-bold text-muted hover:text-main hover:bg-surface rounded-lg transition-all flex items-center gap-2"
+  >
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+  Go Back
+  </button>
+  </div>
 
  {/* Notification List Content */}
- <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
+  <div ref={listRef} className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
  {loading && (
  <div className="py-12 text-center">
  <div className="inline-block w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
@@ -108,16 +124,16 @@ export default function NotificationsPage() {
  </div>
  )}
 
- {items.map((notif) => (
- <div
- key={notif._id}
- onClick={() => handleClick(notif)}
- className={`relative p-4 border-b border-gray-50 cursor-pointer transition-all hover:bg-app group border-l-4 ${
- selectedNotif?._id === notif._id 
- ? 'bg-teal-50 dark:bg-teal-900/30/50 border-l-teal-600' 
- : 'bg-surface border-l-transparent'
- }`}
- >
+{items.map((notif) => (
+  <div
+  key={notif._id}
+  onClick={() => handleClick(notif)}
+  className={`relative p-4 border-b border-gray-50 cursor-pointer transition-all group border-l-4 ${
+  selectedNotif?._id === notif._id 
+  ? 'bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 border-l-teal-600' 
+  : 'bg-surface hover:bg-app border-l-transparent'
+  }`}
+  >
  <div className="flex items-start gap-3">
  <span className="text-xl shrink-0 select-none">
  {getNotificationIcon(notif.type)}
@@ -195,18 +211,7 @@ export default function NotificationsPage() {
  <div className="flex items-center gap-4 mb-1">
  <span className="text-4xl p-3 bg-app rounded-2xl">{getNotificationIcon(selectedNotif.type)}</span>
  <div className="flex-1">
- <div className="flex items-center justify-between">
- <h2 className="text-xl font-extrabold text-heading leading-tight">{selectedNotif.title}</h2>
- <button 
- onClick={handleBackToList}
- className="btn-ghost p-2 rounded-full text-muted"
- title="Close detail"
- >
- <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
- </svg>
- </button>
- </div>
+  <h2 className="text-xl font-extrabold text-heading leading-tight">{selectedNotif.title}</h2>
  <p className="text-xs font-semibold text-muted uppercase tracking-wider mt-1">{formatNotifDate(selectedNotif.createdAt)}</p>
  </div>
  </div>
