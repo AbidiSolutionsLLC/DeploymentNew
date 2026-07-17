@@ -51,6 +51,7 @@ const adminLinks = [
  { name: "Attendance", path: "/admin/attendance", icon: CalendarDaysIcon, roles: ["Super Admin", "Admin", "HR"] },
  { name: "Leaves", path: "/admin/leaveManagement", icon: BriefcaseIcon, roles: ["Super Admin", "Admin", "HR"] },
  { name: "Time Sheets", path: "/admin/timesheet", icon: ClockIcon, roles: ["Super Admin", "Admin", "HR"] },
+ { name: "Payroll", path: "/admin/payroll", icon: DollarSignIcon, roles: ["Super Admin", "Admin", "HR"] },
 
  // Assign Ticket remains Admin/Super Admin (and Tech Managers) only
  {
@@ -91,6 +92,7 @@ export const moduleConfigs = {
  { name: "Approve Time Sheets", path: "/admin/approve", icon: CheckBadgeIcon },
  { name: "Assign Ticket", path: "/admin/assign-ticket", icon: TicketIcon },
  { name: "Expense Tracker", path: "/admin/ExpenseManagement", icon: DollarSignIcon },
+ { name: "Payroll", path: "/admin/payroll", icon: DollarSignIcon },
 
  ],
  },

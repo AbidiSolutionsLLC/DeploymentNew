@@ -99,6 +99,7 @@ const SubNavbarVertical = () => {
  "File Management": FolderPlusIcon, "Approve Time Sheets": CheckBadgeIcon, "Assign Ticket": AssignTicketIcon,
  "Assigned Tickets": AssignTicketIcon,
  "Expense Tracker": DollarSignIcon,
+ "Payroll": DollarSignIcon,
  "Org Chart": UserGroupIcon,
  "default": Squares2X2Icon
  };

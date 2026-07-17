@@ -27,6 +27,7 @@ const notificationRoutes = require("./webRoutes/notificationRoutes");
 const expenseRoutes = require("./webRoutes/expenseRoutes"); // NEW
 const filesRoute = require("./webRoutes/filesRoute");
 const folderRoutes = require("./webRoutes/folderRoutes");
+const payrollRoutes = require("./webRoutes/payrollRoutes");
 
 const companyScope = require('../middlewares/companyScope');
 
@@ -67,5 +68,6 @@ router.use("/notifications", ...authenticatedAndScoped, notificationRoutes);
 router.use("/expenses", ...authenticatedAndScoped, expenseRoutes); // NEW
 router.use("/files", ...authenticatedAndScoped, filesRoute);
 router.use("/folders", ...authenticatedAndScoped, folderRoutes);
+router.use("/payroll", ...authenticatedAndScoped, payrollRoutes);
 
 module.exports = router;

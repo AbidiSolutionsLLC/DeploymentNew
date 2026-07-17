@@ -45,6 +45,7 @@ import OrgChartPage from "./pages/admin/OrgChart";
 import AssignedTickets from "./pages/people/AssignedTickets";
 import AdminAttendance from "./pages/admin/AdminAttendance";
 import ExpenseManagement from "./pages/admin/ExpenseManagement";
+import PayrollManagement from "./pages/admin/PayrollManagement";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 import { useNotificationSSE } from "./hooks/useNotificationSSE";
 import React, { useState, useEffect } from "react";
@@ -182,6 +183,7 @@ function App() {
  <Route path="assign-ticket/:ticketId" element={<AssignTicket />} />
  <Route path="attendance" element={<AdminAttendance />} />
  <Route path="ExpenseManagement" element={<ExpenseManagement />} />
+ <Route path="payroll" element={<PayrollManagement />} />
  </Route>
 
  {/* Notifications Page */}
