@@ -146,17 +146,22 @@ class TimeTrackerService {
       }
     }
 
-    const existingLogForToday = await TimeTracker.findOne({ user: userId, date: todayStartEST });
-    if (existingLogForToday) {
+    const newLog = await TimeTracker.findOneAndUpdate(
+      { user: userId, date: todayStartEST },
+      {
+        $setOnInsert: {
+          checkInTime: nowEST.toDate(),
+          status: 'Present'
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    // If checkInTime is older than what we just tried to insert (meaning it already existed)
+    // we should let them know they already checked in.
+    if (newLog.checkInTime.getTime() !== nowEST.toDate().getTime()) {
       throw new BadRequestError("You have already completed your check-in for today (EST).");
     }
-
-    const newLog = await TimeTracker.create({ 
-      user: userId, 
-      date: todayStartEST, 
-      checkInTime: nowEST.toDate(), 
-      status: 'Present' 
-    });
 
     return { message: `${previousSessionMsg}Checked in successfully.`, log: newLog };
   }
@@ -164,32 +169,41 @@ class TimeTrackerService {
   async checkOut(userId) {
     const nowEST = getCurrentESTTime();
 
-    const currentLog = await TimeTracker.findOne({ 
+    const currentLogs = await TimeTracker.find({ 
       user: userId, 
       checkOutTime: { $exists: false } 
-    }).sort({ checkInTime: -1 });
+    });
 
-    if (!currentLog) throw new BadRequestError("No active check-in found.");
+    if (currentLogs.length === 0) throw new BadRequestError("No active check-in found.");
 
-    const checkInMoment = moment(currentLog.checkInTime).tz(TIMEZONE);
-    if (!checkInMoment.isValid()) {
-      await TimeTracker.findByIdAndDelete(currentLog._id);
-      throw new BadRequestError("Corrupted check-in data. Session cleared.");
+    // In case of duplicates, close all of them to prevent cronjob from auto-closing them later
+    let returnLog = null;
+    for (let currentLog of currentLogs) {
+      const checkInMoment = moment(currentLog.checkInTime).tz(TIMEZONE);
+      if (!checkInMoment.isValid()) {
+        await TimeTracker.findByIdAndDelete(currentLog._id);
+        continue;
+      }
+
+      currentLog.checkOutTime = nowEST.toDate();
+      const duration = moment.duration(nowEST.diff(checkInMoment));
+      let totalHours = parseFloat(duration.asHours().toFixed(2));
+
+      if (isNaN(totalHours)) totalHours = 0;
+      currentLog.totalHours = totalHours;
+
+      if (totalHours >= 8) currentLog.status = "Present";
+      else if (totalHours >= 4.5) currentLog.status = "Half Day";
+      else currentLog.status = "Absent";
+
+      await currentLog.save();
+      returnLog = currentLog;
     }
+    
+    if (!returnLog) throw new BadRequestError("Corrupted check-in data. Session cleared.");
+    return returnLog;
 
-    currentLog.checkOutTime = nowEST.toDate();
-    const duration = moment.duration(nowEST.diff(checkInMoment));
-    let totalHours = parseFloat(duration.asHours().toFixed(2));
-
-    if (isNaN(totalHours)) totalHours = 0;
-    currentLog.totalHours = totalHours;
-
-    if (totalHours >= 8) currentLog.status = "Present";
-    else if (totalHours >= 4.5) currentLog.status = "Half Day";
-    else currentLog.status = "Absent";
-
-    await currentLog.save();
-    return currentLog;
+    // logic moved to the loop above
   }
 
   async getMyTimeLogs(userId) {
@@ -212,7 +226,9 @@ class TimeTrackerService {
        }
     }
     
-    return TimeTracker.findOne({ user: targetUserId, date: todayStart });
+    // If duplicates exist, return the one that is most complete (e.g. checked out)
+    const logs = await TimeTracker.find({ user: targetUserId, date: todayStart }).sort({ checkOutTime: -1, checkInTime: -1 });
+    return logs.length > 0 ? logs[0] : null;
   }
 
   async deleteTimeLog(user, logId) {

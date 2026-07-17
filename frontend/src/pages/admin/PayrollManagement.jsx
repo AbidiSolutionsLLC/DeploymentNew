@@ -12,6 +12,7 @@ import FilterRow from "../../components/ui/FilterRow";
 import GlassModal from "../../components/ui/GlassModal";
 import api from "../../axios";
 import { payrollApi } from "../../api/payrollApi";
+import { generatePayslipPDF } from "../../utils/generatePayslipPDF";
 
 const PayrollManagement = () => {
   const [activeTab, setActiveTab] = useState("preview"); // 'preview' or 'history'
@@ -238,7 +239,7 @@ const PayrollManagement = () => {
       label: "Employee",
       render: (_, row) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "var(--color-bg-active)", color: "var(--color-brand-text)" }}>
             {row.employee.name?.charAt(0).toUpperCase()}
           </div>
           <div>
@@ -298,7 +299,7 @@ const PayrollManagement = () => {
       label: "Employee",
       render: (_, row) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "var(--color-bg-active)", color: "var(--color-brand-text)" }}>
             {row.employee?.name?.charAt(0).toUpperCase()}
           </div>
           <div>
@@ -338,9 +339,23 @@ const PayrollManagement = () => {
       key: "status",
       label: "Status",
       render: (_, row) => (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: "var(--status-info-bg)", color: "var(--status-info-fg)", border: "1px solid var(--status-info-border)" }}>
           <CheckCircle size={12} /> {row.status}
         </span>
+      )
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      align: "right",
+      render: (_, row) => (
+        <button 
+          onClick={() => generatePayslipPDF(row)} 
+          className="p-1.5 text-muted hover:text-brand-primary hover:bg-blue-50 rounded-lg transition-all flex items-center gap-1" 
+          title="Download Payslip PDF"
+        >
+          <Download size={14} /> <span className="text-[10px] font-black uppercase tracking-wider">PDF</span>
+        </button>
       )
     }
   ];

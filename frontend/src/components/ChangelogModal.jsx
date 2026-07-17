@@ -6,7 +6,7 @@ export default function ChangelogModal() {
 
   useEffect(() => {
     // Check if the user has already seen this specific changelog version
-    const hasSeen = localStorage.getItem('karbexa_changelog_v1_seen');
+    const hasSeen = localStorage.getItem('sowaye_changelog_v1_seen');
     if (!hasSeen) {
       // Small delay for better UX after loading
       const timer = setTimeout(() => {
@@ -17,7 +17,7 @@ export default function ChangelogModal() {
   }, []);
 
   const handleClose = () => {
-    localStorage.setItem('karbexa_changelog_v1_seen', 'true');
+    localStorage.setItem('sowaye_changelog_v1_seen', 'true');
     setIsOpen(false);
   };
 

@@ -69,6 +69,10 @@ const AttendanceCard = ({ onDelete }) => {
  const checkOut = new Date(dayData.checkOutTime);
  const diffMs = checkOut - checkIn;
  hours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+ } else if (dayData.checkInTime && !dayData.checkOutTime) {
+ const checkIn = new Date(dayData.checkInTime);
+ const diffMs = new Date() - checkIn;
+ hours = Math.max(0, parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2)));
  } else if (dayData.status === 'Present') {
  hours = 8;
  } else if (dayData.status === 'Half Day') {
@@ -140,7 +144,7 @@ const AttendanceCard = ({ onDelete }) => {
  {/* Bar Chart */}
  <div className="bg-[#E0E5EA]/30 rounded-xl p-3 overflow-auto">
  {totalHours > 0 || loading ? (
- <div className="flex items-end justify-between h-20 gap-1.5">
+ <div className="flex items-end justify-between h-28 gap-1.5 pt-2">
  {weeklyData.map(({ day, hours, status }, i) => {
  let color = "bg-slate-300";
  if (status === 'Absent') color = "bg-red-500";
