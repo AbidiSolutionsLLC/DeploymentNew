@@ -13,6 +13,7 @@ import GlassInput from "../../components/ui/GlassInput";
 import ModernSelect from "../../components/ui/ModernSelect";
 import FilterRow from "../../components/ui/FilterRow";
 import GlassModal from "../../components/ui/GlassModal";
+import { formatDateForAPI } from "../../utils/dateUtils";
 
 // --- SUB-COMPONENT: LIVE TIMER ---
 const LiveTimer = ({ startTime }) => {
@@ -84,7 +85,7 @@ const fetchSummary = async (date) => {
   }
   setLoading(true);
   try {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = formatDateForAPI(date);
   const res = await api.get(`/timetrackers/admin-summary?date=${dateStr}`);
   setSummaryData(res.data);
   } catch (error) {
@@ -175,11 +176,11 @@ const fetchSummary = async (date) => {
  ].join("\n");
 
  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
- const url = URL.createObjectURL(blob);
- const link = document.createElement("a");
- link.setAttribute("href", url);
- link.setAttribute("download", `attendance_${activeTab}_report_${filterDate.toISOString().split('T')[0]}.csv`);
- document.body.appendChild(link);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `attendance_${activeTab}_report_${formatDateForAPI(filterDate)}.csv`);
+  document.body.appendChild(link);
  link.click();
  document.body.removeChild(link);
  };
@@ -460,7 +461,7 @@ const fetchSummary = async (date) => {
  </FilterRow>
  }
   topWidgets={
-  <div className="grid grid-cols-4 gap-0 glass-card p-0 overflow-hidden divide-x divide-slate-100 dark:divide-slate-700/50">
+  <div className="grid grid-cols-5 gap-0 glass-card p-0 overflow-hidden divide-x divide-slate-100 dark:divide-slate-700/50">
   <div className="px-4 py-4 flex flex-col justify-center text-center bg-blue-50 dark:bg-blue-900/10">
   <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">TOTAL</p>
   <p className="text-2xl font-black text-blue-700 dark:text-blue-400">{summaryData.counts.total}</p>

@@ -16,6 +16,7 @@ import ExportSelectionModal from "../../components/ExportSelectionModal";
 import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 import PageContainer from "../../components/ui/PageContainer";
 import ModernSelect from "../../components/ui/ModernSelect";
+import { formatDateForAPI } from "../../utils/dateUtils";
 
 
 const ApproveTimesheets = () => {
@@ -37,10 +38,13 @@ const ApproveTimesheets = () => {
  return sunday;
  }
 
- const [selectedWeekStart, setSelectedWeekStart] = useState(getMonday(new Date()));
- const [weeklyData, setWeeklyData] = useState({
- weekStart: getMonday(new Date()).toISOString(),
- weekEnd: getSunday(new Date()).toISOString(),
+ 
+ const [selectedWeekStart, setSelectedWeekStart] = useState(() => {
+    return formatDateForAPI(getMonday(new Date()));
+  });
+  const [weeklyData, setWeeklyData] = useState({
+    weekStart: formatDateForAPI(getMonday(new Date())),
+    weekEnd: formatDateForAPI(getSunday(new Date())),
  timesheets: [], // Pending
  approvedTimesheets: [],
  rejectedTimesheets: [],
@@ -147,10 +151,10 @@ const ApproveTimesheets = () => {
  const params = {};
  if (filterEmployee !== "All") params.employeeId = filterEmployee;
  if (filterStatus !== "All") params.status = filterStatus;
- if (filterDate) {
- params.startDate = filterDate.toISOString().split('T')[0];
- params.endDate = filterDate.toISOString().split('T')[0];
- }
+  if (filterDate) {
+  params.startDate = formatDateForAPI(filterDate);
+  params.endDate = formatDateForAPI(filterDate);
+  }
  
  const response = await timesheetApi.getAllTimesheets(params);
  setAllTimesheets(Array.isArray(response) ? response : []);
@@ -170,9 +174,9 @@ const ApproveTimesheets = () => {
 
  // Validation: If future date range selected and no data, we will handle it in the UI
  if (weekStartObj > new Date()) {
- setWeeklyData({
- weekStart: weekStartObj.toISOString(),
- weekEnd: weekEndObj.toISOString(),
+  setWeeklyData({
+  weekStart: formatDateForAPI(weekStartObj),
+  weekEnd: formatDateForAPI(weekEndObj),
  timesheets: [],
  approvedTimesheets: [],
  rejectedTimesheets: [],
@@ -184,9 +188,9 @@ const ApproveTimesheets = () => {
  return;
  }
 
- // FIX: Use YYYY-MM-DD for the query
- const startStr = weekStartObj.toISOString().split('T')[0];
- const endStr = weekEndObj.toISOString().split('T')[0];
+  // FIX: Use YYYY-MM-DD for the query
+  const startStr = formatDateForAPI(weekStartObj);
+  const endStr = formatDateForAPI(weekEndObj);
 
  // FIX: Call the ADMIN endpoint with startDate/endDate
  // Note: Make sure your API wrapper passes these params correctly

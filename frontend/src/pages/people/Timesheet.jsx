@@ -10,7 +10,7 @@ import { toast } from "react-toastify";
 import TableWithPagination from "../../components/TableWithPagination";
 import ViewTimesheetModal from "../../components/ViewTimesheetModal";
 import EditTimesheetModal from "../../components/EditTimesheetModal";
-import { moment, TIMEZONE } from "../../utils/dateUtils";
+import { moment, TIMEZONE, formatDateForAPI } from "../../utils/dateUtils";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
 import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
@@ -40,10 +40,10 @@ const Timesheet = ({ refreshTrigger }) => {
  return sunday;
  }
 
- const [selectedWeekStart, setSelectedWeekStart] = useState(getMonday(new Date()));
+ const [selectedWeekStart, setSelectedWeekStart] = useState(() => formatDateForAPI(getMonday(new Date())));
  const [weeklyData, setWeeklyData] = useState({
- weekStart: getMonday(new Date()).toISOString(),
- weekEnd: getSunday(new Date()).toISOString(),
+ weekStart: formatDateForAPI(getMonday(new Date())),
+ weekEnd: formatDateForAPI(getSunday(new Date())),
  timesheets: [],
  weeklyTotal: 0,
  remainingHours: 40

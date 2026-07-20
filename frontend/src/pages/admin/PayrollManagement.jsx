@@ -13,6 +13,7 @@ import GlassModal from "../../components/ui/GlassModal";
 import api from "../../axios";
 import { payrollApi } from "../../api/payrollApi";
 import { generatePayslipPDF } from "../../utils/generatePayslipPDF";
+import { formatDateForAPI } from "../../utils/dateUtils";
 
 const PayrollManagement = () => {
   const [activeTab, setActiveTab] = useState("preview"); // 'preview' or 'history'
@@ -56,8 +57,8 @@ const PayrollManagement = () => {
     setLoading(true);
     try {
       const data = await payrollApi.previewPayroll(
-        startDate.toISOString(), 
-        endDate.toISOString(), 
+        formatDateForAPI(startDate), 
+        formatDateForAPI(endDate), 
         standardHours
       );
       setPreviewData(data);
@@ -98,8 +99,8 @@ const PayrollManagement = () => {
     try {
       const payslipsToGenerate = previewData.filter(d => selectedUsers.has(d.employee._id));
       const payload = {
-        periodStartDate: startDate.toISOString(),
-        periodEndDate: endDate.toISOString(),
+        periodStartDate: formatDateForAPI(startDate),
+        periodEndDate: formatDateForAPI(endDate),
         standardHours,
         payslips: payslipsToGenerate.map(p => ({
           employeeId: p.employee._id,

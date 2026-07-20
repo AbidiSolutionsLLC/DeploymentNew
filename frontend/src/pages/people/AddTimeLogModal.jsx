@@ -11,6 +11,7 @@ import {
  getApiError,
 } from "../../utils/validationUtils";
 import GlassModal from "../../components/ui/GlassModal";
+import { formatDateForAPI } from "../../utils/dateUtils";
 
 const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  const [jobTitle, setJobTitle] = useState("");
@@ -47,10 +48,7 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
 
  // Helper: Format Date to YYYY-MM-DD for API
  const formatDateForApi = (d) => {
- if (!d) return "";
- const offset = d.getTimezoneOffset();
- const adjustedDate = new Date(d.getTime() - offset * 60 * 1000);
- return adjustedDate.toISOString().split("T")[0];
+ return formatDateForAPI(d);
  };
 
  const handleBackdropClick = (e) => {

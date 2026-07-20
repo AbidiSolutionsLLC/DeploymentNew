@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { validateText, validateDescription, validateEmail, sanitizeText } from "../../utils/validationUtils";
 import { toast } from "react-toastify";
 import GlassModal from "../../components/ui/GlassModal";
+import { formatDateForAPI } from "../../utils/dateUtils";
 
 const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
  const [form, setForm] = useState({
@@ -160,7 +161,7 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
  ...form,
  subject: sanitizeText(form.subject),
  comment: sanitizeText(form.comment),
- date: new Date().toISOString().slice(0, 10),
+ date: formatDateForAPI(new Date()),
  status: "opened",
  };
  onSubmit(newTicket);

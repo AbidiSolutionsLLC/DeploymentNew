@@ -13,6 +13,7 @@ import api from "../../axios";
 import EmptyCardState from "./EmptyCardState";
 import ModernDatePicker from "../ui/ModernDatePicker";
 import GlassModal from "../ui/GlassModal";
+import { formatDateForAPI } from "../../utils/dateUtils";
 
 const EMPTY_FORM = {
  title: "",
@@ -24,10 +25,10 @@ const formatDateInput = (value) => {
  if (!value) return "";
  const date = new Date(value);
  if (Number.isNaN(date.getTime())) return "";
- return date.toISOString().split("T")[0];
+ return formatDateForAPI(date);
 };
 
-const getToday = () => new Date().toISOString().split("T")[0];
+const getToday = () => formatDateForAPI(new Date());
 
 const validateTodo = ({ title, description, dueDate }, options = {}) => {
  const { allowPastDue = false } = options;

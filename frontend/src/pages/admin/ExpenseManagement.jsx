@@ -15,6 +15,7 @@ import ExpenseStats from "../../components/ExpenseStats";
 import ExpenseForm from "../../components/ExpenseForm";
 import ExpenseDetail from "../../components/ExpenseDetails";
 import { downloadFile } from "../../utils/downloadFile";
+import { formatDateForAPI } from "../../utils/dateUtils";
 import PageContainer from "../../components/ui/PageContainer";
 import TableWithPagination from "../../components/TableWithPagination";
 import expensesApi from "../../api/expensesApi";
@@ -222,7 +223,7 @@ const ExpenseManagement = () => {
  const url = URL.createObjectURL(blob);
  const link = document.createElement("a");
  link.setAttribute("href", url);
- link.setAttribute("download", `expense_report_${new Date().toISOString().split('T')[0]}.csv`);
+ link.setAttribute("download", `expense_report_${formatDateForAPI(new Date())}.csv`);
  document.body.appendChild(link);
  link.click();
  document.body.removeChild(link);

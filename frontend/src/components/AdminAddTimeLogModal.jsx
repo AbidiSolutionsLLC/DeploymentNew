@@ -11,12 +11,13 @@ import {
  sanitizeText,
  getApiError,
 } from "../utils/validationUtils";
+import { formatDateForAPI } from "../utils/dateUtils";
 
 export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUsers }) {
  const [formData, setFormData] = useState({
  employeeId: "",
  job: "",
- date: new Date().toISOString().split("T")[0],
+ date: formatDateForAPI(new Date()),
  description: "",
  hours: "",
  });
@@ -28,7 +29,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  setFormData({
  employeeId: "",
  job: "",
- date: new Date().toISOString().split("T")[0],
+ date: formatDateForAPI(new Date()),
  description: "",
  hours: "",
  });
@@ -57,7 +58,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  if (!value) return "Please select a valid date.";
  const selectedDate = new Date(value);
  const today = new Date();
- const todayStr = today.toISOString().split("T")[0];
+ const todayStr = formatDateForAPI(today);
  
  if (value > todayStr) return "Date cannot be in the future.";
  
