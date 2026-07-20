@@ -293,10 +293,10 @@ const fetchSummary = async (date) => {
 
   const getActiveTabData = () => {
   switch (activeTab) {
-  case "present": return summaryData.present.filter(log => log.status !== 'Absent' && log.status !== 'On Leave' && log.status !== 'Leave');
-  case "half-day": return summaryData.halfDay;
-  case "absent": return summaryData.absent;
-  case "leave": return summaryData.onLeave;
+  case "present": return (summaryData.present || []).filter(log => log.status !== 'Absent' && log.status !== 'On Leave' && log.status !== 'Leave');
+  case "half-day": return summaryData.halfDay || [];
+  case "absent": return summaryData.absent || [];
+  case "leave": return summaryData.onLeave || [];
   default: return [];
   }
   };
