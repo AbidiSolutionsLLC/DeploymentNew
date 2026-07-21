@@ -5,7 +5,8 @@ module.exports = {
     HR: "HR",
     MANAGER: "Manager",
     EMPLOYEE: "Employee",
-    TECHNICIAN: "Technician"
+    TECHNICIAN: "Technician",
+    GLOBAL_READER: "Global Reader"
   },
   STATUS: {
     ACTIVE: "Active",

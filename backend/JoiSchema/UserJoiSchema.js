@@ -12,7 +12,7 @@ const userSchema = Joi.object({
   }),
   password: Joi.string().min(8).pattern(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/).optional(), 
   
-  role: Joi.string().valid("SuperAdmin", "Admin", "HR", "Manager", "Employee").default("Employee"),
+  role: Joi.string().valid("SuperAdmin", "Admin", "HR", "Manager", "Employee", "Global Reader", "Super Admin", "Technician").default("Employee"),
   empType: Joi.string().valid("Permanent", "Contractor", "Intern", "Part Time").required(),
   endDate: Joi.date().allow(null, ""),
   empStatus: Joi.string().valid("Active", "Inactive"),

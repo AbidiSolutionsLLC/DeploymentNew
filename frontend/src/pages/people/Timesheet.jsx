@@ -228,17 +228,16 @@ const Timesheet = ({ refreshTrigger }) => {
  setEditingTimesheet(null);
  };
 
- // FIX: Display date as UTC to match backend storage
- const formatTimesheetDate = (date) => {
- const dateObj = ensureDate(date);
- if (isNaN(dateObj.getTime())) return "Invalid Date";
- return dateObj.toLocaleDateString('en-US', {
- weekday: 'short',
- month: 'short',
- day: 'numeric',
- timeZone: 'UTC'
- });
- };
+  // FIX: Display date according to user's system timezone
+  const formatTimesheetDate = (date) => {
+  const dateObj = ensureDate(date);
+  if (isNaN(dateObj.getTime())) return "Invalid Date";
+  return dateObj.toLocaleDateString('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric'
+  });
+  };
 
  const timesheetColumns = [
  {

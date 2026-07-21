@@ -5,6 +5,31 @@ import api from "../../axios";
 import { toast } from "react-toastify";
 import EmptyCardState from "./EmptyCardState";
 
+const LiveTimer = ({ startTime }) => {
+  const [duration, setDuration] = useState("");
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const start = new Date(startTime).getTime();
+      const diff = Math.max(0, new Date().getTime() - start);
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setDuration(
+        `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+      );
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return <span>{duration}</span>;
+};
+
 const AttendanceCard = ({ onDelete }) => {
  const [weeklyData, setWeeklyData] = useState([]);
  const [loading, setLoading] = useState(false);
@@ -50,42 +75,49 @@ const AttendanceCard = ({ onDelete }) => {
  currentDay.setDate(weekStart.getDate() + i);
  currentDay.setHours(0, 0, 0, 0);
 
- const dayData = attendanceData.find(d => {
- const recordDate = new Date(d.date);
- recordDate.setHours(0, 0, 0, 0);
- return recordDate.getTime() === currentDay.getTime();
- });
+  const dayData = attendanceData.find(d => {
+  const targetDate = new Date(d.checkInTime || d.date);
+  return targetDate.getFullYear() === currentDay.getFullYear() &&
+         targetDate.getMonth() === currentDay.getMonth() &&
+         targetDate.getDate() === currentDay.getDate();
+  });
 
- let hours = 0;
- let status = currentDay > today ? 'Upcoming' : 'Absent';
- 
- if (dayData) {
- status = dayData.status || status;
- 
- if (dayData.totalHours) {
- hours = dayData.totalHours;
- } else if (dayData.checkInTime && dayData.checkOutTime) {
- const checkIn = new Date(dayData.checkInTime);
- const checkOut = new Date(dayData.checkOutTime);
- const diffMs = checkOut - checkIn;
- hours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
- } else if (dayData.checkInTime && !dayData.checkOutTime) {
- const checkIn = new Date(dayData.checkInTime);
- const diffMs = new Date() - checkIn;
- hours = Math.max(0, parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2)));
- } else if (dayData.status === 'Present') {
- hours = 8;
- } else if (dayData.status === 'Half Day') {
- hours = 4;
- }
- }
+  let hours = 0;
+  let status = currentDay > today ? 'Upcoming' : 'Absent';
+  let checkInTime = null;
+  let checkOutTime = null;
+  
+  if (dayData) {
+  status = dayData.status || status;
+  checkInTime = dayData.checkInTime;
+  checkOutTime = dayData.checkOutTime;
+  
+  if (dayData.totalHours) {
+  hours = dayData.totalHours;
+  } else if (dayData.checkInTime && dayData.checkOutTime) {
+  const checkIn = new Date(dayData.checkInTime);
+  const checkOut = new Date(dayData.checkOutTime);
+  const diffMs = checkOut - checkIn;
+  hours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+  } else if (dayData.checkInTime && !dayData.checkOutTime) {
+  const checkIn = new Date(dayData.checkInTime);
+  const diffMs = new Date() - checkIn;
+  hours = Math.max(0, parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2)));
+  } else if (dayData.status === 'Present') {
+  hours = 8;
+  } else if (dayData.status === 'Half Day') {
+  hours = 4;
+  }
+  }
 
- days.push({
- day: currentDay.toLocaleDateString("en-US", { weekday: "short" }),
- hours: hours,
- date: currentDay.getDate(),
- status: status
- });
+  days.push({
+  day: currentDay.toLocaleDateString("en-US", { weekday: "short" }),
+  hours: hours,
+  date: currentDay.getDate(),
+  status: status,
+  checkInTime: checkInTime,
+  checkOutTime: checkOutTime
+  });
  }
 
  console.log("Processed Weekly Data:", days);
@@ -145,7 +177,7 @@ const AttendanceCard = ({ onDelete }) => {
  <div className="bg-[#E0E5EA]/30 rounded-xl p-3 overflow-auto">
  {totalHours > 0 || loading ? (
  <div className="flex items-end justify-between h-28 gap-1.5 pt-2">
- {weeklyData.map(({ day, hours, status }, i) => {
+ {weeklyData.map(({ day, hours, status, checkInTime, checkOutTime }, i) => {
  let color = "bg-slate-300";
  if (status === 'Absent') color = "bg-red-500";
  else if (status === 'Present' && hours >= 7) color = "bg-green-500";
@@ -162,12 +194,21 @@ const AttendanceCard = ({ onDelete }) => {
  style={{ height: `${barHeight}px` }}
  ></div>
  <div className="mt-1 text-center leading-tight">
- <span className="block text-[9px] font-semibold text-main">
- {day}
- </span>
- <span className="block text-[8px] text-muted">
- {status === 'Upcoming' ? '-' : `${hours}h`}
- </span>
+  <span className="block text-[9px] font-semibold text-main mb-0.5">
+  {day}
+  </span>
+  <span className="block text-[8px] text-muted whitespace-nowrap">
+  {status === 'Upcoming' ? '-' : 
+    (checkInTime && !checkOutTime) ? <LiveTimer startTime={checkInTime} /> :
+    (checkInTime && checkOutTime) ? `${Math.floor(hours)}h ${Math.round((hours - Math.floor(hours)) * 60)}m` :
+    `${hours}h`
+  }
+  </span>
+  {checkInTime && (
+    <span className="block text-[7px] text-amber-600 dark:text-amber-400 mt-0.5 whitespace-nowrap">
+      {new Date(checkInTime).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })}
+    </span>
+  )}
  </div>
  </div>
  );

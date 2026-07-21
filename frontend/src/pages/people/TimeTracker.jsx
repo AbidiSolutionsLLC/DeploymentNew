@@ -110,16 +110,16 @@ const TimeTracker = () => {
  };
 
 
- // Helper to safely parse backend date without timezone shift
- const getBackendDateParts = (dateStr) => {
- if (!dateStr) return null;
- const date = new Date(dateStr);
- return {
- day: date.getUTCDate(),
- month: date.getUTCMonth(),
- year: date.getUTCFullYear()
- };
- };
+  // Helper to safely parse backend date using local timezone
+  const getBackendDateParts = (dateStr) => {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  return {
+  day: date.getDate(),
+  month: date.getMonth(),
+  year: date.getFullYear()
+  };
+  };
 
  const filteredData = selectedDate
  ? timeLogs.filter(item => {
@@ -218,12 +218,11 @@ const TimeTracker = () => {
  }) : '';
  };
 
- // Display backend date correctly (using UTC)
+ // Display backend date correctly (using local timezone)
  const formatBackendDate = (dateStr) => {
  if (!dateStr) return '';
  const date = new Date(dateStr);
  return date.toLocaleDateString('en-US', {
- timeZone: 'UTC',
  year: 'numeric',
  month: 'numeric',
  day: 'numeric'
