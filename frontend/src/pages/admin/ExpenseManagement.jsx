@@ -20,6 +20,7 @@ import PageContainer from "../../components/ui/PageContainer";
 import TableWithPagination from "../../components/TableWithPagination";
 import expensesApi from "../../api/expensesApi";
 import GlassModal from "../../components/ui/GlassModal";
+import { dispatchReadOnlyModal } from "../../utils/readOnlyEvent";
 
 // --- MAIN COMPONENT ---
 const ExpenseManagement = () => {
@@ -109,6 +110,10 @@ const ExpenseManagement = () => {
 
  // --- EXPENSE ACTIONS ---
  const handleApprove = async (expenseId) => {
+   if (currentUserRole === 'globalreader') {
+     dispatchReadOnlyModal();
+     return;
+   }
  try {
  const resData = await expensesApi.approveExpense(expenseId);
  toast.success("Expense approved successfully");
@@ -122,6 +127,10 @@ const ExpenseManagement = () => {
  };
 
  const handleReject = async (expenseId, reason) => {
+   if (currentUserRole === 'globalreader') {
+     dispatchReadOnlyModal();
+     return;
+   }
  if (!reason?.trim()) {
  toast.error("Rejection reason is required");
  return;
@@ -141,6 +150,10 @@ const ExpenseManagement = () => {
  };
 
  const handleDelete = async (expenseId) => {
+   if (currentUserRole === 'globalreader') {
+     dispatchReadOnlyModal();
+     return;
+   }
  if (!window.confirm("Are you sure you want to delete this expense?")) return;
  
  try {
@@ -172,6 +185,10 @@ const ExpenseManagement = () => {
  };
 
  const handleSaveEdit = async () => {
+   if (currentUserRole === 'globalreader') {
+     dispatchReadOnlyModal();
+     return;
+   }
  try {
  const updates = {
  title: editFormData.title,
@@ -418,7 +435,7 @@ const ExpenseManagement = () => {
  selectedUser={selectedUser}
  onUserChange={setSelectedUser}
  users={users}
- showUserFilter={currentUser?.role === "Admin" || currentUser?.role === "Manager" || currentUser?.role === "Super Admin"}
+ showUserFilter={currentUser?.role === "Admin" || currentUser?.role === "Manager" || currentUser?.role === "Super Admin" || currentUser?.role === "Global Reader"}
  />
  }
  loading={loading}

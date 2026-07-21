@@ -96,17 +96,7 @@ class TimeTrackerService {
     if (targetUserId && ['superadmin', 'admin', 'manager', 'hr'].includes(roleKey)) {
        query.user = targetUserId;
     } else {
-       if (roleKey === 'superadmin' || roleKey === 'hr') {
-           if (user.company) {
-               const companyUsers = await User.find({ company: user.company }).select('_id');
-               query.user = { $in: companyUsers.map(u => u._id) };
-           }
-       } else if (roleKey === 'manager' || roleKey === 'admin') {
-           const teamIds = await getTeamIds(id);
-           query.user = { $in: teamIds };
-       } else {
-           query.user = id;
-       }
+       query.user = id;
     }
 
     return TimeTracker.find(query)

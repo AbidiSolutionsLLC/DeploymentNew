@@ -8,6 +8,7 @@ import ModernDatePicker from "./ui/ModernDatePicker";
 import { validateText, validateEmail, validatePassword, validatePhone, sanitizeText } from "../utils/validationUtils";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import { dispatchReadOnlyModal } from "../utils/readOnlyEvent";
 
 const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, allManagers }) => {
  const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
@@ -98,6 +99,10 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
 
  const handleSubmit = async (e) => {
  e.preventDefault();
+ if (currentUser?.role === "Global Reader") {
+   dispatchReadOnlyModal();
+   return;
+ }
  
  // Validate all fields
  const fNameError = validateField("firstName", formData.firstName);
@@ -138,14 +143,15 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
  }
  };
 
- const baseRoles = [
- { value: "Employee", label: "EMPLOYEE" },
- { value: "Technician", label: "TECHNICIAN" },
- { value: "Manager", label: "MANAGER" },
- { value: "HR", label: "HR" },
- { value: "Admin", label: "ADMIN" },
- { value: "Super Admin", label: "SUPER ADMIN" },
- ];
+  const baseRoles = [
+    { value: "Employee", label: "EMPLOYEE" },
+    { value: "Technician", label: "TECHNICIAN" },
+    { value: "Manager", label: "MANAGER" },
+    { value: "HR", label: "HR" },
+    { value: "Admin", label: "ADMIN" },
+    { value: "Super Admin", label: "SUPER ADMIN" },
+    { value: "Global Reader", label: "GLOBAL READER" },
+  ];
 
  const filteredRoles =
  currentUser?.role === "Admin"

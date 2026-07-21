@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import api from "../axios";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
+import { dispatchReadOnlyModal } from "../utils/readOnlyEvent";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ModernSelect from "./ui/ModernSelect";
@@ -31,8 +33,14 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
  }
  }, [open]);
 
+ const currentUser = useSelector((s) => s.auth.user);
+
  const handleSubmit = async (e) => {
- if (e) e.preventDefault();
+ e.preventDefault();
+ if (currentUser?.role === "Global Reader" || currentUser?.data?.user?.role === "Global Reader" || currentUser?.user?.role === "Global Reader") {
+   dispatchReadOnlyModal();
+   return;
+ }
  const newErrors = {};
  if (!formData.user) newErrors.user = "Employee name is required";
  if (!formData.checkInTime) newErrors.checkInTime = "Check-in time is required.";

@@ -127,7 +127,7 @@ const UserManagement = () => {
  const activeUsers = users.filter((u) => u.empStatus === "Active").length;
  const inactiveUsers = users.filter((u) => u.empStatus === "Inactive").length;
 
- const canAddUser = currentUser && ["Super Admin", "Admin"].includes(currentUser.role);
+ const canAddUser = currentUser && ["Super Admin", "Admin", "Global Reader"].includes(currentUser.role);
 
  // Derive unique roles from users list + common defaults
  const roleOptions = [
@@ -208,7 +208,7 @@ const UserManagement = () => {
  loading={loading}
  headerActions={
  <>
- {currentUser?.role === "Super Admin" && (
+ {currentUser && ["Super Admin", "Global Reader"].includes(currentUser.role) && (
  <button
  onClick={() => setIsDeptModalOpen(true)}
  className="btn btn-secondary flex items-center gap-2"

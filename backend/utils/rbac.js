@@ -16,8 +16,8 @@ exports.getSearchScope = async (currentUser, type) => {
   // Normalize Role: "Super Admin" -> "superadmin"
   const roleKey = role ? role.replace(/\s+/g, '').toLowerCase() : "employee";
 
-  // --- 1. SUPER ADMIN: God Mode ---
-  if (roleKey === 'superadmin') {
+  // --- 1. SUPER ADMIN & GLOBAL READER: God Mode View ---
+  if (roleKey === 'superadmin' || roleKey === 'globalreader') {
     return {}; // God Mode: See everything across all modules
   }
 

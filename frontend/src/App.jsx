@@ -51,11 +51,20 @@ import { useNotificationSSE } from "./hooks/useNotificationSSE";
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import MobileBlock from "./components/MobileBlock";
+import GlassModal from "./components/ui/GlassModal";
+import GlassButton from "./components/ui/GlassButton";
 
 function App() {
  useAutoLogin();
 
  const [isMobileDevice, setIsMobileDevice] = useState(false);
+ const [isReadOnlyOpen, setIsReadOnlyOpen] = useState(false);
+
+ useEffect(() => {
+   const handler = () => setIsReadOnlyOpen(true);
+   window.addEventListener('showReadOnlyModal', handler);
+   return () => window.removeEventListener('showReadOnlyModal', handler);
+ }, []);
 
  useEffect(() => {
  const checkMobile = () => {
@@ -111,6 +120,25 @@ function App() {
  className="!z-[99999999]"
  style={{ zIndex: 99999999 }}
  />
+
+ <GlassModal
+ isOpen={isReadOnlyOpen}
+ onClose={() => setIsReadOnlyOpen(false)}
+ title="Read-Only Access"
+ maxWidth="max-w-md"
+ footer={
+ <GlassButton variant="primary" onClick={() => setIsReadOnlyOpen(false)}>
+ Understood
+ </GlassButton>
+ }
+ >
+ <div className="p-4">
+ <p className="text-muted dark:text-muted">
+ As a <strong>Global Reader</strong>, you can explore the features but you do not have permission to modify data or perform this action.
+ </p>
+ </div>
+ </GlassModal>
+
  <Routes>
  <Route path="/" element={<Navigate to="/auth/login" />} />
 

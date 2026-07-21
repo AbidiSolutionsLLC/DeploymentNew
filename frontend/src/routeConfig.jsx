@@ -46,12 +46,13 @@ const peopleLinks = [
 
 // Admin Module
 const adminLinks = [
- { name: "Dashboard", path: "/admin/dashboard", icon: ShieldCheckIcon, roles: ["Super Admin", "Admin", "HR"] },
- { name: "User Management", path: "/admin/userManagement", icon: UsersIcon, roles: ["Super Admin", "Admin", "HR"] },
- { name: "Attendance", path: "/admin/attendance", icon: CalendarDaysIcon, roles: ["Super Admin", "Admin", "HR"] },
- { name: "Leaves", path: "/admin/leaveManagement", icon: BriefcaseIcon, roles: ["Super Admin", "Admin", "HR"] },
- { name: "Time Sheets", path: "/admin/timesheet", icon: ClockIcon, roles: ["Super Admin", "Admin", "HR"] },
- { name: "Payroll", path: "/admin/payroll", icon: DollarSignIcon, roles: ["Super Admin", "Admin", "HR"] },
+ { name: "Dashboard", path: "/admin/dashboard", icon: ShieldCheckIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
+ { name: "User Management", path: "/admin/userManagement", icon: UsersIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
+ { name: "Attendance", path: "/admin/attendance", icon: CalendarDaysIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
+ { name: "Leaves", path: "/admin/leaveManagement", icon: BriefcaseIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
+ { name: "Time Sheets", path: "/admin/timesheet", icon: ClockIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
+ { name: "Payroll", path: "/admin/payroll", icon: DollarSignIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
+ { name: "Expense Tracker", path: "/admin/ExpenseManagement", icon: DollarSignIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
 
  // Assign Ticket remains Admin/Super Admin (and Tech Managers) only
  {

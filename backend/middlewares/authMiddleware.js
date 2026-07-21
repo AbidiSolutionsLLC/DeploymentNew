@@ -127,6 +127,11 @@ const isLoggedIn = async (req, res, next) => {
         avatar: user.avatar
       };
 
+      // --- GLOBAL READER WRITE PROTECTION ---
+      if (req.user.role === 'Global Reader' && req.method !== 'GET') {
+        return next(new ForbiddenError("Global Readers have read-only access and cannot perform this action."));
+      }
+
       req.token = token;
       next();
       

@@ -4,14 +4,21 @@ import ModernSelect from "./ui/ModernSelect";
 import { validateText, validateDescription, sanitizeText } from "../utils/validationUtils";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import { useSelector } from "react-redux";
+import { dispatchReadOnlyModal } from "../utils/readOnlyEvent";
 
 const CreateDepartmentModal = ({ isOpen, onClose, onDepartmentCreated, potentialManagers = [] }) => {
  const [formData, setFormData] = useState({ name: "", description: "", manager: "" });
  const [errors, setErrors] = useState({});
  const [isLoading, setIsLoading] = useState(false);
+ const currentUser = useSelector((s) => s.auth.user);
 
  const handleSubmit = async (e) => {
  e.preventDefault();
+ if (currentUser?.role === "Global Reader" || currentUser?.data?.user?.role === "Global Reader" || currentUser?.user?.role === "Global Reader") {
+   dispatchReadOnlyModal();
+   return;
+ }
  
  // Validate
  const nameError = validateText(formData.name);

@@ -14,6 +14,7 @@ import api from "../../axios";
 import { payrollApi } from "../../api/payrollApi";
 import { generatePayslipPDF } from "../../utils/generatePayslipPDF";
 import { formatDateForAPI } from "../../utils/dateUtils";
+import { dispatchReadOnlyModal } from "../../utils/readOnlyEvent";
 
 const PayrollManagement = () => {
   const [activeTab, setActiveTab] = useState("preview"); // 'preview' or 'history'
@@ -92,6 +93,10 @@ const PayrollManagement = () => {
   }, [activeTab, startDate, endDate, standardHours]);
 
   const handleGenerate = async () => {
+    if (currentUserRole === 'globalreader') {
+      dispatchReadOnlyModal();
+      return;
+    }
     if (selectedUsers.size === 0) return toast.warn("Please select at least one employee");
     if (!window.confirm(`Generate payslips for ${selectedUsers.size} employees?`)) return;
 
@@ -133,6 +138,10 @@ const PayrollManagement = () => {
   };
 
   const handleSaveEdit = () => {
+    if (currentUserRole === 'globalreader') {
+      dispatchReadOnlyModal();
+      return;
+    }
     const newHours = parseFloat(editFormData.adjustedHours);
     const newWage = parseFloat(editFormData.adjustedWage);
     
@@ -282,7 +291,7 @@ const PayrollManagement = () => {
         <p className="text-sm font-black text-emerald-600">${row.totalWages?.toFixed(2)}</p>
       )
     },
-    ...(currentUserRole === 'superadmin' ? [{
+    ...(currentUserRole === 'superadmin' || currentUserRole === 'globalreader' ? [{
       key: "actions",
       label: "Actions",
       align: "right",

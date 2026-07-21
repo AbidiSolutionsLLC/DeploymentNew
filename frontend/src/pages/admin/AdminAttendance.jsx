@@ -13,6 +13,8 @@ import GlassInput from "../../components/ui/GlassInput";
 import ModernSelect from "../../components/ui/ModernSelect";
 import FilterRow from "../../components/ui/FilterRow";
 import GlassModal from "../../components/ui/GlassModal";
+
+import { dispatchReadOnlyModal } from '../../utils/readOnlyEvent';
 import { formatDateForAPI } from "../../utils/dateUtils";
 
 // --- SUB-COMPONENT: LIVE TIMER ---
@@ -76,6 +78,8 @@ const [activeTab, setActiveTab] = useState(() => {
 
  // Permission State
  const [currentUserRole, setCurrentUserRole] = useState("");
+ const isTechnician = currentUserRole === 'technician';
+ const canEdit = currentUserRole === 'superadmin' || currentUserRole === 'globalreader';
 
 const fetchSummary = async (date) => {
   if (!date || isNaN(date.getTime())) {
@@ -122,8 +126,6 @@ const fetchSummary = async (date) => {
  fetchSummary(filterDate);
  }
  }, [filterDate]);
-
- const canEdit = currentUserRole === 'superadmin';
 
  // --- DERIVE UNIQUE DEPARTMENTS ---
  const departmentOptions = useMemo(() => {
@@ -256,7 +258,11 @@ const fetchSummary = async (date) => {
  };
 
  const handleDeleteRecord = async (logId) => {
- if (!window.confirm("Delete this attendance record permanently?")) return;
+   if (currentUserRole === 'globalreader') {
+     dispatchReadOnlyModal();
+     return;
+   }
+   if (!window.confirm("Delete this attendance record permanently?")) return;
  try {
  await api.delete(`/timetrackers/${logId}`);
  toast.success("Record deleted");
