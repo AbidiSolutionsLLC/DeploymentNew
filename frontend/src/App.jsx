@@ -67,22 +67,26 @@ function App() {
  }, []);
 
  useEffect(() => {
- const checkMobile = () => {
- // 1. Check for pointer: coarse (Primary indicator for touch devices)
- const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
- 
- // 2. Check for touch points (survives "Desktop site" mode)
- const hasTouchPoints = navigator.maxTouchPoints > 0;
+  const checkMobile = () => {
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  // 1. Check for pointer: coarse (Primary indicator for touch devices)
+  const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  
+  // 2. Check for touch points (survives "Desktop site" mode)
+  const hasTouchPoints = navigator.maxTouchPoints > 0;
 
- // Only block if BOTH or either? User said "all mobile devices".
- // Coarse pointer is the most accurate for "Mobile UI being used".
- setIsMobileDevice(isCoarsePointer || hasTouchPoints);
- };
+  // 3. Screen width check to prevent touch-enabled laptops from being blocked
+  const isSmallScreen = window.innerWidth <= 1024;
 
- checkMobile();
- window.addEventListener("resize", checkMobile);
- return () => window.removeEventListener("resize", checkMobile);
- }, []);
+  // Block if it's a known mobile user agent, OR if it has touch capabilities AND a small screen
+  setIsMobileDevice(isMobileUA || ((isCoarsePointer || hasTouchPoints) && isSmallScreen));
+  };
+
+  checkMobile();
+  window.addEventListener("resize", checkMobile);
+  return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
  // Activate real-time notification stream (uses MSAL token internally)
  const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
