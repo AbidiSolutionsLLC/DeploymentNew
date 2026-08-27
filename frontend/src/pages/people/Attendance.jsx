@@ -285,14 +285,14 @@ const Attendance = () => {
  }
  >
  <div className="relative p-2 w-full">
- <div className="absolute left-20 top-0 h-full w-0.5 bg-border-subtle transform translate-x-1/2"></div>
+ <div className="absolute left-[6.5rem] top-0 h-full w-0.5 bg-border-subtle -translate-x-1/2"></div>
  <div className="space-y-4">
  {weeklyData.map((day, index) => (
  <div
  key={index}
  className="relative flex items-start group transition-all duration-150"
  >
- <div className={`absolute left-[66px] top-6 h-4 w-4 rounded-full transform translate-x-1/2 z-10 border-2 border-surface ${
+ <div className={`absolute left-24 top-6 h-4 w-4 rounded-full -translate-x-1/2 z-10 border-2 border-surface ${
  day.status === "Present" ? "bg-green-500" :
  day.status === "Absent" ? "bg-red-500" :
  day.status === "Half Day" ? "bg-yellow-500" :

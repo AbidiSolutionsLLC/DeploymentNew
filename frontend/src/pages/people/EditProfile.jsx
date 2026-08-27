@@ -13,6 +13,7 @@ import { validateText, validateDescription, sanitizeText, getApiError } from "..
 import ModernSelect from "../../components/ui/ModernSelect";
 import ModernDatePicker from "../../components/ui/ModernDatePicker";
 import PageContainer from "../../components/ui/PageContainer";
+import Loader from "../../components/ui/Loader";
 
 export default function EditProfile() {
  const navigate = useNavigate();
@@ -352,7 +353,7 @@ export default function EditProfile() {
  if (loading) {
  return (
  <div className="text-center p-6 glass-card">
- <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
+ <Loader size="lg" />
  <p className="mt-3 text-muted text-xs font-medium uppercase tracking-wide">Loading profile...</p>
  </div>
  );
@@ -408,7 +409,7 @@ export default function EditProfile() {
  />
  {loading && (
  <div className="absolute inset-0 flex items-center justify-center bg-app rounded-full">
- <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+ <Loader size="md" className="text-white" />
  </div>
  )}
  </div>
@@ -759,7 +760,7 @@ export default function EditProfile() {
  >
  {saving ? (
  <span className="flex items-center gap-2">
- <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+ <Loader variant="spinner" size="sm" className="text-white" />
  Saving...
  </span>
  ) : 'Save Changes'}

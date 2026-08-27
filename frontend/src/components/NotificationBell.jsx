@@ -8,6 +8,7 @@ import {
  markAllAsRead,
 } from '../../slices/notificationSlice';
 import { getNotificationIcon, getRouteForNotification, formatNotifDate } from '../../utils/notificationUtils';
+import Loader from '../ui/Loader';
 
 export default function NotificationBell() {
  const dispatch = useDispatch();
@@ -121,8 +122,7 @@ export default function NotificationBell() {
  <ul className="max-h-96 overflow-y-auto divide-y divide-gray-50" role="list">
  {loading && (
  <li className="p-6 text-center text-sm text-muted">
- <div className="inline-block w-5 h-5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin mb-2" />
- <p>Loading...</p>
+ <Loader />
  </li>
  )}
  {!loading && items.length === 0 && (

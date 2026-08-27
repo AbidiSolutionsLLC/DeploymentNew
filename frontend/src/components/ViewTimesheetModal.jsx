@@ -8,6 +8,7 @@ import api from "../axios";
 import { validateDescription } from "../utils/validationUtils";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import Loader from "./ui/Loader";
 
 const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdded }) => {
  const [timesheet, setTimesheet] = useState(initialTimesheet);
@@ -226,7 +227,7 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
  className="btn-ghost absolute right-2 top-2 flex items-center justify-center p-2 rounded-lg"
  >
  {sending ? (
- <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+  <Loader variant="spinner" size="sm" className="text-white" />
  ) : (
  <FaPaperPlane size={14} />
  )}

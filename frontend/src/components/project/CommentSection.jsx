@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { FaUser, FaPaperPlane, FaSpinner } from "react-icons/fa";
+import { FaUser, FaPaperPlane } from "react-icons/fa";
+import Loader from "../ui/Loader";
 import { useTheme } from "../../context/ThemeContext"; // Keep this import
 import { useComments } from "../../hooks/project/useComments";
 import { toast } from "react-toastify";
@@ -92,7 +93,7 @@ const CommentSection = ({ projectId }) => { // Changed component name
  className="btn btn-primary flex items-center gap-2"
  >
  {submitting ? (
- <FaSpinner className="w-3 h-3 animate-spin" />
+ <Loader variant="spinner" size="sm" className="text-white" />
  ) : (
  <FaPaperPlane className="w-3 h-3" />
  )}

@@ -3,18 +3,22 @@ import api from '../axios';
 const API_URL = '/timesheets';
 
 const getEmployeeTimesheets = async (month, year) => {
- const response = await api.get(API_URL, { 
- params: { month, year } 
- });
- return response.data?.data || response.data;
+  const response = await api.get(API_URL, { 
+    params: { month, year, my: true } 
+  });
+  return response.data?.data || response.data;
 };
 
 // New function for weekly timesheets
-const getWeeklyTimesheets = async (weekStart) => {
- const response = await api.get(`${API_URL}/weekly`, {
- params: { weekStart }
- });
- return response.data?.data || response.data;
+const getWeeklyTimesheets = async (weekStart, userId) => {
+  const params = { weekStart };
+  if (userId) {
+    params.userId = userId;
+  } else {
+    params.my = true;
+  }
+  const response = await api.get(`${API_URL}/weekly`, { params });
+  return response.data?.data || response.data;
 };
 
 const createTimesheet = async (timesheetData) => {

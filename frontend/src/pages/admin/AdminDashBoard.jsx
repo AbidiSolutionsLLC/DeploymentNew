@@ -20,6 +20,7 @@ import api from '../../axios'; // Added to fetch user role
 import { toast } from 'react-toastify';
 import LogListCard from '../../components/LogsListcard';
 import PageContainer from '../../components/ui/PageContainer';
+import Loader from '../../components/ui/Loader';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -51,8 +52,7 @@ const AdminDashBoard = () => {
  if (loading) return (
  <div className="fixed inset-0 flex items-center justify-center bg-surface z-50">
  <div className="text-center">
- <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-slate-600 mx-auto"></div>
- <p className="mt-3 text-muted text-xs font-medium uppercase tracking-wide">Loading analytics...</p>
+ <Loader size="xl" text="Loading analytics..." />
  </div>
  </div>
  );

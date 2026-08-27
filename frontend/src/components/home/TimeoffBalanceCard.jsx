@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { FiMoreVertical, FiTrash2, FiCalendar } from "react-icons/fi";
 import api from "../../axios";
 import EmptyCardState from "./EmptyCardState";
+import Loader from "../ui/Loader";
 
 const TimeoffBalanceCard = ({ onDelete, userId }) => {
  const [menuOpen, setMenuOpen] = useState(false);
@@ -18,8 +19,8 @@ const TimeoffBalanceCard = ({ onDelete, userId }) => {
  
  const leaveTypes = [
  {
- type: "Paid Leave",
- remaining: `${leaves.paid || 0} days`,
+ type: "Paid Time Off (PTO)",
+ remaining: `${leaves.pto || 0} days`,
  },
  {
  type: "Sick Leave",
@@ -60,7 +61,7 @@ const TimeoffBalanceCard = ({ onDelete, userId }) => {
  <FiCalendar className="w-4 h-4 text-amber-600 dark:text-amber-400" />
  <h3 className="text-xs font-bold text-main uppercase tracking-tight">Available Leaves</h3>
  </div>
- <p className="text-[10px] font-medium text-muted">Loading...</p>
+ <Loader size="sm" />
  </div>
  );
  }

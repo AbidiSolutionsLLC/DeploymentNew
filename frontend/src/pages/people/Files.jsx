@@ -31,7 +31,7 @@ export default function Files() {
  setError(null);
  try {
  const response = await api.get('/files/files/public');
- setPublicFiles(response.data.data?.files || []);
+ setPublicFiles(response.data.files || response.data.data?.files || []);
  } catch (err) {
  console.error('Error fetching public files:', err);
  setError(err.response?.data?.error || 'Failed to load public files');
@@ -46,7 +46,7 @@ export default function Files() {
  setError(null);
  try {
  const response = await api.get('/files/files/accessible');
- const allFiles = response.data.data || [];
+ const allFiles = Array.isArray(response.data) ? response.data : response.data.data || [];
  
  // Filter only files that are shared with user's role
  const roleFiles = allFiles.filter(file => {
@@ -91,7 +91,7 @@ export default function Files() {
  setLoading(prev => ({ ...prev, download: true }));
  try {
  const response = await api.get(`/files/files/${fileId}/download`);
- const { downloadUrl, filename } = response.data.data;
+ const { downloadUrl, filename } = response.data.data || response.data;
  
  // Create download link
  const link = document.createElement('a');

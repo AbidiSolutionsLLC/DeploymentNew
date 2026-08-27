@@ -23,6 +23,7 @@ import api from "../../axios";
 import { toast } from "react-toastify";
 import { refreshUserData } from "../../slices/userSlice";
 import PageContainer from "../../components/ui/PageContainer";
+import Loader from "../../components/ui/Loader";
 
 function format(sec) {
  const h = String(Math.floor(sec / 3600)).padStart(2, "0");
@@ -174,14 +175,18 @@ const Home = () => {
  fetchCards();
  }, [userId]);
 
- const addCard = async (type) => {
- try {
- const res = await api.post(`/users/${userId}/dashboard-cards/add`, { type });
- setCards(res.data?.data || res.data || []);
- } catch {
- toast.error("Failed");
- }
- };
+  const addCard = async (type) => {
+    if (cards.some((c) => c.type === type)) {
+      toast.info("Card is already added");
+      return;
+    }
+    try {
+      const res = await api.post(`/users/${userId}/dashboard-cards/add`, { type });
+      setCards(res.data?.data || res.data || []);
+    } catch {
+      toast.error("Failed");
+    }
+  };
 
  const removeCard = async (id) => {
  try {
@@ -223,7 +228,7 @@ const userName =
  }
  };
 
- if (loading) return <div className="p-6 text-center">Loading...</div>;
+  if (loading) return <div className="p-6 text-center"><Loader size="lg" text="Loading..." /></div>;
 
  return (
  <PageContainer
@@ -272,7 +277,7 @@ const userName =
  }
  >
  <div className="mb-3 text-end">
- <AddCardMenu onAdd={addCard} />
+        <AddCardMenu onAdd={addCard} currentCards={cards} />
  </div>
 
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

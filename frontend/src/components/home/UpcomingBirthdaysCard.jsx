@@ -3,6 +3,7 @@ import { FiMoreVertical, FiTrash2, FiGift } from "react-icons/fi";
 import api from "../../axios";
 import { toast } from "react-toastify";
 import EmptyCardState from "./EmptyCardState";
+import Loader from "../ui/Loader";
 
 const UpcomingBirthdaysCard = ({ onDelete }) => {
  const [menuOpen, setMenuOpen] = useState(false);
@@ -43,7 +44,7 @@ const UpcomingBirthdaysCard = ({ onDelete }) => {
  <FiGift className="w-4 h-4 text-pink-600" />
  <h3 className="text-xs font-bold text-main uppercase tracking-tight">Upcoming Birthdays</h3>
  </div>
- <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-pink-500 mx-auto"></div>
+ <Loader size="md" />
  </div>
  );
  }

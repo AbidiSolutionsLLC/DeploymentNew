@@ -145,7 +145,11 @@ const attendanceTimerSlice = createSlice({
  state.error = action.payload;
  state.loading = false;
  })
+ .addCase(fetchCurrentStatus.pending, (state) => {
+ state.loading = false; // Clear any stuck loading state from persist
+ })
  .addCase(fetchCurrentStatus.fulfilled, (state, action) => {
+ state.loading = false;
  const log = action.payload.log;
  
  // If there's an active session (has checkInTime but no checkOutTime)
@@ -161,6 +165,7 @@ const attendanceTimerSlice = createSlice({
  state.todayLog = log;
  })
  .addCase(fetchCurrentStatus.rejected, (state, action) => {
+ state.loading = false;
  // If no log found, reset the state
  state.checkInn = null;
  state.checkOut = null;

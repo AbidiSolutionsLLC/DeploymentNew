@@ -24,6 +24,7 @@ import { validateDescription, getApiError } from "../utils/validationUtils";
 import { parseISOToLocalDate, formatDisplayDate } from "../utils/dateUtils";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import Loader from "./ui/Loader";
  
 const ViewLeaveModal = ({
  isOpen,
@@ -75,17 +76,21 @@ const ViewLeaveModal = ({
  };
  }, [isOpen, leaveData?.id]);
  
- const fetchResponses = async () => {
- try {
- setLoadingResponses(true);
- const response = await api.get(`/leaves/${leaveData.id}/responses`);
- setResponses(response.data.data || []);
- } catch (error) {
- console.error("Failed to fetch responses:", error);
- } finally {
- setLoadingResponses(false);
- }
- };
+  const [responsesError, setResponsesError] = useState(false);
+
+  const fetchResponses = async () => {
+  try {
+  setLoadingResponses(true);
+  setResponsesError(false);
+  const response = await api.get(`/leaves/${leaveData.id}/responses`);
+  setResponses(response.data.data || []);
+  } catch (error) {
+  console.error("Failed to fetch responses:", error);
+  setResponsesError(true);
+  } finally {
+  setLoadingResponses(false);
+  }
+  };
  
  const resetState = () => {
  setResponses([]);
@@ -418,8 +423,18 @@ const ViewLeaveModal = ({
  </h3>
 
  {/* Responses List */}
- <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 space-y-3 pr-2">
- {responses.length > 0 ? (
+  <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 space-y-3 pr-2">
+  {loadingResponses && responses.length === 0 ? (
+  <div className="text-center py-8">
+    <Loader size="md" className="mb-3" />
+    <p className="text-sm text-muted font-medium">Loading discussion...</p>
+  </div>
+  ) : responsesError ? (
+  <div className="text-center py-8">
+    <p className="text-sm text-red-500 font-medium">Failed to load discussion</p>
+    <button onClick={fetchResponses} className="text-xs text-brand-primary mt-2">Try Again</button>
+  </div>
+  ) : responses.length > 0 ? (
  responses.map((response) => (
  <div key={response._id} className="bg-surface/50 dark:bg-slate-800/50 rounded-xl p-3 border border-border-subtle dark:border-slate-700">
  <div className="flex items-start gap-3">

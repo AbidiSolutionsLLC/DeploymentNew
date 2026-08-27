@@ -9,6 +9,7 @@ import {
 } from '../../slices/notificationSlice';
 import { getNotificationIcon, getRouteForNotification, formatNotifDate } from '../../utils/notificationUtils';
 import PageContainer from '../../components/ui/PageContainer';
+import Loader from '../../components/ui/Loader';
 
 export default function NotificationsPage() {
  const dispatch = useDispatch();
@@ -113,8 +114,8 @@ export default function NotificationsPage() {
  {/* Notification List Content */}
   <div ref={listRef} className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
  {loading && (
- <div className="py-12 text-center">
- <div className="inline-block w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+ <div className="py-12 text-center flex justify-center">
+  <Loader size="md" />
  </div>
  )}
 

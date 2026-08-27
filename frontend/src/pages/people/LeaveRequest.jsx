@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { applyForLeave, refreshUserData } from "../../slices/userSlice";
 import { toast } from "react-toastify";
 import GlassModal from "../../components/ui/GlassModal";
+import Loader from "../../components/ui/Loader";
 
 const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
  const dispatch = useDispatch();
@@ -161,7 +162,7 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
           >
             {isSubmitting ? (
               <div className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <Loader variant="spinner" size="sm" className="text-white" />
                 <span>SUBMITTING...</span>
               </div>
             ) : (

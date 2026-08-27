@@ -5,6 +5,7 @@ import { FaUmbrellaBeach as BeachIcon } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import api from "../../axios";
 import EmptyCardState from "./EmptyCardState";
+import Loader from "../ui/Loader";
 
 const LeaveLogCard = ({ onDelete }) => {
  const [menuOpen, setMenuOpen] = useState(false);
@@ -59,13 +60,12 @@ const LeaveLogCard = ({ onDelete }) => {
  <BeachIcon className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
  <h3 className="text-xs font-bold text-main uppercase tracking-tight">Leave Logs</h3>
  </div>
- <p className="text-[10px] text-muted">Loading...</p>
+ <Loader size="sm" />
  </div>
  );
  }
 
  return (
- // CHANGED: p-4 -> p-3
  <div className="relative bg-surface rounded-[1.2rem] shadow-md border border-amber-100 p-3 w-full h-full flex flex-col">
  <div className="flex justify-between items-start mb-2">
  <div>

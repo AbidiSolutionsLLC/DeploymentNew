@@ -15,9 +15,10 @@ const cardOptions = [
  { id: "tasksAssignedToMe", label: "My Tasks"},
 ];
 
-const AddCardMenu = ({ onAdd }) => {
+const AddCardMenu = ({ onAdd, currentCards = [] }) => {
  const [open, setOpen] = useState(false);
  const menuRef = useRef();
+ const currentCardTypes = currentCards.map(c => c.type);
 
  useEffect(() => {
  const handler = (e) => {
@@ -48,10 +49,16 @@ const AddCardMenu = ({ onAdd }) => {
  <li
  key={option.id}
  onClick={() => {
+ if (!currentCardTypes.includes(option.id)) {
  onAdd(option.id);
  setOpen(false);
+ }
  }}
- className="px-4 py-2 cursor-pointer hover:bg-[#E0E5EA]/50 transition font-medium uppercase tracking-tight"
+ className={`px-4 py-2 transition font-medium uppercase tracking-tight ${
+ currentCardTypes.includes(option.id)
+ ? "opacity-40 cursor-not-allowed"
+ : "cursor-pointer hover:bg-[#E0E5EA]/50"
+ }`}
  >
  {option.label}
  </li>

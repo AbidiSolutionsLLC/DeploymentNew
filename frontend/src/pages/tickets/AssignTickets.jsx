@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
+import Loader from "../../components/ui/Loader";
 
 const AssignTicket = () => {
  const navigate = useNavigate();
@@ -270,7 +271,7 @@ const AssignTicket = () => {
   </span>
   </div>
   {isAssigning ? (
-    <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin ml-auto" />
+    <Loader variant="spinner" size="sm" className="text-amber-500 ml-auto" />
   ) : selectedAssigneeId === user._id ? (
   <Check className="w-4 h-4 text-green-500 ml-auto" />
   ) : null}
@@ -340,7 +341,7 @@ const AssignTicket = () => {
           >
             {promoting ? (
               <span className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <Loader variant="spinner" size="sm" className="text-white" />
                 UPDATING...
               </span>
             ) : (

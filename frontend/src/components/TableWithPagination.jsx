@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { FaAngleLeft, FaAngleRight, FaAnglesLeft, FaAnglesRight } from "react-icons/fa6";
+import Loader from "./ui/Loader";
 
 const TableWithPagination = ({
  columns,
@@ -92,8 +93,7 @@ const TableWithPagination = ({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-surface rounded-2xl border border-border-subtle shadow-sm min-h-[300px]">
-        <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-brand/20 border-t-brand"></div>
-        <p className="mt-4 text-heading text-sm font-semibold tracking-wide">Loading data...</p>
+        <Loader size="lg" text="Loading data..." />
       </div>
     );
   }

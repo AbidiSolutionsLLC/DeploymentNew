@@ -17,6 +17,7 @@ import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBa
 import PageContainer from "../../components/ui/PageContainer";
 import ModernSelect from "../../components/ui/ModernSelect";
 import { formatDateForAPI } from "../../utils/dateUtils";
+import Loader from "../../components/ui/Loader";
 
 
 const ApproveTimesheets = () => {
@@ -779,8 +780,7 @@ const ApproveTimesheets = () => {
  <motion.div key={`${activeTab}-${selectedWeekStart}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }}>
  {loading || allLoading ? (
  <div className="flex flex-col items-center justify-center py-12">
- <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mb-4"></div>
- <p className="text-sm font-medium text-muted">Loading data...</p>
+ <Loader size="lg" className="mb-4" text="Loading data..." />
  </div>
  ) : (
  <TableWithPagination

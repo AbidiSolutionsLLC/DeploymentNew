@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { syncAzureUser, setAzureAccount } from "../../slices/authSlice";
 import { toast } from "react-toastify";
+import Loader from "../../components/ui/Loader";
 
 const Login = () => {
  const { instance, accounts, inProgress } = useMsal();
@@ -62,9 +63,8 @@ const Login = () => {
  <p className="text-muted mb-8">Sign in with your corporate account</p>
 
  {loading || inProgress !== "none" ? (
- <div className="text-main">
- <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand mx-auto mb-2"></div>
- <p>Loading your profile...</p>
+ <div className="text-main flex justify-center">
+ <Loader size="lg" text="Loading your profile..." />
  </div>
  ) : (
  <button

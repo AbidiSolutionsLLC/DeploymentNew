@@ -11,6 +11,7 @@ import api from "../../axios";
 import { parseISOToLocalDate, formatDisplayDate, calculateWorkingDays } from "../../utils/dateUtils";
 import { toast } from "react-toastify";
 import TableWithPagination from "../../components/TableWithPagination";
+import Loader from "../../components/ui/Loader";
 const LeaveSummary = () => {
  const [isOpen, setIsOpen] = useState(false);
  const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -292,7 +293,7 @@ const LeaveSummary = () => {
  <div className="flex items-center gap-2">
  {refreshing && (
  <div className="text-xs text-muted flex items-center gap-1">
- <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+ <Loader variant="spinner" className="w-3 h-3 text-slate-400" />
  Refreshing...
  </div>
  )}
@@ -355,8 +356,7 @@ const LeaveSummary = () => {
 
  {refreshing ? (
  <div className="p-4 text-center">
- <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
- <p className="mt-2 text-muted text-xs font-medium uppercase tracking-wide">Loading leaves...</p>
+ <Loader text="Loading leaves..." size="md" />
  </div>
  ) : (
  <div className="overflow-x-auto">
@@ -378,8 +378,7 @@ const LeaveSummary = () => {
  <h1 className="text-base font-bold text-main uppercase tracking-tight mb-4">Holidays</h1>
  {loading.holidays ? (
  <div className="p-4 text-center">
- <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
- <p className="mt-2 text-muted text-xs font-medium uppercase tracking-wide">Loading holidays...</p>
+ <Loader text="Loading holidays..." size="md" />
  </div>
  ) : errorMsg ? (
  <div className="text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-4 py-3 rounded-lg text-sm font-medium">{errorMsg}</div>

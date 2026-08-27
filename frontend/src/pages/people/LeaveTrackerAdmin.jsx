@@ -15,6 +15,7 @@ import { getApiError } from "../../utils/validationUtils";
 import { parseISOToLocalDate, formatDisplayDate } from "../../utils/dateUtils";
 import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 import PageContainer from "../../components/ui/PageContainer";
+import Loader from "../../components/ui/Loader";
 
 const LeaveTrackerAdmin = () => {
  const [activeTab, setActiveTab] = useState(0);
@@ -139,7 +140,7 @@ const LeaveTrackerAdmin = () => {
 
  // Fetch full leave details from API
  const response = await api.get(`/leaves/${leaveId}`);
- const fullLeaveData = response.data.data;
+ const fullLeaveData = response.data.data || response.data;
 
  setSelectedHistoryLeave({
  id: fullLeaveData._id,
@@ -186,23 +187,27 @@ const LeaveTrackerAdmin = () => {
  };
 
  // ==================== MANAGE LEAVES FUNCTIONS ====================
- const fetchUsers = async () => {
- try {
- const response = await api.get("/users");
- const usersArray = Array.isArray(response.data) ? response.data : response.data.data || [];
- let filtered = usersArray;
- if (!isSuperAdmin) {
- filtered = usersArray.filter(u => u.role !== 'Super Admin');
- }
- setUsers(filtered);
- setHistoryUsers(filtered);
- } catch (error) {
- console.error("Failed to fetch users:", error);
- showToast(getApiError(error, "Failed to load users"), "error");
- } finally {
- setLoadingUsers(false);
- }
- };
+  const [usersError, setUsersError] = useState(false);
+
+  const fetchUsers = async () => {
+  setUsersError(false);
+  try {
+  const response = await api.get("/users");
+  const usersArray = Array.isArray(response.data) ? response.data : response.data.data || [];
+  let filtered = usersArray;
+  if (!isSuperAdmin) {
+  filtered = usersArray.filter(u => u.role !== 'Super Admin');
+  }
+  setUsers(filtered);
+  setHistoryUsers(filtered);
+  } catch (error) {
+  console.error("Failed to fetch users:", error);
+  setUsersError(true);
+  showToast(getApiError(error, "Failed to load users"), "error");
+  } finally {
+  setLoadingUsers(false);
+  }
+  };
 
  const handleUserSelect = async (e) => {
  const userId = e.target.value;
@@ -247,7 +252,7 @@ const LeaveTrackerAdmin = () => {
  setLoadingHistory(true);
  try {
  const response = await api.get(`/users/${userId}/leaves/history`);
- setLeaveHistory(response.data.data || []);
+ setLeaveHistory(Array.isArray(response.data) ? response.data : response.data.data || []);
  } catch (error) {
  console.error("Failed to fetch leave history:", error);
  showToast(getApiError(error, "Failed to fetch leave history"), "error");
@@ -553,10 +558,7 @@ const LeaveTrackerAdmin = () => {
  </div>
 
  {loadingHolidays ? (
- <div className="text-center p-6">
- <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
- <p className="mt-2 text-muted text-xs font-medium uppercase tracking-wide">Loading holidays...</p>
- </div>
+        <Loader text="Loading holidays..." size="md" />
  ) : (
  <HolidayTable holidays={holidays} key={refreshHolidayKey} />
  )}
@@ -580,7 +582,7 @@ const LeaveTrackerAdmin = () => {
  name="employee"
  value={selectedUser}
  onChange={handleUserSelect}
- placeholder="Select an employee..."
+ placeholder={loadingUsers ? "Loading employees..." : usersError ? "Failed to load employees" : "Select an employee..."}
  options={users.map(user => ({
  value: user._id,
  label: `${user.name} (${user.role})`
@@ -654,10 +656,7 @@ const LeaveTrackerAdmin = () => {
 
  {/* Leave History Table */}
  {loadingHistory ? (
- <div className="text-center p-6">
- <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
- <p className="mt-2 text-muted text-xs font-medium uppercase tracking-wide">Loading leave history...</p>
- </div>
+        <Loader text="Loading leave history..." size="md" />
  ) : leaveHistory.length > 0 ? (
  <div className="overflow-x-auto">
  <TableWithPagination

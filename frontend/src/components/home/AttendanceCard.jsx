@@ -76,10 +76,10 @@ const AttendanceCard = ({ onDelete }) => {
  currentDay.setHours(0, 0, 0, 0);
 
   const dayData = attendanceData.find(d => {
-  const targetDate = new Date(d.checkInTime || d.date);
-  return targetDate.getFullYear() === currentDay.getFullYear() &&
-         targetDate.getMonth() === currentDay.getMonth() &&
-         targetDate.getDate() === currentDay.getDate();
+  const targetDate = new Date(d.date);
+  return targetDate.getUTCFullYear() === currentDay.getFullYear() &&
+         targetDate.getUTCMonth() === currentDay.getMonth() &&
+         targetDate.getUTCDate() === currentDay.getDate();
   });
 
   let hours = 0;

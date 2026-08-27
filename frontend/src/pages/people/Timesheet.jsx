@@ -14,6 +14,7 @@ import { moment, TIMEZONE, formatDateForAPI } from "../../utils/dateUtils";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
 import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
+import Loader from "../../components/ui/Loader";
 
 const Timesheet = ({ refreshTrigger }) => {
  const [showCalendar, setShowCalendar] = useState(false);
@@ -420,12 +421,7 @@ const Timesheet = ({ refreshTrigger }) => {
  transition={{ duration: 0.2 }}
  >
  {loading && (
- <div className="text-center p-6">
- <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
- <p className="mt-3 text-muted text-xs font-medium uppercase tracking-wide">
- Loading weekly timesheets...
- </p>
- </div>
+        <Loader size="lg" text="Loading weekly timesheets..." />
  )}
 
  {error && (

@@ -19,6 +19,7 @@ import { validateDescription, getApiError } from "../../utils/validationUtils";
 import PageContainer from "../../components/ui/PageContainer";
 import TableWithPagination from "../../components/TableWithPagination";
 import GlassModal from "../../components/ui/GlassModal";
+import Loader from "../../components/ui/Loader";
 import GlassInput from "../../components/ui/GlassInput";
 import ModernSelect from "../../components/ui/ModernSelect";
 
@@ -396,7 +397,7 @@ export default function AssignedTickets() {
                       disabled={sendingComment || !!commentError}
                       className="p-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors disabled:opacity-50"
                     >
-                      {sendingComment ? <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"/> : <PaperAirplaneIcon className="w-5 h-5" />}
+                      {sendingComment ? <Loader variant="spinner" size="sm" className="text-white" /> : <PaperAirplaneIcon className="w-5 h-5" />}
                     </button>
                   </div>
                   {commentError && (

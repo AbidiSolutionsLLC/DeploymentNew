@@ -4,6 +4,7 @@ import { FaUserTie, FaNetworkWired, FaIdBadge, FaSearchPlus, FaSearchMinus, FaRe
 import { useNavigate } from 'react-router-dom';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import PageContainer from "../../components/ui/PageContainer";
+import Loader from "../../components/ui/Loader";
 
 const OrgNode = ({ node, onNodeClick }) => {
  const getRoleColor = (role) => {
@@ -187,8 +188,7 @@ const OrgChartPage = () => {
  <div className="min-w-max flex justify-center pb-20 pt-16 relative z-10">
  {loading ? (
  <div className="flex flex-col items-center justify-center mt-20 text-muted gap-4">
- <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-600"></div>
- <p>Mapping Hierarchy...</p>
+ <Loader size="lg" text="Mapping Hierarchy..." />
  </div>
  ) : data?.length > 0 ? (
  data.map((rootNode, idx) => (

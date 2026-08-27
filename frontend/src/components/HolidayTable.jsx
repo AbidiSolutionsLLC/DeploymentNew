@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import holidayApi from '../api/holidayApi';
+import Loader from './ui/Loader';
 import TableWithPagination from './TableWithPagination';
 
 const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 }) => {
@@ -152,7 +153,7 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
  if (loading) {
  return (
  <div className="p-4 text-center">
- <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
+ <Loader size="md" />
  <p className="mt-2 text-muted text-xs font-medium uppercase tracking-wide">Loading holidays...</p>
  </div>
  );

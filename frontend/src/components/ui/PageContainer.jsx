@@ -1,4 +1,5 @@
 import React from "react";
+import Loader from "./Loader";
 
 /**
  * Standardized Page Container for the Golden White Glassmorphism Design System.
@@ -62,8 +63,7 @@ export default function PageContainer({
  <div className="glass-card flex-1 relative z-0 overflow-hidden flex flex-col">
  {loading ? (
  <div className="text-center p-8 flex flex-col items-center justify-center flex-1">
- <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
- <p className="mt-3 text-muted text-xs font-medium uppercase tracking-wide">Loading data...</p>
+ <Loader text="Loading data..." size="md" />
  </div>
  ) : (
  <div className="flex-1 w-full overflow-x-auto">
@@ -75,7 +75,7 @@ export default function PageContainer({
  <div className="flex-1 relative z-0 w-full">
  {loading ? (
  <div className="text-center p-8 flex flex-col items-center justify-center">
- <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
+ <Loader size="md" />
  </div>
  ) : (
  children

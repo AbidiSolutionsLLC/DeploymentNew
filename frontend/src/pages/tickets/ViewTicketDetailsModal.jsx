@@ -8,6 +8,7 @@ import { Paperclip } from "lucide-react";
 import { format } from "date-fns";
 import { validateDescription } from "../../utils/validationUtils";
 import GlassModal from "../../components/ui/GlassModal";
+import Loader from "../../components/ui/Loader";
 
 const DetailItem = ({ label, value }) => (
  <div className="space-y-1">
@@ -172,7 +173,7 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
             disabled={sending || !commentText.trim()}
             className="absolute right-2 top-2 p-2 rounded-lg disabled:opacity-50 btn btn-primary"
           >
-            {sending ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <FaPaperPlane className="w-3 h-3" />}
+            {sending ? <Loader variant="spinner" size="sm" className="text-white" /> : <FaPaperPlane className="w-3 h-3" />}
           </button>
         </div>
       </div>

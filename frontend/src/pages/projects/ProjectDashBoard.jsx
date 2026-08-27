@@ -15,6 +15,7 @@ import UpcomingDeadlinesCard from "../../components/dashboard-cards/UpcomingDead
 import MyTeamMembersCard from "../../components/dashboard-cards/MyTeamMembersCard";
 import TimeTrackingOverviewCard from "../../components/dashboard-cards/TimeTrackingOverviewCard";
 import PageContainer from "../../components/ui/PageContainer";
+import Loader from "../../components/ui/Loader";
 
 const ProjectDashBoard = () => {
  const dispatch = useDispatch();
@@ -25,7 +26,11 @@ const ProjectDashBoard = () => {
  }, [dispatch]);
 
  if (loading) {
- return <div>Loading...</div>;
+  return (
+    <div className="flex justify-center items-center h-screen bg-app">
+      <Loader size="xl" text="Loading Project Dashboard..." />
+    </div>
+  );
  }
 
  const leaveData = [

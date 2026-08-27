@@ -149,9 +149,14 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
  </div>
 
  <div className="relative z-30">
- <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">
- CHECK OUT TIME
- </label>
+ <div className="flex items-center justify-between mb-2">
+   <label className="block text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">
+   CHECK OUT TIME
+   </label>
+   <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded" title="If a shift crosses midnight, please create two separate logs for each day.">
+   No midnight cross
+   </span>
+ </div>
  <DatePicker
  selected={formData.checkOutTime}
  onChange={(date) => setFormData({ ...formData, checkOutTime: date })}

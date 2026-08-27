@@ -3,11 +3,12 @@ import api from '../axios';
 const BASE_URL = '/leaves';
 
 const leavesApi = {
- // Get all leaves for the current user
- getMyLeaves: async (params) => {
- const response = await api.get(BASE_URL, { params });
- return response.data;
- },
+  // Get all leaves for the current user
+  getMyLeaves: async (params) => {
+    const newParams = { ...params, my: true };
+    const response = await api.get(BASE_URL, { params: newParams });
+    return response.data;
+  },
 
  // Get leave balance for the current user
  getLeaveBalance: async () => {

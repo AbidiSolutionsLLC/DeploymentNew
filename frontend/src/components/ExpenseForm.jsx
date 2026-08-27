@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { 
  Upload, FileText, X, File, FileCode, CheckCircle, 
- AlertCircle, AlertTriangle, Info, ChevronRight, Zap, Image, Wand2, Loader
+ AlertCircle, AlertTriangle, Info, ChevronRight, Zap, Image, Wand2
 } from "lucide-react";
+import UiLoader from "./ui/Loader";
 import expensesApi from "../api/expensesApi";
 import { toast } from "react-toastify";
 import api from "../axios";
@@ -318,7 +319,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
  >
  {processingReceipt ? (
  <>
- <Loader size={16} className="animate-spin" />
+ <UiLoader variant="spinner" size="sm" className="text-current" />
  <span>Processing {documentType === "receipt" ? "Receipt" : "Invoice"}...</span>
  </>
  ) : (
@@ -485,7 +486,7 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
  className="flex-1 px-6 text-[11px] shadow-slate-100 active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center gap-2 btn btn-primary"
  >
  {loading ? (
- <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+ <UiLoader variant="spinner" size="sm" className="text-white" />
  ) : (
  <>
  <Upload size={14} />

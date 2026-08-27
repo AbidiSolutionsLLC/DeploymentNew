@@ -8,6 +8,7 @@ import { Paperclip } from "lucide-react";
 import { validateDescription, getApiError } from "../utils/validationUtils";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import Loader from "./ui/Loader";
 import { STATUS_VARIANTS, resolveStatusVariant } from "./StatusBadge";
 
 const ApproveTimesheetViewModal = ({ 
@@ -303,7 +304,7 @@ const ApproveTimesheetViewModal = ({
  disabled={sendingComment || !newComment.trim()}
  className="btn-ghost flex items-center justify-center p-3 rounded-xl"
  >
- {sendingComment ? <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"/> : <FaPaperPlane className="w-4 h-4" />}
+ {sendingComment ? <Loader variant="spinner" size="sm" className="text-white" /> : <FaPaperPlane className="w-4 h-4" />}
  </button>
  </div>
  <div className="flex justify-between items-center mb-6 px-2">

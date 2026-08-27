@@ -12,6 +12,7 @@ import api from "../../axios";
 import { FiCamera, FiEdit2 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import PageContainer from "../../components/ui/PageContainer";
+import Loader from "../../components/ui/Loader";
 
 export default function Profile({ userId: propUserId }) {
  const navigate = useNavigate();
@@ -100,8 +101,7 @@ export default function Profile({ userId: propUserId }) {
 
  if (loading) return (
  <div className="text-center p-6 glass-card m-4">
- <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
- <p className="mt-3 text-muted text-xs font-medium uppercase tracking-wide">Loading...</p>
+ <Loader size="lg" text="Loading..." />
  </div>
  );
 
@@ -147,7 +147,7 @@ export default function Profile({ userId: propUserId }) {
  title="Change Cover Image"
  >
  {uploadingCover ? (
- <div className="animate-spin h-4 w-4 border-2 border-amber-600 border-t-transparent rounded-full"></div>
+ <Loader variant="spinner" size="sm" className="text-amber-600" />
  ) : (
  <FiCamera size={16} />
  )}
@@ -191,7 +191,7 @@ export default function Profile({ userId: propUserId }) {
  title="Change Profile Picture"
  >
  {uploadingAvatar ? (
- <div className="animate-spin h-4 w-4 md:h-5 md:w-5 border-2 border-amber-600 border-t-transparent rounded-full"></div>
+ <Loader variant="spinner" size="sm" className="text-amber-600 md:w-5 md:h-5" />
  ) : (
  <FiCamera className="w-4 h-4 md:w-5 md:h-5" />
  )}
