@@ -41,10 +41,10 @@ const Timesheet = ({ refreshTrigger }) => {
  return sunday;
  }
 
- const [selectedWeekStart, setSelectedWeekStart] = useState(() => formatDateForAPI(getMonday(new Date())));
+ const [selectedWeekStart, setSelectedWeekStart] = useState(() => getMonday(new Date()));
  const [weeklyData, setWeeklyData] = useState({
- weekStart: formatDateForAPI(getMonday(new Date())),
- weekEnd: formatDateForAPI(getSunday(new Date())),
+ weekStart: getMonday(new Date()),
+ weekEnd: getSunday(new Date()),
  timesheets: [],
  weeklyTotal: 0,
  remainingHours: 40

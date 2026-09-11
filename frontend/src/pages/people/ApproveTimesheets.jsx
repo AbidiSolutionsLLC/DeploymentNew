@@ -41,11 +41,11 @@ const ApproveTimesheets = () => {
 
  
  const [selectedWeekStart, setSelectedWeekStart] = useState(() => {
-    return formatDateForAPI(getMonday(new Date()));
+    return getMonday(new Date());
   });
   const [weeklyData, setWeeklyData] = useState({
-    weekStart: formatDateForAPI(getMonday(new Date())),
-    weekEnd: formatDateForAPI(getSunday(new Date())),
+    weekStart: getMonday(new Date()),
+    weekEnd: getSunday(new Date()),
  timesheets: [], // Pending
  approvedTimesheets: [],
  rejectedTimesheets: [],
@@ -176,8 +176,8 @@ const ApproveTimesheets = () => {
  // Validation: If future date range selected and no data, we will handle it in the UI
  if (weekStartObj > new Date()) {
   setWeeklyData({
-  weekStart: formatDateForAPI(weekStartObj),
-  weekEnd: formatDateForAPI(weekEndObj),
+  weekStart: weekStartObj,
+  weekEnd: weekEndObj,
  timesheets: [],
  approvedTimesheets: [],
  rejectedTimesheets: [],
