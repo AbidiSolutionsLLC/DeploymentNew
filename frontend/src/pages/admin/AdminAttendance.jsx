@@ -81,23 +81,33 @@ const [activeTab, setActiveTab] = useState(() => {
  const isTechnician = currentUserRole === 'technician';
  const canEdit = currentUserRole === 'superadmin' || currentUserRole === 'globalreader';
 
-const fetchSummary = async (date) => {
-  if (!date || isNaN(date.getTime())) {
-    toast.error("Invalid date selected");
-    setLoading(false);
-    return;
-  }
-  setLoading(true);
-  try {
-  const dateStr = formatDateForAPI(date);
-  const res = await api.get(`/timetrackers/admin-summary?date=${dateStr}`);
-  setSummaryData(res.data);
-  } catch (error) {
-  console.error("Fetch Summary Error:", error);
-  toast.error("Failed to load attendance summary");
-  } finally {
-  setLoading(false);
-  }
+  const fetchSummary = async (date) => {
+    if (!date || isNaN(date.getTime())) {
+      toast.error("Invalid date selected");
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const dateStr = formatDateForAPI(date);
+      const res = await api.get(`/timetrackers/admin-summary?date=${dateStr}`);
+      const data = res.data.data || res.data;
+      
+      const safeData = {
+        present: data?.present || [],
+        absent: data?.absent || [],
+        halfDay: data?.halfDay || [],
+        onLeave: data?.onLeave || [],
+        counts: data?.counts || { present: 0, absent: 0, halfDay: 0, onLeave: 0, total: 0 }
+      };
+      
+      setSummaryData(safeData);
+    } catch (error) {
+      console.error("Fetch Summary Error:", error);
+      toast.error("Failed to load attendance summary");
+    } finally {
+      setLoading(false);
+    }
   };
 
  // --- FETCH USER INFO ON MOUNT ---

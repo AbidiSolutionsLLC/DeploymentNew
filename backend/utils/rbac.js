@@ -31,6 +31,19 @@ exports.getSearchScope = async (currentUser, type) => {
     return { submittedBy: _id };
   }
 
+  // --- 2.5 TIMESHEET & TIMELOG SCOPE ---
+  if (type === 'timesheet' || type === 'timelog') {
+    if (roleKey === 'hr') {
+      return {}; // HR sees all
+    }
+    if (roleKey === 'admin' || roleKey === 'manager') {
+      const teamIds = await getTeamIds(_id);
+      return { employee: { $in: teamIds } };
+    }
+    // Employee/Technician sees only their own
+    return { employee: _id };
+  }
+
   // --- 3. HR & ADMIN: Expanded Visibility ---
   if (roleKey === 'hr' || roleKey === 'admin') {
     // REQUIREMENT: Admin and HR must see ALL attendance, users, and leaves
@@ -56,9 +69,7 @@ exports.getSearchScope = async (currentUser, type) => {
 
   // --- 4. MANAGER: Team View ---
   if (roleKey === 'manager') { 
-    const directReports = await User.find({ reportsTo: _id }).distinct('_id');
-    const indirectReports = await User.find({ reportsTo: { $in: directReports } }).distinct('_id');
-    const fullTeam = [...directReports, ...indirectReports, _id];
+    const fullTeam = await getTeamIds(_id);
 
     if (type === 'usermanagement' && isTechnician) {
       return {

@@ -16,27 +16,20 @@ const moment = require("moment-timezone");
 
 class TimeTrackerService {
   async getAllTimeLogs(user) {
-    const { id, role } = user;
-    const roleKey = normalizeRole(role);
     let query = {};
-
-    if (roleKey === 'manager') {
-      const myFullTeam = await getTeamIds(id);
-      query.user = { $in: myFullTeam };
-    } else {
-      const scope = await getSearchScope(user, 'attendance');
-      Object.assign(query, scope);
-      // Enforce company isolation
-      if (user.company) {
-         const companyUsers = await User.find({ company: user.company }).select('_id');
-         const companyUserIds = companyUsers.map(u => u._id);
-         if (query.user) {
-             // Intersect
-             query.user = { $in: [].concat(query.user.$in || query.user).filter(id => companyUserIds.some(cId => cId.equals(id))) };
-         } else {
-             query.user = { $in: companyUserIds };
-         }
-      }
+    const scope = await getSearchScope(user, 'attendance');
+    Object.assign(query, scope);
+    
+    // Enforce company isolation
+    if (user.company) {
+       const companyUsers = await User.find({ company: user.company }).select('_id');
+       const companyUserIds = companyUsers.map(u => u._id);
+       if (query.user) {
+           // Intersect
+           query.user = { $in: [].concat(query.user.$in || query.user).filter(id => companyUserIds.some(cId => cId.equals(id))) };
+       } else {
+           query.user = { $in: companyUserIds };
+       }
     }
 
     return TimeTracker.find(query)
@@ -76,9 +69,15 @@ class TimeTrackerService {
         updates.date = getStartOfESTDay(updates.date);
     }
 
-    // Enforce company isolation
+    // Enforce company isolation, allowing legacy records without a company
     const filter = { _id: logId };
-    if (user.company) filter.company = user.company;
+    if (user.company) {
+      filter.$or = [
+        { company: user.company },
+        { company: { $exists: false } },
+        { company: null }
+      ];
+    }
 
     const log = await TimeTracker.findOneAndUpdate(filter, updates, { 
       new: true,
@@ -96,12 +95,24 @@ class TimeTrackerService {
     const endDate = moment.tz([year, month - 1], TIMEZONE).endOf('month').toDate();
 
     let query = { date: { $gte: startDate, $lte: endDate } };
-    const roleKey = normalizeRole(role);
+    const scope = await getSearchScope(user, 'attendance');
+    Object.assign(query, scope);
 
-    if (targetUserId && ['superadmin', 'admin', 'manager', 'hr'].includes(roleKey)) {
-       query.user = targetUserId;
-    } else {
-       query.user = id;
+    if (targetUserId) {
+        if (scope.user && scope.user.$in) {
+            if (!scope.user.$in.map(String).includes(String(targetUserId))) {
+                query._id = null;
+            } else {
+                query.user = targetUserId;
+            }
+        } else if (scope.user && String(scope.user) !== String(targetUserId)) {
+            query._id = null;
+        } else {
+            query.user = targetUserId;
+        }
+    } else if (query.user === undefined) {
+        // Fallback if no target passed and they have wide scope, default to themselves
+        query.user = user.id || user._id;
     }
 
     return TimeTracker.find(query)
@@ -247,7 +258,13 @@ class TimeTrackerService {
     }
     
     const filter = { _id: logId };
-    if (user.company) filter.company = user.company;
+    if (user.company) {
+      filter.$or = [
+        { company: user.company },
+        { company: { $exists: false } },
+        { company: null }
+      ];
+    }
 
     const log = await TimeTracker.findOneAndDelete(filter);
     if (!log) throw new NotFoundError("Time log not found");
@@ -322,6 +339,10 @@ class TimeTrackerService {
       userQuery._id = scope.user;
     } else if (scope._id === null) {
       return { present: [], halfDay: [], absent: [], onLeave: [], counts: { present: 0, halfDay: 0, absent: 0, onLeave: 0, total: 0 } };
+    }
+
+    if (user.company) {
+      userQuery.company = user.company;
     }
 
     const usersInScope = await User.find(userQuery).select('name email designation department avatar empID joiningDate');

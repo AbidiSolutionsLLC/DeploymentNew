@@ -109,13 +109,9 @@ class ExpenseService {
   }
 
   async getExpenseById(user, companyId, id) {
-    const expense = await Expense.findOne({ _id: id, company: companyId });
-    if (!expense) throw new NotFoundError("Expense");
-
-    const userRole = normalizeRole(user.role);
-    if (userRole === "manager" && expense.submittedBy._id.toString() !== user._id.toString()) {
-      throw new ForbiddenError("You do not have permission to view this expense");
-    }
+    const scope = await getSearchScope(user, "expense");
+    const expense = await Expense.findOne({ _id: id, company: companyId, ...scope });
+    if (!expense) throw new NotFoundError("Expense or you do not have permission to view it");
 
     return expense;
   }

@@ -37,10 +37,11 @@ const UserManagement = () => {
  ]);
 
  const usersArray = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data.data || [];
+ const deptsArray = Array.isArray(deptsRes.data) ? deptsRes.data : deptsRes.data.data || [];
 
  setUsers(usersArray);
- setDepartments(deptsRes.data);
- setCurrentUser(meRes.data.user);
+ setDepartments(deptsArray);
+ setCurrentUser(meRes.data.user || meRes.data.data?.user || meRes.data.data);
  setFilteredUsers(usersArray);
  } catch (error) {
  console.error("Failed to fetch data:", error);

@@ -2,6 +2,7 @@ const TimeLog = require("../models/timeLogsSchema");
 const { BadRequestError, NotFoundError } = require("../utils/ExpressError");
 const { moment, TIMEZONE } = require("../utils/dateUtils");
 const { normalizeRole } = require("../utils/rbacUtils");
+const { getSearchScope } = require("../utils/rbac");
 
 class TimeLogService {
   async createTimeLog(user, companyId, data, files) {
@@ -42,28 +43,40 @@ class TimeLogService {
 
   async getEmployeeTimeLogs(user, companyId, query) {
     const { date, userId } = query; 
-    const roleKey = normalizeRole(user.role);
-    const employee = (userId && ['superadmin', 'admin', 'manager'].includes(roleKey)) ? userId : user.id || user._id;
+    const scope = await getSearchScope(user, 'timelog');
+    
+    let dbQuery = { company: companyId };
+    Object.assign(dbQuery, scope);
 
-    const dbQuery = { employee, company: companyId };
+    if (userId) {
+        if (scope.employee && scope.employee.$in) {
+            if (!scope.employee.$in.map(String).includes(String(userId))) {
+                dbQuery._id = null;
+            } else {
+                dbQuery.employee = userId;
+            }
+        } else if (scope.employee && String(scope.employee) !== String(userId)) {
+            dbQuery._id = null;
+        } else {
+            dbQuery.employee = userId;
+        }
+    }
+
     if (date) {
       const startDate = moment.tz(date, TIMEZONE).startOf('day').toDate();
       const endDate = moment.tz(date, TIMEZONE).endOf('day').toDate();
-
-      dbQuery.date = {
-        $gte: startDate,
-        $lte: endDate
-      };
+      dbQuery.date = { $gte: startDate, $lte: endDate };
     }
 
     return TimeLog.find(dbQuery).sort({ date: 1 });
   }
 
-  async updateTimeLog(companyId, timeLogId, data, files) {
+  async updateTimeLog(user, companyId, timeLogId, data, files) {
     const { job, date, description, hours } = data;
+    const scope = await getSearchScope(user, 'timelog');
 
-    const timeLog = await TimeLog.findOne({ _id: timeLogId, company: companyId });
-    if (!timeLog) throw new NotFoundError("TimeLog");
+    const timeLog = await TimeLog.findOne({ _id: timeLogId, company: companyId, ...scope });
+    if (!timeLog) throw new NotFoundError("TimeLog or you do not have permission to access it");
 
     if (timeLog.isAddedToTimesheet) {
       throw new BadRequestError("Cannot update time log already added to a timesheet");
@@ -87,16 +100,18 @@ class TimeLogService {
     return timeLog.save();
   }
 
-  async deleteTimeLog(companyId, timeLogId) {
-    const timeLog = await TimeLog.findOne({ _id: timeLogId, company: companyId });
-    if (!timeLog) throw new NotFoundError("TimeLog");
+  async deleteTimeLog(user, companyId, timeLogId) {
+    const scope = await getSearchScope(user, 'timelog');
+    const timeLog = await TimeLog.findOne({ _id: timeLogId, company: companyId, ...scope });
+    if (!timeLog) throw new NotFoundError("TimeLog or you do not have permission to access it");
     if (timeLog.isAddedToTimesheet) throw new BadRequestError("Cannot delete log already in timesheet");
     await timeLog.deleteOne();
   }
 
-  async downloadTimeLogAttachment(companyId, timeLogId, attachmentId) {
-    const timeLog = await TimeLog.findOne({ _id: timeLogId, company: companyId });
-    if (!timeLog) throw new NotFoundError("TimeLog");
+  async downloadTimeLogAttachment(user, companyId, timeLogId, attachmentId) {
+    const scope = await getSearchScope(user, 'timelog');
+    const timeLog = await TimeLog.findOne({ _id: timeLogId, company: companyId, ...scope });
+    if (!timeLog) throw new NotFoundError("TimeLog or you do not have permission to access it");
     const attachment = timeLog.attachments.id(attachmentId);
     if (!attachment) throw new NotFoundError("Attachment");
 

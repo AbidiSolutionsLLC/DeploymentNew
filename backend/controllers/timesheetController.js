@@ -18,7 +18,7 @@ exports.getAllTimesheets = catchAsync(async (req, res) => {
 });
 
 exports.getTimesheetById = catchAsync(async (req, res) => {
-  const timesheet = await timesheetService.getTimesheetById(req.companyId, req.params.id);
+  const timesheet = await timesheetService.getTimesheetById(req.user, req.companyId, req.params.id);
   res.status(200).json(ApiResponse.success(timesheet, 'Timesheet retrieved successfully'));
 });
 

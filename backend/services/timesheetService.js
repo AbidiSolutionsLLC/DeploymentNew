@@ -5,6 +5,7 @@ const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/Exp
 const { getStartOfESTDay, getEndOfESTDay, moment, TIMEZONE } = require("../utils/dateUtils");
 const { createNotification } = require('../utils/notificationService');
 const { normalizeRole } = require("../utils/rbacUtils");
+const { getSearchScope } = require("../utils/rbac");
 
 class TimesheetService {
   async createTimesheet(user, companyId, data) {
@@ -78,24 +79,24 @@ class TimesheetService {
     const endDate = moment(startDate).add(6, 'days').endOf('day').toDate();
 
     let dbQuery = { date: { $gte: startDate, $lte: endDate }, company: companyId };
-    const roleKey = normalizeRole(user.role);
+    const scope = await getSearchScope(user, 'timesheet');
 
-    if (userId) {
-        if (['superadmin', 'admin', 'manager'].includes(roleKey)) {
-            dbQuery.employee = userId;
-        } else {
-            dbQuery.employee = user.id || user._id;
-        }
-    } else if (my === 'true' || my === true) {
+    if (my === 'true' || my === true) {
         dbQuery.employee = user.id || user._id;
     } else {
-        if (roleKey === 'manager' || roleKey === 'admin') {
-            const subordinates = await User.find({ reportsTo: user.id || user._id }).select('_id');
-            const validIds = subordinates.map(u => u._id);
-            validIds.push(user.id || user._id);
-            dbQuery.employee = { $in: validIds };
-        } else if (roleKey !== 'superadmin' && roleKey !== 'hr') {
-            dbQuery.employee = user.id || user._id;
+        Object.assign(dbQuery, scope);
+        if (userId) {
+            if (scope.employee && scope.employee.$in) {
+                if (!scope.employee.$in.map(String).includes(String(userId))) {
+                    dbQuery._id = null;
+                } else {
+                    dbQuery.employee = userId;
+                }
+            } else if (scope.employee && String(scope.employee) !== String(userId)) {
+                dbQuery._id = null;
+            } else {
+                dbQuery.employee = userId;
+            }
         }
     }
 
@@ -131,23 +132,25 @@ class TimesheetService {
       };
     }
 
-    const role = normalizeRole(user.role);
+    const scope = await getSearchScope(user, 'timesheet');
+
     if (my === 'true' || my === true) {
        query.employee = user.id || user._id;
-    } else if (role === 'manager' || role === 'admin') {
-       const subordinates = await User.find({ reportsTo: user.id || user._id }).select('_id');
-       const validIds = subordinates.map(u => u._id);
-       validIds.push(user.id || user._id);
-       
-       if (query.employee) {
-         if (!validIds.map(id => id.toString()).includes(query.employee.toString())) {
-           query.employee = { $in: [] }; 
-         }
-       } else {
-         query.employee = { $in: validIds };
+    } else {
+       Object.assign(query, scope);
+       if (employeeId && employeeId !== 'All') {
+           if (scope.employee && scope.employee.$in) {
+               if (!scope.employee.$in.map(String).includes(String(employeeId))) {
+                   query._id = null; 
+               } else {
+                   query.employee = employeeId;
+               }
+           } else if (scope.employee && String(scope.employee) !== String(employeeId)) {
+               query._id = null;
+           } else {
+               query.employee = employeeId;
+           }
        }
-    } else if (role !== 'superadmin' && role !== 'hr') {
-       query.employee = user.id || user._id;
     }
 
     const [data, total] = await Promise.all([
@@ -171,9 +174,10 @@ class TimesheetService {
     };
   }
 
-  async getTimesheetById(companyId, id) {
-    const timesheet = await Timesheet.findOne({ _id: id, company: companyId }).populate("timeLogs");
-    if (!timesheet) throw new NotFoundError("Timesheet");
+  async getTimesheetById(user, companyId, id) {
+    const scope = await getSearchScope(user, 'timesheet');
+    const timesheet = await Timesheet.findOne({ _id: id, company: companyId, ...scope }).populate("timeLogs");
+    if (!timesheet) throw new NotFoundError("Timesheet or you do not have permission to view it");
     return timesheet;
   }
 
@@ -211,8 +215,9 @@ class TimesheetService {
 
   async updateTimesheetStatus(user, companyId, id, data) {
     const { status, approvedHours, comment } = data;
-    const timesheet = await Timesheet.findOne({ _id: id, company: companyId }).populate('employee', 'name email');
-    if (!timesheet) throw new NotFoundError("Timesheet");
+    const scope = await getSearchScope(user, 'timesheet');
+    const timesheet = await Timesheet.findOne({ _id: id, company: companyId, ...scope }).populate('employee', 'name email');
+    if (!timesheet) throw new NotFoundError("Timesheet or you do not have permission to modify it");
 
     const currentUserId = (user.id || user._id).toString();
     if (timesheet.employee._id.toString() === currentUserId) {
