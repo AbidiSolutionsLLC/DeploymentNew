@@ -1,6 +1,7 @@
 const TimeTracker = require("../models/timeTrackerSchema");
 const User = require("../models/userSchema");
 const LeaveRequest = require("../models/leaveRequestSchema");
+const Holiday = require("../models/holidaySchema");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { getSearchScope } = require("../utils/rbac"); 
 const { getTeamIds } = require("../utils/hierarchy"); // Assuming this is extracted to hierarchy.js as previously seen
@@ -75,7 +76,11 @@ class TimeTrackerService {
         updates.date = getStartOfESTDay(updates.date);
     }
 
-    const log = await TimeTracker.findByIdAndUpdate(logId, updates, { 
+    // Enforce company isolation
+    const filter = { _id: logId };
+    if (user.company) filter.company = user.company;
+
+    const log = await TimeTracker.findOneAndUpdate(filter, updates, { 
       new: true,
       runValidators: true 
     }).populate('user', 'name email');
@@ -114,6 +119,7 @@ class TimeTrackerService {
 
     const abandonedSession = await TimeTracker.findOne({ 
       user: userId, 
+      checkInTime: { $exists: true },
       checkOutTime: { $exists: false } 
     });
 
@@ -125,23 +131,37 @@ class TimeTrackerService {
       if (isSameDay) {
         throw new BadRequestError("You already have an active session for today. Please check out instead.");
       } else {
-        abandonedSession.checkOutTime = nowEST.toDate();
+        // Abandoned session spans across days. We auto-checkout at the end of that day.
+        const endOfAbandonedDay = moment(abandonedSession.date).endOf('day').toDate();
+        abandonedSession.checkOutTime = endOfAbandonedDay;
         abandonedSession.autoCheckedOut = true;
-        abandonedSession.totalHours = 12; 
-        abandonedSession.status = "Absent"; 
-        abandonedSession.notes = (abandonedSession.notes || "") + " | Auto-closed (Forgot to checkout previous day)";
+        
+        const start = moment(abandonedSession.checkInTime).tz(TIMEZONE);
+        const end = moment(endOfAbandonedDay).tz(TIMEZONE);
+        const duration = moment.duration(end.diff(start));
+        abandonedSession.totalHours = parseFloat(duration.asHours().toFixed(2));
+        
+        if (abandonedSession.totalHours >= 8) abandonedSession.status = "Present";
+        else if (abandonedSession.totalHours >= 4.5) abandonedSession.status = "Half Day";
+        else abandonedSession.status = "Absent";
+        
+        abandonedSession.notes = (abandonedSession.notes || "") + " | Auto-closed (Forgot to checkout)";
         
         await abandonedSession.save();
-        previousSessionMsg = "Your previous open session was auto-closed as 'Absent'. ";
+        previousSessionMsg = "Your previous open session was auto-closed. ";
       }
     }
+
+    const currentUser = await User.findById(userId).select('company');
+    const companyId = currentUser ? currentUser.company : null;
 
     const newLog = await TimeTracker.findOneAndUpdate(
       { user: userId, date: todayStartEST },
       {
         $setOnInsert: {
           checkInTime: nowEST.toDate(),
-          status: 'Present'
+          status: 'Present',
+          company: companyId
         }
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -225,7 +245,11 @@ class TimeTrackerService {
     if (normalizeRole(user.role) !== 'superadmin') {
       throw new ForbiddenError("Access Denied. Only Super Admin can delete records.");
     }
-    const log = await TimeTracker.findByIdAndDelete(logId);
+    
+    const filter = { _id: logId };
+    if (user.company) filter.company = user.company;
+
+    const log = await TimeTracker.findOneAndDelete(filter);
     if (!log) throw new NotFoundError("Time log not found");
   }
 
@@ -235,6 +259,18 @@ class TimeTrackerService {
         data.user = user.id;
     } else if (!data.user) {
         data.user = user.id;
+    }
+    
+    if (user.company) {
+      data.company = user.company;
+      
+      // Validate employee belongs to same company
+      if (data.user.toString() !== user.id.toString()) {
+          const emp = await User.findById(data.user).select('company');
+          if (!emp || !emp.company || emp.company.toString() !== user.company.toString()) {
+              throw new ForbiddenError("Cannot add time log for an employee from a different company.");
+          }
+      }
     }
     
     if (data.checkInTime) {
@@ -323,6 +359,8 @@ class TimeTrackerService {
 
     const onLeave = [...explicitLeaveLogs, ...virtualLeaves];
 
+    const holiday = await Holiday.findOne({ date: targetDateStart });
+
     const virtualAbsent = usersInScope.filter(u => {
         const uId = u._id.toString();
         const hasLog = presentUserIds.includes(uId);
@@ -336,7 +374,8 @@ class TimeTrackerService {
         return true;
     }).map(u => ({
         user: u,
-        status: 'Absent',
+        status: holiday ? 'Holiday' : 'Absent',
+        holidayName: holiday ? holiday.holidayName : undefined,
         date: targetDateStart
     }));
 

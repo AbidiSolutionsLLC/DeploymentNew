@@ -13,16 +13,16 @@ exports.getEmployeeTimeLogs = catchAsync(async (req, res) => {
 });
 
 exports.updateTimeLog = catchAsync(async (req, res) => {
-  const updatedTimeLog = await timeLogService.updateTimeLog(req.params.id, req.body, req.files);
+  const updatedTimeLog = await timeLogService.updateTimeLog(req.companyId, req.params.id, req.body, req.files);
   res.status(200).json(ApiResponse.success(updatedTimeLog, 'Time log updated successfully'));
 });
 
 exports.deleteTimeLog = catchAsync(async (req, res) => {
-  await timeLogService.deleteTimeLog(req.params.id);
+  await timeLogService.deleteTimeLog(req.companyId, req.params.id);
   res.status(200).json(ApiResponse.success(null, "Time log deleted successfully"));
 });
 
 exports.downloadTimeLogAttachment = catchAsync(async (req, res) => {
-  const url = await timeLogService.downloadTimeLogAttachment(req.params.id, req.params.attachmentId);
+  const url = await timeLogService.downloadTimeLogAttachment(req.companyId, req.params.id, req.params.attachmentId);
   return res.redirect(url);
 });

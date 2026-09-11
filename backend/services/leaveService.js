@@ -17,8 +17,8 @@ class LeaveService {
 
     if (!leaveType || !startDate || !endDate) throw new BadRequestError("Missing required fields");
 
-    const start = moment(startDate).tz(TIMEZONE).startOf('day');
-    const end = moment(endDate).tz(TIMEZONE).startOf('day');
+    const start = moment.utc(startDate).startOf('day').tz(TIMEZONE, true).startOf('day');
+    const end = moment.utc(endDate).startOf('day').tz(TIMEZONE, true).startOf('day');
     const daysDiff = calculateBusinessDays(startDate, endDate);
     if (daysDiff < 1) {
       throw new BadRequestError("Selected date range includes only weekends/holidays. Please choose at least one working day.");
@@ -76,7 +76,7 @@ class LeaveService {
       $inc: {
         [`leaves.${leaveType.toLowerCase()}`]: -daysDiff,
         bookedLeaves: daysDiff,
-        avalaibleLeaves: -(2 * daysDiff)
+        avalaibleLeaves: -daysDiff
       }
     };
 
@@ -167,7 +167,10 @@ class LeaveService {
     let baseQuery = {};
     const currentUserId = user.id || user._id;
 
-    if (roleKey === 'superadmin' || roleKey === 'hr') {
+    if (query.my === 'true' || query.my === true) {
+        baseQuery.employee = currentUserId;
+        baseQuery.company = companyId;
+    } else if (roleKey === 'superadmin' || roleKey === 'hr') {
         baseQuery = { company: companyId };
     }
     else if (roleKey === 'manager' || roleKey === 'admin') {
@@ -239,10 +242,11 @@ class LeaveService {
     const isOwner = leaveRequest.employee.toString() === userId.toString();
 
     if (!isOwner) {
-      // Role checking logic in controllers usually protects this route for HR/Admin,
-      // but let's allow them through by checking if this check should be skipped.
-      // If the caller is not the owner, they must be an admin/hr bypassing this.
-      // We will allow the update to proceed.
+      const callerUser = await User.findById(userId);
+      const roleKey = normalizeRole(callerUser?.role || '');
+      if (!['superadmin', 'hr', 'admin'].includes(roleKey)) {
+        throw new ForbiddenError("You don't have permission to update this leave request");
+      }
     }
 
     if (leaveRequest.status !== 'Pending') {
@@ -282,7 +286,7 @@ class LeaveService {
         updateData.$inc = {
           [`leaves.${updatedLeaveRequest.leaveType.toLowerCase()}`]: -dayDifference,
           bookedLeaves: dayDifference,
-          avalaibleLeaves: -(2 * dayDifference)
+          avalaibleLeaves: -dayDifference
         };
       }
 
@@ -424,6 +428,25 @@ class LeaveService {
     const end = moment(leaveRequest.endDate).tz(TIMEZONE).startOf('day');
     const daysDiff = calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate);
 
+    if (status === 'Approved') {
+      const existingLeaves = await LeaveRequest.find({
+        employee: leaveRequest.employee,
+        company: companyId,
+        status: "Approved",
+        _id: { $ne: leaveRequest._id }
+      });
+      const overlappingLeaves = existingLeaves.filter(leave => {
+        const existingStart = new Date(leave.startDate);
+        const existingEnd = new Date(leave.endDate);
+        const newStart = new Date(leaveRequest.startDate);
+        const newEnd = new Date(leaveRequest.endDate);
+        return (existingStart <= newEnd && newStart <= existingEnd);
+      });
+      if (overlappingLeaves.length > 0) {
+        throw new BadRequestError('Cannot approve: Leave dates overlap with an already approved leave.');
+      }
+    }
+
     const updateObj = { $set: { "leaveHistory.$[elem].status": status } };
     const oldStatus = leaveRequest.status;
 
@@ -431,13 +454,13 @@ class LeaveService {
       updateObj.$inc = {
         [`leaves.${leaveRequest.leaveType.toLowerCase()}`]: daysDiff,
         bookedLeaves: -daysDiff,
-        avalaibleLeaves: (2 * daysDiff)
+        avalaibleLeaves: daysDiff
       };
     } else if (status === "Approved" && oldStatus === "Rejected") {
       updateObj.$inc = {
         [`leaves.${leaveRequest.leaveType.toLowerCase()}`]: -daysDiff,
         bookedLeaves: daysDiff,
-        avalaibleLeaves: -(2 * daysDiff)
+        avalaibleLeaves: -daysDiff
       };
     }
 
@@ -543,7 +566,7 @@ class LeaveService {
         $inc: {
           [`leaves.${leaveRequest.leaveType.toLowerCase()}`]: daysDiff,
           bookedLeaves: -daysDiff,
-          avalaibleLeaves: (2 * daysDiff)
+          avalaibleLeaves: daysDiff
         },
         $pull: {
           leaveHistory: { leaveId: leaveRequest._id }
@@ -608,13 +631,13 @@ class LeaveService {
           updateObj.$inc = {
             [`leaves.${leaveRequest.leaveType.toLowerCase()}`]: daysDiff,
             bookedLeaves: -daysDiff,
-            avalaibleLeaves: (2 * daysDiff)
+            avalaibleLeaves: daysDiff
           };
         } else if (status === "Approved" && oldStatus === "Rejected") {
           updateObj.$inc = {
             [`leaves.${leaveRequest.leaveType.toLowerCase()}`]: -daysDiff,
             bookedLeaves: daysDiff,
-            avalaibleLeaves: -(2 * daysDiff)
+            avalaibleLeaves: -daysDiff
           };
         }
 
@@ -663,6 +686,11 @@ class LeaveService {
   // =========================================================
   
   async sendLeaveCreationNotification(leaveRequest) {
+    let employee = null;
+    if (leaveRequest.employee) {
+      employee = await User.findById(leaveRequest.employee).populate('department', 'name');
+    }
+
     const hrAndManagers = await User.find({
       $or: [{ role: 'HR' }, { role: 'Super Admin' }, { role: 'Admin' }],
       company: leaveRequest.company
@@ -672,7 +700,7 @@ class LeaveService {
    
     if (recipientEmails.length > 0) {
       const subject = `New Leave Request: ${leaveRequest.employeeName} - ${leaveRequest.leaveType}`;
-      const htmlContent = this.generateLeaveCreationEmailTemplate(leaveRequest);
+      const htmlContent = this.generateLeaveCreationEmailTemplate(leaveRequest, employee);
      
       recipientEmails.forEach(email => {
         sendEmail(email, subject, htmlContent)
@@ -691,25 +719,280 @@ class LeaveService {
     }
   }
    
-  generateLeaveCreationEmailTemplate(leaveRequest) {
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <title>New Leave Request</title>
-      </head>
-      <body>
-        <div>
-          <h1>New Leave Request Submitted</h1>
-          <p>A new leave request has been submitted and requires your review:</p>
-          <p><strong>Employee:</strong> ${leaveRequest.employeeName}</p>
-          <p><strong>Leave Type:</strong> ${leaveRequest.leaveType}</p>
-          <p><strong>Status:</strong> ${leaveRequest.status}</p>
-        </div>
-      </body>
-      </html>
-    `;
+  generateLeaveCreationEmailTemplate(leaveRequest, employee = null) {
+    const employeeName = leaveRequest.employeeName || employee?.name || 'Employee';
+    const empID = employee?.empID || (employee?._id ? `EMP-${employee._id.toString().slice(-4).toUpperCase()}` : '');
+    const departmentName = employee?.department?.name || 'General';
+    const designation = employee?.designation || employee?.role || 'Team Member';
+    const leaveTypeLabel = leaveRequest.leaveType === 'PTO' ? 'Paid Time Off (PTO)' : (leaveRequest.leaveType === 'Sick' ? 'Sick Leave' : leaveRequest.leaveType);
+    
+    // Dates formatting
+    const startDateObj = moment(leaveRequest.startDate).tz(TIMEZONE);
+    const endDateObj = moment(leaveRequest.endDate).tz(TIMEZONE);
+    const appliedDateObj = moment(leaveRequest.appliedAt || leaveRequest.createdAt || new Date()).tz(TIMEZONE);
+    
+    const startMonthYear = startDateObj.format('MMMM YYYY').toUpperCase();
+    const startDayNum = startDateObj.format('DD');
+    const startDayName = startDateObj.format('dddd');
+    const startDateFormatted = startDateObj.format('MMM DD, YYYY');
+
+    const endMonthYear = endDateObj.format('MMMM YYYY').toUpperCase();
+    const endDayNum = endDateObj.format('DD');
+    const endDayName = endDateObj.format('dddd');
+    const endDateFormatted = endDateObj.format('MMM DD, YYYY');
+
+    const appliedDateFormatted = appliedDateObj.format('MMMM DD, YYYY');
+
+    // Calculate working business days
+    const businessDays = calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate);
+    const daysLabel = `${businessDays} business day${businessDays > 1 ? 's' : ''}`;
+
+    // Return to work date calculation (next business day after end date)
+    let nextWorkDay = moment(leaveRequest.endDate).tz(TIMEZONE).add(1, 'day');
+    while (nextWorkDay.day() === 0 || nextWorkDay.day() === 6) {
+      nextWorkDay.add(1, 'day');
+    }
+    const returnDateFormatted = nextWorkDay.format('dddd, MMM DD, YYYY');
+
+    const reason = leaveRequest.reason && leaveRequest.reason.trim() ? leaveRequest.reason.trim() : 'No additional note provided.';
+    const leaveId = leaveRequest._id ? leaveRequest._id.toString() : '';
+    const refId = leaveId ? `LR-${leaveId.slice(-6).toUpperCase()}` : `LR-${Date.now().toString().slice(-6)}`;
+    
+    const portalUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+      ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/leaveTrackerAdmin`
+      : 'https://abidipro.abidisolutions.com/admin/leaveTrackerAdmin';
+
+    const escapeHtml = (str) => {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+
+    return `<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>New Leave Request - ${escapeHtml(employeeName)}</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      background-color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    @media only screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .p-mobile { padding: 20px 16px !important; }
+      .cal-box { width: 100% !important; margin-bottom: 10px !important; }
+      .cal-separator { display: none !important; }
+      .kv-col { display: block !important; width: 100% !important; margin-bottom: 8px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F8FAFC;">
+
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; table-layout: fixed;">
+    <tr>
+      <td align="center" style="padding: 40px 16px;">
+
+        <!--[if (gte mso 9)|(IE)]>
+        <table align="center" border="0" cellspacing="0" cellpadding="0" width="580">
+        <tr>
+        <td align="center" valign="top" width="580">
+        <![endif]-->
+        <table role="presentation" class="container" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; margin: 0 auto; background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden;">
+          
+          <!-- Header with Minimal Logo and Status Badge -->
+          <tr>
+            <td style="padding: 28px 28px 20px 28px; border-bottom: 1px solid #F1F5F9;" class="p-mobile">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="left">
+                    <span style="display: inline-block; font-size: 18px; font-weight: 800; color: #0F172A; letter-spacing: -0.5px;">
+                      <span style="color: #D4AF37;">◆</span> SOWAYE
+                    </span>
+                  </td>
+                  <td align="right">
+                    <span style="display: inline-block; background-color: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase;">
+                      Pending Review
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 28px;" class="p-mobile">
+              
+              <!-- Title -->
+              <h2 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700; color: #0F172A;">
+                Leave Request from ${escapeHtml(employeeName)}
+              </h2>
+              <p style="margin: 0 0 24px 0; font-size: 14px; color: #64748B; line-height: 1.5;">
+                Submitted on <strong>${escapeHtml(appliedDateFormatted)}</strong> for <strong>${escapeHtml(daysLabel)}</strong> of ${escapeHtml(leaveTypeLabel)}.
+              </p>
+
+              <!-- DUAL CALENDAR TEAR-OFF BADGES -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #FAF8F2; border: 1px solid #EAE5D9; border-radius: 10px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <!-- Start Date Badge -->
+                        <td class="cal-box" width="42%" align="center" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
+                          <!-- Month Top Header -->
+                          <div style="background-color: #D4AF37; color: #FFFFFF; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 0; letter-spacing: 1px;">
+                            ${escapeHtml(startMonthYear)}
+                          </div>
+                          <!-- Day Number -->
+                          <div style="padding: 10px 0 4px 0;">
+                            <span style="font-size: 26px; font-weight: 900; color: #0F172A; line-height: 1;">${escapeHtml(startDayNum)}</span>
+                          </div>
+                          <!-- Day Name -->
+                          <div style="font-size: 12px; font-weight: 600; color: #92590C; padding-bottom: 8px;">
+                            ${escapeHtml(startDayName)} (Start)
+                          </div>
+                        </td>
+
+                        <!-- Connector Arrow -->
+                        <td class="cal-separator" width="16%" align="center" style="font-size: 18px; color: #D4AF37; font-weight: 700;">
+                          ➔
+                          <div style="font-size: 11px; font-weight: 800; color: #B45309; margin-top: 2px;">${businessDays} Day${businessDays > 1 ? 's' : ''}</div>
+                        </td>
+
+                        <!-- End Date Badge -->
+                        <td class="cal-box" width="42%" align="center" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
+                          <!-- Month Top Header -->
+                          <div style="background-color: #1E293B; color: #FFFFFF; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 0; letter-spacing: 1px;">
+                            ${escapeHtml(endMonthYear)}
+                          </div>
+                          <!-- Day Number -->
+                          <div style="padding: 10px 0 4px 0;">
+                            <span style="font-size: 26px; font-weight: 900; color: #0F172A; line-height: 1;">${escapeHtml(endDayNum)}</span>
+                          </div>
+                          <!-- Day Name -->
+                          <div style="font-size: 12px; font-weight: 600; color: #64748B; padding-bottom: 8px;">
+                            ${escapeHtml(endDayName)} (End)
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Request Key-Value Table -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #64748B; width: 35%;">
+                    Employee Name
+                  </td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; font-weight: 600; color: #0F172A;">
+                    ${escapeHtml(employeeName)} ${empID ? `(${escapeHtml(empID)})` : ''}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #64748B;">
+                    Department & Role
+                  </td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; font-weight: 600; color: #0F172A;">
+                    ${escapeHtml(departmentName)} • ${escapeHtml(designation)}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #64748B;">
+                    Leave Category
+                  </td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; font-weight: 600; color: #B8860B;">
+                    ${escapeHtml(leaveTypeLabel)}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #64748B;">
+                    Duration
+                  </td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; font-weight: 600; color: #0F172A;">
+                    ${startDateFormatted} to ${endDateFormatted} (${escapeHtml(daysLabel)})
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; font-size: 13px; color: #64748B;">
+                    Return to Office Date
+                  </td>
+                  <td style="padding: 8px 0; font-size: 13px; font-weight: 700; color: #059669;">
+                    ${escapeHtml(returnDateFormatted)}
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Employee Reason Box -->
+              <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px;">
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748B; margin-bottom: 4px;">
+                  Employee Note / Reason
+                </div>
+                <div style="font-size: 13px; color: #334155; line-height: 1.5;">
+                  “${escapeHtml(reason)}”
+                </div>
+              </div>
+
+              <!-- Primary CTA Button -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center" style="padding-bottom: 12px;">
+                    <a href="${portalUrl}" style="display: block; width: 100%; box-sizing: border-box; background-color: #D4AF37; color: #FFFFFF; font-size: 14px; font-weight: 700; text-align: center; text-decoration: none; padding: 14px 20px; border-radius: 8px;">
+                      Review Leave in Sowaye Portal ➔
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 28px; background-color: #F8FAFC; border-top: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #94A3B8;">
+              Sowaye System Notification • Ref ID: <code>${escapeHtml(refId)}</code> • Auto-generated
+            </td>
+          </tr>
+
+        </table>
+        <!--[if (gte mso 9)|(IE)]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>`;
   }
    
   generateLeaveStatusEmailTemplate(leaveRequest, status, note) {

@@ -9,6 +9,14 @@ class TimeLogService {
     const role = normalizeRole(user.role);
     const employee = (employeeId && ['superadmin', 'admin'].includes(role)) ? employeeId : user.id || user._id;
 
+    if (employee !== (user.id || user._id)) {
+        const User = require("../models/userSchema");
+        const emp = await User.findById(employee).select('company');
+        if (!emp || !emp.company || emp.company.toString() !== companyId.toString()) {
+            throw new BadRequestError("Cannot add time log for an employee from a different company.");
+        }
+    }
+
     const estDate = moment.tz(date, TIMEZONE).startOf('day').toDate();
 
     const attachments = files?.map(file => ({
@@ -51,10 +59,10 @@ class TimeLogService {
     return TimeLog.find(dbQuery).sort({ date: 1 });
   }
 
-  async updateTimeLog(timeLogId, data, files) {
+  async updateTimeLog(companyId, timeLogId, data, files) {
     const { job, date, description, hours } = data;
 
-    const timeLog = await TimeLog.findById(timeLogId);
+    const timeLog = await TimeLog.findOne({ _id: timeLogId, company: companyId });
     if (!timeLog) throw new NotFoundError("TimeLog");
 
     if (timeLog.isAddedToTimesheet) {
@@ -79,15 +87,15 @@ class TimeLogService {
     return timeLog.save();
   }
 
-  async deleteTimeLog(timeLogId) {
-    const timeLog = await TimeLog.findById(timeLogId);
+  async deleteTimeLog(companyId, timeLogId) {
+    const timeLog = await TimeLog.findOne({ _id: timeLogId, company: companyId });
     if (!timeLog) throw new NotFoundError("TimeLog");
     if (timeLog.isAddedToTimesheet) throw new BadRequestError("Cannot delete log already in timesheet");
     await timeLog.deleteOne();
   }
 
-  async downloadTimeLogAttachment(timeLogId, attachmentId) {
-    const timeLog = await TimeLog.findById(timeLogId);
+  async downloadTimeLogAttachment(companyId, timeLogId, attachmentId) {
+    const timeLog = await TimeLog.findOne({ _id: timeLogId, company: companyId });
     if (!timeLog) throw new NotFoundError("TimeLog");
     const attachment = timeLog.attachments.id(attachmentId);
     if (!attachment) throw new NotFoundError("Attachment");

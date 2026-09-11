@@ -56,11 +56,15 @@ const sendEmail = async (toEmail, subject, htmlContent) => {
 
     const poller = await client.beginSend(emailMessage);
 
-    // FIX: We removed "poller.getOperationId()" because it crashes on new versions.
-
-    // We just assume success if 'beginSend' doesn't throw an error.
-
-    console.log(`✅ Email Sent successfully!`);
+    // Wait for the operation to complete to catch actual send errors
+    const result = await poller.pollUntilDone();
+    
+    if (result.status === "Succeeded") {
+      console.log(`✅ Email Sent successfully!`);
+    } else {
+      console.error(`❌ Email failed to send:`, result);
+      return { success: false, error: "Email failed to send." };
+    }
 
     return { success: true };
  

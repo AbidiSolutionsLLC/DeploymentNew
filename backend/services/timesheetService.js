@@ -71,7 +71,7 @@ class TimesheetService {
   }
 
   async getWeeklyTimesheets(user, companyId, query) {
-    const { weekStart, userId } = query; 
+    const { weekStart, userId, my } = query; 
     if (!weekStart) throw new BadRequestError("Week start date is required");
 
     const startDate = moment.tz(weekStart, TIMEZONE).startOf('day').toDate();
@@ -86,6 +86,8 @@ class TimesheetService {
         } else {
             dbQuery.employee = user.id || user._id;
         }
+    } else if (my === 'true' || my === true) {
+        dbQuery.employee = user.id || user._id;
     } else {
         if (roleKey === 'manager' || roleKey === 'admin') {
             const subordinates = await User.find({ reportsTo: user.id || user._id }).select('_id');
@@ -114,7 +116,7 @@ class TimesheetService {
   }
 
   async getAllTimesheets(user, companyId, queryParams) {
-    const { page = 1, limit = 20, status, employeeId, startDate, endDate } = queryParams;
+    const { page = 1, limit = 20, status, employeeId, startDate, endDate, my } = queryParams;
     const skip = (page - 1) * limit;
 
     let query = { company: companyId };
@@ -130,7 +132,9 @@ class TimesheetService {
     }
 
     const role = normalizeRole(user.role);
-    if (role === 'manager' || role === 'admin') {
+    if (my === 'true' || my === true) {
+       query.employee = user.id || user._id;
+    } else if (role === 'manager' || role === 'admin') {
        const subordinates = await User.find({ reportsTo: user.id || user._id }).select('_id');
        const validIds = subordinates.map(u => u._id);
        validIds.push(user.id || user._id);

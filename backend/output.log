@@ -1,0 +1,12 @@
+Connected to MongoDB for inspecting leave.
+--- Leave Requests ---
+ID: 6a712fdaef8bb20beab3f000, Start: Mon Aug 03 2026 20:00:00 GMT-0400 (Eastern Daylight Time), End: Mon Aug 03 2026 20:00:00 GMT-0400 (Eastern Daylight Time), Status: Approved, Type: PTO
+ID: 6a35636112cf9911ec427e74, Start: Sun Jun 21 2026 20:00:00 GMT-0400 (Eastern Daylight Time), End: Mon Jun 22 2026 20:00:00 GMT-0400 (Eastern Daylight Time), Status: Approved, Type: PTO
+ID: 6a0792ee5d7b0bae23bf2db4, Start: Sun May 17 2026 20:00:00 GMT-0400 (Eastern Daylight Time), End: Sun May 17 2026 20:00:00 GMT-0400 (Eastern Daylight Time), Status: Approved, Type: PTO
+
+--- Time Trackers with Status 'Leave' ---
+ID: 6a4bc62d709bb48508801a29, Date: Wed Jun 24 2026 00:00:00 GMT-0400 (Eastern Daylight Time), Status: Leave
+ID: 6a4bc66e709bb48508801ae7, Date: Tue Jun 23 2026 00:00:00 GMT-0400 (Eastern Daylight Time), Status: Leave
+ID: 6a357dc912cf9911ec4285a8, Date: Mon Jun 22 2026 00:00:00 GMT-0400 (Eastern Daylight Time), Status: Leave
+ID: 69ce67d20b4e675c0b379a0b, Date: Thu Apr 02 2026 00:00:00 GMT-0400 (Eastern Daylight Time), Status: Leave
+         

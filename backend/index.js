@@ -97,6 +97,51 @@ app.get('/api/v1/test-auth', async (req, res) => {
   }
 });
 
+// EMERGENCY CLEANUP ROUTE (Temporary)
+app.get('/api/v1/fix-aug14-now', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const TimeTracker = require('./models/timeTrackerSchema');
+    const Holiday = require('./models/holidaySchema');
+
+    const startOfDay = new Date('2026-08-13T00:00:00Z');
+    const endOfDay = new Date('2026-08-15T23:59:59Z');
+
+    const records = await TimeTracker.find({
+      date: { $gte: startOfDay, $lte: endOfDay }
+    }).populate('user', 'name');
+    
+    let deletedCount = 0;
+    let resetCount = 0;
+    
+    for (const record of records) {
+      if ((record.status === 'Holiday' || record.status === 'Absent') && record.totalHours === 0 && (!record.checkIns || record.checkIns.length === 0)) {
+        await TimeTracker.deleteOne({ _id: record._id });
+        deletedCount++;
+      } else if ((record.status === 'Holiday' || record.status === 'Absent') && record.totalHours > 0) {
+        await TimeTracker.updateOne({ _id: record._id }, { $set: { status: 'Present' } });
+        resetCount++;
+      }
+    }
+
+    // Also fix any corrupted checkOutTime values (e.g. from July) on August 14th records
+    const todayStartEST = new Date('2026-08-14T04:00:00Z');
+    await TimeTracker.updateMany(
+      { date: todayStartEST, checkOutTime: { $lt: new Date('2026-08-13T00:00:00Z') } },
+      { $unset: { checkOutTime: "" } }
+    );
+
+    res.json({
+      message: 'Cleanup successful!',
+      deletedPlaceholders: deletedCount,
+      resetToPresent: resetCount
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('*', (req, res, next) => {

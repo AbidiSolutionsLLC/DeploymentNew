@@ -11,7 +11,7 @@ const TIMEZONE = "America/New_York";
  * Prevents local/UTC conversion shifts.
  */
 exports.getStartOfESTDay = (date = new Date()) => {
-    return moment.tz(date, TIMEZONE).startOf('day').toDate();
+    return moment.utc(date).startOf('day').tz(TIMEZONE, true).startOf('day').toDate();
 };
 
 /**
@@ -19,7 +19,7 @@ exports.getStartOfESTDay = (date = new Date()) => {
  * Useful for building 24-hour database query windows.
  */
 exports.getEndOfESTDay = (date = new Date()) => {
-    return moment.tz(date, TIMEZONE).endOf('day').toDate();
+    return moment.utc(date).startOf('day').tz(TIMEZONE, true).endOf('day').toDate();
 };
 
 /**
@@ -46,8 +46,8 @@ exports.isESTWeekend = (date = new Date()) => {
  * @returns {number} Number of business days (excluding weekends)
  */
 exports.calculateBusinessDays = (startDate, endDate) => {
-    const start = moment.tz(startDate, TIMEZONE).startOf('day');
-    const end = moment.tz(endDate, TIMEZONE).startOf('day');
+    const start = moment.utc(startDate).startOf('day').tz(TIMEZONE, true).startOf('day');
+    const end = moment.utc(endDate).startOf('day').tz(TIMEZONE, true).startOf('day');
     
     let businessDays = 0;
     let currentDate = start.clone();

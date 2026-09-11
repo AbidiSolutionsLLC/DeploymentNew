@@ -15,7 +15,7 @@ const {
   updateTimesheetStatusSchema, 
   timesheetCommentSchema 
 } = require("../../JoiSchema/TimesheetJoiSchema");
-const { isLoggedIn } = require("../../middlewares/authMiddleware");
+const { isLoggedIn, restrictTo } = require("../../middlewares/authMiddleware");
 
 // Timesheet Routes
 router
@@ -34,7 +34,7 @@ router
     .put(isLoggedIn, validate(updateTimesheetStatusSchema), handleUpload(upload.array("attachments", 5)), timesheetController.updateTimesheetStatus)
     .delete(isLoggedIn, timesheetController.deleteTimesheet);
 
-router.put("/:id/status", isLoggedIn, validate(updateTimesheetStatusSchema), timesheetController.updateTimesheetStatus);
+router.put("/:id/status", isLoggedIn, restrictTo('superadmin', 'admin', 'manager', 'hr'), validate(updateTimesheetStatusSchema), timesheetController.updateTimesheetStatus);
 router.put("/:id/edit", isLoggedIn, handleUpload(upload.array("attachments", 5)), timesheetController.updateTimesheet);
 
 router.post("/:id/comment", isLoggedIn, validate(timesheetCommentSchema), timesheetController.addTimesheetComment);

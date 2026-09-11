@@ -181,12 +181,13 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
  setIsDeleting(false);
  }
  };
-
  const handleResendInvite = async () => {
  setIsResending(true);
  try {
  await api.post(`/users/${user._id}/resend-invite`);
  toast.success("Invite resent");
+ } catch (err) {
+ toast.error(err.response?.data?.message || "Failed to resend invite");
  } finally {
  setIsResending(false);
  }

@@ -77,7 +77,10 @@ class UserService {
         </div>
       </div>
     `;
-    await sendEmail(user.email, emailSubject, emailBody);
+    const result = await sendEmail(user.email, emailSubject, emailBody);
+    if (result && !result.success) {
+      throw new Error(result.error || "Email failed to send.");
+    }
   }
 
   async createInitialSuperAdmin(data) {
@@ -160,6 +163,9 @@ class UserService {
       await this.sendInviteEmail(savedUser);
     } catch (err) {
       console.error("❌ Failed to send invite email:", err.message);
+      await User.findByIdAndDelete(savedUser._id);
+      if (otherData.department) await Department.findByIdAndUpdate(otherData.department, { $pull: { members: savedUser._id } });
+      throw new BadRequestError("Failed to send invitation email: " + err.message + ". User was not created.");
     }
 
     try {
@@ -376,6 +382,9 @@ class UserService {
     const mongoose = require("mongoose");
     await mongoose.model("Project").updateMany({}, { $pull: { team: targetId } });
 
+    user.email = `${user.email}_deleted_${Date.now()}`;
+    await user.save();
+
     await user.delete();
   }
 
@@ -448,9 +457,9 @@ class UserService {
   }
 
   async getUserLeaveHistory(id) {
-    const user = await User.findById(id).select('leaveHistory employeeName email');
-    if (!user) throw new NotFoundError("User not found");
-    return user.leaveHistory || [];
+    const LeaveRequest = require("../models/leaveRequestSchema");
+    const history = await LeaveRequest.find({ employee: id }).sort({ createdAt: -1 });
+    return history;
   }
 
   async getUpcomingBirthdays(companyId) {
