@@ -45,7 +45,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 100 });
+const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 10000, message: "Too many requests from this IP, please try again later" });
 app.use('/api/v1/auth', authLimiter);
 
 // Serve static files from uploads directory

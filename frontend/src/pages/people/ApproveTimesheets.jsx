@@ -193,9 +193,11 @@ const ApproveTimesheets = () => {
   const startStr = formatDateForAPI(weekStartObj);
   const endStr = formatDateForAPI(weekEndObj);
 
- // FIX: Call the ADMIN endpoint with startDate/endDate
- // Note: Make sure your API wrapper passes these params correctly
- const response = await timesheetApi.getAllTimesheets({ startDate: startStr, endDate: endStr });
+  const params = { startDate: startStr, endDate: endStr };
+  if (filterEmployee !== "All") params.employeeId = filterEmployee;
+
+ // FIX: Call the ADMIN endpoint with startDate/endDate/employeeId
+ const response = await timesheetApi.getAllTimesheets(params);
  
  // The Admin endpoint returns an ARRAY, not an object.
  const allTimesheets = Array.isArray(response) ? response : (response.timesheets || []);

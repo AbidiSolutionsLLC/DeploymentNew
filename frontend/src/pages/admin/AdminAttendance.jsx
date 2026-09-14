@@ -55,14 +55,51 @@ const AdminAttendance = () => {
  const [loading, setLoading] = useState(true);
  const [searchTerm, setSearchTerm] = useState("");
  const [deptFilter, setDeptFilter] = useState("all");
-const [filterDate, setFilterDate] = useState(() => {
-  const savedDate = localStorage.getItem('admin_attendance_date');
-  if (savedDate) {
-    const parsed = new Date(savedDate);
-    if (!isNaN(parsed.getTime())) return parsed;
-  }
-  return new Date();
-});
+  const [dateFilterType, setDateFilterType] = useState(() => {
+    return localStorage.getItem('admin_attendance_filter_type') || "Today";
+  });
+  const [customDateRange, setCustomDateRange] = useState(() => {
+    const savedStart = localStorage.getItem('admin_attendance_start');
+    const savedEnd = localStorage.getItem('admin_attendance_end');
+    if (savedStart && savedEnd) {
+      const parsedStart = new Date(savedStart);
+      const parsedEnd = new Date(savedEnd);
+      if (!isNaN(parsedStart.getTime()) && !isNaN(parsedEnd.getTime())) return [parsedStart, parsedEnd];
+    }
+    const today = new Date();
+    return [today, today];
+  });
+
+  const { derivedStart, derivedEnd } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    switch(dateFilterType) {
+      case "Today":
+        return { derivedStart: today, derivedEnd: today };
+      case "Yesterday": {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return { derivedStart: yesterday, derivedEnd: yesterday };
+      }
+      case "Last 7 Days": {
+        const last7 = new Date(today);
+        last7.setDate(last7.getDate() - 6);
+        return { derivedStart: last7, derivedEnd: today };
+      }
+      case "This Month": {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { derivedStart: firstDay, derivedEnd: today };
+      }
+      case "Custom":
+        return { derivedStart: customDateRange[0], derivedEnd: customDateRange[1] };
+      default:
+        return { derivedStart: today, derivedEnd: today };
+    }
+  }, [dateFilterType, customDateRange]);
+
+  const startDate = derivedStart;
+  const endDate = derivedEnd;
 const [activeTab, setActiveTab] = useState(() => {
   const savedTab = localStorage.getItem('admin_attendance_tab');
   const validTabs = ['present', 'half-day', 'absent', 'leave'];
@@ -81,16 +118,15 @@ const [activeTab, setActiveTab] = useState(() => {
  const isTechnician = currentUserRole === 'technician';
  const canEdit = currentUserRole === 'superadmin' || currentUserRole === 'globalreader';
 
-  const fetchSummary = async (date) => {
-    if (!date || isNaN(date.getTime())) {
-      toast.error("Invalid date selected");
-      setLoading(false);
+  const fetchSummary = async (start, end) => {
+    if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime())) {
       return;
     }
     setLoading(true);
     try {
-      const dateStr = formatDateForAPI(date);
-      const res = await api.get(`/timetrackers/admin-summary?date=${dateStr}`);
+      const startStr = formatDateForAPI(start);
+      const endStr = formatDateForAPI(end);
+      const res = await api.get(`/timetrackers/admin-summary?startDate=${startStr}&endDate=${endStr}`);
       const data = res.data.data || res.data;
       
       const safeData = {
@@ -132,10 +168,10 @@ const [activeTab, setActiveTab] = useState(() => {
 
  // --- FETCH SUMMARY ON DATE CHANGE ---
  useEffect(() => {
- if (filterDate) {
- fetchSummary(filterDate);
+ if (startDate && endDate) {
+ fetchSummary(startDate, endDate);
  }
- }, [filterDate]);
+ }, [startDate, endDate]);
 
  // --- DERIVE UNIQUE DEPARTMENTS ---
  const departmentOptions = useMemo(() => {
@@ -167,7 +203,7 @@ const [activeTab, setActiveTab] = useState(() => {
  const base = [
  `"${log.user?.name || 'Unknown'}"`,
  `"${log.user?.email || 'N/A'}"`,
- new Date(log.date || filterDate).toLocaleDateString(),
+ new Date(log.date || startDate).toLocaleDateString(),
  log.status
  ];
  if (isPresentTab) {
@@ -191,7 +227,7 @@ const [activeTab, setActiveTab] = useState(() => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute("download", `attendance_${activeTab}_report_${formatDateForAPI(filterDate)}.csv`);
+  link.setAttribute("download", `attendance_${activeTab}_report_${formatDateForAPI(startDate)}.csv`);
   document.body.appendChild(link);
  link.click();
  document.body.removeChild(link);
@@ -256,12 +292,12 @@ const [activeTab, setActiveTab] = useState(() => {
  checkOutTime: updates.checkOutTime,
  status: updates.status,
  totalHours: updates.totalHours,
- date: editingLog.date || filterDate
+ date: editingLog.date || startDate
  });
  toast.success("Attendance record created successfully");
  }
  setIsEditModalOpen(false);
- await fetchSummary(filterDate);
+ await fetchSummary(startDate);
  } catch (error) {
  toast.error(error.response?.data?.message || "Failed to update record");
  }
@@ -276,7 +312,7 @@ const [activeTab, setActiveTab] = useState(() => {
  try {
  await api.delete(`/timetrackers/${logId}`);
  toast.success("Record deleted");
- await fetchSummary(filterDate);
+ await fetchSummary(startDate);
  } catch (error) {
  toast.error(error.response?.data?.message || "Failed to delete record");
  }
@@ -344,7 +380,7 @@ const [activeTab, setActiveTab] = useState(() => {
  {
  key: "date",
  label: "Date",
- render: (_, log) => new Date(log.date || filterDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+ render: (_, log) => new Date(log.date || startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
  },
  ...(activeTab === "present" ? [
  {
@@ -446,23 +482,47 @@ const [activeTab, setActiveTab] = useState(() => {
  className="flex-1 min-w-[160px]"
  />
 
- {/* Date Picker */}
- <div className="flex items-center bg-surface border border-border-subtle rounded-xl px-3 h-[42px]">
- <Calendar size={16} className="text-muted mr-2 flex-shrink-0" />
- <DatePicker
- selected={filterDate}
- onChange={(date) => {
- setFilterDate(date);
- if (date) {
- localStorage.setItem('admin_attendance_date', date.toISOString());
- } else {
- localStorage.removeItem('admin_attendance_date');
- }
- }}
- dateFormat="yyyy-MM-dd"
- className="w-32 bg-transparent border-none text-xs font-semibold text-main outline-none cursor-pointer !py-0 !px-0 !rounded-none !shadow-none"
- placeholderText="Filter by Date"
- />
+ {/* Date Filter */}
+ <div className="flex gap-2">
+   <div className="min-w-[150px]">
+     <ModernSelect
+       value={dateFilterType}
+       onChange={(e) => {
+         setDateFilterType(e.target.value);
+         localStorage.setItem('admin_attendance_filter_type', e.target.value);
+       }}
+       options={[
+         { value: "Today", label: "Today" },
+         { value: "Yesterday", label: "Yesterday" },
+         { value: "Last 7 Days", label: "Last 7 Days" },
+         { value: "This Month", label: "This Month" },
+         { value: "Custom", label: "Custom Range" }
+       ]}
+       placeholder="Select Date"
+     />
+   </div>
+   
+   {dateFilterType === "Custom" && (
+     <div className="flex items-center bg-surface border border-border-subtle rounded-xl px-3 h-[42px]">
+       <Calendar size={16} className="text-muted mr-2 flex-shrink-0" />
+       <DatePicker
+         selectsRange={true}
+         startDate={customDateRange[0]}
+         endDate={customDateRange[1]}
+         onChange={(update) => {
+           setCustomDateRange(update);
+           if (update[0]) localStorage.setItem('admin_attendance_start', update[0].toISOString());
+           else localStorage.removeItem('admin_attendance_start');
+           
+           if (update[1]) localStorage.setItem('admin_attendance_end', update[1].toISOString());
+           else localStorage.removeItem('admin_attendance_end');
+         }}
+         dateFormat="yyyy-MM-dd"
+         className="w-44 bg-transparent border-none text-xs font-semibold text-main outline-none cursor-pointer !py-0 !px-0 !rounded-none !shadow-none"
+         placeholderText="Select Date Range"
+       />
+     </div>
+   )}
  </div>
 
  {/* Department Filter */}
@@ -618,7 +678,7 @@ const [activeTab, setActiveTab] = useState(() => {
  <AdminAddAttendanceModal
  open={isAddAttendanceOpen}
  onClose={() => setIsAddAttendanceOpen(false)}
- onSuccess={() => fetchSummary(filterDate)}
+ onSuccess={() => fetchSummary(startDate)}
  allUsers={allUsers}
  />
  )}

@@ -321,17 +321,29 @@ class TimeTrackerService {
     return log;
   }
 
-  async getAdminAttendanceSummary(user, dateStr) {
+  async getAdminAttendanceSummary(user, dateStr, startDateStr, endDateStr) {
     const nowEST = getCurrentESTTime();
-    const targetDateMoment = dateStr ? moment.tz(dateStr, TIMEZONE) : nowEST;
     
-    if (targetDateMoment.isAfter(nowEST, 'day')) {
+    let startMoment, endMoment;
+    if (startDateStr && endDateStr) {
+      startMoment = moment.tz(startDateStr, TIMEZONE).startOf('day');
+      endMoment = moment.tz(endDateStr, TIMEZONE).startOf('day');
+    } else if (dateStr) {
+      startMoment = moment.tz(dateStr, TIMEZONE).startOf('day');
+      endMoment = startMoment.clone();
+    } else {
+      startMoment = nowEST.clone().startOf('day');
+      endMoment = startMoment.clone();
+    }
+
+    if (endMoment.isAfter(nowEST, 'day')) {
+      endMoment = nowEST.clone().startOf('day');
+    }
+
+    if (startMoment.isAfter(nowEST, 'day')) {
       return { present: [], halfDay: [], absent: [], onLeave: [], counts: { present: 0, halfDay: 0, absent: 0, onLeave: 0, total: 0 } };
     }
 
-    const targetDateStart = targetDateMoment.clone().startOf('day').toDate();
-    const targetDateFormatted = targetDateMoment.format('YYYY-MM-DD');
-    
     const scope = await getSearchScope(user, 'attendance');
     
     let userQuery = {};
@@ -345,74 +357,117 @@ class TimeTrackerService {
       userQuery.company = user.company;
     }
 
-    const usersInScope = await User.find(userQuery).select('name email designation department avatar empID joiningDate');
+    const usersInScope = await User.find(userQuery)
+      .select('name email designation department avatar empID joiningDate')
+      .populate('department', 'name');
     const userIds = usersInScope.map(u => u._id.toString());
 
-    const timeLogs = await TimeTracker.find({
+    const targetStartDate = startMoment.toDate();
+    const targetEndDate = endMoment.clone().endOf('day').toDate();
+    const targetStartFormatted = startMoment.format('YYYY-MM-DD');
+    const targetEndFormatted = endMoment.format('YYYY-MM-DD');
+
+    const timeLogsAll = await TimeTracker.find({
       user: { $in: userIds },
-      date: targetDateStart
-    }).populate('user', 'name email designation department avatar empID');
+      date: { $gte: targetStartDate, $lte: targetEndDate }
+    }).populate({
+      path: 'user',
+      select: 'name email designation department avatar empID',
+      populate: { path: 'department', select: 'name' }
+    });
 
-    const presentUserIds = timeLogs.map(log => log.user._id.toString());
-
-    const approvedLeaves = await LeaveRequest.find({
+    const approvedLeavesAll = await LeaveRequest.find({
       employee: { $in: userIds },
       status: 'Approved',
-      startDate: { $lte: targetDateFormatted },
-      endDate: { $gte: targetDateFormatted }
-    }).populate('employee', 'name email designation department avatar empID');
+      startDate: { $lte: targetEndDate },
+      endDate: { $gte: targetStartDate }
+    }).populate({
+      path: 'employee',
+      select: 'name email designation department avatar empID',
+      populate: { path: 'department', select: 'name' }
+    });
 
-    const onLeaveUserIds = approvedLeaves.map(leave => leave.employee._id.toString());
+    const holidaysAll = await Holiday.find({
+      date: { $gte: targetStartDate, $lte: targetEndDate }
+    });
 
-    const present = timeLogs.filter(log => log.status === 'Present');
-    const halfDay = timeLogs.filter(log => log.status === 'Half Day');
-    const explicitAbsentLogs = timeLogs.filter(log => log.status === 'Absent');
-    const explicitLeaveLogs = timeLogs.filter(log => log.status === 'Leave' || log.status === 'On Leave');
+    let allPresent = [];
+    let allHalfDay = [];
+    let allAbsent = [];
+    let allOnLeave = [];
 
-    const virtualLeaves = approvedLeaves
-      .filter(leave => !presentUserIds.includes(leave.employee._id.toString()))
-      .map(leave => ({
-        user: leave.employee,
-        status: 'On Leave',
-        leaveType: leave.leaveType,
-        date: targetDateStart
+    let curr = startMoment.clone();
+    let daysInRange = 0;
+    while (curr.isSameOrBefore(endMoment, 'day')) {
+      daysInRange++;
+      const currentStart = curr.clone().startOf('day').toDate();
+      const currentFormatted = curr.format('YYYY-MM-DD');
+
+      const timeLogs = timeLogsAll.filter(log => moment(log.date).isSame(currentStart, 'day'));
+      const presentUserIds = timeLogs.map(log => log.user._id.toString());
+
+      const approvedLeaves = approvedLeavesAll.filter(leave => 
+         moment(leave.startDate).format('YYYY-MM-DD') <= currentFormatted && 
+         moment(leave.endDate).format('YYYY-MM-DD') >= currentFormatted
+      );
+      const onLeaveUserIds = approvedLeaves.map(leave => leave.employee._id.toString());
+
+      const present = timeLogs.filter(log => log.status === 'Present');
+      const halfDay = timeLogs.filter(log => log.status === 'Half Day');
+      const explicitAbsentLogs = timeLogs.filter(log => log.status === 'Absent');
+      const explicitLeaveLogs = timeLogs.filter(log => log.status === 'Leave' || log.status === 'On Leave');
+
+      const virtualLeaves = approvedLeaves
+        .filter(leave => !presentUserIds.includes(leave.employee._id.toString()))
+        .map(leave => ({
+          user: leave.employee,
+          status: 'On Leave',
+          leaveType: leave.leaveType,
+          date: currentStart
+        }));
+
+      const onLeave = [...explicitLeaveLogs, ...virtualLeaves];
+      const holiday = holidaysAll.find(h => moment(h.date).isSame(currentStart, 'day'));
+
+      const virtualAbsent = usersInScope.filter(u => {
+          const uId = u._id.toString();
+          const hasLog = presentUserIds.includes(uId);
+          const isOnLeave = onLeaveUserIds.includes(uId);
+          if (hasLog || isOnLeave) return false;
+
+          if (u.joiningDate) {
+              const joinDate = moment.tz(u.joiningDate, TIMEZONE);
+              if (curr.isBefore(joinDate, 'day')) return false;
+          }
+          return true;
+      }).map(u => ({
+          user: u,
+          status: holiday ? 'Holiday' : 'Absent',
+          holidayName: holiday ? holiday.holidayName : undefined,
+          date: currentStart
       }));
 
-    const onLeave = [...explicitLeaveLogs, ...virtualLeaves];
+      const absent = [...explicitAbsentLogs, ...virtualAbsent];
 
-    const holiday = await Holiday.findOne({ date: targetDateStart });
+      allPresent.push(...present);
+      allHalfDay.push(...halfDay);
+      allAbsent.push(...absent);
+      allOnLeave.push(...onLeave);
 
-    const virtualAbsent = usersInScope.filter(u => {
-        const uId = u._id.toString();
-        const hasLog = presentUserIds.includes(uId);
-        const isOnLeave = onLeaveUserIds.includes(uId);
-        if (hasLog || isOnLeave) return false;
-
-        if (u.joiningDate) {
-            const joinDate = moment.tz(u.joiningDate, TIMEZONE);
-            if (targetDateMoment.isBefore(joinDate, 'day')) return false;
-        }
-        return true;
-    }).map(u => ({
-        user: u,
-        status: holiday ? 'Holiday' : 'Absent',
-        holidayName: holiday ? holiday.holidayName : undefined,
-        date: targetDateStart
-    }));
-
-    const absent = [...explicitAbsentLogs, ...virtualAbsent];
+      curr.add(1, 'day');
+    }
 
     return {
-      present,
-      halfDay,
-      absent,
-      onLeave,
+      present: allPresent,
+      halfDay: allHalfDay,
+      absent: allAbsent,
+      onLeave: allOnLeave,
       counts: {
-        present: present.length,
-        halfDay: halfDay.length,
-        absent: absent.length,
-        onLeave: onLeave.length,
-        total: usersInScope.length
+        present: allPresent.length,
+        halfDay: allHalfDay.length,
+        absent: allAbsent.length,
+        onLeave: allOnLeave.length,
+        total: usersInScope.length * daysInRange
       }
     };
   }

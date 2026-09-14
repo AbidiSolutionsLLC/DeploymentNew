@@ -58,10 +58,10 @@ const UserManagement = () => {
  useEffect(() => {
  let result = users.filter(
  (user) =>
- user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
- user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
- user.empID.toLowerCase().includes(searchTerm.toLowerCase()) ||
- user.department?.name.toLowerCase().includes(searchTerm.toLowerCase())
+ (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+ (user.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+ (user.empID || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+ (user.department?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
  );
 
  // Role filter
@@ -71,7 +71,7 @@ const UserManagement = () => {
 
  // Department filter
  if (deptFilter !== "all") {
- result = result.filter((u) => u.department?._id === deptFilter);
+ result = result.filter((u) => (u.department?._id || u.department) === deptFilter);
  }
 
  // Status filter

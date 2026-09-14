@@ -56,7 +56,7 @@ exports.getTimeLogById = catchAsync(async (req, res) => {
 });
 
 exports.getAdminAttendanceSummary = catchAsync(async (req, res) => {
-  const summary = await timeTrackerService.getAdminAttendanceSummary(req.user, req.query.date);
+  const summary = await timeTrackerService.getAdminAttendanceSummary(req.user, req.query.date, req.query.startDate, req.query.endDate);
   res.status(200).json(ApiResponse.success(summary));
 });
 
