@@ -355,7 +355,7 @@ const [activeTab, setActiveTab] = useState(() => {
 
  const activeTabLogs = getActiveTabData().filter((log) => {
  const employeeName = log.user?.name || "Unknown";
- const matchesSearch = employeeName.toLowerCase().includes(searchTerm.toLowerCase());
+ const matchesSearch = String(employeeName || "").toLowerCase().includes(searchTerm.toLowerCase());
  const userDeptName = log.user?.department?.name || log.user?.department || "";
  const matchesDept = deptFilter === "all" || userDeptName === deptFilter;
  return matchesSearch && matchesDept;

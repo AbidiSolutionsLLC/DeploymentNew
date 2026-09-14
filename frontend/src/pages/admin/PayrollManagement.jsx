@@ -217,8 +217,8 @@ const PayrollManagement = () => {
 
   // Prepare filtered data for preview table
   const filteredPreviewData = previewData.filter(d => 
-    d.employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.employee.empID?.toLowerCase().includes(searchTerm.toLowerCase())
+    String(d.employee.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(d.employee.empID || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const previewColumns = [

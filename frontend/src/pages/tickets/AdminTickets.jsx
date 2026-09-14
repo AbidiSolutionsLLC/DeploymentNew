@@ -76,7 +76,7 @@ const AdminTickets = () => {
 
  // Combined filter logic
  const filteredTickets = tickets.filter((ticket) => {
- const matchesSearch = ticket.subject?.toLowerCase().includes(searchTerm.toLowerCase());
+ const matchesSearch = String(ticket.subject || "").toLowerCase().includes(searchTerm.toLowerCase());
  const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;
  const matchesPriority = priorityFilter === "all" || ticket.priority === priorityFilter;
  const ticketDate = ticket.createdAt ? new Date(ticket.createdAt) : null;

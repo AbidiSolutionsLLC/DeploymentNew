@@ -58,10 +58,10 @@ const UserManagement = () => {
  useEffect(() => {
  let result = users.filter(
  (user) =>
- (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
- (user.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
- (user.empID || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
- (user.department?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+ (String(user.name || "")).toLowerCase().includes(searchTerm.toLowerCase()) ||
+ (String(user.email || "")).toLowerCase().includes(searchTerm.toLowerCase()) ||
+ String(user.empID || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+ (String(user.department?.name || "")).toLowerCase().includes(searchTerm.toLowerCase())
  );
 
  // Role filter

@@ -48,8 +48,8 @@ const ProjectDetail = () => {
  };
 
  const filteredTasks = tasks?.filter(task => 
- task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
- task.description?.toLowerCase().includes(searchQuery.toLowerCase())
+ task.title && String(task.title).toLowerCase().includes(searchQuery.toLowerCase()) ||
+ String(task.description || "").toLowerCase().includes(searchQuery.toLowerCase())
  ) || [];
 
  const renderTabContent = () => {

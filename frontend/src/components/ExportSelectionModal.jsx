@@ -24,8 +24,8 @@ const ExportSelectionModal = ({
  }, [isOpen, items]);
 
  const filteredItems = items.filter(item => {
- const nameStr = (item.employee?.name || item.employeeName || "Unknown").toLowerCase();
- const tsNameStr = (item.name || "").toLowerCase();
+ const nameStr = String(item.employee?.name || item.employeeName || "Unknown").toLowerCase();
+ const tsNameStr = String(item.name || "").toLowerCase();
  return nameStr.includes(searchTerm.toLowerCase()) || tsNameStr.includes(searchTerm.toLowerCase());
  });
 

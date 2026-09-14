@@ -407,8 +407,8 @@ class TimeTrackerService {
       const presentUserIds = timeLogs.map(log => log.user._id.toString());
 
       const approvedLeaves = approvedLeavesAll.filter(leave => 
-         moment(leave.startDate).format('YYYY-MM-DD') <= currentFormatted && 
-         moment(leave.endDate).format('YYYY-MM-DD') >= currentFormatted
+         moment.utc(leave.startDate).format('YYYY-MM-DD') <= currentFormatted && 
+         moment.utc(leave.endDate).format('YYYY-MM-DD') >= currentFormatted
       );
       const onLeaveUserIds = approvedLeaves.map(leave => leave.employee._id.toString());
 

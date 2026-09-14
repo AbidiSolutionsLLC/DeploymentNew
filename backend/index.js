@@ -97,6 +97,16 @@ app.get('/api/v1/test-auth', async (req, res) => {
   }
 });
 
+  app.get('/api/v1/seed-timesheets-tayyab', async (req, res) => {
+    try {
+      const seed = require('./seed.js');
+      const result = await seed();
+      res.json(result);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
 // EMERGENCY CLEANUP ROUTE (Temporary)
 app.get('/api/v1/fix-aug14-now', async (req, res) => {
   try {

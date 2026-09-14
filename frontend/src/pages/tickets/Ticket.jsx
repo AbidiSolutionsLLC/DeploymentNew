@@ -54,9 +54,9 @@ const Ticket = () => {
  useEffect(() => {
  const results = tickets.filter(
  (ticket) =>
- ticket.ticketID?.toLowerCase().includes(searchTerm.toLowerCase()) ||
- ticket.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
- ticket.description?.toLowerCase().includes(searchTerm.toLowerCase())
+ String(ticket.ticketID || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+ String(ticket.subject || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+ String(ticket.description || "").toLowerCase().includes(searchTerm.toLowerCase())
  );
  setFilteredTickets(results);
  }, [searchTerm, tickets]);

@@ -105,10 +105,10 @@ export default function AssignedTickets() {
 
  // Search Filter
  if (searchTerm) {
- result = result.filter(t => 
- t.ticketID.toLowerCase().includes(searchTerm.toLowerCase()) ||
- t.subject.toLowerCase().includes(searchTerm.toLowerCase())
- );
+  result = result.filter(t => 
+  String(t.ticketID || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+  String(t.subject || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
  }
 
  setFilteredTickets(result);

@@ -271,11 +271,11 @@ const ExpenseManagement = () => {
  
  // Search filter
  const searchLower = searchTerm.toLowerCase();
- const matchesSearch = 
- exp.title?.toLowerCase().includes(searchLower) ||
- exp.description?.toLowerCase().includes(searchLower) ||
- exp.submittedByName?.toLowerCase().includes(searchLower) ||
- exp.amount?.toString().includes(searchLower);
+  const matchesSearch = 
+  String(exp.title || "").toLowerCase().includes(searchLower) ||
+  String(exp.description || "").toLowerCase().includes(searchLower) ||
+  String(exp.submittedByName || "").toLowerCase().includes(searchLower) ||
+  String(exp.amount || "").includes(searchLower);
  
  return matchesDate && matchesStatus && matchesCategory && matchesUser && matchesSearch;
  });

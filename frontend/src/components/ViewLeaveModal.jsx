@@ -37,7 +37,7 @@ const ViewLeaveModal = ({
  const { user } = useSelector((state) => state.auth);
 
  const userRole = (user?.user?.role || user?.role || "").replace(/\s+/g, '').toLowerCase();
- const canUpdateStatus = isAdminPortal && ['superadmin', 'admin', 'hr'].includes(userRole);
+ const canUpdateStatus = isAdminPortal && ['superadmin', 'admin', 'hr', 'manager'].includes(userRole);
 
  const [selectedStatus, setSelectedStatus] = useState(leaveData?.status || "Pending");
  const [isSubmitting, setIsSubmitting] = useState(false);

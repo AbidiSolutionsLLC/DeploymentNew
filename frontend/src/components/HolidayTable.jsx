@@ -49,8 +49,8 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
  const isMatch = (holiday) => {
  const s = searchTerm.toLowerCase();
  return (
- holiday.holidayName.toLowerCase().includes(s) ||
- holiday.day.toLowerCase().includes(s) ||
+  String(holiday.holidayName || "").toLowerCase().includes(s) ||
+  String(holiday.day || "").toLowerCase().includes(s) ||
  extractDate(holiday.date).toLocaleDateString('en-US', {
  year: 'numeric',
  month: 'long',

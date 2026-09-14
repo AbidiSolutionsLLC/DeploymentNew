@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from "../../authConfig";
 import { useNavigate } from "react-router-dom";
@@ -20,10 +20,15 @@ const Login = () => {
  });
  };
 
+ const attemptedAccountRef = useRef(null);
+
  useEffect(() => {
  if (accounts.length > 0) {
- if (!isAuthenticated && !loading) {
- dispatch(setAzureAccount(accounts[0]));
+ const currentAccount = accounts[0];
+ // Only sync if we haven't already tried for this account in this session
+ if (!isAuthenticated && !loading && attemptedAccountRef.current !== currentAccount.homeAccountId) {
+ attemptedAccountRef.current = currentAccount.homeAccountId;
+ dispatch(setAzureAccount(currentAccount));
  
  dispatch(syncAzureUser())
  .unwrap()

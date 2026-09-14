@@ -95,7 +95,7 @@ class LeaveService {
           recipient: mgr._id,
           type: 'LEAVE_REQUEST_SUBMITTED',
           title: 'New Leave Request',
-          message: `${user.name} has submitted a ${leaveType} leave request from ${moment(startDate).format('MMM DD, YYYY')} to ${moment(endDate).format('MMM DD, YYYY')}. Action required.`,
+          message: `${user.name} has submitted a ${leaveType} leave request from ${moment.utc(startDate).format('MMM DD, YYYY')} to ${moment.utc(endDate).format('MMM DD, YYYY')}. Action required.`,
           relatedEntity: { entityType: 'leave', entityId: savedLeaveRequest._id },
         })
       );
@@ -409,23 +409,23 @@ class LeaveService {
     const roleKey = normalizeRole(user.role);
     const currentUserId = user.id || user._id;
 
-    if (!['superadmin', 'admin', 'hr'].includes(roleKey)) {
-       throw new ForbiddenError("Managers have read-only access to leaves. Contact HR for approvals.");
+    if (!['superadmin', 'admin', 'hr', 'manager'].includes(roleKey)) {
+       throw new ForbiddenError("You do not have permission to update leave status.");
     }
 
     if (leaveRequest.employee.toString() === currentUserId.toString()) {
        throw new ForbiddenError("You cannot update the status of your own leave request.");
     }
 
-    if (roleKey === 'admin') {
+    if (roleKey === 'admin' || roleKey === 'manager') {
        const adminTeam = await getTeamIds(currentUserId);
        if (!adminTeam.includes(leaveRequest.employee.toString())) {
-          throw new ForbiddenError("Admins can only manage leaves for their own team hierarchy.");
+          throw new ForbiddenError("You can only manage leaves for your own team hierarchy.");
        }
     }
 
-    const start = moment(leaveRequest.startDate).tz(TIMEZONE).startOf('day');
-    const end = moment(leaveRequest.endDate).tz(TIMEZONE).startOf('day');
+    const start = moment.utc(leaveRequest.startDate).tz(TIMEZONE, true).startOf('day');
+    const end = moment.utc(leaveRequest.endDate).tz(TIMEZONE, true).startOf('day');
     const daysDiff = calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate);
 
     if (status === 'Approved') {
@@ -499,7 +499,7 @@ class LeaveService {
           type: isApproved ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED',
           title: isApproved ? 'Leave Approved' : 'Leave Rejected',
           message: isApproved
-            ? `Your ${leaveRequest.leaveType} leave request from ${moment(leaveRequest.startDate).format('MMM DD, YYYY')} to ${moment(leaveRequest.endDate).format('MMM DD, YYYY')} has been approved.`
+            ? `Your ${leaveRequest.leaveType} leave request from ${moment.utc(leaveRequest.startDate).format('MMM DD, YYYY')} to ${moment.utc(leaveRequest.endDate).format('MMM DD, YYYY')} has been approved.`
             : `Your ${leaveRequest.leaveType} leave request has been rejected.${responseNote ? ' Reason: ' + responseNote : ''}`,
           relatedEntity: { entityType: 'leave', entityId: leaveRequest._id },
         });
@@ -558,8 +558,8 @@ class LeaveService {
     }
 
     if (isSuperAdminOrHR || isOwner) {
-      const start = moment(leaveRequest.startDate).tz(TIMEZONE).startOf('day');
-      const end = moment(leaveRequest.endDate).tz(TIMEZONE).startOf('day');
+      const start = moment.utc(leaveRequest.startDate).tz(TIMEZONE, true).startOf('day');
+      const end = moment.utc(leaveRequest.endDate).tz(TIMEZONE, true).startOf('day');
       const daysDiff = calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate);
      
       await User.findByIdAndUpdate(leaveRequest.employee, {
@@ -606,8 +606,8 @@ class LeaveService {
     if (!["Pending", "Approved", "Rejected"].includes(status)) throw new BadRequestError("Invalid status");
 
     const roleKey = normalizeRole(user.role);
-    if (!['superadmin', 'admin', 'hr'].includes(roleKey)) {
-       throw new ForbiddenError("Managers have read-only access to leaves. Contact HR for approvals.");
+    if (!['superadmin', 'admin', 'hr', 'manager'].includes(roleKey)) {
+       throw new ForbiddenError("You do not have permission to update leave status.");
     }
 
     const results = [];
@@ -618,7 +618,7 @@ class LeaveService {
         const leaveRequest = await LeaveRequest.findOne({ _id: id, company: companyId });
         if (!leaveRequest || leaveRequest.status === status) continue;
 
-        if (roleKey === 'admin') {
+        if (roleKey === 'admin' || roleKey === 'manager') {
            const adminTeam = await getTeamIds(currentUserId);
            if (!adminTeam.includes(leaveRequest.employee.toString())) continue;
         }
@@ -727,8 +727,8 @@ class LeaveService {
     const leaveTypeLabel = leaveRequest.leaveType === 'PTO' ? 'Paid Time Off (PTO)' : (leaveRequest.leaveType === 'Sick' ? 'Sick Leave' : leaveRequest.leaveType);
     
     // Dates formatting
-    const startDateObj = moment(leaveRequest.startDate).tz(TIMEZONE);
-    const endDateObj = moment(leaveRequest.endDate).tz(TIMEZONE);
+    const startDateObj = moment.utc(leaveRequest.startDate).tz(TIMEZONE, true);
+    const endDateObj = moment.utc(leaveRequest.endDate).tz(TIMEZONE, true);
     const appliedDateObj = moment(leaveRequest.appliedAt || leaveRequest.createdAt || new Date()).tz(TIMEZONE);
     
     const startMonthYear = startDateObj.format('MMMM YYYY').toUpperCase();
@@ -748,7 +748,7 @@ class LeaveService {
     const daysLabel = `${businessDays} business day${businessDays > 1 ? 's' : ''}`;
 
     // Return to work date calculation (next business day after end date)
-    let nextWorkDay = moment(leaveRequest.endDate).tz(TIMEZONE).add(1, 'day');
+    let nextWorkDay = moment.utc(leaveRequest.endDate).tz(TIMEZONE, true).add(1, 'day');
     while (nextWorkDay.day() === 0 || nextWorkDay.day() === 6) {
       nextWorkDay.add(1, 'day');
     }
