@@ -17,8 +17,8 @@ class LeaveService {
 
     if (!leaveType || !startDate || !endDate) throw new BadRequestError("Missing required fields");
 
-    const start = moment.utc(startDate).startOf('day').tz(TIMEZONE, true).startOf('day');
-    const end = moment.utc(endDate).startOf('day').tz(TIMEZONE, true).startOf('day');
+    const start = moment.utc(startDate, 'YYYY-MM-DD').startOf('day');
+    const end = moment.utc(endDate, 'YYYY-MM-DD').startOf('day');
     const daysDiff = calculateBusinessDays(startDate, endDate);
     if (daysDiff < 1) {
       throw new BadRequestError("Selected date range includes only weekends/holidays. Please choose at least one working day.");
@@ -424,8 +424,8 @@ class LeaveService {
        }
     }
 
-    const start = moment.utc(leaveRequest.startDate).tz(TIMEZONE, true).startOf('day');
-    const end = moment.utc(leaveRequest.endDate).tz(TIMEZONE, true).startOf('day');
+    const start = moment.utc(leaveRequest.startDate, 'YYYY-MM-DD').startOf('day');
+    const end = moment.utc(leaveRequest.endDate, 'YYYY-MM-DD').startOf('day');
     const daysDiff = calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate);
 
     if (status === 'Approved') {
@@ -558,8 +558,8 @@ class LeaveService {
     }
 
     if (isSuperAdminOrHR || isOwner) {
-      const start = moment.utc(leaveRequest.startDate).tz(TIMEZONE, true).startOf('day');
-      const end = moment.utc(leaveRequest.endDate).tz(TIMEZONE, true).startOf('day');
+      const start = moment.utc(leaveRequest.startDate, 'YYYY-MM-DD').startOf('day');
+      const end = moment.utc(leaveRequest.endDate, 'YYYY-MM-DD').startOf('day');
       const daysDiff = calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate);
      
       await User.findByIdAndUpdate(leaveRequest.employee, {
@@ -727,8 +727,8 @@ class LeaveService {
     const leaveTypeLabel = leaveRequest.leaveType === 'PTO' ? 'Paid Time Off (PTO)' : (leaveRequest.leaveType === 'Sick' ? 'Sick Leave' : leaveRequest.leaveType);
     
     // Dates formatting
-    const startDateObj = moment.utc(leaveRequest.startDate).tz(TIMEZONE, true);
-    const endDateObj = moment.utc(leaveRequest.endDate).tz(TIMEZONE, true);
+    const startDateObj = moment.utc(leaveRequest.startDate, 'YYYY-MM-DD');
+    const endDateObj = moment.utc(leaveRequest.endDate, 'YYYY-MM-DD');
     const appliedDateObj = moment(leaveRequest.appliedAt || leaveRequest.createdAt || new Date()).tz(TIMEZONE);
     
     const startMonthYear = startDateObj.format('MMMM YYYY').toUpperCase();
@@ -748,7 +748,7 @@ class LeaveService {
     const daysLabel = `${businessDays} business day${businessDays > 1 ? 's' : ''}`;
 
     // Return to work date calculation (next business day after end date)
-    let nextWorkDay = moment.utc(leaveRequest.endDate).tz(TIMEZONE, true).add(1, 'day');
+    let nextWorkDay = moment.utc(leaveRequest.endDate, 'YYYY-MM-DD').add(1, 'day');
     while (nextWorkDay.day() === 0 || nextWorkDay.day() === 6) {
       nextWorkDay.add(1, 'day');
     }

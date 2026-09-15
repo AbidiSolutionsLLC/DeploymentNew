@@ -21,8 +21,8 @@ class HolidayService {
 
     const savedHoliday = await newHoliday.save();
 
-    const holidayDate = new Date(date);
-    holidayDate.setHours(0, 0, 0, 0);
+    const { moment } = require("../utils/dateUtils");
+    const holidayDate = moment.utc(date, 'YYYY-MM-DD').toDate();
 
     const allUsers = await User.find({ empStatus: "Active" }).select("_id");
     const userIds = allUsers.map(user => user._id);
@@ -78,12 +78,11 @@ class HolidayService {
   }
 
   async updateHoliday(user, id, updates) {
-
+    const { moment } = require("../utils/dateUtils");
     const holiday = await Holiday.findById(id);
     if (!holiday) throw new NotFoundError("Holiday");
 
-    const oldDate = new Date(holiday.date);
-    oldDate.setHours(0, 0, 0, 0);
+    const oldDate = moment.utc(holiday.date, 'YYYY-MM-DD').toDate();
 
     const allowedFields = ["date", "day", "holidayName", "holidayType", "description", "isRecurring"];
     allowedFields.forEach(field => {
@@ -93,8 +92,7 @@ class HolidayService {
     const updatedHoliday = await holiday.save();
 
     if (updates.date) {
-      const newDate = new Date(updates.date);
-      newDate.setHours(0, 0, 0, 0);
+      const newDate = moment.utc(updates.date, 'YYYY-MM-DD').toDate();
 
       await TimeTracker.updateMany(
         { date: oldDate, status: { $ne: 'Leave' } },
@@ -134,12 +132,11 @@ class HolidayService {
   }
 
   async deleteHoliday(user, id) {
-
+    const { moment } = require("../utils/dateUtils");
     const holiday = await Holiday.findByIdAndDelete(id);
     if (!holiday) throw new NotFoundError("Holiday");
 
-    const holidayDate = new Date(holiday.date);
-    holidayDate.setHours(0, 0, 0, 0);
+    const holidayDate = moment.utc(holiday.date, 'YYYY-MM-DD').toDate();
 
     await TimeTracker.updateMany(
       { date: holidayDate, status: 'Holiday' },
@@ -148,11 +145,8 @@ class HolidayService {
   }
 
   async getHolidaysByYear(year) {
-    const startDate = new Date(`${year}-01-01`);
-    const endDate = new Date(`${year}-12-31`);
-
     return Holiday.find({
-      date: { $gte: startDate, $lte: endDate }
+      date: { $gte: `${year}-01-01`, $lte: `${year}-12-31` }
     }).sort({ date: 1 });
   }
 }

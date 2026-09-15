@@ -39,6 +39,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
  async (config) => {
+ config.headers['X-Timezone'] = Intl.DateTimeFormat().resolvedOptions().timeZone;
  try {
  const accounts = msalInstance.getAllAccounts();
  const activeAccount = msalInstance.getActiveAccount() || accounts[0];

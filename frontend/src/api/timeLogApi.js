@@ -9,6 +9,8 @@ const getEmployeeTimeLogs = async (date = null, userId = null) => {
  }
  if (userId) {
  params.userId = userId;
+ } else {
+ params.my = true;
  }
  const response = await api.get(API_URL, { params });
  return response.data.data || response.data;

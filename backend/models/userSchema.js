@@ -179,8 +179,8 @@ const userSchema = new mongoose.Schema(
       {
         leaveId: { type: mongoose.Schema.Types.ObjectId, ref: "LeaveRequest" },
         leaveType: String,
-        startDate: Date,
-        endDate: Date,
+        startDate: String,
+        endDate: String,
         status: String,
         daysTaken: Number,
         reason: String,

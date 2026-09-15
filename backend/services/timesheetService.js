@@ -2,7 +2,7 @@ const Timesheet = require("../models/timesheetSchema");
 const TimeLog = require("../models/timeLogsSchema");
 const User = require("../models/userSchema"); 
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
-const { getStartOfESTDay, getEndOfESTDay, moment, TIMEZONE } = require("../utils/dateUtils");
+const { getStartOfDay, getEndOfDay, moment, TIMEZONE } = require("../utils/dateUtils");
 const { createNotification } = require('../utils/notificationService');
 const { normalizeRole } = require("../utils/rbacUtils");
 const { getSearchScope } = require("../utils/rbac");
@@ -25,12 +25,12 @@ class TimesheetService {
     let logIds = Array.isArray(timeLogs) ? timeLogs : (timeLogs ? [timeLogs] : []);
     if (logIds.length === 0) throw new BadRequestError("No time logs provided");
 
-    let timesheetDate = date ? moment.tz(date, TIMEZONE).startOf('day').toDate() : getStartOfESTDay();
+    let timesheetDate = date ? moment.tz(date, TIMEZONE).startOf('day').toDate() : getStartOfDay();
 
     const existingTimesheet = await Timesheet.findOne({
       company: companyId,
       employee,
-      date: { $gte: getStartOfESTDay(timesheetDate), $lte: getEndOfESTDay(timesheetDate) }
+      date: { $gte: getStartOfDay(timesheetDate), $lte: getEndOfDay(timesheetDate) }
     });
 
     if (existingTimesheet) {

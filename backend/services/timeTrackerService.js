@@ -7,10 +7,10 @@ const { getSearchScope } = require("../utils/rbac");
 const { getTeamIds } = require("../utils/hierarchy"); // Assuming this is extracted to hierarchy.js as previously seen
 const { normalizeRole } = require("../utils/rbacUtils");
 const { 
-    getStartOfESTDay, 
-    getCurrentESTTime, 
-    isESTWeekend, 
-    TIMEZONE 
+    getStartOfDay, 
+    getCurrentTime, 
+    isWeekend,
+    TIMEZONE
 } = require("../utils/dateUtils");
 const moment = require("moment-timezone");
 
@@ -48,8 +48,8 @@ class TimeTrackerService {
     let updates = { ...data };
 
     if (updates.checkInTime && updates.checkOutTime) {
-      const start = moment(updates.checkInTime).tz(TIMEZONE);
-      const end = moment(updates.checkOutTime).tz(TIMEZONE);
+      const start = moment(updates.checkInTime).tz('UTC');
+      const end = moment(updates.checkOutTime).tz('UTC');
       const duration = moment.duration(end.diff(start));
       
       if (updates.totalHours === undefined) {
@@ -64,9 +64,9 @@ class TimeTrackerService {
     }
 
     if (updates.checkInTime) {
-        updates.date = getStartOfESTDay(updates.checkInTime);
+        updates.date = getStartOfDay(updates.checkInTime);
     } else if (updates.date) {
-        updates.date = getStartOfESTDay(updates.date);
+        updates.date = getStartOfDay(updates.date);
     }
 
     // Enforce company isolation, allowing legacy records without a company
@@ -110,8 +110,8 @@ class TimeTrackerService {
         } else {
             query.user = targetUserId;
         }
-    } else if (query.user === undefined) {
-        // Fallback if no target passed and they have wide scope, default to themselves
+    } else {
+        // Fallback if no target passed, default to themselves regardless of scope
         query.user = user.id || user._id;
     }
 
@@ -120,12 +120,13 @@ class TimeTrackerService {
       .sort({ date: 1 });
   }
 
-  async checkIn(userId) {
-    const nowEST = getCurrentESTTime();
-    const todayStartEST = getStartOfESTDay(nowEST.toDate());
+  async checkIn(userId, timezone = 'UTC') {
+    const { getCurrentTime, getStartOfDay, isWeekend } = require("../utils/dateUtils");
+    const nowMoment = getCurrentTime(timezone);
+    const todayStart = getStartOfDay(nowMoment.toDate(), timezone);
 
-    if (isESTWeekend(nowEST.toDate())) {
-      throw new ForbiddenError("Check-in is not allowed on weekends (EST).");
+    if (isWeekend(nowMoment.toDate(), timezone)) {
+      throw new ForbiddenError(`Check-in is not allowed on weekends (${timezone}).`);
     }
 
     const abandonedSession = await TimeTracker.findOne({ 
@@ -137,18 +138,18 @@ class TimeTrackerService {
     let previousSessionMsg = "";
 
     if (abandonedSession) {
-      const isSameDay = abandonedSession.date.getTime() === todayStartEST.getTime();
+      const isSameDay = abandonedSession.date.getTime() === todayStart.getTime();
 
       if (isSameDay) {
         throw new BadRequestError("You already have an active session for today. Please check out instead.");
       } else {
         // Abandoned session spans across days. We auto-checkout at the end of that day.
-        const endOfAbandonedDay = moment(abandonedSession.date).endOf('day').toDate();
+        const endOfAbandonedDay = moment.tz(abandonedSession.date, timezone).endOf('day').toDate();
         abandonedSession.checkOutTime = endOfAbandonedDay;
         abandonedSession.autoCheckedOut = true;
         
-        const start = moment(abandonedSession.checkInTime).tz(TIMEZONE);
-        const end = moment(endOfAbandonedDay).tz(TIMEZONE);
+        const start = moment(abandonedSession.checkInTime).tz(timezone);
+        const end = moment(endOfAbandonedDay).tz(timezone);
         const duration = moment.duration(end.diff(start));
         abandonedSession.totalHours = parseFloat(duration.asHours().toFixed(2));
         
@@ -167,10 +168,10 @@ class TimeTrackerService {
     const companyId = currentUser ? currentUser.company : null;
 
     const newLog = await TimeTracker.findOneAndUpdate(
-      { user: userId, date: todayStartEST },
+      { user: userId, date: todayStart },
       {
         $setOnInsert: {
-          checkInTime: nowEST.toDate(),
+          checkInTime: nowMoment.toDate(),
           status: 'Present',
           company: companyId
         }
@@ -180,15 +181,16 @@ class TimeTrackerService {
 
     // If checkInTime is older than what we just tried to insert (meaning it already existed)
     // we should let them know they already checked in.
-    if (newLog.checkInTime.getTime() !== nowEST.toDate().getTime()) {
-      throw new BadRequestError("You have already completed your check-in for today (EST).");
+    if (newLog.checkInTime.getTime() !== nowMoment.toDate().getTime()) {
+      throw new BadRequestError(`You have already completed your check-in for today (${timezone}).`);
     }
 
     return { message: `${previousSessionMsg}Checked in successfully.`, log: newLog };
   }
 
-  async checkOut(userId) {
-    const nowEST = getCurrentESTTime();
+  async checkOut(userId, timezone = 'UTC') {
+    const { getCurrentTime } = require("../utils/dateUtils");
+    const nowMoment = getCurrentTime(timezone);
 
     const currentLogs = await TimeTracker.find({ 
       user: userId, 
@@ -200,14 +202,14 @@ class TimeTrackerService {
     // In case of duplicates, close all of them to prevent cronjob from auto-closing them later
     let returnLog = null;
     for (let currentLog of currentLogs) {
-      const checkInMoment = moment(currentLog.checkInTime).tz(TIMEZONE);
+      const checkInMoment = moment(currentLog.checkInTime).tz(timezone);
       if (!checkInMoment.isValid()) {
         await TimeTracker.findByIdAndDelete(currentLog._id);
         continue;
       }
 
-      currentLog.checkOutTime = nowEST.toDate();
-      const duration = moment.duration(nowEST.diff(checkInMoment));
+      currentLog.checkOutTime = nowMoment.toDate();
+      const duration = moment.duration(nowMoment.diff(checkInMoment));
       let totalHours = parseFloat(duration.asHours().toFixed(2));
 
       if (isNaN(totalHours)) totalHours = 0;
@@ -223,8 +225,6 @@ class TimeTrackerService {
     
     if (!returnLog) throw new BadRequestError("Corrupted check-in data. Session cleared.");
     return returnLog;
-
-    // logic moved to the loop above
   }
 
   async getMyTimeLogs(userId) {
@@ -232,7 +232,7 @@ class TimeTrackerService {
   }
 
   async getDailyLog(currentUser, targetUserId) {
-    const todayStart = getStartOfESTDay();
+    const todayStart = getStartOfDay();
     const roleKey = normalizeRole(currentUser.role);
     
     // Security check: only self, or admin/HR, or manager of team
@@ -291,16 +291,16 @@ class TimeTrackerService {
     }
     
     if (data.checkInTime) {
-        data.date = getStartOfESTDay(data.checkInTime);
+        data.date = getStartOfDay(data.checkInTime);
     } else if (data.date) {
-        data.date = getStartOfESTDay(data.date);
+        data.date = getStartOfDay(data.date);
     } else {
-        data.date = getStartOfESTDay();
+        data.date = getStartOfDay();
     }
 
     if (data.checkInTime && data.checkOutTime) {
-        const start = moment(data.checkInTime).tz(TIMEZONE);
-        const end = moment(data.checkOutTime).tz(TIMEZONE);
+        const start = moment(data.checkInTime).tz('UTC');
+        const end = moment(data.checkOutTime).tz('UTC');
         const duration = moment.duration(end.diff(start));
         if (data.totalHours === undefined) {
             data.totalHours = parseFloat(duration.asHours().toFixed(2));
@@ -322,14 +322,14 @@ class TimeTrackerService {
   }
 
   async getAdminAttendanceSummary(user, dateStr, startDateStr, endDateStr) {
-    const nowEST = getCurrentESTTime();
+    const nowEST = getCurrentTime();
     
     let startMoment, endMoment;
     if (startDateStr && endDateStr) {
-      startMoment = moment.tz(startDateStr, TIMEZONE).startOf('day');
-      endMoment = moment.tz(endDateStr, TIMEZONE).startOf('day');
+      startMoment = moment.tz(startDateStr, 'UTC').startOf('day');
+      endMoment = moment.tz(endDateStr, 'UTC').startOf('day');
     } else if (dateStr) {
-      startMoment = moment.tz(dateStr, TIMEZONE).startOf('day');
+      startMoment = moment.tz(dateStr, 'UTC').startOf('day');
       endMoment = startMoment.clone();
     } else {
       startMoment = nowEST.clone().startOf('day');
@@ -403,12 +403,12 @@ class TimeTrackerService {
       const currentStart = curr.clone().startOf('day').toDate();
       const currentFormatted = curr.format('YYYY-MM-DD');
 
-      const timeLogs = timeLogsAll.filter(log => moment(log.date).isSame(currentStart, 'day'));
+      const timeLogs = timeLogsAll.filter(log => moment.utc(log.date).isSame(currentStart, 'day'));
       const presentUserIds = timeLogs.map(log => log.user._id.toString());
 
       const approvedLeaves = approvedLeavesAll.filter(leave => 
-         moment.utc(leave.startDate).format('YYYY-MM-DD') <= currentFormatted && 
-         moment.utc(leave.endDate).format('YYYY-MM-DD') >= currentFormatted
+         moment.utc(leave.startDate, 'YYYY-MM-DD').format('YYYY-MM-DD') <= currentFormatted && 
+         moment.utc(leave.endDate, 'YYYY-MM-DD').format('YYYY-MM-DD') >= currentFormatted
       );
       const onLeaveUserIds = approvedLeaves.map(leave => leave.employee._id.toString());
 
@@ -427,7 +427,7 @@ class TimeTrackerService {
         }));
 
       const onLeave = [...explicitLeaveLogs, ...virtualLeaves];
-      const holiday = holidaysAll.find(h => moment(h.date).isSame(currentStart, 'day'));
+      const holiday = holidaysAll.find(h => moment.utc(h.date, 'YYYY-MM-DD').isSame(currentStart, 'day'));
 
       const virtualAbsent = usersInScope.filter(u => {
           const uId = u._id.toString();
@@ -436,7 +436,7 @@ class TimeTrackerService {
           if (hasLog || isOnLeave) return false;
 
           if (u.joiningDate) {
-              const joinDate = moment.tz(u.joiningDate, TIMEZONE);
+              const joinDate = moment.tz(u.joiningDate, 'UTC');
               if (curr.isBefore(joinDate, 'day')) return false;
           }
           return true;

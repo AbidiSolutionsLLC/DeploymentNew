@@ -19,13 +19,15 @@ exports.getMonthlyAttendance = catchAsync(async (req, res) => {
 });
 
 exports.checkIn = catchAsync(async (req, res) => {
-  const result = await timeTrackerService.checkIn(req.user.id);
+  const timezone = req.headers['x-timezone'] || req.user.timeZone || 'UTC';
+  const result = await timeTrackerService.checkIn(req.user.id, timezone);
   // Send back result.log inside ApiResponse, but keep result.message. The original response had { message, log }
   res.status(200).json(ApiResponse.success({ log: result.log }, result.message));
 });
 
 exports.checkOut = catchAsync(async (req, res) => {
-  const log = await timeTrackerService.checkOut(req.user.id);
+  const timezone = req.headers['x-timezone'] || req.user.timeZone || 'UTC';
+  const log = await timeTrackerService.checkOut(req.user.id, timezone);
   res.status(200).json(ApiResponse.success({ log }, "Checked out successfully"));
 });
 

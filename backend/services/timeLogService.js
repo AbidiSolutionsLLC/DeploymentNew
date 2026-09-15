@@ -42,23 +42,27 @@ class TimeLogService {
   }
 
   async getEmployeeTimeLogs(user, companyId, query) {
-    const { date, userId } = query; 
+    const { date, userId, my } = query; 
     const scope = await getSearchScope(user, 'timelog');
     
     let dbQuery = { company: companyId };
-    Object.assign(dbQuery, scope);
 
-    if (userId) {
-        if (scope.employee && scope.employee.$in) {
-            if (!scope.employee.$in.map(String).includes(String(userId))) {
+    if (my === 'true' || my === true) {
+        dbQuery.employee = user.id || user._id;
+    } else {
+        Object.assign(dbQuery, scope);
+        if (userId) {
+            if (scope.employee && scope.employee.$in) {
+                if (!scope.employee.$in.map(String).includes(String(userId))) {
+                    dbQuery._id = null;
+                } else {
+                    dbQuery.employee = userId;
+                }
+            } else if (scope.employee && String(scope.employee) !== String(userId)) {
                 dbQuery._id = null;
             } else {
                 dbQuery.employee = userId;
             }
-        } else if (scope.employee && String(scope.employee) !== String(userId)) {
-            dbQuery._id = null;
-        } else {
-            dbQuery.employee = userId;
         }
     }
 

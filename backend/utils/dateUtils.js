@@ -1,41 +1,36 @@
 const moment = require('moment-timezone');
 
 /**
- * Strictly define the company timezone to Eastern Standard Time.
- * All attendance and timesheet logic will anchor to this.
+ * Default fallback timezone if neither header nor user profile is available.
  */
-const TIMEZONE = "America/New_York";
+const FALLBACK_TIMEZONE = "America/New_York";
 
 /**
- * Returns a Date object representing the start of the day (00:00:00) in EST.
- * Prevents local/UTC conversion shifts.
+ * Returns a Date object representing the start of the day in the given timezone.
  */
-exports.getStartOfESTDay = (date = new Date()) => {
-    return moment.utc(date).startOf('day').tz(TIMEZONE, true).startOf('day').toDate();
+exports.getStartOfDay = (date = new Date(), timezone = FALLBACK_TIMEZONE) => {
+    return moment.tz(date, timezone).startOf('day').toDate();
 };
 
 /**
- * Returns a Date object representing the end of the day (23:59:59.999) in EST.
- * Useful for building 24-hour database query windows.
+ * Returns a Date object representing the end of the day in the given timezone.
  */
-exports.getEndOfESTDay = (date = new Date()) => {
-    return moment.utc(date).startOf('day').tz(TIMEZONE, true).endOf('day').toDate();
+exports.getEndOfDay = (date = new Date(), timezone = FALLBACK_TIMEZONE) => {
+    return moment.tz(date, timezone).endOf('day').toDate();
 };
 
 /**
- * Returns the current time in EST as a Moment object.
- * Used for check-in/out logic.
+ * Returns the current time as a Moment object in the given timezone.
  */
-exports.getCurrentESTTime = () => {
-    return moment().tz(TIMEZONE);
+exports.getCurrentTime = (timezone = FALLBACK_TIMEZONE) => {
+    return moment().tz(timezone);
 };
 
 /**
- * Checks if a given date is a weekend in the EST timezone.
- * Used to restrict check-ins on Saturday and Sunday.
+ * Checks if a given date is a weekend in the given timezone.
  */
-exports.isESTWeekend = (date = new Date()) => {
-    const day = moment.tz(date, TIMEZONE).day();
+exports.isWeekend = (date = new Date(), timezone = FALLBACK_TIMEZONE) => {
+    const day = moment.tz(date, timezone).day();
     return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
 };
 
@@ -46,15 +41,14 @@ exports.isESTWeekend = (date = new Date()) => {
  * @returns {number} Number of business days (excluding weekends)
  */
 exports.calculateBusinessDays = (startDate, endDate) => {
-    const start = moment.utc(startDate).startOf('day').tz(TIMEZONE, true).startOf('day');
-    const end = moment.utc(endDate).startOf('day').tz(TIMEZONE, true).startOf('day');
+    const start = moment.utc(startDate, 'YYYY-MM-DD').startOf('day');
+    const end = moment.utc(endDate, 'YYYY-MM-DD').startOf('day');
     
     let businessDays = 0;
     let currentDate = start.clone();
     
     while (currentDate.isSameOrBefore(end, 'day')) {
         const dayOfWeek = currentDate.day();
-        // Count only weekdays (Monday=1 to Friday=5)
         if (dayOfWeek >= 1 && dayOfWeek <= 5) {
             businessDays++;
         }
@@ -64,9 +58,5 @@ exports.calculateBusinessDays = (startDate, endDate) => {
     return businessDays;
 };
 
-/**
- * Export raw moment and TIMEZONE string for use in controller validation logic.
- * Needed for exports like moment(date).tz(TIMEZONE).format('YYYY-MM-DD').
- */
 exports.moment = moment;
-exports.TIMEZONE = TIMEZONE;
+exports.TIMEZONE = FALLBACK_TIMEZONE;
