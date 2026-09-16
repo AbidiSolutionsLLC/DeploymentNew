@@ -73,7 +73,7 @@ class AdminDashboardService {
       Holiday.findOne({ date: { $gte: todayStart }, company: companyId }).sort({ date: 1 }).select("holidayName date day"),
 
       Department.aggregate([
-        { $match: { company: companyId } },
+        { $match: { $or: [{ company: companyId }, { company: { $exists: false } }] } },
         {
           $lookup: {
             from: "users",
@@ -98,7 +98,7 @@ class AdminDashboardService {
         { $group: { _id: "$status", count: { $sum: 1 } } }
       ]),
 
-      Log.find({ company: companyId }).sort({ createdAt: -1 }).limit(5).lean()
+      Log.find({ $or: [{ company: companyId }, { company: { $exists: false } }] }).sort({ createdAt: -1 }).limit(5).lean()
     ]);
 
     const attendanceMap = { Present: 0, Absent: 0, Late: 0, Leave: 0 };

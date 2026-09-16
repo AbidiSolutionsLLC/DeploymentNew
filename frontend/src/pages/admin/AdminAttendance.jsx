@@ -13,9 +13,11 @@ import GlassInput from "../../components/ui/GlassInput";
 import ModernSelect from "../../components/ui/ModernSelect";
 import FilterRow from "../../components/ui/FilterRow";
 import GlassModal from "../../components/ui/GlassModal";
+import DateRangePicker from "../../components/ui/DateRangePicker";
 
 import { dispatchReadOnlyModal } from '../../utils/readOnlyEvent';
 import { formatDateForAPI } from "../../utils/dateUtils";
+import { useConfirm } from "../../context/ConfirmContext";
 
 // --- SUB-COMPONENT: LIVE TIMER ---
 const LiveTimer = ({ startTime }) => {
@@ -51,6 +53,7 @@ const LiveTimer = ({ startTime }) => {
 
 // --- MAIN COMPONENT ---
 const AdminAttendance = () => {
+  const confirm = useConfirm();
   const [summaryData, setSummaryData] = useState({ present: [], absent: [], halfDay: [], onLeave: [], counts: { present: 0, absent: 0, halfDay: 0, onLeave: 0, total: 0 } });
  const [loading, setLoading] = useState(true);
  const [searchTerm, setSearchTerm] = useState("");
@@ -304,18 +307,24 @@ const [activeTab, setActiveTab] = useState(() => {
  };
 
  const handleDeleteRecord = async (logId) => {
-   if (currentUserRole === 'globalreader') {
-     dispatchReadOnlyModal();
-     return;
-   }
-   if (!window.confirm("Delete this attendance record permanently?")) return;
- try {
- await api.delete(`/timetrackers/${logId}`);
- toast.success("Record deleted");
- await fetchSummary(startDate);
- } catch (error) {
- toast.error(error.response?.data?.message || "Failed to delete record");
- }
+    if (currentUserRole === 'globalreader') {
+      dispatchReadOnlyModal();
+      return;
+    }
+    await confirm({ 
+      title: "Delete Record", 
+      message: "Delete this attendance record permanently?",
+      onConfirmAction: async () => {
+        try {
+          await api.delete(`/timetrackers/${logId}`);
+          toast.success("Record deleted");
+          await fetchSummary(startDate);
+        } catch (error) {
+          toast.error(error.response?.data?.message || "Failed to delete record");
+          throw error;
+        }
+      }
+    });
  };
 
  // --- HELPERS ---
@@ -503,25 +512,19 @@ const [activeTab, setActiveTab] = useState(() => {
    </div>
    
    {dateFilterType === "Custom" && (
-     <div className="flex items-center bg-surface border border-border-subtle rounded-xl px-3 h-[42px]">
-       <Calendar size={16} className="text-muted mr-2 flex-shrink-0" />
-       <DatePicker
-         selectsRange={true}
-         startDate={customDateRange[0]}
-         endDate={customDateRange[1]}
-         onChange={(update) => {
-           setCustomDateRange(update);
-           if (update[0]) localStorage.setItem('admin_attendance_start', update[0].toISOString());
-           else localStorage.removeItem('admin_attendance_start');
-           
-           if (update[1]) localStorage.setItem('admin_attendance_end', update[1].toISOString());
-           else localStorage.removeItem('admin_attendance_end');
-         }}
-         dateFormat="yyyy-MM-dd"
-         className="w-44 bg-transparent border-none text-xs font-semibold text-main outline-none cursor-pointer !py-0 !px-0 !rounded-none !shadow-none"
-         placeholderText="Select Date Range"
-       />
-     </div>
+     <DateRangePicker
+       startDate={customDateRange[0]}
+       endDate={customDateRange[1]}
+       onChange={(update) => {
+         setCustomDateRange(update);
+         if (update[0]) localStorage.setItem('admin_attendance_start', update[0].toISOString());
+         else localStorage.removeItem('admin_attendance_start');
+         
+         if (update[1]) localStorage.setItem('admin_attendance_end', update[1].toISOString());
+         else localStorage.removeItem('admin_attendance_end');
+       }}
+       className="w-56"
+     />
    )}
  </div>
 
@@ -534,6 +537,21 @@ const [activeTab, setActiveTab] = useState(() => {
  placeholder="All Departments"
  />
  </div>
+
+ {/* Clear Filters */}
+ {(searchTerm || deptFilter !== "all" || dateFilterType !== "Today") && (
+   <button
+     onClick={() => {
+       setSearchTerm("");
+       setDeptFilter("all");
+       setDateFilterType("Today");
+       localStorage.setItem('admin_attendance_filter_type', 'Today');
+     }}
+     className="btn btn-secondary h-[42px] px-3 flex items-center gap-1 text-xs"
+   >
+     <X size={14} /> Clear
+   </button>
+ )}
  </FilterRow>
  }
   topWidgets={

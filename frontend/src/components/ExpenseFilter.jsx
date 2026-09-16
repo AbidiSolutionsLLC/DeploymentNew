@@ -1,10 +1,9 @@
 import React from "react";
-import { Search, ArrowRight, X } from "lucide-react";
-import { IoCalendarNumberOutline } from "react-icons/io5";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { X } from "lucide-react";
 import ModernSelect from "./ui/ModernSelect";
 import GlassInput from "./ui/GlassInput";
+import FilterRow from "./ui/FilterRow";
+import DateRangePicker from "./ui/DateRangePicker";
 
 const ExpenseFilters = ({
  searchTerm,
@@ -27,12 +26,14 @@ const ExpenseFilters = ({
  onStatusFilterChange("all");
  onCategoryFilterChange("all");
  if (showUserFilter) onUserChange("all");
+ onStartDateChange(null);
+ onEndDateChange(null);
  };
 
- const hasActiveFilters = searchTerm || statusFilter !== "all" || categoryFilter !== "all" || (showUserFilter && selectedUser !== "all");
+ const hasActiveFilters = searchTerm || statusFilter !== "all" || categoryFilter !== "all" || (showUserFilter && selectedUser !== "all") || startDate !== null || endDate !== null;
 
  return (
- <div className="flex flex-wrap items-center gap-3 w-full">
+ <FilterRow>
  {/* Search */}
  <GlassInput
  placeholder="Search expenses..."
@@ -42,29 +43,14 @@ const ExpenseFilters = ({
  />
 
  {/* Date Range */}
- <div className="flex items-center gap-2 bg-surface border border-border-subtle rounded-xl px-3 py-2 h-[42px]">
- <IoCalendarNumberOutline size={16} className="text-muted flex-shrink-0" />
- <DatePicker
- selected={startDate}
- onChange={(date) => onStartDateChange(date)}
- selectsStart
- startDate={startDate}
- endDate={endDate}
- placeholderText="Start date"
- className="w-24 bg-transparent border-none text-xs font-semibold text-main outline-none cursor-pointer !py-0 !px-0 !rounded-none !shadow-none"
+ <DateRangePicker
+   startDate={startDate}
+   endDate={endDate}
+   onChange={(update) => {
+     onStartDateChange(update[0]);
+     onEndDateChange(update[1]);
+   }}
  />
- <ArrowRight size={12} className="text-muted flex-shrink-0" />
- <DatePicker
- selected={endDate}
- onChange={(date) => onEndDateChange(date)}
- selectsEnd
- startDate={startDate}
- endDate={endDate}
- minDate={startDate}
- placeholderText="End date"
- className="w-24 bg-transparent border-none text-xs font-semibold text-main outline-none cursor-pointer !py-0 !px-0 !rounded-none !shadow-none"
- />
- </div>
 
  {/* Status Filter */}
  <div className="min-w-[140px]">
@@ -117,12 +103,12 @@ const ExpenseFilters = ({
  {hasActiveFilters && (
  <button
  onClick={clearFilters}
- className="btn btn-primary flex items-center gap-1"
+ className="btn btn-secondary h-[42px] px-3 flex items-center gap-1 text-xs"
  >
  <X size={14} /> Clear
  </button>
  )}
- </div>
+ </FilterRow>
  );
 };
 

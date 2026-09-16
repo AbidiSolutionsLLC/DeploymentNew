@@ -2,6 +2,7 @@ import React from "react";
 import { FaPlus } from "react-icons/fa";
 import SearchBar from "./SearchBar";
 import TableWithPagination from "./TableWithPagination";
+import { useConfirm } from "../context/ConfirmContext";
 
 const ProjectsTable = ({
  projects,
@@ -10,16 +11,22 @@ const ProjectsTable = ({
  onDelete,
  openModal,
 }) => {
+ const confirm = useConfirm();
+
  const handleEdit = (project) => {
  // You can implement edit functionality here
  // For example, open a modal with the project data
  console.log("Edit project:", project);
  };
 
- const handleDelete = (projectId) => {
- if (window.confirm("Are you sure you want to delete this project?")) {
- onDelete(projectId);
- }
+ const handleDelete = async (projectId) => {
+ await confirm({ 
+  title: "Delete Project", 
+  message: "Are you sure you want to delete this project?",
+  onConfirmAction: async () => {
+    await onDelete(projectId);
+  }
+ });
  };
 
  // Function to decide color based on completion

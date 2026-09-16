@@ -24,6 +24,10 @@ const departmentSchema = new mongoose.Schema({
     ref: "User"
   }],
   description: String,
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Company"
+  }
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
 // VIRTUAL: To see child departments (e.g., querying 'Headquarters' shows 'Engineering', 'HR')

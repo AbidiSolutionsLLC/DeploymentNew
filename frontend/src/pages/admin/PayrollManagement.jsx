@@ -3,20 +3,23 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { 
-  Download, Calendar, CheckCircle, Clock, Save, Search, Edit2, Play
+  Download, Calendar, CheckCircle, Clock, Save, Search, Edit2, Play, X
 } from "lucide-react";
 import PageContainer from "../../components/ui/PageContainer";
 import TableWithPagination from "../../components/TableWithPagination";
 import GlassInput from "../../components/ui/GlassInput";
 import FilterRow from "../../components/ui/FilterRow";
 import GlassModal from "../../components/ui/GlassModal";
+import DateRangePicker from "../../components/ui/DateRangePicker";
 import api from "../../axios";
 import { payrollApi } from "../../api/payrollApi";
 import { generatePayslipPDF } from "../../utils/generatePayslipPDF";
 import { formatDateForAPI } from "../../utils/dateUtils";
 import { dispatchReadOnlyModal } from "../../utils/readOnlyEvent";
+import { useConfirm } from "../../context/ConfirmContext";
 
 const PayrollManagement = () => {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState("preview"); // 'preview' or 'history'
   const [loading, setLoading] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState("");
@@ -98,34 +101,40 @@ const PayrollManagement = () => {
       return;
     }
     if (selectedUsers.size === 0) return toast.warn("Please select at least one employee");
-    if (!window.confirm(`Generate payslips for ${selectedUsers.size} employees?`)) return;
+    
+    await confirm({ 
+      title: "Generate Payslips", 
+      message: `Generate payslips for ${selectedUsers.size} employees?`,
+      onConfirmAction: async () => {
+        setLoading(true);
+        try {
+          const payslipsToGenerate = previewData.filter(d => selectedUsers.has(d.employee._id));
+          const payload = {
+            periodStartDate: formatDateForAPI(startDate),
+            periodEndDate: formatDateForAPI(endDate),
+            standardHours,
+            payslips: payslipsToGenerate.map(p => ({
+              employeeId: p.employee._id,
+              totalHoursTracked: p.totalHoursTracked,
+              adjustedHours: p.adjustedHours,
+              extraHours: p.extraHours,
+              hourlyWage: p.hourlyWage,
+              adjustedWage: p.adjustedWage,
+              totalWages: p.totalWages
+            }))
+          };
 
-    setLoading(true);
-    try {
-      const payslipsToGenerate = previewData.filter(d => selectedUsers.has(d.employee._id));
-      const payload = {
-        periodStartDate: formatDateForAPI(startDate),
-        periodEndDate: formatDateForAPI(endDate),
-        standardHours,
-        payslips: payslipsToGenerate.map(p => ({
-          employeeId: p.employee._id,
-          totalHoursTracked: p.totalHoursTracked,
-          adjustedHours: p.adjustedHours,
-          extraHours: p.extraHours,
-          hourlyWage: p.hourlyWage,
-          adjustedWage: p.adjustedWage,
-          totalWages: p.totalWages
-        }))
-      };
-
-      await payrollApi.generatePayslips(payload);
-      toast.success("Payslips generated successfully!");
-      setActiveTab("history"); // Switch to history tab to see them
-    } catch (error) {
-      toast.error(error.message || "Failed to generate payslips");
-    } finally {
-      setLoading(false);
-    }
+          await payrollApi.generatePayslips(payload);
+          toast.success("Payslips generated successfully!");
+          setActiveTab("history"); // Switch to history tab to see them
+        } catch (error) {
+          toast.error(error.message || "Failed to generate payslips");
+          throw error;
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const handleEditClick = (row) => {
@@ -395,27 +404,14 @@ const PayrollManagement = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 min-w-[160px]"
             />
-            <div className="flex items-center bg-surface border border-border-subtle rounded-xl px-3 h-[42px] gap-2">
-              <Calendar size={14} className="text-muted flex-shrink-0" />
-              <DatePicker
-                selected={startDate}
-                onChange={(date) => setStartDate(date)}
-                selectsStart
-                startDate={startDate}
-                endDate={endDate}
-                className="w-24 bg-transparent border-none text-xs font-semibold text-main outline-none cursor-pointer !py-0 !px-0"
-              />
-              <span className="text-muted text-xs">-</span>
-              <DatePicker
-                selected={endDate}
-                onChange={(date) => setEndDate(date)}
-                selectsEnd
-                startDate={startDate}
-                endDate={endDate}
-                minDate={startDate}
-                className="w-24 bg-transparent border-none text-xs font-semibold text-main outline-none cursor-pointer !py-0 !px-0"
-              />
-            </div>
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(update) => {
+                setStartDate(update[0]);
+                setEndDate(update[1]);
+              }}
+            />
             <div className="flex items-center bg-surface border border-border-subtle rounded-xl px-3 h-[42px] gap-2 min-w-[140px]">
               <Clock size={14} className="text-muted flex-shrink-0" />
               <input 
@@ -427,6 +423,14 @@ const PayrollManagement = () => {
               />
               <span className="text-xs text-muted">Std Hrs</span>
             </div>
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="btn btn-secondary h-[42px] px-3 flex items-center gap-1 text-xs"
+              >
+                <X size={14} /> Clear
+              </button>
+            )}
           </FilterRow>
         )
       }

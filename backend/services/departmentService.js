@@ -10,7 +10,8 @@ class DepartmentService {
     return Department.create({
       name,
       description,
-      manager: manager || null
+      manager: manager || null,
+      company: data.company
     });
   }
 

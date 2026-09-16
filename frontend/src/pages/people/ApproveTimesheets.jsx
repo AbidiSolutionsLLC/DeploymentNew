@@ -18,9 +18,10 @@ import PageContainer from "../../components/ui/PageContainer";
 import ModernSelect from "../../components/ui/ModernSelect";
 import { formatDateForAPI } from "../../utils/dateUtils";
 import Loader from "../../components/ui/Loader";
-
+import { useConfirm } from "../../context/ConfirmContext";
 
 const ApproveTimesheets = () => {
+ const confirm = useConfirm();
  // Helper functions defined first
  function getMonday(date) {
  const d = new Date(date);
@@ -275,22 +276,29 @@ const ApproveTimesheets = () => {
 
  const handleBulkApprove = async () => {
  if (selectedIds.length === 0) return;
- if (!window.confirm(`Are you sure you want to approve ${selectedIds.length} timesheets?`)) return;
- 
- setUpdating(true);
- try {
- await Promise.all(selectedIds.map(id => 
- timesheetApi.updateTimesheetStatus(id, { status: "Approved" })
- ));
- toast.success(`Successfully approved ${selectedIds.length} timesheets`);
- setSelectedIds([]);
- fetchWeeklyTimesheets();
- } catch (error) {
- console.error("Bulk approval failed:", error);
- toast.error("Failed to approve some timesheets");
- } finally {
- setUpdating(false);
- }
+ await confirm({ 
+  title: "Bulk Approve", 
+  message: `Are you sure you want to approve ${selectedIds.length} timesheets?`, 
+  confirmText: "Approve", 
+  isDanger: false,
+  onConfirmAction: async () => {
+    setUpdating(true);
+    try {
+      await Promise.all(selectedIds.map(id => 
+        timesheetApi.updateTimesheetStatus(id, { status: "Approved" })
+      ));
+      toast.success(`Successfully approved ${selectedIds.length} timesheets`);
+      setSelectedIds([]);
+      fetchWeeklyTimesheets();
+    } catch (error) {
+      console.error("Bulk approval failed:", error);
+      toast.error("Failed to approve some timesheets");
+      throw error;
+    } finally {
+      setUpdating(false);
+    }
+  }
+ });
  };
 
  const handleViewDetails = async (timesheet) => {

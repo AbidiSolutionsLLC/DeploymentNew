@@ -9,6 +9,7 @@ import { store, persistor } from "./store/index";
 import { TimeLogProvider } from "./pages/people/TimeLogContext";
 import { PersistGate } from "redux-persist/integration/react";
 import { injectStore } from "./axios";
+import { ConfirmProvider } from "./context/ConfirmContext";
 
 // MSAL Imports
 import { PublicClientApplication, EventType } from "@azure/msal-browser";
@@ -65,7 +66,9 @@ function renderApp() {
  <PersistGate loading={null} persistor={persistor}>
  <TimeLogProvider>
  <ErrorBoundary>
+ <ConfirmProvider>
  <App />
+ </ConfirmProvider>
  </ErrorBoundary>
  </TimeLogProvider>
  </PersistGate>

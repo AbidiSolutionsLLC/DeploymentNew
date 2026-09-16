@@ -36,7 +36,9 @@ class LogService {
     const skip = (page - 1) * limit;
 
     const filter = {};
-    if (companyId) filter.company = companyId;
+    if (companyId) {
+      filter.$or = [{ company: companyId }, { company: { $exists: false } }];
+    }
 
     const logs = await Log.find(filter)
       .skip(skip)

@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import PageContainer from "../../components/ui/PageContainer";
 import TableWithPagination from "../../components/TableWithPagination";
 import CalendarNavigator from "../../components/CalendarNavigator";
-import SearchBar from "../../components/SearchBar";
+import FilterRow from "../../components/ui/FilterRow";
+import GlassInput from "../../components/ui/GlassInput";
 
 const ActivityLogs = () => {
- const [users, setUsers] = useState([
+  const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState([
  {
  "timestamp": "May 10, 2025 8:29 AM FDT",
  "category": "Notifications",
@@ -56,18 +58,21 @@ const ActivityLogs = () => {
  title="Activity Logs"
  subtitle="View system activities and events"
  filters={
- <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full">
- <div className="w-full sm:w-auto">
- <SearchBar />
- </div>
- <div className="w-full sm:w-auto flex justify-center sm:justify-start">
+ <FilterRow>
+ <GlassInput 
+ placeholder="Search logs..." 
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
+ className="flex-1 min-w-[200px]" 
+ />
+ <div className="flex-shrink-0">
  <CalendarNavigator
  onPrev={() => console.log("Previous")}
  onNext={() => console.log("Next")}
  onToday={() => console.log("Today")}
  />
  </div>
- </div>
+ </FilterRow>
  }
  >
  <div className="bg-surface rounded-[1.5rem] border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden">

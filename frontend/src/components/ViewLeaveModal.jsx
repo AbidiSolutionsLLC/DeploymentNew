@@ -24,6 +24,7 @@ import { validateDescription, getApiError } from "../utils/validationUtils";
 import { parseISOToLocalDate, formatDisplayDate } from "../utils/dateUtils";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import { useConfirm } from "../context/ConfirmContext";
 import Loader from "./ui/Loader";
  
 const ViewLeaveModal = ({
@@ -34,6 +35,7 @@ const ViewLeaveModal = ({
  fetchLeaveRequests,
  isAdminPortal = false,
 }) => {
+ const confirm = useConfirm();
  const { user } = useSelector((state) => state.auth);
 
  const userRole = (user?.user?.role || user?.role || "").replace(/\s+/g, '').toLowerCase();
@@ -180,16 +182,21 @@ const ViewLeaveModal = ({
  };
  
  const handleDeleteResponse = async (responseId) => {
- if (!window.confirm("Are you sure you want to delete this response?")) return;
- 
- try {
- await api.delete(`/leaves/${leaveData.id}/responses/${responseId}`);
- setResponses(prev => prev.filter(res => res._id !== responseId));
- showToast("Response deleted successfully");
- } catch (error) {
- console.error("Failed to delete response:", error);
- showToast(getApiError(error, "Failed to delete response"), "error");
- }
+ await confirm({ 
+  title: "Delete Response", 
+  message: "Are you sure you want to delete this response?",
+  onConfirmAction: async () => {
+    try {
+      await api.delete(`/leaves/${leaveData.id}/responses/${responseId}`);
+      setResponses(prev => prev.filter(res => res._id !== responseId));
+      showToast("Response deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete response:", error);
+      showToast(getApiError(error, "Failed to delete response"), "error");
+      throw error;
+    }
+  }
+ });
  };
  
  const handleAttachmentChange = (e) => {

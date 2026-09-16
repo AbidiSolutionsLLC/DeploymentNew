@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import CreateUserModal from "../../components/CreateUserModal";
 import CreateDepartmentModal from "../../components/CreateDepartmentModal";
 import { FaPlus } from "react-icons/fa";
+import { X } from "lucide-react";
 import UserDetailModal from "../../components/UserDetailModal";
 import api from "../../axios";
 import { toast } from "react-toastify";
@@ -259,6 +260,20 @@ const UserManagement = () => {
  placeholder="All Status"
  />
  </div>
+ {/* Clear Filters */}
+ {(searchTerm || roleFilter !== "all" || deptFilter !== "all" || statusFilter !== "all") && (
+   <button
+     onClick={() => {
+       setSearchTerm("");
+       setRoleFilter("all");
+       setDeptFilter("all");
+       setStatusFilter("all");
+     }}
+     className="btn btn-secondary h-[42px] px-3 flex items-center gap-1 text-xs"
+   >
+     <X size={14} /> Clear
+   </button>
+ )}
  </FilterRow>
  }
  bottomWidgets={

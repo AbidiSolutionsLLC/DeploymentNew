@@ -9,10 +9,12 @@ import { validateDescription, validateDateRange } from "../utils/validationUtils
 import { calculateWorkingDays, formatDateForAPI } from "../utils/dateUtils";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import { useConfirm } from "../context/ConfirmContext";
 
 const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
- const dispatch = useDispatch();
- const [leaveType, setLeaveType] = useState("");
+  const confirm = useConfirm();
+  const dispatch = useDispatch();
+  const [leaveType, setLeaveType] = useState("");
  const [startDate, setStartDate] = useState(null);
  const [endDate, setEndDate] = useState(null);
  const [reason, setReason] = useState("");
@@ -39,10 +41,10 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
  return mapping[leaveType] || leaveType.toLowerCase();
  };
 
- const handleCancel = () => {
+ const handleCancel = async () => {
  const hasData = leaveType || startDate || endDate || reason;
  if (hasData) {
- const confirmed = window.confirm('Are you sure? Unsaved changes will be lost.');
+ const confirmed = await confirm({ title: "Unsaved Changes", message: "Are you sure? Unsaved changes will be lost." });
  if (!confirmed) return;
  }
  resetForm();

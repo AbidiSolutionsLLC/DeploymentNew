@@ -3,7 +3,7 @@ const ApiResponse = require("../utils/ApiResponse");
 const catchAsync = require("../utils/catchAsync");
 
 exports.createDepartment = catchAsync(async (req, res) => {
-  const newDept = await departmentService.createDepartment(req.body);
+  const newDept = await departmentService.createDepartment({ ...req.body, company: req.companyId });
   res.status(201).json(ApiResponse.success(newDept, "Department created successfully"));
 });
 

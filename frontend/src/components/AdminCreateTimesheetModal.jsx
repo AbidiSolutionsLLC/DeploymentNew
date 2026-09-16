@@ -8,8 +8,10 @@ import ModernDatePicker from "./ui/ModernDatePicker";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
 import { validateDescription, getApiError } from "../utils/validationUtils";
+import { useConfirm } from "../context/ConfirmContext";
 
 export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCreated, allUsers }) {
+ const confirm = useConfirm();
  const [employeeId, setEmployeeId] = useState("");
  const [timesheetName, setTimesheetName] = useState("");
  const [selectedDate, setSelectedDate] = useState(""); 
@@ -75,10 +77,11 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
  }
  };
 
- const handleCancel = () => {
+ const handleCancel = async () => {
  const isDirty = employeeId || description || attachment || (timesheetName && !timesheetName.startsWith("Timesheet ("));
  if (isDirty) {
- if (window.confirm("Are you sure? Unsaved data will be lost.")) onClose();
+ const isConfirmed = await confirm({ title: "Unsaved Changes", message: "Are you sure? Unsaved data will be lost." });
+ if (isConfirmed) onClose();
  } else {
  onClose();
  }

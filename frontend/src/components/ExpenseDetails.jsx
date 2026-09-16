@@ -4,6 +4,7 @@ import { IoCalendarNumberOutline } from "react-icons/io5";
 import { toast } from "react-toastify";
 import { downloadFile } from "../utils/downloadFile";
 import GlassModal from "./ui/GlassModal";
+import { useConfirm } from "../context/ConfirmContext";
 
 const ExpenseDetail = ({
  expense,
@@ -16,6 +17,7 @@ const ExpenseDetail = ({
  canEdit,
  currentUser
 }) => {
+ const confirm = useConfirm();
  const handleViewReceipt = () => {
  // Priority: receiptPublicId (typically stores blob name in Azure migration) -> receiptUrl
  const source = expense.receiptPublicId || expense.receiptUrl;
@@ -97,12 +99,7 @@ const ExpenseDetail = ({
 
       {(canEdit || (isOwner && expense.status === 'pending')) && (
         <button
-          onClick={() => {
-            if (window.confirm("Are you sure you want to delete this expense?")) {
-              onDelete(expense._id);
-              onClose();
-            }
-          }}
+          onClick={() => onDelete(expense._id)}
           className="btn bg-rose-600 hover:bg-rose-700 text-white flex-1 flex justify-center items-center gap-2 shadow-lg shadow-rose-600/20"
         >
           <Trash2 size={14} /> Delete

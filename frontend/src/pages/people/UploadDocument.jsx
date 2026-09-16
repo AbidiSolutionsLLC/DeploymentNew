@@ -17,8 +17,10 @@ import { IoEllipsisVertical } from "react-icons/io5"
 import { FaFolder, FaFile, FaShare, FaTrash } from "react-icons/fa"
 import { Paperclip } from "lucide-react"
 import GlassModal from "../../components/ui/GlassModal"
+import { useConfirm } from "../../context/ConfirmContext"
 
 const UploadDocument = () => {
+ const confirm = useConfirm();
  const [folderStack, setFolderStack] = useState([])
  const [drawerOpen, setDrawerOpen] = useState(false)
  const [folderName, setFolderName] = useState("")
@@ -163,32 +165,42 @@ const UploadDocument = () => {
 
  const handleDeleteFile = async (fileId) => {
  console.log("Attempting to delete file:", fileId)
- if (!window.confirm("Are you sure you want to delete this file?")) return
-
- try {
- await deleteFile(fileId)
- toast.success("File deleted")
- reload()
- handleCloseFileMenu()
- } catch (error) {
- console.error("Delete file error:", error)
- toast.error("Failed to delete file")
- }
+ await confirm({ 
+  title: "Delete File", 
+  message: "Are you sure you want to delete this file?",
+  onConfirmAction: async () => {
+    try {
+      await deleteFile(fileId)
+      toast.success("File deleted")
+      reload()
+      handleCloseFileMenu()
+    } catch (error) {
+      console.error("Delete file error:", error)
+      toast.error("Failed to delete file")
+      throw error;
+    }
+  }
+ });
  }
 
  const handleDeleteFolder = async (folderId) => {
  console.log("Attempting to delete folder:", folderId)
- if (!window.confirm("Are you sure you want to delete this folder?")) return
-
- try {
- await deleteFolder(folderId)
- toast.success("Folder deleted")
- reload()
- handleCloseFolderMenu()
- } catch (error) {
- console.error("Delete folder error:", error)
- toast.error("Failed to delete folder")
- }
+ await confirm({ 
+  title: "Delete Folder", 
+  message: "Are you sure you want to delete this folder?",
+  onConfirmAction: async () => {
+    try {
+      await deleteFolder(folderId)
+      toast.success("Folder deleted")
+      reload()
+      handleCloseFolderMenu()
+    } catch (error) {
+      console.error("Delete folder error:", error)
+      toast.error("Failed to delete folder")
+      throw error;
+    }
+  }
+ });
  }
 
  const handleGoBack = () => {

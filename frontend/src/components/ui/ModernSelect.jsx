@@ -159,13 +159,13 @@ const ModernSelect = ({
  <button
  type="button"
  onClick={() => setIsOpen(!isOpen)}
- className={`w-full rounded-xl px-4 py-3 text-sm font-medium outline-none flex justify-between items-center transition-all shadow-sm text-left
+ className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium outline-none flex justify-between items-center transition-all shadow-sm text-left
  bg-surface dark:bg-slate-800
  ${isOpen
  ? "border-amber-400 ring-2 ring-amber-100 dark:ring-amber-500/20 dark:border-amber-500"
  : error
  ? "border-red-400 dark:border-red-500"
- : "border-subtle dark:border-slate-600 hover:border-subtle dark:hover:border-slate-500"
+ : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
  }
  border
  ${!selectedOption

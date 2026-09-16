@@ -21,9 +21,11 @@ import TableWithPagination from "../../components/TableWithPagination";
 import expensesApi from "../../api/expensesApi";
 import GlassModal from "../../components/ui/GlassModal";
 import { dispatchReadOnlyModal } from "../../utils/readOnlyEvent";
+import { useConfirm } from "../../context/ConfirmContext";
 
 // --- MAIN COMPONENT ---
 const ExpenseManagement = () => {
+ const confirm = useConfirm();
  const [expenses, setExpenses] = useState([]);
  const [loading, setLoading] = useState(true);
  const [searchTerm, setSearchTerm] = useState("");
@@ -150,22 +152,28 @@ const ExpenseManagement = () => {
  };
 
  const handleDelete = async (expenseId) => {
-   if (currentUserRole === 'globalreader') {
-     dispatchReadOnlyModal();
-     return;
-   }
- if (!window.confirm("Are you sure you want to delete this expense?")) return;
- 
- try {
- await expensesApi.deleteExpense(expenseId);
- toast.success("Expense deleted successfully");
- await fetchExpenses();
- if (selectedExpense?._id === expenseId) {
- setIsDetailModalOpen(false);
- }
- } catch (error) {
- toast.error(error.response?.data?.msg || "Failed to delete expense");
- }
+    if (currentUserRole === 'globalreader') {
+      dispatchReadOnlyModal();
+      return;
+    }
+    
+    await confirm({ 
+      title: "Delete Expense", 
+      message: "Are you sure you want to delete this expense?",
+      onConfirmAction: async () => {
+        try {
+          await expensesApi.deleteExpense(expenseId);
+          toast.success("Expense deleted successfully");
+          await fetchExpenses();
+          if (selectedExpense?._id === expenseId) {
+            setIsDetailModalOpen(false);
+          }
+        } catch (error) {
+          toast.error(error.response?.data?.msg || "Failed to delete expense");
+          throw error;
+        }
+      }
+    });
  };
 
  const handleEditClick = (expense) => {

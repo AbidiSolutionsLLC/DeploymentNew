@@ -12,8 +12,10 @@ import {
  getApiError,
 } from "../utils/validationUtils";
 import { formatDateForAPI } from "../utils/dateUtils";
+import { useConfirm } from "../context/ConfirmContext";
 
 export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUsers }) {
+ const confirm = useConfirm();
  const [formData, setFormData] = useState({
  employeeId: "",
  job: "",
@@ -37,10 +39,11 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  }
  }, [open]);
 
- const handleCancel = () => {
+ const handleCancel = async () => {
  const isDirty = formData.employeeId || formData.job || formData.description || formData.hours;
  if (isDirty) {
- if (window.confirm("Are you sure? Unsaved data will be lost.")) onClose();
+ const isConfirmed = await confirm({ title: "Unsaved Changes", message: "Are you sure? Unsaved data will be lost." });
+ if (isConfirmed) onClose();
  } else {
  onClose();
  }

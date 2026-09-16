@@ -8,8 +8,10 @@ import ModernDatePicker from "./ui/ModernDatePicker";
 import { validateText, validateEmail, validatePhone, sanitizeText } from "../utils/validationUtils";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import { useConfirm } from "../context/ConfirmContext";
 
 const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, allManagers, allDepartments }) => {
+ const confirm = useConfirm();
  const [isEditing, setIsEditing] = useState(false);
  const [formData, setFormData] = useState({});
  const [isLoading, setIsLoading] = useState(false);
@@ -170,16 +172,21 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
 
  // ================== ACTIONS ==================
  const handleDeleteUser = async () => {
- if (!window.confirm(`Delete ${user.name}?`)) return;
- setIsDeleting(true);
- try {
- await api.delete(`/users/${user._id}`);
- toast.success("Deleted");
- onUserUpdated("delete");
- onClose();
- } finally {
- setIsDeleting(false);
- }
+ await confirm({ 
+  title: "Delete User", 
+  message: `Delete ${user.name}?`,
+  onConfirmAction: async () => {
+    setIsDeleting(true);
+    try {
+      await api.delete(`/users/${user._id}`);
+      toast.success("Deleted");
+      onUserUpdated("delete");
+      onClose();
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+ });
  };
  const handleResendInvite = async () => {
  setIsResending(true);
