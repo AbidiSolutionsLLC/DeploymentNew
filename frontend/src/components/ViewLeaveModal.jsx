@@ -39,7 +39,7 @@ const ViewLeaveModal = ({
  const { user } = useSelector((state) => state.auth);
 
  const userRole = (user?.user?.role || user?.role || "").replace(/\s+/g, '').toLowerCase();
- const canUpdateStatus = isAdminPortal && ['superadmin', 'admin', 'hr'].includes(userRole);
+ const canUpdateStatus = isAdminPortal && ['superadmin', 'admin', 'manager'].includes(userRole);
 
  const [selectedStatus, setSelectedStatus] = useState(leaveData?.status || "Pending");
  const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,42 +57,43 @@ const ViewLeaveModal = ({
  setTimeout(() => setToastMsg(null), 3000);
  };
  
- useEffect(() => {
- let intervalId;
- 
- const startPolling = () => {
- fetchResponses();
- intervalId = setInterval(() => {
- fetchResponses();
- }, 5000);
- };
- 
- if (isOpen && leaveData?.id) {
- startPolling();
- }
- 
- return () => {
- if (intervalId) {
- clearInterval(intervalId);
- }
- };
- }, [isOpen, leaveData?.id]);
- 
-  const [responsesError, setResponsesError] = useState(false);
-
-  const fetchResponses = async () => {
-  try {
-  setLoadingResponses(true);
-  setResponsesError(false);
-  const response = await api.get(`/leaves/${leaveData.id}/responses`);
-  setResponses(response.data.data || []);
-  } catch (error) {
-  console.error("Failed to fetch responses:", error);
-  setResponsesError(true);
-  } finally {
-  setLoadingResponses(false);
+  useEffect(() => {
+  let intervalId;
+  
+  const startPolling = () => {
+  fetchResponses(false);
+  intervalId = setInterval(() => {
+  fetchResponses(true);
+  }, 5000);
+  };
+  
+  if (isOpen && leaveData?.id) {
+  startPolling();
+  }
+  
+  return () => {
+  if (intervalId) {
+  clearInterval(intervalId);
   }
   };
+  }, [isOpen, leaveData?.id]);
+  
+   const [responsesError, setResponsesError] = useState(false);
+ 
+   const fetchResponses = async (isPolling = false) => {
+   try {
+   if (!isPolling) setLoadingResponses(true);
+   setResponsesError(false);
+   const response = await api.get(`/leaves/${leaveData.id}/responses`);
+   // Axios interceptor unwraps ApiResponse.success, so response.data is the actual payload
+   setResponses(response.data || []);
+   } catch (error) {
+   console.error("Failed to fetch responses:", error);
+   setResponsesError(true);
+   } finally {
+   if (!isPolling) setLoadingResponses(false);
+   }
+   };
  
  const resetState = () => {
  setResponses([]);
@@ -138,7 +139,7 @@ const ViewLeaveModal = ({
  content: newResponse.trim()
  });
  
- setResponses(prev => [...prev, response.data.data]);
+ setResponses(prev => [...prev, response.data]);
  setNewResponse("");
  setAttachment(null);
  
@@ -167,7 +168,7 @@ const ViewLeaveModal = ({
  setResponses(prev =>
  prev.map(res =>
  res._id === responseId
- ? { ...res, ...response.data.data, isEdited: true, editedAt: new Date() }
+ ? { ...res, ...response.data, isEdited: true, editedAt: new Date() }
  : res
  )
  );
@@ -207,7 +208,6 @@ const ViewLeaveModal = ({
  return;
  }
  setAttachment(file);
- setNewResponse(prev => prev + `\n[Attached: ${file.name}]`);
  }
  };
  
@@ -565,34 +565,32 @@ const ViewLeaveModal = ({
  <p className="text-xs text-red-500 mt-1">{errors.newResponse}</p>
  )}
  
- {/* Attachment Button */}
- <label className="absolute left-3 bottom-8 p-2 bg-surface/80 dark:bg-slate-800 text-muted dark:text-muted rounded-lg hover:bg-surface dark:hover:bg-slate-700 transition cursor-pointer">
- <input
- type="file"
- className="hidden"
- onChange={handleAttachmentChange}
- disabled={isSubmitting}
- accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
- />
- <Paperclip size={16} />
- </label>
- 
- {/* Attachment Preview */}
- {attachment && (
- <div className="absolute left-12 bottom-8 flex items-center gap-2 bg-brand-primary/10 text-brand-primary px-2 py-1 rounded-lg text-xs">
- <Paperclip size={12} />
- <span className="truncate max-w-[100px]">{attachment.name}</span>
- <button
- onClick={() => {
- setAttachment(null);
- setNewResponse(prev => prev.replace(`\n[Attached: ${attachment.name}]`, ''));
- }}
- className="text-brand-primary hover:text-red-600 dark:text-red-400"
- >
- <FaTimes size={10} />
- </button>
- </div>
- )}
+  {/* Attachment Button / Preview */}
+  {!attachment ? (
+  <label className="absolute left-3 bottom-8 p-2 bg-surface/80 dark:bg-slate-800 text-muted dark:text-muted rounded-lg hover:bg-surface dark:hover:bg-slate-700 transition cursor-pointer">
+  <input
+  type="file"
+  className="hidden"
+  onChange={handleAttachmentChange}
+  disabled={isSubmitting}
+  accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/png,image/jpeg,image/jpg"
+  />
+  <Paperclip size={16} />
+  </label>
+  ) : (
+  <div className="absolute left-3 bottom-8 flex items-center gap-2 bg-brand-primary/10 text-brand-primary px-3 py-1.5 rounded-lg text-xs">
+  <Paperclip size={14} />
+  <span className="truncate max-w-[150px] font-medium">{attachment.name}</span>
+  <button
+  onClick={() => {
+  setAttachment(null);
+  }}
+  className="text-brand-primary hover:text-red-600 dark:text-red-400"
+  >
+  <FaTimes size={10} />
+  </button>
+  </div>
+  )}
  
  {/* Send Button */}
  <button

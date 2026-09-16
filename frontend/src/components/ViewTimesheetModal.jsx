@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaPaperPlane } from "react-icons/fa";
+import { FaPaperPlane, FaComment } from "react-icons/fa";
 import { Paperclip } from "lucide-react";
 import { downloadFile } from "../utils/downloadFile";
 import { toast } from "react-toastify";
@@ -176,31 +176,37 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
 
  {/* DISCUSSION SECTION */}
  <div className="border-t border-border-subtle dark:border-slate-700 pt-6">
- <label className="block text-[10px] font-black text-muted dark:text-muted mb-4 uppercase tracking-widest">
+ <h3 className="text-sm font-black text-heading dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+ <FaComment className="text-muted dark:text-muted" />
  DISCUSSION
- </label>
+ </h3>
  
  {/* Message List */}
  <div className="space-y-4 mb-4 max-h-[300px] overflow-y-auto custom-scrollbar-visible pr-2">
  {timesheet.comments?.length > 0 ? (
  timesheet.comments.map((comment, i) => (
- <div key={i} className="bg-surface dark:bg-slate-800 border border-border-subtle dark:border-slate-700 p-4 rounded-2xl shadow-sm">
- <div className="flex justify-between items-start mb-2">
- <div className="flex items-center gap-2">
- <div className="w-6 h-6 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center text-xs font-bold">
+ <div key={i} className="bg-surface/50 dark:bg-slate-800/50 rounded-xl p-3 border border-border-subtle dark:border-slate-700">
+ <div className="flex items-start gap-3">
+ <div className="w-8 h-8 flex items-center justify-center bg-brand-primary/10 text-brand-primary rounded-full text-sm font-bold shrink-0">
  {comment.author.charAt(0)}
  </div>
- <span className="text-xs font-bold text-heading dark:text-white">{comment.author}</span>
- </div>
- <span className="text-[10px] text-muted dark:text-muted font-medium">
+ <div className="flex-1 min-w-0">
+ <div className="flex justify-between items-start mb-1">
+ <span className="text-sm font-bold text-heading dark:text-white">{comment.author}</span>
+ <span className="text-xs text-muted dark:text-muted">
  {format(new Date(comment.time), "MMM dd, HH:mm")}
  </span>
  </div>
- <p className="text-sm text-heading dark:text-slate-300 pl-8">{comment.content}</p>
+ <p className="text-sm text-heading dark:text-slate-300 whitespace-pre-wrap break-words">{comment.content}</p>
+ </div>
+ </div>
  </div>
  ))
  ) : (
- <p className="text-center text-xs text-muted dark:text-muted italic py-4">No comments yet.</p>
+ <div className="text-center py-8">
+ <FaComment className="w-12 h-12 text-muted dark:text-muted mx-auto mb-3 opacity-50" />
+ <p className="text-sm text-muted dark:text-muted font-medium">No discussion yet</p>
+ </div>
  )}
  </div>
 
@@ -212,24 +218,26 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
  setCommentText(e.target.value);
  if (errors.comment) setErrors(prev => ({ ...prev, comment: null }));
  }}
- placeholder="Type your reply..."
- className={`glass-input w-full pl-4 pr-12 py-3 text-sm resize-none h-14 ${errors.comment ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+ placeholder="Type your reply here..."
+ className={`glass-input w-full resize-none pr-12 ${errors.comment ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+ rows="3"
  />
- <div className="flex justify-between items-center mt-1 px-1">
- {errors.comment ? (
- <p className="text-[10px] text-red-500 font-bold">{errors.comment}</p>
- ) : <div />}
- <p className="text-[10px] text-muted dark:text-muted uppercase tracking-widest">{commentText.length}/200</p>
- </div>
+ <p className="text-[10px] text-muted dark:text-muted text-right mt-1">
+ {commentText.length}/200
+ </p>
+ {errors.comment && (
+ <p className="text-xs text-red-500 mt-1">{errors.comment}</p>
+ )}
  <button
  onClick={handleSendComment}
  disabled={sending || !commentText.trim()}
- className="btn-ghost absolute right-2 top-2 flex items-center justify-center p-2 rounded-lg"
+ className="btn-ghost absolute right-3 bottom-8 p-2 rounded-lg"
+ title="Send response"
  >
  {sending ? (
   <Loader variant="spinner" size="sm" className="text-white" />
  ) : (
- <FaPaperPlane size={14} />
+ <FaPaperPlane size={16} />
  )}
  </button>
  </div>

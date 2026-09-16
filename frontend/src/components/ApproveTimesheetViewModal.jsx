@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaPaperPlane, FaEye, FaDownload } from "react-icons/fa";
+import { FaPaperPlane, FaEye, FaDownload, FaComment } from "react-icons/fa";
 import { downloadFile } from "../utils/downloadFile";
 import timesheetApi from "../api/timesheetApi";
 import { toast } from "react-toastify";
@@ -284,41 +284,16 @@ const ApproveTimesheetViewModal = ({
 
  {/* DISCUSSION SECTION */}
  <div className="pt-6 border-t border-border-subtle dark:border-slate-700">
- <label className="block text-[10px] font-black text-muted dark:text-muted mb-4 uppercase tracking-widest">
+ <h3 className="text-sm font-black text-heading dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+ <FaComment className="text-muted dark:text-muted" />
  DISCUSSION
- </label>
+ </h3>
  
- {/* Comment Input */}
- <div className={`bg-surface/50 dark:bg-slate-800/50 p-2 rounded-2xl border ${errors.comment ? 'border-red-400 ring-1 ring-red-400' : 'border-border-subtle dark:border-slate-700'} flex items-center gap-2 focus-within:ring-2 focus-within:ring-brand-primary transition-all mb-1`}>
- <textarea 
- value={newComment}
- onChange={(e) => {
- setNewComment(e.target.value);
- if (errors.comment) setErrors(prev => ({ ...prev, comment: null }));
- }}
- placeholder="Type your reply here..."
- className="flex-1 bg-transparent border-none focus:ring-0 text-sm p-3 resize-none h-12 font-medium outline-none text-heading dark:text-white"
- ></textarea>
- <button 
- onClick={handleAddComment}
- disabled={sendingComment || !newComment.trim()}
- className="btn-ghost flex items-center justify-center p-3 rounded-xl"
- >
- {sendingComment ? <Loader variant="spinner" size="sm" className="text-white" /> : <FaPaperPlane className="w-4 h-4" />}
- </button>
- </div>
- <div className="flex justify-between items-center mb-6 px-2">
- {errors.comment ? (
- <p className="text-[10px] text-red-500 font-bold">{errors.comment}</p>
- ) : <div />}
- <p className="text-[10px] text-muted dark:text-muted uppercase tracking-widest">{newComment.length}/200</p>
- </div>
-
  {/* Comments List */}
- <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar-visible">
+ <div className="space-y-4 mb-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar-visible">
  {comments.length > 0 ? (
  [...comments].reverse().map((c, idx) => (
- <div key={c._id || idx} className="bg-surface dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-border-subtle dark:border-slate-700 flex gap-4">
+ <div key={c._id || idx} className="bg-surface/50 dark:bg-slate-800/50 rounded-xl p-3 border border-border-subtle dark:border-slate-700 flex items-start gap-3">
  {c.avatar ? (
  <img src={c.avatar} alt="" className="w-8 h-8 rounded-full border border-border-subtle dark:border-slate-700 object-cover" />
  ) : (
@@ -327,19 +302,50 @@ const ApproveTimesheetViewModal = ({
  </div>
  )}
  <div className="flex-1 min-w-0">
- <div className="flex justify-between items-center mb-1">
- <span className="font-bold text-sm text-heading dark:text-white truncate">{c.author}</span>
- <span className="text-[10px] text-muted dark:text-muted font-bold whitespace-nowrap ml-2">
+ <div className="flex justify-between items-start mb-1">
+ <span className="text-sm font-bold text-heading dark:text-white">{c.author}</span>
+ <span className="text-xs text-muted dark:text-muted whitespace-nowrap ml-2">
  {format(new Date(c.time), "MMM dd, hh:mm a")}
  </span>
  </div>
- <p className="text-sm text-muted dark:text-slate-300 font-medium break-words">{c.content}</p>
+ <p className="text-sm text-heading dark:text-slate-300 break-words whitespace-pre-wrap">{c.content}</p>
  </div>
  </div>
  ))
  ) : (
- <p className="text-center text-muted dark:text-muted text-xs italic py-4">No comments yet.</p>
+ <div className="text-center py-8">
+ <FaComment className="w-12 h-12 text-muted dark:text-muted mx-auto mb-3 opacity-50" />
+ <p className="text-sm text-muted dark:text-muted font-medium">No discussion yet</p>
+ </div>
  )}
+ </div>
+ 
+ {/* Comment Input */}
+ <div className="relative">
+ <textarea 
+ value={newComment}
+ onChange={(e) => {
+ setNewComment(e.target.value);
+ if (errors.comment) setErrors(prev => ({ ...prev, comment: null }));
+ }}
+ placeholder="Type your reply here..."
+ className={`glass-input w-full resize-none pr-12 ${errors.comment ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+ rows="3"
+ />
+ <p className="text-[10px] text-muted dark:text-muted text-right mt-1">
+ {newComment.length}/200
+ </p>
+ {errors.comment && (
+ <p className="text-xs text-red-500 mt-1">{errors.comment}</p>
+ )}
+ <button 
+ onClick={handleAddComment}
+ disabled={sendingComment || !newComment.trim()}
+ className="btn-ghost absolute right-3 bottom-8 p-2 rounded-lg"
+ title="Send response"
+ >
+ {sendingComment ? <Loader variant="spinner" size="sm" className="text-white" /> : <FaPaperPlane size={16} />}
+ </button>
  </div>
  </div>
  </div>

@@ -85,14 +85,20 @@ class LeaveService {
     this.sendLeaveCreationNotification(savedLeaveRequest).catch(console.error);
 
     try {
-      const hrManagers = await User.find({
-        $or: [{ role: 'HR' }, { role: 'Super Admin' }, { role: 'Admin' }],
+      const notifyRoles = await User.find({
+        $or: [{ role: 'Super Admin' }, { role: 'Admin' }],
         company: companyId
       }).select('_id');
+      
+      let notifRecipients = [...notifyRoles.map(r => r._id.toString())];
+      if (user.reportsTo) {
+        notifRecipients.push(user.reportsTo.toString());
+      }
+      notifRecipients = [...new Set(notifRecipients)];
 
-      const notifPromises = hrManagers.map(mgr =>
+      const notifPromises = notifRecipients.map(mgrId =>
         createNotification({
-          recipient: mgr._id,
+          recipient: mgrId,
           type: 'LEAVE_REQUEST_SUBMITTED',
           title: 'New Leave Request',
           message: `${user.name} has submitted a ${leaveType} leave request from ${moment.utc(startDate).format('MMM DD, YYYY')} to ${moment.utc(endDate).format('MMM DD, YYYY')}. Action required.`,
@@ -409,7 +415,7 @@ class LeaveService {
     const roleKey = normalizeRole(user.role);
     const currentUserId = user.id || user._id;
 
-    if (!['superadmin', 'admin', 'hr', 'manager'].includes(roleKey)) {
+    if (!['superadmin', 'admin', 'manager'].includes(roleKey)) {
        throw new ForbiddenError("You do not have permission to update leave status.");
     }
 
@@ -606,7 +612,7 @@ class LeaveService {
     if (!["Pending", "Approved", "Rejected"].includes(status)) throw new BadRequestError("Invalid status");
 
     const roleKey = normalizeRole(user.role);
-    if (!['superadmin', 'admin', 'hr', 'manager'].includes(roleKey)) {
+    if (!['superadmin', 'admin', 'manager'].includes(roleKey)) {
        throw new ForbiddenError("You do not have permission to update leave status.");
     }
 
@@ -691,12 +697,18 @@ class LeaveService {
       employee = await User.findById(leaveRequest.employee).populate('department', 'name');
     }
 
-    const hrAndManagers = await User.find({
-      $or: [{ role: 'HR' }, { role: 'Super Admin' }, { role: 'Admin' }],
+    const notifyRoles = await User.find({
+      $or: [{ role: 'Super Admin' }, { role: 'Admin' }],
       company: leaveRequest.company
     });
+    
+    let recipients = notifyRoles;
+    if (employee && employee.reportsTo) {
+      const manager = await User.findById(employee.reportsTo);
+      if (manager) recipients.push(manager);
+    }
    
-    const recipientEmails = hrAndManagers.map(user => user.email);
+    const recipientEmails = [...new Set(recipients.map(user => user.email))];
    
     if (recipientEmails.length > 0) {
       const subject = `New Leave Request: ${leaveRequest.employeeName} - ${leaveRequest.leaveType}`;
