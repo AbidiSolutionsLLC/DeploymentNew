@@ -243,9 +243,9 @@ const AdminTickets = () => {
  onChange={(e) => setStatusFilter(e.target.value)}
  options={[
  { value: "all", label: "All Status" },
- { value: "opened", label: "Open" },
- { value: "in progress", label: "In Progress" },
- { value: "closed", label: "Closed" },
+ { value: "Open", label: "Open" },
+ { value: "In Progress", label: "In Progress" },
+ { value: "Closed", label: "Closed" },
  ]}
  placeholder="All Status"
  />

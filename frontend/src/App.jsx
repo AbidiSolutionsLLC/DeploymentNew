@@ -9,6 +9,9 @@ import AuthLayout from "./layout/AuthLayout";
 // Pages
 import ThemeSelector from "./pages/ThemeSelector";
 import Login from "./pages/auth/Login";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+import VerifyOtp from "./pages/auth/VerifyOtp";
 import Home from "./pages/people/Home";
 import TimeTracker from "./pages/people/TimeTracker";
 import Files from "./pages/people/Files";
@@ -46,6 +49,7 @@ import AssignedTickets from "./pages/people/AssignedTickets";
 import AdminAttendance from "./pages/admin/AdminAttendance";
 import ExpenseManagement from "./pages/admin/ExpenseManagement";
 import PayrollManagement from "./pages/admin/PayrollManagement";
+import TenantManagement from "./pages/admin/TenantManagement";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 import { useNotificationSSE } from "./hooks/useNotificationSSE";
 import React, { useState, useEffect } from "react";
@@ -147,15 +151,18 @@ function App() {
  <Route path="/" element={<Navigate to="/auth/login" />} />
 
  <Route
- path="/auth"
- element={
- <PublicRoute>
- <AuthLayout />
- </PublicRoute>
- }
- >
- <Route index path="login" element={<Login />} />
- </Route>
+          path="/auth"
+          element={
+            <PublicRoute>
+              <AuthLayout />
+            </PublicRoute>
+          }
+        >
+          <Route index path="login" element={<Login />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password/:token" element={<ResetPassword />} />
+          <Route path="verify-otp" element={<VerifyOtp />} />
+        </Route>
 
  <Route path="/theme-selector" element={<ThemeSelector />} />
 
@@ -216,6 +223,7 @@ function App() {
  <Route path="attendance" element={<AdminAttendance />} />
  <Route path="ExpenseManagement" element={<ExpenseManagement />} />
  <Route path="payroll" element={<PayrollManagement />} />
+ <Route path="tenantManagement" element={<TenantManagement />} />
  </Route>
 
  {/* Notifications Page */}

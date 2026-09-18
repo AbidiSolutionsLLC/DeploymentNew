@@ -4,6 +4,7 @@ import { addRealtimeNotification, fetchUnreadCount } from '../slices/notificatio
 import { PublicClientApplication } from '@azure/msal-browser';
 import { msalConfig, loginRequest, msalInstance } from '../authConfig';
 import axios from '../axios';
+import { syncAzureUser } from '../slices/authSlice';
 
 
 
@@ -52,6 +53,12 @@ export const useNotificationSSE = (isAuthenticated) => {
  source.onmessage = (event) => {
  try {
  const notification = JSON.parse(event.data);
+ 
+ if (notification.type === 'ROLE_UPDATED') {
+   dispatch(syncAzureUser());
+   return;
+ }
+
  // Ignore system events like CONNECTED confirmation
  if (!notification._id) return;
 

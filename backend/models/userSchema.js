@@ -54,7 +54,7 @@ const userSchema = new mongoose.Schema(
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Company',
-      required: false, // Make false for backward compatibility if needed, but optimally true
+      required: true,
       index: true
     },
     theme: {

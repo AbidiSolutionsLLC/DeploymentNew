@@ -85,6 +85,9 @@ const SubNavbarVertical = () => {
  if (link.name === "Approve Time Sheets") {
  return user.role !== "HR";
  }
+ if (link.name === "Tenant Management") {
+ return user?.company?.isMasterTenant === true;
+ }
 
  return true;
  });

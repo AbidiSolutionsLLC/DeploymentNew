@@ -16,8 +16,9 @@ export default function Loader({
   };
 
   const actualSize = sizeClasses[size] || sizeClasses.md;
+  const effectiveVariant = (size === "sm" && variant === "glass") ? "spinner" : variant;
 
-  if (variant === "spinner" && !fullPage) {
+  if (effectiveVariant === "spinner" && !fullPage) {
     return (
       <Loader2 
         className={`${actualSize} animate-spin ${className}`} 

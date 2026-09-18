@@ -53,7 +53,7 @@ class AuthService {
     await newUser.save();
 
     try {
-      await sendOTPEmail({ to: email, otp, name: newUser.name });
+      await sendOTPEmail({ to: email, otp, name: newUser.name, companyId: newUser.company });
     } catch (err) {
       console.error("Error sending OTP email during registration: " + err.message);
     }
@@ -77,7 +77,7 @@ class AuthService {
     await user.save();
 
     try {
-      await sendOTPEmail({ to: email, otp, name: user.name });
+      await sendOTPEmail({ to: email, otp, name: user.name, companyId: user.company });
     } catch (err) {
       console.error("Error sending OTP email: " + err.message);
     }
@@ -96,6 +96,8 @@ class AuthService {
     user.otp = undefined;
     user.otpGeneratedAt = undefined;
     user.otpExpires = undefined;
+
+    await user.populate({ path: 'company', select: 'isMasterTenant companyName' });
 
     const accessToken = generateToken(user);
     const refreshToken = generateRefreshToken(user);
@@ -118,7 +120,7 @@ class AuthService {
     await user.save();
 
     try {
-      await sendOTPEmail({ to: email, otp, name: user.name });
+      await sendOTPEmail({ to: email, otp, name: user.name, companyId: user.company });
     } catch (err) {
       console.error("Error sending OTP email: " + err.message);
     }
@@ -140,7 +142,7 @@ class AuthService {
     const resetURL = `${frontendUrl}/auth/reset-password/${resetToken}`;
 
     try {
-      await sendForgotPasswordEmail({ to: user.email, name: user.name, resetURL });
+      await sendForgotPasswordEmail({ to: user.email, name: user.name, resetURL, companyId: user.company });
     } catch (err) {
       console.error("Error sending forgot password email: " + err.message);
     }
@@ -195,6 +197,10 @@ class AuthService {
     const user = await userRepository.findById(userId, {
       populate: [
         {
+          path: "company",
+          select: "isMasterTenant companyName"
+        },
+        {
           path: "department",
           populate: {
             path: "members",
@@ -215,7 +221,11 @@ class AuthService {
 
   async refreshAccessToken(refreshToken, jwtSecret) {
     const payload = jwt.verify(refreshToken, jwtSecret);
-    const user = await userRepository.findById(payload.id);
+    const user = await userRepository.findById(payload.id, {
+      populate: [
+        { path: 'company', select: 'isMasterTenant companyName' }
+      ]
+    });
     if (!user) throw new UnauthorizedError("User not found");
 
     const accessToken = generateToken(user);

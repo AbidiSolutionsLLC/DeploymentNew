@@ -144,7 +144,8 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
  if (current == null) current = "";
 
  if (key === "isTechnician") {
- if (current !== original) changedFields[key] = current;
+ const currentBool = typeof current === "string" ? current === "true" : Boolean(current);
+ if (currentBool !== Boolean(original)) changedFields[key] = currentBool;
  } else if (key === "hourlyWage") {
  if (parseFloat(current) !== parseFloat(original)) changedFields[key] = parseFloat(current);
  } else {
@@ -316,6 +317,7 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
  {renderField("Type", "empType", formData.empType, "select", ["Permanent", "Contractor", "Intern", "Part Time"].map(v => ({ value: v, label: v })))}
  {renderField("Department", "department", formData.department, "select", allDepartments)}
  {renderField("Reports To", "reportsTo", formData.reportsTo, "select", allManagers)}
+ {renderField("Is Technician?", "isTechnician", String(formData.isTechnician === "true" || formData.isTechnician === true), "select", [{ value: "true", label: "Yes" }, { value: "false", label: "No" }])}
  </div>
  </div>
 

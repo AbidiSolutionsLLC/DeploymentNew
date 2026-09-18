@@ -96,11 +96,13 @@ const Navbar = () => {
  _isLogoutRequest: true
  });
  dispatch(logout());
+ localStorage.removeItem("accessToken");
  navigate("/auth/login");
  toast.success("Logged out successfully");
  } catch (err) {
  console.warn("Logout API failed:", err.message);
  dispatch(logout());
+ localStorage.removeItem("accessToken");
  navigate("/auth/login");
  }
  };

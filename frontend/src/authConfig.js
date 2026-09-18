@@ -1,13 +1,13 @@
 import { LogLevel } from "@azure/msal-browser";
 
 export const msalConfig = {
- auth: {
- clientId: "574e37f1-c661-4ff5-bc60-0cd610a26663",
- authority: "https://login.microsoftonline.com/8d796e08-17e8-40d3-99d2-af2319d5dfd8",
- redirectUri: window.location.origin, // This should be your app URL
- postLogoutRedirectUri: window.location.origin,
- navigateToLoginRequestUrl: true, // Changed to true
- },
+  auth: {
+    clientId: "574e37f1-c661-4ff5-bc60-0cd610a26663",
+    authority: "https://login.microsoftonline.com/common",
+    redirectUri: window.location.origin, // This should be your app URL
+    postLogoutRedirectUri: window.location.origin,
+    navigateToLoginRequestUrl: true, // Changed to true
+  },
  cache: {
  cacheLocation: "localStorage", 
  storeAuthStateInCookie: false, 
@@ -40,7 +40,7 @@ export const msalConfig = {
 };
 
 export const loginRequest = {
- scopes: ["api://574e37f1-c661-4ff5-bc60-0cd610a26663/Abidi-Pro"]
+ scopes: ["User.Read"]
 };
 
 // Create a singleton instance to be shared across the application

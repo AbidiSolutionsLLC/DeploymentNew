@@ -70,4 +70,6 @@ router.use("/files", ...authenticatedAndScoped, filesRoute);
 router.use("/folders", ...authenticatedAndScoped, folderRoutes);
 router.use("/payroll", ...authenticatedAndScoped, payrollRoutes);
 
+router.use("/master", require("./masterRoutes"));
+
 module.exports = router;

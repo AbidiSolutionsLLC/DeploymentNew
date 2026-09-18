@@ -14,6 +14,7 @@ const timeLogSchema = new mongoose.Schema(
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Company',
+      required: true,
     },
     date: {
       type: Date,

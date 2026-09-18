@@ -205,7 +205,7 @@ class UserService {
   }
 
   async getAllUsers(actor, queryParams, companyId) {
-    const { page = 1, limit = 20, search = '', status, role, department } = queryParams;
+    const { page = 1, limit = 1000, search = '', status, role, department } = queryParams;
     const skip = (page - 1) * limit;
 
     const rbacFilter = await getSearchScope(actor, 'usermanagement'); 

@@ -9,7 +9,7 @@ const timeTrackerSchema = new mongoose.Schema({
   company: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Company',
-    required: false
+    required: true
   },
   date: {
     type: Date,

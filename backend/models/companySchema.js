@@ -44,7 +44,6 @@ const companySchema = new mongoose.Schema({
   },
   companyType: {
     type: String,
-    enum: ['Tech', 'Marketing', 'E-Commerce', 'Other'],
     required: true
   },
   branches: {
@@ -52,6 +51,43 @@ const companySchema = new mongoose.Schema({
   },
   departments: {
     type: String,
+  },
+  isMasterTenant: {
+    type: Boolean,
+    default: false
+  },
+  azureTenantId: {
+    type: String,
+    default: null
+  },
+  azureClientId: {
+    type: String,
+    default: null
+  },
+  emailConfig: {
+    provider: { type: String, enum: ['Default', 'Custom'], default: 'Default' },
+    smtpHost: { type: String, default: null },
+    smtpPort: { type: Number, default: null },
+    smtpUser: { type: String, default: null },
+    smtpPass: { type: String, default: null },
+    fromEmail: { type: String, default: null }
+  },
+  subscriptionStatus: {
+    type: String,
+    enum: ['Active', 'Suspended'],
+    default: 'Active'
+  },
+  maxUsers: {
+    type: Number,
+    default: 50 // Enforces a default limit to prevent abuse
+  },
+  timezone: {
+    type: String,
+    default: 'UTC' // Critical for TimeTracker rollover limits
+  },
+  currency: {
+    type: String,
+    default: 'USD' // Critical for Payroll & Expenses
   },
   createdAt: {
     type: Date,

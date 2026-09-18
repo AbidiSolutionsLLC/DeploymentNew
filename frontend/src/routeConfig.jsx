@@ -61,6 +61,12 @@ const adminLinks = [
  icon: TicketIcon,
  roles: ["Super Admin", "Admin"]
  },
+ {
+ name: "Tenant Management",
+ path: "/admin/tenantManagement",
+ icon: ShieldCheckIcon,
+ roles: ["Super Admin", "Admin"]
+ }
 ];
 
 export const moduleConfigs = {
@@ -94,6 +100,7 @@ export const moduleConfigs = {
  { name: "Assign Ticket", path: "/admin/assign-ticket", icon: TicketIcon },
  { name: "Expense Tracker", path: "/admin/ExpenseManagement", icon: DollarSignIcon },
  { name: "Payroll", path: "/admin/payroll", icon: DollarSignIcon },
+ { name: "Tenant Management", path: "/admin/tenantManagement", icon: ShieldCheckIcon },
 
  ],
  },

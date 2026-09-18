@@ -32,7 +32,7 @@ export const injectStore = (_store) => {
 };
 
 const api = axios.create({
- baseURL: "/api/v1",
+ baseURL: "http://localhost:4000/api/v1",
  timeout: 15000,
  withCredentials: true
 });
@@ -44,19 +44,25 @@ api.interceptors.request.use(
  const accounts = msalInstance.getAllAccounts();
  const activeAccount = msalInstance.getActiveAccount() || accounts[0];
 
- if (activeAccount) {
- try {
- const response = await msalInstance.acquireTokenSilent({
- ...loginRequest,
- account: activeAccount
- });
- config.headers.Authorization = `Bearer ${response.idToken}`;
+  if (activeAccount) {
+    try {
+      const response = await msalInstance.acquireTokenSilent({
+        ...loginRequest,
+        account: activeAccount
+      });
+      config.headers.Authorization = `Bearer ${response.idToken}`;
+    } catch (error) {
+      console.error("Silent token acquisition failed:", error);
+    }
+  } else {
+    // Local Auth Fallback
+    const localToken = localStorage.getItem("accessToken");
+    if (localToken) {
+      config.headers.Authorization = `Bearer ${localToken}`;
+    }
+  }
  } catch (error) {
- console.error("Silent token acquisition failed:", error);
- }
- }
- } catch (error) {
- console.error("MSAL initialization error:", error);
+   console.error("MSAL initialization error:", error);
  }
  return config;
  },
