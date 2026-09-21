@@ -15,8 +15,11 @@ router.get("/stream", isLoggedIn, (req, res) => {
     res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
 
-    sseClients.set(userId, res);
-    console.log(`[SSE] Client connected: ${userId} (total: ${sseClients.size})`);
+    if (!sseClients.has(userId)) {
+        sseClients.set(userId, new Set());
+    }
+    sseClients.get(userId).add(res);
+    console.log(`[SSE] Client connected: ${userId} (total clients for user: ${sseClients.get(userId).size})`);
 
     // Send connection confirmation
     res.write(`data: ${JSON.stringify({ type: "CONNECTED" })}\n\n`);
@@ -28,8 +31,14 @@ router.get("/stream", isLoggedIn, (req, res) => {
 
     req.on("close", () => {
         clearInterval(heartbeat);
-        sseClients.delete(userId);
-        console.log(`[SSE] Client disconnected: ${userId} (total: ${sseClients.size})`);
+        const userClients = sseClients.get(userId);
+        if (userClients) {
+            userClients.delete(res);
+            if (userClients.size === 0) {
+                sseClients.delete(userId);
+            }
+            console.log(`[SSE] Client disconnected: ${userId} (remaining for user: ${userClients.size})`);
+        }
     });
 });
 

@@ -177,7 +177,7 @@ function App() {
  <Route index path="summary" element={<LeaveTracker />} />
  <Route index path="shared" element={<Files />} />
  <Route index path="raise" element={<Ticket />} />
- <Route path="assigned-tickets" element={<AssignedTickets />} />
+ <Route path="assigned-tickets" element={<PrivateRoute requiredPermission="tickets:assign"><AssignedTickets /></PrivateRoute>} />
  <Route index path="history" element={<TimeTracker />} />
  <Route path="attendance" element={<Attendance />} />
  <Route path="edit-profile" element={<EditProfile />} />
@@ -214,16 +214,16 @@ function App() {
  <Route path="/admin/*">
  <Route index element={<Navigate to="dashboard" replace />} />
  <Route index path="dashboard" element={<AdminDashBoard />} />
- <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
- <Route path="upload" element={<UploadDocument />} />
- <Route path="userManagement" element={<UserManagement />} />
- <Route path="approve" element={<ApproveTimesheets />} />
- <Route path="assign-ticket" element={<AdminTickets />} />
- <Route path="assign-ticket/:ticketId" element={<AssignTicket />} />
- <Route path="attendance" element={<AdminAttendance />} />
- <Route path="ExpenseManagement" element={<ExpenseManagement />} />
- <Route path="payroll" element={<PayrollManagement />} />
- <Route path="tenantManagement" element={<TenantManagement />} />
+ <Route path="leaveTrackerAdmin" element={<PrivateRoute requiredPermission="leaves:approve"><LeaveTrackerAdmin /></PrivateRoute>} />
+ <Route path="upload" element={<PrivateRoute requiredPermission="files:manage"><UploadDocument /></PrivateRoute>} />
+ <Route path="userManagement" element={<PrivateRoute requiredPermission="users:read"><UserManagement /></PrivateRoute>} />
+ <Route path="approve" element={<PrivateRoute requiredPermission="timesheets:approve"><ApproveTimesheets /></PrivateRoute>} />
+ <Route path="assign-ticket" element={<PrivateRoute requiredPermission="tickets:assign"><AdminTickets /></PrivateRoute>} />
+ <Route path="assign-ticket/:ticketId" element={<PrivateRoute requiredPermission="tickets:assign"><AssignTicket /></PrivateRoute>} />
+ <Route path="attendance" element={<PrivateRoute requiredPermission="attendance:read:team"><AdminAttendance /></PrivateRoute>} />
+ <Route path="ExpenseManagement" element={<PrivateRoute requiredPermission="expenses:approve"><ExpenseManagement /></PrivateRoute>} />
+ <Route path="payroll" element={<PrivateRoute requiredPermission="payroll:manage"><PayrollManagement /></PrivateRoute>} />
+ <Route path="tenantManagement" element={<PrivateRoute requiredPermission="tenant:manage"><TenantManagement /></PrivateRoute>} />
  </Route>
 
  {/* Notifications Page */}

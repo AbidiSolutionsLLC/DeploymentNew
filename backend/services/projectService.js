@@ -78,20 +78,47 @@ class ProjectService {
     };
   }
 
-  async getProjectById(companyId, projectId) {
+  async getProjectById(user, companyId, projectId) {
     const project = await Project.findOne({ _id: projectId, company: companyId })
       .populate("team", "name email avatar")
       .populate("owner", "name email avatar");
 
     if (!project) throw new NotFoundError("Project");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isOwner = project.owner && project.owner._id ? project.owner._id.toString() === (user.id || user._id).toString() : project.owner?.toString() === (user.id || user._id).toString();
+    const isTeamMember = project.team.some(member => {
+        return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
+    });
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isTeamMember) {
+      throw new ForbiddenError("You do not have permission to access or modify this project.");
+    }
+
     return project;
   }
 
-  async updateProject(companyId, projectId, data) {
+  async updateProject(user, companyId, projectId, data) {
     const { title, description, team, status, strict, isPublic, startDate, dueDate } = data;
 
     const project = await Project.findOne({ _id: projectId, company: companyId });
     if (!project) throw new NotFoundError("Project");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isOwner = project.owner && project.owner._id ? project.owner._id.toString() === (user.id || user._id).toString() : project.owner?.toString() === (user.id || user._id).toString();
+    const isTeamMember = project.team.some(member => {
+        return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
+    });
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isTeamMember) {
+      throw new ForbiddenError("You do not have permission to access or modify this project.");
+    }
 
     const previousTeam = project.team.map(id => id.toString());
 
@@ -135,9 +162,22 @@ class ProjectService {
     return updatedProject;
   }
 
-  async deleteProject(companyId, projectId) {
+  async deleteProject(user, companyId, projectId) {
     const project = await Project.findOne({ _id: projectId, company: companyId });
     if (!project) throw new NotFoundError("Project");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isOwner = project.owner && project.owner._id ? project.owner._id.toString() === (user.id || user._id).toString() : project.owner?.toString() === (user.id || user._id).toString();
+    const isTeamMember = project.team.some(member => {
+        return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
+    });
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isTeamMember) {
+      throw new ForbiddenError("You do not have permission to access or modify this project.");
+    }
 
     const tasksCount = await Task.countDocuments({ project: project._id, company: companyId });
     if (tasksCount > 0) {

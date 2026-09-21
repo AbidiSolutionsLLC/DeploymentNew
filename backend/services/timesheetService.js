@@ -5,7 +5,7 @@ const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/Exp
 const { getStartOfDay, getEndOfDay, moment, TIMEZONE } = require("../utils/dateUtils");
 const { createNotification } = require('../utils/notificationService');
 const { normalizeRole } = require("../utils/rbacUtils");
-const { getSearchScope } = require("../utils/rbac");
+const { getSearchScope, getApprovalScope } = require("../utils/rbac");
 
 class TimesheetService {
   async createTimesheet(user, companyId, data) {

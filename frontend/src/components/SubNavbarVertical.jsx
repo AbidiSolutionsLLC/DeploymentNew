@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, NavLink, useNavigate } from "react-router-dom";
+import { usePermission } from "../hooks/usePermission";
 import { moduleConfigs } from "../routeConfig";
 import { useDispatch, useSelector } from "react-redux";
 import { useMsal } from "@azure/msal-react";
@@ -22,6 +23,7 @@ import GlassModal from "./ui/GlassModal";
 const SubNavbarVertical = () => {
  const { pathname } = useLocation();
  const navigate = useNavigate();
+ const { hasPermission } = usePermission();
  const authStateUser = useSelector((state) => state.auth.user);
  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
 
@@ -70,23 +72,28 @@ const SubNavbarVertical = () => {
  const filteredLinks = rawLinks.filter(link => {
  if (!user) return false;
 
- if (link.name === "Assigned Tickets") {
- const isTech = user.isTechnician || user.role === "Technician";
- const isManagerTech = user.role === "Manager" && user.isTechnician;
- return user.role === "Super Admin" || isTech || isManagerTech;
- }
- if (link.name === "Assign Ticket") {
- const isManagerTech = user.role === "Manager" && user.isTechnician;
- return user.role === "Super Admin" || user.role === "Admin" || isManagerTech;
- }
- if (link.name === "User Management") {
- return ["Super Admin", "Admin", "HR"].includes(user.role);
- }
- if (link.name === "Approve Time Sheets") {
- return user.role !== "HR";
- }
+ const permMap = {
+   "User Management": "users:read",
+   "Approve Time Sheets": "timesheets:approve",
+   "Assign Ticket": "tickets:assign",
+   "Assigned Tickets": "tickets:assign",
+   "Expense Tracker": "expenses:approve",
+   "Expense Management": "expenses:approve",
+   "Payroll": "payroll:manage",
+   "Tenant Management": "tenant:manage",
+   "Leave Management": "leaves:approve",
+   "Leave Tracker Admin": "leaves:approve",
+   "Upload Document": "files:manage",
+   "File Management": "files:manage"
+ };
+
  if (link.name === "Tenant Management") {
- return user?.company?.isMasterTenant === true;
+   return user?.company?.isMasterTenant === true && hasPermission("tenant:manage");
+ }
+
+ const requiredPerm = permMap[link.name];
+ if (requiredPerm) {
+   return hasPermission(requiredPerm);
  }
 
  return true;

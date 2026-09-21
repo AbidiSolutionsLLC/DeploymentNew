@@ -32,14 +32,15 @@ const createNotification = async ({
     const notification = await Notification.create(payload);
 
     // Push via SSE if the recipient is currently connected
-    const clientRes = sseClients.get(recipient.toString());
-    if (clientRes) {
-      try {
-        clientRes.write(`data: ${JSON.stringify(notification)}\n\n`);
-      } catch (sseErr) {
-        // Client disconnected between check and write — remove stale entry
-        sseClients.delete(recipient.toString());
-      }
+    const clients = sseClients.get(recipient.toString());
+    if (clients) {
+      clients.forEach(clientRes => {
+        try {
+          clientRes.write(`data: ${JSON.stringify(notification)}\n\n`);
+        } catch (err) {
+          console.error('[SSE] Failed to push to client', err);
+        }
+      });
     }
 
     return notification;

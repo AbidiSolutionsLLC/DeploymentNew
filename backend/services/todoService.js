@@ -9,19 +9,30 @@ class TodoService {
     return user?._id || user?.id;
   }
 
-  canAccessTodos(actor, targetUserId) {
-    if (!actor) return false;
-    if (String(this.getActorId(actor)) === String(targetUserId)) return true;
-    return ADMIN_ROLES.includes(actor.role);
-  }
-
   async ensureTodoAccess(user, targetUserId) {
-    if (!this.canAccessTodos(user, targetUserId)) {
-      throw new ForbiddenError("You do not have permission to access these todos.");
-    }
+    if (!user) throw new ForbiddenError("You do not have permission to access these todos.");
+    if (String(this.getActorId(user)) === String(targetUserId)) return; // Self access is allowed
 
-    const targetUser = await User.findById(targetUserId).select("_id");
+    const targetUser = await User.findById(targetUserId).select("_id role");
     if (!targetUser) throw new NotFoundError("User not found");
+
+    const roleWeights = {
+      'superadmin': 4,
+      'admin': 3,
+      'hr': 2,
+      'manager': 2,
+      'technician': 1,
+      'employee': 1
+    };
+
+    const actorRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const targetRole = (targetUser.role || '').replace(/\s+/g, '').toLowerCase();
+
+    if (actorRole === 'superadmin') return; // Super admin can access anyone
+
+    if (roleWeights[actorRole] > roleWeights[targetRole]) return; // Higher role can access lower role
+
+    throw new ForbiddenError("You do not have permission to access these todos.");
   }
 
   async getUserTodos(user, targetUserId) {

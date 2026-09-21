@@ -3,7 +3,7 @@ const User = require("../models/userSchema");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
 const { processReceipt, processInvoice } = require("../utils/azureDocumentIntelligence");
 const { containerClient } = require("../config/azureConfig");
-const { getSearchScope } = require("../utils/rbac");
+const { getSearchScope, getApprovalScope } = require("../utils/rbac");
 const { getTeamIds } = require("../utils/hierarchy");
 const { createNotification } = require('../utils/notificationService');
 const APIFeatures = require("../utils/apiFeatures");
@@ -99,7 +99,7 @@ class ExpenseService {
       throw new ForbiddenError("You do not have permission to access this resource");
     }
 
-    const scope = await getSearchScope(user, "expense");
+    const scope = await getApprovalScope(user, "expense");
     scope.company = companyId;
     return Expense.find({ ...scope, status: "pending" }).sort("-createdAt");
   }

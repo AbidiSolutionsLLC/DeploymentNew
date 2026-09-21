@@ -3,7 +3,8 @@ const User = require("../models/userSchema");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { containerClient } = require("../config/azureConfig");
 const { getSearchScope } = require("../utils/rbac");
-const sendEmail = require('../utils/emailService');
+const { sendEmail } = require('../config/emailConfig');
+const templates = require('../utils/emailTemplates');
 const { createNotification } = require('../utils/notificationService');
 
 class TicketService {
@@ -122,26 +123,60 @@ class TicketService {
     return { tickets, pagination: { total, page, limit } };
   }
 
-  async getTicketById(companyId, ticketId) {
+  async getTicketById(user, companyId, ticketId) {
     const ticket = await Ticket.findOne({ _id: ticketId, company: companyId })
       .populate('closedBy', 'name email avatar')
       .populate('assignedTo', 'name email avatar');
       
     if (!ticket) throw new NotFoundError("Ticket");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isOwner = ticket.closedBy && ticket.closedBy._id ? ticket.closedBy._id.toString() === (user.id || user._id).toString() : ticket.closedBy?.toString() === (user.id || user._id).toString();
+    const isAssignee = ticket.assignedTo && ticket.assignedTo._id ? ticket.assignedTo._id.toString() === (user.id || user._id).toString() : ticket.assignedTo?.toString() === (user.id || user._id).toString();
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isAssignee) {
+      throw new ForbiddenError("You do not have permission to access or modify this ticket.");
+    }
+
     return ticket;
   }
 
-  async updateTicket(companyId, ticketId, updates) {
+  async updateTicket(user, companyId, ticketId, updates) {
     const ticket = await Ticket.findOne({ _id: ticketId, company: companyId });
     if (!ticket) throw new NotFoundError("Ticket");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isOwner = ticket.closedBy && ticket.closedBy._id ? ticket.closedBy._id.toString() === (user.id || user._id).toString() : ticket.closedBy?.toString() === (user.id || user._id).toString();
+    const isAssignee = ticket.assignedTo && ticket.assignedTo._id ? ticket.assignedTo._id.toString() === (user.id || user._id).toString() : ticket.assignedTo?.toString() === (user.id || user._id).toString();
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isAssignee) {
+      throw new ForbiddenError("You do not have permission to access or modify this ticket.");
+    }
 
     Object.assign(ticket, updates);
     return ticket.save();
   }
 
-  async deleteTicket(companyId, ticketId) {
+  async deleteTicket(user, companyId, ticketId) {
     const ticket = await Ticket.findOne({ _id: ticketId, company: companyId });
     if (!ticket) throw new NotFoundError("Ticket");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isOwner = ticket.closedBy && ticket.closedBy._id ? ticket.closedBy._id.toString() === (user.id || user._id).toString() : ticket.closedBy?.toString() === (user.id || user._id).toString();
+    const isAssignee = ticket.assignedTo && ticket.assignedTo._id ? ticket.assignedTo._id.toString() === (user.id || user._id).toString() : ticket.assignedTo?.toString() === (user.id || user._id).toString();
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isAssignee) {
+      throw new ForbiddenError("You do not have permission to access or modify this ticket.");
+    }
 
     if (ticket.closedBy) {
       createNotification({
@@ -173,6 +208,17 @@ class TicketService {
     const ticket = await Ticket.findOne({ _id: ticketId, company: companyId }).populate('closedBy', '_id');
     if (!ticket) throw new NotFoundError("Ticket not found");
 
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isOwner = ticket.closedBy && ticket.closedBy._id ? ticket.closedBy._id.toString() === (user.id || user._id).toString() : ticket.closedBy?.toString() === (user.id || user._id).toString();
+    const isAssignee = ticket.assignedTo && ticket.assignedTo._id ? ticket.assignedTo._id.toString() === (user.id || user._id).toString() : ticket.assignedTo?.toString() === (user.id || user._id).toString();
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isAssignee) {
+      throw new ForbiddenError("You do not have permission to access or modify this ticket.");
+    }
+
     const currentUserId = (user.id || user._id).toString();
     // Allow users to update their own ticket status (e.g. marking it as Closed when resolved)
     // Removed the restriction that prevented ticket creators from updating status
@@ -203,19 +249,32 @@ class TicketService {
     return ticket;
   }
 
-  async updateTicketPriority(companyId, ticketId, priority) {
+  async updateTicketPriority(user, companyId, ticketId, priority) {
     if (!["High Priority", "Medium Priority", "Low Priority", "High", "Medium", "Low"].includes(priority)) {
       throw new BadRequestError("Invalid priority");
     }
 
-    const ticket = await Ticket.findOneAndUpdate(
+    const ticket = await Ticket.findOne({ _id: ticketId, company: companyId });
+    if (!ticket) throw new NotFoundError("Ticket not found");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isOwner = ticket.closedBy && ticket.closedBy._id ? ticket.closedBy._id.toString() === (user.id || user._id).toString() : ticket.closedBy?.toString() === (user.id || user._id).toString();
+    const isAssignee = ticket.assignedTo && ticket.assignedTo._id ? ticket.assignedTo._id.toString() === (user.id || user._id).toString() : ticket.assignedTo?.toString() === (user.id || user._id).toString();
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isAssignee) {
+      throw new ForbiddenError("You do not have permission to access or modify this ticket.");
+    }
+
+    const ticketUpdated = await Ticket.findOneAndUpdate(
       { _id: ticketId, company: companyId },
       { priority },
       { new: true }
     );
 
-    if (!ticket) throw new NotFoundError("Ticket not found");
-    return ticket;
+    return ticketUpdated;
   }
 
   async updateTicketAssignee(user, companyId, ticketId, assignedTo) {
@@ -301,9 +360,20 @@ class TicketService {
     return ticket;
   }
 
-  async downloadTicketAttachment(companyId, ticketId, attachmentId) {
+  async downloadTicketAttachment(user, companyId, ticketId, attachmentId) {
     const ticket = await Ticket.findOne({ _id: ticketId, company: companyId });
     if (!ticket) throw new NotFoundError("Ticket");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isOwner = ticket.closedBy && ticket.closedBy._id ? ticket.closedBy._id.toString() === (user.id || user._id).toString() : ticket.closedBy?.toString() === (user.id || user._id).toString();
+    const isAssignee = ticket.assignedTo && ticket.assignedTo._id ? ticket.assignedTo._id.toString() === (user.id || user._id).toString() : ticket.assignedTo?.toString() === (user.id || user._id).toString();
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isAssignee) {
+      throw new ForbiddenError("You do not have permission to download this ticket's attachments.");
+    }
 
     const attachment = ticket.attachments.id(attachmentId);
     if (!attachment) throw new NotFoundError("Attachment");
@@ -334,61 +404,39 @@ class TicketService {
 
   async sendTicketCreationEmail(recipients, ticket) {
     const subject = `New Ticket Created - #${ticket.ticketID}: ${ticket.subject}`;
-    const htmlContent = this.generateTicketEmailTemplate(ticket);
+    const htmlContent = templates.ticketCreated({
+      ticketId: ticket.ticketID,
+      subject: ticket.subject,
+      priority: ticket.priority,
+      status: ticket.status,
+      raisedBy: ticket.emailAddress,
+      assignedTo: ticket.assignedTo ? ticket.assignedTo.name : 'Unassigned',
+      createdDate: new Date(ticket.createdAt || Date.now()).toLocaleString(),
+      description: ticket.description,
+      actionUrl: `https://abidipro.abidisolutions.com/tickets/${ticket._id}`
+    });
     recipients.forEach(email => {
-      sendEmail(email, subject, htmlContent)
+      sendEmail({ to: email, subject, htmlContent, companyId: ticket.company })
         .catch(err => console.error(`❌ Failed to send background email to ${email}:`, err.message));
     });
   }
 
   async sendAssignmentEmail(email, ticket) {
     const subject = `Ticket #${ticket.ticketID} Assigned to You: ${ticket.subject}`;
-    const htmlContent = this.generateAssignmentEmailTemplate(ticket);
-    sendEmail(email, subject, htmlContent)
+    const htmlContent = templates.ticketInProgress({
+      ticketId: ticket.ticketID,
+      subject: ticket.subject,
+      priority: ticket.priority,
+      status: ticket.status,
+      raisedBy: ticket.emailAddress,
+      assignedTo: ticket.assignedTo ? ticket.assignedTo.name : 'You',
+      createdDate: new Date(ticket.createdAt || Date.now()).toLocaleString(),
+      description: ticket.description,
+      latestUpdate: 'This ticket has been assigned to you.',
+      actionUrl: `https://abidipro.abidisolutions.com/tickets/${ticket._id}`
+    });
+    sendEmail({ to: email, subject, htmlContent, companyId: ticket.company })
       .catch(err => console.error(`❌ Failed to send assignment email to ${email}:`, err.message));
-  }
-
-  generateTicketEmailTemplate(ticket) {
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <title>New Ticket Notification</title>
-      </head>
-      <body>
-        <div>
-          <h1>New Support Ticket Created</h1>
-          <p>A new ticket has been created in our system. Here are the details:</p>
-          <p><strong>Ticket ID:</strong> #${ticket.ticketID}</p>
-          <p><strong>Subject:</strong> ${ticket.subject}</p>
-          <p><strong>Status:</strong> ${ticket.status}</p>
-          <p><strong>Priority:</strong> ${ticket.priority}</p>
-        </div>
-      </body>
-      </html>
-    `;
-  }
-
-  generateAssignmentEmailTemplate(ticket) {
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <title>Ticket Assignment Notification</title>
-      </head>
-      <body>
-        <div>
-          <h1>New Ticket Assignment</h1>
-          <p>You have been assigned a new support ticket. Please review the details below:</p>
-          <p><strong>Ticket ID:</strong> #${ticket.ticketID}</p>
-          <p><strong>Subject:</strong> ${ticket.subject}</p>
-          <p><strong>Status:</strong> ${ticket.status}</p>
-        </div>
-      </body>
-      </html>
-    `;
   }
 }
 

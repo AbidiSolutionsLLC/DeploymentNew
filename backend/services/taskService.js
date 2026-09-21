@@ -92,7 +92,7 @@ class TaskService {
     return task;
   }
 
-  async updateTask(companyId, taskId, data) {
+  async updateTask(user, companyId, taskId, data) {
     const {
       title, description, team, priority, dueDate, duration,
       completionPercent, workedHours, status
@@ -100,6 +100,23 @@ class TaskService {
 
     const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isAssignee = task.team && task.team.some(member => {
+        return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
+    });
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isAssignee) {
+      const Project = require('../models/projectSchema');
+      const projectDoc = await Project.findById(task.project).lean();
+      const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === (user.id || user._id).toString();
+      if (!isProjectOwner) {
+         throw new ForbiddenError("You do not have permission to access or modify this task.");
+      }
+    }
 
     const previousTeam = task.team.map(id => id.toString());
     
@@ -139,20 +156,49 @@ class TaskService {
     return updatedTask;
   }
 
-  async updateTaskStatus(companyId, taskId, status) {
-    const task = await Task.findOneAndUpdate(
-      { _id: taskId, company: companyId },
-      { status },
-      { new: true, runValidators: true }
-    );
-
+  async updateTaskStatus(user, companyId, taskId, status) {
+    const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isAssignee = task.team && task.team.some(member => {
+        return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
+    });
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isAssignee) {
+      const Project = require('../models/projectSchema');
+      const projectDoc = await Project.findById(task.project).lean();
+      const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === (user.id || user._id).toString();
+      if (!isProjectOwner) {
+         throw new ForbiddenError("You do not have permission to access or modify this task.");
+      }
+    }
+
+    task.status = status;
+    await task.save();
     return task;
   }
 
-  async deleteTask(companyId, taskId) {
+  async deleteTask(user, companyId, taskId) {
     const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
+
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    
+    if (!isSuperAdmin && !isAdmin && !isManagerTech) {
+      const Project = require('../models/projectSchema');
+      const projectDoc = await Project.findById(task.project).lean();
+      const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === (user.id || user._id).toString();
+      if (!isProjectOwner) {
+         throw new ForbiddenError("You do not have permission to delete this task.");
+      }
+    }
 
     if (task.team && task.team.length > 0) {
       task.team.forEach(memberId => {

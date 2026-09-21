@@ -50,13 +50,15 @@ exports.updateUser = catchAsync(async (req, res) => {
   const updatedUser = await userService.updateUser(req.user, req.params.id, req.body);
   
   if (req.body.role || req.body.isTechnician !== undefined) {
-      const client = sseClients.get(req.params.id.toString());
-      if (client) {
-          try {
-              client.write(`data: ${JSON.stringify({ type: "ROLE_UPDATED" })}\n\n`);
-          } catch (e) {
-              console.error("Failed to push ROLE_UPDATED event", e);
-          }
+      const clients = sseClients.get(req.params.id.toString());
+      if (clients) {
+          clients.forEach(client => {
+              try {
+                  client.write(`data: ${JSON.stringify({ type: "ROLE_UPDATED" })}\n\n`);
+              } catch (e) {
+                  console.error("Failed to push ROLE_UPDATED event", e);
+              }
+          });
       }
   }
 

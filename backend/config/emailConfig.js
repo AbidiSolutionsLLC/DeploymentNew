@@ -1,10 +1,10 @@
 const nodemailer = require("nodemailer");
-const ejs = require("ejs");
 const path = require("path");
 const htmlToText = require("html-to-text");
 require("dotenv").config();
 const Company = require("../models/companySchema");
 const azureSendEmail = require("../utils/emailService");
+const templates = require("../utils/emailTemplates");
 
 async function getCustomTransporter(companyId) {
   if (companyId) {
@@ -25,13 +25,9 @@ async function getCustomTransporter(companyId) {
   return null;
 }
 
-const sendEmail = async ({ to, subject, template, context, companyId }) => {
+const sendEmail = async ({ to, subject, htmlContent, companyId }) => {
   try {
-    const html = await ejs.renderFile(
-      path.join(__dirname, `../views/emails/${template}.ejs`),
-      context
-    );
-
+    const html = htmlContent;
     const customTransporter = await getCustomTransporter(companyId);
     
     let info;
@@ -63,11 +59,17 @@ const sendEmail = async ({ to, subject, template, context, companyId }) => {
 
 const sendInvitationEmail = async ({ to, name, role, loginURL, companyId }) => {
   try {
+    const htmlContent = templates.invitation({
+      name,
+      email: to,
+      role,
+      loginUrl: loginURL
+    });
+
     await sendEmail({
       to,
       subject: "Welcome to Abidi Pro - Account Created",
-      template: "invitationEmail",
-      context: { name, email: to, role, loginURL },
+      htmlContent,
       companyId
     });
   } catch (error) {
@@ -77,11 +79,16 @@ const sendInvitationEmail = async ({ to, name, role, loginURL, companyId }) => {
 
 const sendOTPEmail = async ({ to, otp, name, companyId }) => {
   try {
+    const htmlContent = templates.otpEmail({
+      name,
+      otp,
+      purpose: "Login verification"
+    });
+
     await sendEmail({
       to,
       subject: "Your Login OTP",
-      template: "otpEmail", // Ensure this template exists or create it
-      context: { name, otp },
+      htmlContent,
       companyId
     });
   } catch (error) {
@@ -91,11 +98,15 @@ const sendOTPEmail = async ({ to, otp, name, companyId }) => {
 
 const sendForgotPasswordEmail = async ({ to, name, resetURL, companyId }) => {
   try {
+    const htmlContent = templates.passwordReset({
+      name,
+      resetUrl: resetURL
+    });
+
     await sendEmail({
       to,
       subject: "Password Reset Request",
-      template: "resetPasswordEmail", // Ensure this template exists
-      context: { name, resetURL },
+      htmlContent,
       companyId
     });
   } catch (error) {

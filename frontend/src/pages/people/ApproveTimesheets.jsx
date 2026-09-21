@@ -19,9 +19,12 @@ import ModernSelect from "../../components/ui/ModernSelect";
 import { formatDateForAPI } from "../../utils/dateUtils";
 import Loader from "../../components/ui/Loader";
 import { useConfirm } from "../../context/ConfirmContext";
+import { useSelector } from "react-redux";
 
 const ApproveTimesheets = () => {
- const confirm = useConfirm();
+   const confirm = useConfirm();
+   const authStateUser = useSelector((state) => state.auth.user);
+   const currentUser = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
  // Helper functions defined first
  function getMonday(date) {
  const d = new Date(date);
@@ -447,7 +450,7 @@ const ApproveTimesheets = () => {
  if (activeTab === 0) {
  return [{
  icon: <FaEye size={14} />,
- title: "View & Approve/Reject",
+ title: "View Details",
  className: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:bg-amber-900/40",
  onClick: (row) => handleViewDetails(row)
  }];
@@ -816,8 +819,8 @@ const ApproveTimesheets = () => {
  <ApproveTimesheetViewModal
  timesheet={selectedTimesheet}
  onClose={() => { setShowDetails(false); setSelectedTimesheet(null); }}
- onApprove={activeTab === 0 ? handleApprove : undefined}
- onReject={activeTab === 0 ? handleReject : undefined}
+ onApprove={activeTab === 0 && (String(currentUser?._id || currentUser?.id) !== String(selectedTimesheet?.employee?._id || selectedTimesheet?.employee)) ? handleApprove : undefined}
+ onReject={activeTab === 0 && (String(currentUser?._id || currentUser?.id) !== String(selectedTimesheet?.employee?._id || selectedTimesheet?.employee)) ? handleReject : undefined}
  loading={updating}
  isApprovedTab={activeTab === 1}
  onCommentAdded={() => fetchWeeklyTimesheets()}

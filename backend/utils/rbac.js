@@ -105,4 +105,19 @@ exports.getSearchScope = async (currentUser, type) => {
   
   // Default Self Lock
   return { user: _id };
-};
+};
+exports.getApprovalScope = async (currentUser, type) => {
+  const scope = await exports.getSearchScope(currentUser, type);
+  // User explicitly requested to see their own records in approval queues
+  return scope;
+};
+
+exports.getOwnedScope = (currentUser, type) => {
+  if (!currentUser || !currentUser._id) return { _id: null };
+  let userField = 'user';
+  if (type === 'expense') userField = 'submittedBy';
+  else if (type === 'timesheet' || type === 'timelog' || type === 'leave') userField = 'employee';
+  else if (type === 'ticket') userField = 'closedBy';
+  else if (type === 'usermanagement') userField = '_id';
+  return { [userField]: currentUser._id };
+};

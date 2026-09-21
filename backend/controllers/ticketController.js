@@ -18,17 +18,17 @@ exports.getMyTickets = catchAsync(async (req, res) => {
 });
 
 exports.getTicketById = catchAsync(async (req, res) => {
-  const ticket = await ticketService.getTicketById(req.companyId, req.params.id);
+  const ticket = await ticketService.getTicketById(req.user, req.companyId, req.params.id);
   res.status(200).json(ApiResponse.success(ticket));
 });
 
 exports.updateTicket = catchAsync(async (req, res) => {
-  const updated = await ticketService.updateTicket(req.companyId, req.params.id, req.body);
+  const updated = await ticketService.updateTicket(req.user, req.companyId, req.params.id, req.body);
   res.status(200).json(ApiResponse.success(updated, "Ticket updated"));
 });
 
 exports.deleteTicket = catchAsync(async (req, res) => {
-  await ticketService.deleteTicket(req.companyId, req.params.id);
+  await ticketService.deleteTicket(req.user, req.companyId, req.params.id);
   res.status(200).json(ApiResponse.success(null, "Ticket deleted successfully"));
 });
 
@@ -38,7 +38,7 @@ exports.updateTicketStatus = catchAsync(async (req, res) => {
 });
 
 exports.updateTicketPriority = catchAsync(async (req, res) => {
-  const ticket = await ticketService.updateTicketPriority(req.companyId, req.params.id, req.body.priority);
+  const ticket = await ticketService.updateTicketPriority(req.user, req.companyId, req.params.id, req.body.priority);
   res.status(200).json(ApiResponse.success(ticket, `Ticket priority updated to ${ticket.priority}`));
 });
 
@@ -53,6 +53,6 @@ exports.addTicketResponse = catchAsync(async (req, res) => {
 });
 
 exports.downloadTicketAttachment = catchAsync(async (req, res) => {
-  const url = await ticketService.downloadTicketAttachment(req.companyId, req.params.id, req.params.attachmentId);
+  const url = await ticketService.downloadTicketAttachment(req.user, req.companyId, req.params.id, req.params.attachmentId);
   return res.redirect(url);
 });

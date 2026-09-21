@@ -18,17 +18,17 @@ exports.getTaskById = catchAsync(async (req, res) => {
 });
 
 exports.updateTask = catchAsync(async (req, res) => {
-  const updatedTask = await taskService.updateTask(req.companyId, req.params.id, req.body);
+  const updatedTask = await taskService.updateTask(req.user, req.companyId, req.params.id, req.body);
   res.status(200).json(ApiResponse.success(updatedTask, 'Task updated successfully'));
 });
 
 exports.updateTaskStatus = catchAsync(async (req, res) => {
-  const task = await taskService.updateTaskStatus(req.companyId, req.params.id, req.body.status);
+  const task = await taskService.updateTaskStatus(req.user, req.companyId, req.params.id, req.body.status);
   res.status(200).json(ApiResponse.success(task, 'Task status updated'));
 });
 
 exports.deleteTask = catchAsync(async (req, res) => {
-  await taskService.deleteTask(req.companyId, req.params.id);
+  await taskService.deleteTask(req.user, req.companyId, req.params.id);
   res.status(200).json(ApiResponse.success(null, "Task deleted successfully"));
 });
 

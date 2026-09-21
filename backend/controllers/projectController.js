@@ -13,17 +13,17 @@ exports.getAllProjects = catchAsync(async (req, res) => {
 });
 
 exports.getProjectById = catchAsync(async (req, res) => {
-  const project = await projectService.getProjectById(req.companyId, req.params.id);
+  const project = await projectService.getProjectById(req.user, req.companyId, req.params.id);
   res.status(200).json(ApiResponse.success(project, 'Project retrieved successfully'));
 });
 
 exports.updateProject = catchAsync(async (req, res) => {
-  const updatedProject = await projectService.updateProject(req.companyId, req.params.id, req.body);
+  const updatedProject = await projectService.updateProject(req.user, req.companyId, req.params.id, req.body);
   res.status(200).json(ApiResponse.success(updatedProject, 'Project updated successfully'));
 });
 
 exports.deleteProject = catchAsync(async (req, res) => {
-  await projectService.deleteProject(req.companyId, req.params.id);
+  await projectService.deleteProject(req.user, req.companyId, req.params.id);
   res.status(200).json(ApiResponse.success(null, 'Project deleted successfully'));
 });
 

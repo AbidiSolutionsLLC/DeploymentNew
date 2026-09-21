@@ -7,7 +7,7 @@ export const syncAzureUser = createAsyncThunk(
  "auth/syncAzureUser",
  async (_, { rejectWithValue, dispatch }) => {
  try {
- const response = await api.get("/auth/me", { ignoreAuthRedirect: true });
+ const response = await api.get(`/auth/me?t=${new Date().getTime()}`, { ignoreAuthRedirect: true });
  
  // Extract the actual user object from the ApiResponse wrapper
  // /auth/me returns { success: true, data: { user: {...} } }

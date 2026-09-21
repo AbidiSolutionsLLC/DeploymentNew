@@ -4,7 +4,7 @@ const Task = require('../models/taskSchema');
 const TimeLog = require('../models/timeLogsSchema');
 const userRepository = require("../repositories/userRepository");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
-const sendEmail = require('../utils/emailService');
+const { sendInvitationEmail } = require('../config/emailConfig');
 const { getSearchScope } = require("../utils/rbac");
 const { createNotification } = require('../utils/notificationService');
 
@@ -54,32 +54,16 @@ class UserService {
 
   async sendInviteEmail(user) {
     const frontendLoginUrl = "https://abidipro.abidisolutions.com/auth/login";
-    const emailSubject = "You're Invited! Join the Abidi Solutions Portal";
-    const emailBody = `
-      <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px;">
-        <div style="background-color: #497a71; padding: 25px; text-align: center;">
-          <h1 style="color: #fff; margin: 0;">Welcome Aboard!</h1>
-        </div>
-        <div style="padding: 30px;">
-          <p>Hello <strong>${user.name}</strong>,</p>
-          <p>You have been invited to join the <strong>Abidi Solutions Employee Portal</strong>.</p>
-          <div style="background: #f8f9fa; padding: 15px; border-left: 4px solid #497a71; margin: 20px 0;">
-            <p style="margin: 5px 0;"><strong>Role:</strong> ${user.role}</p>
-            <p style="margin: 5px 0;"><strong>Username:</strong> ${user.email}</p>
-            <p style="margin: 5px 0; color: #e67e22;"><strong>Status:</strong> Pending Activation</p>
-          </div>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${frontendLoginUrl}" style="background-color: #497a71; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-              Accept Invitation & Login
-            </a>
-          </div>
-          <p style="font-size: 13px; color: #666;">Please sign in using your Microsoft Account to activate your profile.</p>
-        </div>
-      </div>
-    `;
-    const result = await sendEmail(user.email, emailSubject, emailBody);
-    if (result && !result.success) {
-      throw new Error(result.error || "Email failed to send.");
+    try {
+      await sendInvitationEmail({
+        to: user.email,
+        name: user.name,
+        role: user.role,
+        loginURL: frontendLoginUrl,
+        companyId: user.company
+      });
+    } catch (error) {
+      throw new Error("Email failed to send: " + error.message);
     }
   }
 

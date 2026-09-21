@@ -65,7 +65,9 @@ const ExpenseDetail = ({
  });
  };
 
- const isOwner = currentUser?.id === expense.submittedBy?._id || currentUser?.id === expense.submittedBy;
+ const currentUserId = currentUser?._id || currentUser?.id;
+ const submittedById = expense?.submittedBy?._id || expense?.submittedBy;
+ const isOwner = String(currentUserId) === String(submittedById);
 
   const titleContent = (
     <div className="flex items-center gap-3">

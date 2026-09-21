@@ -95,6 +95,7 @@ const ApproveTimesheetViewModal = ({
  <GlassButton variant="ghost" onClick={onClose} disabled={loading}>
  CANCEL
  </GlassButton>
+ {onReject && (
  <GlassButton 
  variant="danger" 
  onClick={handleReject} 
@@ -102,6 +103,8 @@ const ApproveTimesheetViewModal = ({
  >
  {loading ? "PROCESSING..." : "REJECT"}
  </GlassButton>
+ )}
+ {onApprove && (
  <GlassButton 
  variant="primary" 
  onClick={handleApprove} 
@@ -110,6 +113,7 @@ const ApproveTimesheetViewModal = ({
  >
  {loading ? "PROCESSING..." : "APPROVE"}
  </GlassButton>
+ )}
  </>
  ) : (
  <GlassButton variant="secondary" onClick={onClose} className="w-full">
@@ -157,7 +161,7 @@ const ApproveTimesheetViewModal = ({
  </div>
 
  {/* APPROVE HOURS INPUT (Only for pending timesheets in pending tab) */}
- {!isApprovedTab && timesheet.status === "Pending" && (
+ {!isApprovedTab && timesheet.status === "Pending" && !!onApprove && (
  <div>
  <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">
  APPROVE HOURS*
