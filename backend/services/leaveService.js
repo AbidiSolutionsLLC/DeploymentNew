@@ -1,4 +1,4 @@
-﻿const LeaveRequest = require("../models/leaveRequestSchema");
+const LeaveRequest = require("../models/leaveRequestSchema");
 const User = require("../models/userSchema");
 const TimeTracker = require("../models/timeTrackerSchema");
 const { moment, TIMEZONE, calculateBusinessDays } = require("../utils/dateUtils");
@@ -493,8 +493,31 @@ class LeaveService {
 
     if (leaveRequest.email) {
       const emailSubject = `Leave Request ${status}`;
-      const emailBody = this.generateLeaveStatusEmailTemplate(leaveRequest, status, responseNote);
-      sendEmail(leaveRequest.email, emailSubject, emailBody).catch(console.error);
+      const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+        ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/leaveTrackerAdmin`
+        : 'https://abidipro.abidisolutions.com/admin/leaveTrackerAdmin';
+
+      const payload = {
+        employeeName: leaveRequest.employeeName || 'Employee',
+        leaveType: leaveRequest.leaveType === 'PTO' ? 'Paid Time Off (PTO)' : leaveRequest.leaveType,
+        startDate: moment.utc(leaveRequest.startDate).format('MMM DD, YYYY'),
+        endDate: moment.utc(leaveRequest.endDate).format('MMM DD, YYYY'),
+        days: calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate),
+        note: responseNote || '',
+        actionUrl,
+        refId: (leaveRequest._id.toString()).slice(-6).toUpperCase()
+      };
+
+      const emailBody = status === 'Approved' 
+        ? emailTemplates.leaveApproved(payload) 
+        : emailTemplates.leaveRejected(payload);
+
+      sendEmail({
+        to: leaveRequest.email,
+        subject: emailSubject,
+        htmlContent: emailBody,
+        companyId: leaveRequest.company
+      }).catch(err => console.error('[Email Error] Leave status update:', err.message));
     }
 
     try {
@@ -698,7 +721,7 @@ class LeaveService {
     }
 
     const notifyRoles = await User.find({
-      $or: [{ role: 'Super Admin' }, { role: 'Admin' }],
+      $or: [{ role: 'Super Admin' }, { role: 'Admin' }, { role: 'HR' }],
       company: leaveRequest.company
     });
     
@@ -708,15 +731,36 @@ class LeaveService {
       if (manager) recipients.push(manager);
     }
    
-    const recipientEmails = [...new Set(recipients.map(user => user.email))];
+    const recipientEmails = [...new Set(recipients.map(user => user.email).filter(Boolean))];
    
     if (recipientEmails.length > 0) {
       const subject = `New Leave Request: ${leaveRequest.employeeName} - ${leaveRequest.leaveType}`;
-      const htmlContent = this.generateLeaveCreationEmailTemplate(leaveRequest, employee);
+      
+      const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+        ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/leaveTrackerAdmin`
+        : 'https://abidipro.abidisolutions.com/admin/leaveTrackerAdmin';
+      
+      const payload = {
+        employeeName: leaveRequest.employeeName || employee?.name || 'Employee',
+        leaveType: leaveRequest.leaveType === 'PTO' ? 'Paid Time Off (PTO)' : leaveRequest.leaveType,
+        startDate: moment.utc(leaveRequest.startDate).format('MMM DD, YYYY'),
+        endDate: moment.utc(leaveRequest.endDate).format('MMM DD, YYYY'),
+        days: calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate),
+        submittedDate: moment(leaveRequest.appliedAt || leaveRequest.createdAt || new Date()).tz(TIMEZONE).format('MMM DD, YYYY'),
+        reason: leaveRequest.reason || '',
+        actionUrl: actionUrl,
+        refId: (leaveRequest._id ? leaveRequest._id.toString() : '').slice(-6).toUpperCase()
+      };
+      
+      const htmlContent = emailTemplates.leaveSubmitted(payload);
      
       recipientEmails.forEach(email => {
-        sendEmail(email, subject, htmlContent)
-          .catch(err => console.error(`âŒ Failed to send leave notification to ${email}:`, err.message));
+        sendEmail({
+          to: email,
+          subject: subject,
+          htmlContent: htmlContent,
+          companyId: leaveRequest.company
+        }).catch(err => console.error(`Failed to send leave notification to ${email}:`, err.message));
       });
     }
   }
@@ -724,428 +768,29 @@ class LeaveService {
   async sendLeaveResponseNotification(leaveRequest, responder, responseContent) {
     if (leaveRequest.email && leaveRequest.email !== responder.email) {
       const subject = `New Response on Your Leave Request: ${leaveRequest.leaveType}`;
-      const htmlContent = this.generateLeaveResponseEmailTemplate(leaveRequest, responder, responseContent);
+      const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+        ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/leaveTrackerAdmin`
+        : 'https://abidipro.abidisolutions.com/admin/leaveTrackerAdmin';
+        
+      const payload = {
+        employeeName: leaveRequest.employeeName || 'Employee',
+        leaveType: leaveRequest.leaveType,
+        authorName: responder.name,
+        content: responseContent,
+        actionUrl: actionUrl,
+        refId: (leaveRequest._id.toString()).slice(-6).toUpperCase()
+      };
+      const htmlContent = emailTemplates.leaveResponseAdded(payload);
      
-      sendEmail(leaveRequest.email, subject, htmlContent)
-        .catch(err => console.error(`âŒ Failed to send response notification to ${leaveRequest.email}:`, err.message));
+      sendEmail({
+        to: leaveRequest.email,
+        subject: subject,
+        htmlContent: htmlContent,
+        companyId: leaveRequest.company
+      }).catch(err => console.error(`Failed to send response notification to ${leaveRequest.email}:`, err.message));
     }
   }
    
-  generateLeaveCreationEmailTemplate(leaveRequest, employee = null) {
-    const employeeName = leaveRequest.employeeName || employee?.name || 'Employee';
-    const empID = employee?.empID || (employee?._id ? `EMP-${employee._id.toString().slice(-4).toUpperCase()}` : '');
-    const departmentName = employee?.department?.name || 'General';
-    const designation = employee?.designation || employee?.role || 'Team Member';
-    const leaveTypeLabel = leaveRequest.leaveType === 'PTO' ? 'Paid Time Off (PTO)' : (leaveRequest.leaveType === 'Sick' ? 'Sick Leave' : leaveRequest.leaveType);
-    
-    // Dates formatting
-    const startDateObj = moment.utc(leaveRequest.startDate, 'YYYY-MM-DD');
-    const endDateObj = moment.utc(leaveRequest.endDate, 'YYYY-MM-DD');
-    const appliedDateObj = moment(leaveRequest.appliedAt || leaveRequest.createdAt || new Date()).tz(TIMEZONE);
-    
-    const startMonthYear = startDateObj.format('MMMM YYYY').toUpperCase();
-    const startDayNum = startDateObj.format('DD');
-    const startDayName = startDateObj.format('dddd');
-    const startDateFormatted = startDateObj.format('MMM DD, YYYY');
-
-    const endMonthYear = endDateObj.format('MMMM YYYY').toUpperCase();
-    const endDayNum = endDateObj.format('DD');
-    const endDayName = endDateObj.format('dddd');
-    const endDateFormatted = endDateObj.format('MMM DD, YYYY');
-
-    const appliedDateFormatted = appliedDateObj.format('MMMM DD, YYYY');
-
-    // Calculate working business days
-    const businessDays = calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate);
-    const daysLabel = `${businessDays} business day${businessDays > 1 ? 's' : ''}`;
-
-    // Return to work date calculation (next business day after end date)
-    let nextWorkDay = moment.utc(leaveRequest.endDate, 'YYYY-MM-DD').add(1, 'day');
-    while (nextWorkDay.day() === 0 || nextWorkDay.day() === 6) {
-      nextWorkDay.add(1, 'day');
-    }
-    const returnDateFormatted = nextWorkDay.format('dddd, MMM DD, YYYY');
-
-    const reason = leaveRequest.reason && leaveRequest.reason.trim() ? leaveRequest.reason.trim() : 'No additional note provided.';
-    const leaveId = leaveRequest._id ? leaveRequest._id.toString() : '';
-    const refId = leaveId ? `LR-${leaveId.slice(-6).toUpperCase()}` : `LR-${Date.now().toString().slice(-6)}`;
-    
-    const portalUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-      ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/leaveTrackerAdmin`
-      : 'https://abidipro.abidisolutions.com/admin/leaveTrackerAdmin';
-
-    const escapeHtml = (str) => {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    };
-
-    return `<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="x-apple-disable-message-reformatting">
-  <title>New Leave Request - ${escapeHtml(employeeName)}</title>
-  <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
-  <![endif]-->
-  <style>
-    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
-    body {
-      margin: 0 !important;
-      padding: 0 !important;
-      width: 100% !important;
-      background-color: #F8FAFC;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #0F172A;
-      -webkit-font-smoothing: antialiased;
-    }
-    @media only screen and (max-width: 600px) {
-      .container { width: 100% !important; }
-      .p-mobile { padding: 20px 16px !important; }
-      .cal-box { width: 100% !important; margin-bottom: 10px !important; }
-      .cal-separator { display: none !important; }
-      .kv-col { display: block !important; width: 100% !important; margin-bottom: 8px !important; }
-    }
-  </style>
-</head>
-<body style="margin: 0; padding: 0; background-color: #F8FAFC;">
-
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; table-layout: fixed;">
-    <tr>
-      <td align="center" style="padding: 40px 16px;">
-
-        <!--[if (gte mso 9)|(IE)]>
-        <table align="center" border="0" cellspacing="0" cellpadding="0" width="580">
-        <tr>
-        <td align="center" valign="top" width="580">
-        <![endif]-->
-        <table role="presentation" class="container" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; margin: 0 auto; background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden;">
-          
-          <!-- Header with Minimal Logo and Status Badge -->
-          <tr>
-            <td style="padding: 28px 28px 20px 28px; border-bottom: 1px solid #F1F5F9;" class="p-mobile">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-                <tr>
-                  <td align="left">
-                    <span style="display: inline-block; font-size: 18px; font-weight: 800; color: #0F172A; letter-spacing: -0.5px;">
-                      <span style="color: #D4AF37;">â—†</span> Karbexa
-                    </span>
-                  </td>
-                  <td align="right">
-                    <span style="display: inline-block; background-color: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase;">
-                      Pending Review
-                    </span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Main Content -->
-          <tr>
-            <td style="padding: 28px;" class="p-mobile">
-              
-              <!-- Title -->
-              <h2 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700; color: #0F172A;">
-                Leave Request from ${escapeHtml(employeeName)}
-              </h2>
-              <p style="margin: 0 0 24px 0; font-size: 14px; color: #64748B; line-height: 1.5;">
-                Submitted on <strong>${escapeHtml(appliedDateFormatted)}</strong> for <strong>${escapeHtml(daysLabel)}</strong> of ${escapeHtml(leaveTypeLabel)}.
-              </p>
-
-              <!-- DUAL CALENDAR TEAR-OFF BADGES -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #FAF8F2; border: 1px solid #EAE5D9; border-radius: 10px; margin-bottom: 24px;">
-                <tr>
-                  <td style="padding: 20px;">
-                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-                      <tr>
-                        <!-- Start Date Badge -->
-                        <td class="cal-box" width="42%" align="center" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
-                          <!-- Month Top Header -->
-                          <div style="background-color: #D4AF37; color: #FFFFFF; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 0; letter-spacing: 1px;">
-                            ${escapeHtml(startMonthYear)}
-                          </div>
-                          <!-- Day Number -->
-                          <div style="padding: 10px 0 4px 0;">
-                            <span style="font-size: 26px; font-weight: 900; color: #0F172A; line-height: 1;">${escapeHtml(startDayNum)}</span>
-                          </div>
-                          <!-- Day Name -->
-                          <div style="font-size: 12px; font-weight: 600; color: #92590C; padding-bottom: 8px;">
-                            ${escapeHtml(startDayName)} (Start)
-                          </div>
-                        </td>
-
-                        <!-- Connector Arrow -->
-                        <td class="cal-separator" width="16%" align="center" style="font-size: 18px; color: #D4AF37; font-weight: 700;">
-                          âž”
-                          <div style="font-size: 11px; font-weight: 800; color: #B45309; margin-top: 2px;">${businessDays} Day${businessDays > 1 ? 's' : ''}</div>
-                        </td>
-
-                        <!-- End Date Badge -->
-                        <td class="cal-box" width="42%" align="center" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
-                          <!-- Month Top Header -->
-                          <div style="background-color: #1E293B; color: #FFFFFF; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 0; letter-spacing: 1px;">
-                            ${escapeHtml(endMonthYear)}
-                          </div>
-                          <!-- Day Number -->
-                          <div style="padding: 10px 0 4px 0;">
-                            <span style="font-size: 26px; font-weight: 900; color: #0F172A; line-height: 1;">${escapeHtml(endDayNum)}</span>
-                          </div>
-                          <!-- Day Name -->
-                          <div style="font-size: 12px; font-weight: 600; color: #64748B; padding-bottom: 8px;">
-                            ${escapeHtml(endDayName)} (End)
-                          </div>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Request Key-Value Table -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
-                <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #64748B; width: 35%;">
-                    Employee Name
-                  </td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; font-weight: 600; color: #0F172A;">
-                    ${escapeHtml(employeeName)} ${empID ? `(${escapeHtml(empID)})` : ''}
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #64748B;">
-                    Department & Role
-                  </td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; font-weight: 600; color: #0F172A;">
-                    ${escapeHtml(departmentName)} â€¢ ${escapeHtml(designation)}
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #64748B;">
-                    Leave Category
-                  </td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; font-weight: 600; color: #B8860B;">
-                    ${escapeHtml(leaveTypeLabel)}
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #64748B;">
-                    Duration
-                  </td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; font-weight: 600; color: #0F172A;">
-                    ${startDateFormatted} to ${endDateFormatted} (${escapeHtml(daysLabel)})
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; font-size: 13px; color: #64748B;">
-                    Return to Office Date
-                  </td>
-                  <td style="padding: 8px 0; font-size: 13px; font-weight: 700; color: #059669;">
-                    ${escapeHtml(returnDateFormatted)}
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Employee Reason Box -->
-              <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px;">
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748B; margin-bottom: 4px;">
-                  Employee Note / Reason
-                </div>
-                <div style="font-size: 13px; color: #334155; line-height: 1.5;">
-                  â€œ${escapeHtml(reason)}â€
-                </div>
-              </div>
-
-              <!-- Primary CTA Button -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-                <tr>
-                  <td align="center" style="padding-bottom: 12px;">
-                    <a href="${portalUrl}" style="display: block; width: 100%; box-sizing: border-box; background-color: #D4AF37; color: #FFFFFF; font-size: 14px; font-weight: 700; text-align: center; text-decoration: none; padding: 14px 20px; border-radius: 8px;">
-                      Review Leave in Karbexa Portal âž”
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding: 20px 28px; background-color: #F8FAFC; border-top: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #94A3B8;">
-              Karbexa System Notification â€¢ Ref ID: <code>${escapeHtml(refId)}</code> â€¢ Auto-generated
-            </td>
-          </tr>
-
-        </table>
-        <!--[if (gte mso 9)|(IE)]>
-        </td>
-        </tr>
-        </table>
-        <![endif]-->
-
-      </td>
-    </tr>
-  </table>
-
-</body>
-</html>`;
-  }
-   
-  generateLeaveStatusEmailTemplate(leaveRequest, status, note) {
-      const portalUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const refId = (leaveRequest._id.toString()).slice(-6).toUpperCase();
-      const statusColor = status === 'Approved' ? '#059669' : '#DC2626';
-      
-      return `<!DOCTYPE html>
-  <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Leave Request ${status} - Karbexa</title>
-      <style>
-        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
-        body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0F172A; -webkit-font-smoothing: antialiased; }
-        @media only screen and (max-width: 600px) {
-          .container { width: 100% !important; }
-          .p-mobile { padding: 20px 16px !important; }
-        }
-      </style>
-    </head>
-    <body style="margin: 0; padding: 0; background-color: #F8FAFC;">
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; table-layout: fixed;">
-        <tr>
-          <td align="center" style="padding: 40px 16px;">
-            <table align="center" border="0" cellspacing="0" cellpadding="0" width="580" class="container">
-              <tr>
-                <td align="center" style="padding-bottom: 24px;">
-                  <div style="font-size: 28px; font-weight: 900; color: #0F172A; letter-spacing: 1px;">KARBEXA</div>
-                </td>
-              </tr>
-              <tr>
-                <td class="p-mobile" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 32px 28px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-                  <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #0F172A;">Leave Request ${status}</h2>
-                  <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 24px; color: #475569;">
-                    Hello <strong>${leaveRequest.employeeName}</strong>,<br>
-                    Your leave request for <strong>${leaveRequest.leaveType}</strong> has been <span style="font-weight: 700; color: ${statusColor};">${status}</span>.
-                  </p>
-                  ${note ? `
-                  <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px;">
-                    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748B; margin-bottom: 4px;">
-                      Note from Reviewer
-                    </div>
-                    <div style="font-size: 13px; color: #334155; line-height: 1.5;">
-                      "${note}"
-                    </div>
-                  </div>` : ''}
-                  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
-                    <tr>
-                      <td align="center">
-                        <a href="${portalUrl}" style="display: inline-block; box-sizing: border-box; background-color: #D4AF37; color: #FFFFFF; font-size: 14px; font-weight: 700; text-align: center; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
-                          View in Karbexa Portal
-                        </a>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding: 20px 28px; background-color: #F8FAFC; border-top: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #94A3B8;">
-                  Karbexa System Notification &bull; Ref ID: <code>${refId}</code> &bull; Auto-generated
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-  </html>`;
-    }
-   
-  generateLeaveResponseEmailTemplate(leaveRequest, responder, responseContent) {
-      const portalUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const refId = (leaveRequest._id.toString()).slice(-6).toUpperCase();
-      
-      return `<!DOCTYPE html>
-  <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>New Response on Leave Request - Karbexa</title>
-      <style>
-        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
-        body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0F172A; -webkit-font-smoothing: antialiased; }
-        @media only screen and (max-width: 600px) {
-          .container { width: 100% !important; }
-          .p-mobile { padding: 20px 16px !important; }
-        }
-      </style>
-    </head>
-    <body style="margin: 0; padding: 0; background-color: #F8FAFC;">
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; table-layout: fixed;">
-        <tr>
-          <td align="center" style="padding: 40px 16px;">
-            <table align="center" border="0" cellspacing="0" cellpadding="0" width="580" class="container">
-              <tr>
-                <td align="center" style="padding-bottom: 24px;">
-                  <div style="font-size: 28px; font-weight: 900; color: #0F172A; letter-spacing: 1px;">KARBEXA</div>
-                </td>
-              </tr>
-              <tr>
-                <td class="p-mobile" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 32px 28px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-                  <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #0F172A;">New Response on Leave Request</h2>
-                  <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 24px; color: #475569;">
-                    Hello <strong>${leaveRequest.employeeName}</strong>,<br>
-                    You have received a new response on your leave request from <strong>${responder.name}</strong>:
-                  </p>
-                  <div style="background-color: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px;">
-                    <div style="font-size: 13px; color: #92400E; line-height: 1.5;">
-                      "${responseContent}"
-                    </div>
-                  </div>
-                  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
-                    <tr>
-                      <td align="center">
-                        <a href="${portalUrl}" style="display: inline-block; box-sizing: border-box; background-color: #D4AF37; color: #FFFFFF; font-size: 14px; font-weight: 700; text-align: center; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
-                          Reply in Karbexa Portal
-                        </a>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding: 20px 28px; background-color: #F8FAFC; border-top: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #94A3B8;">
-                  Karbexa System Notification &bull; Ref ID: <code>${refId}</code> &bull; Auto-generated
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-  </html>`;
-    }
 }
 
 module.exports = new LeaveService();
-

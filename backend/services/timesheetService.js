@@ -6,6 +6,8 @@ const { getStartOfDay, getEndOfDay, moment, TIMEZONE } = require("../utils/dateU
 const { createNotification } = require('../utils/notificationService');
 const { normalizeRole } = require("../utils/rbacUtils");
 const { getSearchScope, getApprovalScope } = require("../utils/rbac");
+const { sendEmail } = require('../config/emailConfig');
+const emailTemplates = require('../utils/emailTemplates');
 
 class TimesheetService {
   async createTimesheet(user, companyId, data) {
@@ -67,6 +69,50 @@ class TimesheetService {
 
     const savedTimesheet = await timesheet.save();
     await TimeLog.updateMany({ _id: { $in: logIds } }, { isAddedToTimesheet: true, timesheet: savedTimesheet._id });
+
+    // Send Emails
+    try {
+      const submitter = await User.findById(employee);
+      const notifyRoles = await User.find({
+        $or: [{ role: 'Super Admin' }, { role: 'Admin' }, { role: 'HR' }],
+        company: companyId
+      });
+      let recipients = notifyRoles;
+      if (submitter && submitter.reportsTo) {
+        const manager = await User.findById(submitter.reportsTo);
+        if (manager) recipients.push(manager);
+      }
+      const recipientEmails = [...new Set(recipients.map(u => u.email).filter(Boolean))];
+
+      if (recipientEmails.length > 0) {
+        const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+          ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/timesheet`
+          : 'https://abidipro.abidisolutions.com/admin/timesheet';
+
+        const payload = {
+          employeeName: employeeName,
+          periodStart: moment(startOfWeek).format('MMM DD, YYYY'),
+          periodEnd: moment(endOfWeek).format('MMM DD, YYYY'),
+          totalHours: submittedHours.toString(),
+          actionUrl,
+          refId: savedTimesheet._id.toString().slice(-6).toUpperCase()
+        };
+        const htmlContent = emailTemplates.timesheetSubmitted(payload);
+
+        recipientEmails.forEach(email => {
+          if (email !== user.email) {
+            sendEmail({
+              to: email,
+              subject: `New Timesheet Submitted: ${employeeName}`,
+              htmlContent: htmlContent,
+              companyId: companyId
+            }).catch(err => console.error('[Email Error] Timesheet submission:', err.message));
+          }
+        });
+      }
+    } catch (err) {
+      console.error('[Notification/Email Error] Timesheet submission:', err.message);
+    }
 
     return savedTimesheet;
   }
@@ -247,6 +293,33 @@ class TimesheetService {
         message: `Your timesheet for ${new Date(timesheet.date).toDateString()} has been ${status.toLowerCase()}.`,
         relatedEntity: { entityType: 'timesheet', entityId: updatedTimesheet._id },
       });
+      
+      if (timesheet.employee.email) {
+        const startOfWeek = moment(timesheet.date).tz(TIMEZONE).startOf('isoWeek');
+        const endOfWeek = moment(timesheet.date).tz(TIMEZONE).endOf('isoWeek');
+        
+        const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+          ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/timesheet`
+          : 'https://abidipro.abidisolutions.com/timesheet';
+
+        const payload = {
+          periodStart: startOfWeek.format('MMM DD, YYYY'),
+          periodEnd: endOfWeek.format('MMM DD, YYYY'),
+          totalHours: timesheet.submittedHours.toString(),
+          status: status,
+          note: comment || '',
+          actionUrl,
+          refId: updatedTimesheet._id.toString().slice(-6).toUpperCase()
+        };
+        const emailHtml = emailTemplates.timesheetStatusUpdated(payload);
+
+        sendEmail({
+          to: timesheet.employee.email,
+          subject: `Timesheet ${status}: ${payload.periodStart} to ${payload.periodEnd}`,
+          htmlContent: emailHtml,
+          companyId: companyId
+        }).catch(err => console.error('[Email Error] Timesheet status update:', err.message));
+      }
     } catch (err) {}
 
     return updatedTimesheet;

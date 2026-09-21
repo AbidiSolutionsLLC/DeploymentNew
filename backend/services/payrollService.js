@@ -1,6 +1,9 @@
 const Timesheet = require("../models/timesheetSchema");
 const User = require("../models/userSchema");
 const Payslip = require("../models/payslipSchema");
+const { sendEmail } = require('../config/emailConfig');
+const emailTemplates = require('../utils/emailTemplates');
+const { moment } = require("../utils/dateUtils");
 
 class PayrollService {
   async previewPayroll(user, startDate, endDate, standardHours = 0) {
@@ -65,7 +68,47 @@ class PayrollService {
        };
     });
     
-    return await Payslip.insertMany(payslipsToInsert);
+    const result = await Payslip.insertMany(payslipsToInsert);
+    
+    // Send email to Super Admin
+    try {
+      const superAdmins = await User.find({ role: 'Super Admin', company: user.company });
+      if (superAdmins.length > 0) {
+        const totalAmount = result.reduce((sum, p) => sum + p.totalWages, 0);
+        const start = moment(data.periodStartDate).format('MMM DD, YYYY');
+        const end = moment(data.periodEndDate).format('MMM DD, YYYY');
+        
+        const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+          ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/payrollAdmin`
+          : 'https://abidipro.abidisolutions.com/admin/payrollAdmin';
+          
+        const payload = {
+          batchId: Date.now().toString(36).toUpperCase(),
+          period: `${start} to ${end}`,
+          employeeCount: result.length.toString(),
+          totalAmount: `$${totalAmount.toFixed(2)}`,
+          processedDate: moment().format('MMM DD, YYYY'),
+          actionUrl
+        };
+        
+        const htmlContent = emailTemplates.payrollCreated(payload);
+        
+        superAdmins.forEach(admin => {
+          if (admin.email) {
+            sendEmail({
+              to: admin.email,
+              subject: `Payroll Generated: ${payload.period}`,
+              htmlContent: htmlContent,
+              companyId: user.company
+            }).catch(err => console.error('[Email Error] Payroll notification:', err.message));
+          }
+        });
+      }
+    } catch (err) {
+      console.error('[Payroll Email Error]:', err.message);
+    }
+    
+    return result;
   }
   
   async getPayslipHistory(user) {

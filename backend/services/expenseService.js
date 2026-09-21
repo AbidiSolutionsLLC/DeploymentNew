@@ -8,6 +8,9 @@ const { getTeamIds } = require("../utils/hierarchy");
 const { createNotification } = require('../utils/notificationService');
 const APIFeatures = require("../utils/apiFeatures");
 const { normalizeRole } = require("../utils/rbacUtils");
+const { sendEmail } = require('../config/emailConfig');
+const emailTemplates = require('../utils/emailTemplates');
+const { moment } = require("../utils/dateUtils");
 
 class ExpenseService {
   async createExpense(user, companyId, data, file) {
@@ -52,6 +55,22 @@ class ExpenseService {
         ]
       });
 
+      const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+        ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/expenseAdmin`
+        : 'https://abidipro.abidisolutions.com/admin/expenseAdmin';
+
+      const emailPayload = {
+        employeeName: submitter.name,
+        title: expense.title,
+        amount: `$${expense.amount.toFixed(2)}`,
+        date: moment(expense.createdAt).format('MMM DD, YYYY'),
+        description: expense.description,
+        actionUrl,
+        refId: expense._id.toString().slice(-6).toUpperCase()
+      };
+      
+      const emailHtml = emailTemplates.expenseSubmitted(emailPayload);
+
       notifyRecipients.forEach(recipient => {
         if (recipient._id.toString() !== user._id.toString()) {
           createNotification({
@@ -61,10 +80,19 @@ class ExpenseService {
             message: `${submitter.name} submitted a new expense: "${expense.title}" for $${expense.amount}.`,
             relatedEntity: { entityType: 'expense', entityId: expense._id },
           }).catch(err => console.error('[Notification Error] Expense submission:', err.message));
+          
+          if (recipient.email) {
+            sendEmail({
+              to: recipient.email,
+              subject: `New Expense Submitted: ${expense.title}`,
+              htmlContent: emailHtml,
+              companyId: companyId
+            }).catch(err => console.error('[Email Error] Expense submission:', err.message));
+          }
         }
       });
     } catch (err) {
-      console.error('[Notification Error] Failed to fetch recipients for expense:', err.message);
+      console.error('[Notification/Email Error] Failed to fetch recipients for expense:', err.message);
     }
 
     return expense;
@@ -160,8 +188,33 @@ class ExpenseService {
         ? `Your expense "${updatedExpense.title}" for $${updatedExpense.amount} has been approved.`
         : `Your expense "${updatedExpense.title}" for $${updatedExpense.amount} has been rejected.`;
 
+      const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+        ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/expenses`
+        : 'https://abidipro.abidisolutions.com/expenses';
+        
+      const payload = {
+        title: updatedExpense.title,
+        amount: `$${updatedExpense.amount.toFixed(2)}`,
+        date: moment(updatedExpense.createdAt).format('MMM DD, YYYY'),
+        status: updates.status === 'approved' ? 'Approved' : 'Rejected',
+        note: updatedExpense.rejectionReason || '',
+        actionUrl,
+        refId: updatedExpense._id.toString().slice(-6).toUpperCase()
+      };
+      const emailHtml = emailTemplates.expenseStatusUpdated(payload);
+
+      const submitterUser = await User.findById(updatedExpense.submittedBy._id || updatedExpense.submittedBy);
+      if (submitterUser && submitterUser.email) {
+        sendEmail({
+          to: submitterUser.email,
+          subject: `Expense ${payload.status}: ${updatedExpense.title}`,
+          htmlContent: emailHtml,
+          companyId: companyId
+        }).catch(err => console.error('[Email Error] Expense status update:', err.message));
+      }
+
       createNotification({
-        recipient: updatedExpense.submittedBy._id,
+        recipient: updatedExpense.submittedBy._id || updatedExpense.submittedBy,
         type,
         title,
         message,
@@ -201,8 +254,33 @@ class ExpenseService {
     expense.approvedAt = Date.now();
     await expense.save();
 
+    const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+      ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/expenses`
+      : 'https://abidipro.abidisolutions.com/expenses';
+      
+    const payload = {
+      title: expense.title,
+      amount: `$${expense.amount.toFixed(2)}`,
+      date: moment(expense.createdAt).format('MMM DD, YYYY'),
+      status: 'Approved',
+      note: '',
+      actionUrl,
+      refId: expense._id.toString().slice(-6).toUpperCase()
+    };
+    const emailHtml = emailTemplates.expenseStatusUpdated(payload);
+
+    const submitterUser = await User.findById(expense.submittedBy._id || expense.submittedBy);
+    if (submitterUser && submitterUser.email) {
+      sendEmail({
+        to: submitterUser.email,
+        subject: `Expense Approved: ${expense.title}`,
+        htmlContent: emailHtml,
+        companyId: companyId
+      }).catch(err => console.error('[Email Error] Expense approved:', err.message));
+    }
+
     createNotification({
-      recipient: expense.submittedBy._id,
+      recipient: expense.submittedBy._id || expense.submittedBy,
       type: 'EXPENSE_APPROVED',
       title: 'Expense Approved',
       message: `Your expense "${expense.title}" for $${expense.amount} has been approved.`,
@@ -244,8 +322,33 @@ class ExpenseService {
     expense.rejectedAt = Date.now();
     await expense.save();
 
+    const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+      ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/expenses`
+      : 'https://abidipro.abidisolutions.com/expenses';
+      
+    const payload = {
+      title: expense.title,
+      amount: `$${expense.amount.toFixed(2)}`,
+      date: moment(expense.createdAt).format('MMM DD, YYYY'),
+      status: 'Rejected',
+      note: reason,
+      actionUrl,
+      refId: expense._id.toString().slice(-6).toUpperCase()
+    };
+    const emailHtml = emailTemplates.expenseStatusUpdated(payload);
+
+    const submitterUser = await User.findById(expense.submittedBy._id || expense.submittedBy);
+    if (submitterUser && submitterUser.email) {
+      sendEmail({
+        to: submitterUser.email,
+        subject: `Expense Rejected: ${expense.title}`,
+        htmlContent: emailHtml,
+        companyId: companyId
+      }).catch(err => console.error('[Email Error] Expense rejected:', err.message));
+    }
+
     createNotification({
-      recipient: expense.submittedBy._id,
+      recipient: expense.submittedBy._id || expense.submittedBy,
       type: 'EXPENSE_REJECTED',
       title: 'Expense Rejected',
       message: `Your expense "${expense.title}" for $${expense.amount} has been rejected. Reason: ${reason}`,
