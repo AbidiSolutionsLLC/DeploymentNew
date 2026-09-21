@@ -21,7 +21,7 @@ class UserService {
 
     const isManagerTech = actor.role === 'Manager' && actor.isTechnician === true;
 
-    if (actor.role === 'Admin' || isManagerTech) {
+    if (actor.role === 'Admin' || actor.role === 'HR' || isManagerTech) {
       const restrictedRoles = ['Super Admin', 'Admin'];
       if (targetRole && restrictedRoles.includes(targetRole)) {
         throw new ForbiddenError("You cannot assign or manage Admin or Super Admin roles.");
@@ -37,7 +37,7 @@ class UserService {
       return true;
     }
 
-    if (['HR', 'Manager', 'Technician', 'Employee'].includes(actor.role)) {
+    if (['Manager', 'Technician', 'Employee'].includes(actor.role)) {
       throw new ForbiddenError("You do not have permission to manage users.");
     }
 
@@ -352,6 +352,9 @@ class UserService {
   }
 
   async deleteUser(actor, targetId) {
+    if (actor.role === 'HR') {
+      throw new ForbiddenError("HR is not permitted to delete users.");
+    }
     const permission = await this.checkWritePermission(actor, targetId);
 
     if (permission === "SELF_EDIT") {

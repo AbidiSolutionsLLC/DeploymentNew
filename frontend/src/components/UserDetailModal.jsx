@@ -76,7 +76,7 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
  error = value.trim() ? "" : "Branch is required";
  break;
  case "hourlyWage":
- error = (value !== "" && value >= 0) ? "" : "Valid wage required";
+ error = (value === "" || value == null || value >= 0) ? "" : "Invalid wage";
  break;
  default:
  break;
@@ -147,7 +147,9 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
  const currentBool = typeof current === "string" ? current === "true" : Boolean(current);
  if (currentBool !== Boolean(original)) changedFields[key] = currentBool;
  } else if (key === "hourlyWage") {
- if (parseFloat(current) !== parseFloat(original)) changedFields[key] = parseFloat(current);
+ const parsedCurrent = current === "" || current == null ? 0 : parseFloat(current);
+ const parsedOriginal = original === "" || original == null ? 0 : parseFloat(original);
+ if (parsedCurrent !== parsedOriginal) changedFields[key] = parsedCurrent;
  } else {
  if (String(current) !== String(original)) changedFields[key] = current;
  }
@@ -260,11 +262,14 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
  );
  };
 
+ const canDelete = currentUser && ["Super Admin", "Admin"].includes(currentUser.role);
+ const canEdit = currentUser && ["Super Admin", "Admin", "HR"].includes(currentUser.role);
+
  const headerActions = (
  <div className="flex gap-2">
  {!isEditing && <GlassButton variant="secondary" size="sm" onClick={handleResendInvite} isLoading={isResending}>Invite</GlassButton>}
- {!isEditing && <GlassButton variant="danger" size="sm" onClick={handleDeleteUser} isLoading={isDeleting}>Delete</GlassButton>}
- <GlassButton variant="secondary" size="sm" onClick={() => setIsEditing(!isEditing)}>{isEditing ? "Cancel Edit" : "Edit"}</GlassButton>
+ {!isEditing && canDelete && <GlassButton variant="danger" size="sm" onClick={handleDeleteUser} isLoading={isDeleting}>Delete</GlassButton>}
+ {canEdit && <GlassButton variant="secondary" size="sm" onClick={() => setIsEditing(!isEditing)}>{isEditing ? "Cancel Edit" : "Edit"}</GlassButton>}
  </div>
  );
 

@@ -129,7 +129,7 @@ const UserManagement = () => {
  const activeUsers = users.filter((u) => u.empStatus === "Active").length;
  const inactiveUsers = users.filter((u) => u.empStatus === "Inactive").length;
 
- const canAddUser = currentUser && ["Super Admin", "Admin", "Global Reader"].includes(currentUser.role);
+ const canAddUser = currentUser && ["Super Admin", "Admin", "HR"].includes(currentUser.role);
 
  // Derive unique roles from users list + common defaults
  const roleOptions = [

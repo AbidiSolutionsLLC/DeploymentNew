@@ -69,6 +69,8 @@ api.interceptors.request.use(
  (error) => Promise.reject(error)
 );
 
+ let isRedirecting = false;
+
 // --- UPDATED RESPONSE INTERCEPTOR ---
 api.interceptors.response.use(
  (response) => {
@@ -91,6 +93,10 @@ api.interceptors.response.use(
  const ignoreAuthRedirect = error.config?.ignoreAuthRedirect;
 
  if (status === 401 && !ignoreAuthRedirect) {
+ if (isRedirecting) {
+   return Promise.reject(error);
+ }
+
  console.warn("[AXIOS] 401 Unauthorized — logging out");
 
  try {
@@ -111,7 +117,13 @@ api.interceptors.response.use(
 
  // Prevent redirect loop
  if (!window.location.pathname.startsWith("/auth/login")) {
- window.location.replace("/auth/login");
+ isRedirecting = true;
+ if (store) {
+   store.dispatch({ type: 'auth/logout' });
+ }
+ setTimeout(() => {
+   window.location.replace("/auth/login");
+ }, 150);
  }
 
  return Promise.reject(error);

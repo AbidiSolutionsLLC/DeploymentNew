@@ -8,25 +8,25 @@ const PERMISSIONS = {
   
   // ATTENDANCE
   'attendance:read:own':   ['*'],
-  'attendance:read:team':  ['manager'],
+  'attendance:read:team':  ['manager', 'superadmin', 'admin', 'hr', 'globalreader'],
   'attendance:read:all':   ['superadmin', 'admin', 'hr', 'globalreader'],
   'attendance:edit':       ['superadmin', 'admin', 'hr'],
   
   // TIMESHEETS
   'timesheets:read:own':   ['*'],
-  'timesheets:read:team':  ['manager'],
+  'timesheets:read:team':  ['manager', 'superadmin', 'admin', 'hr', 'globalreader'],
   'timesheets:read:all':   ['superadmin', 'admin', 'hr', 'globalreader'],
   'timesheets:approve':    ['superadmin', 'admin', 'hr', 'manager'],
   
   // EXPENSES
   'expenses:read:own':     ['*'],
-  'expenses:read:team':    ['manager'],
+  'expenses:read:team':    ['manager', 'superadmin', 'admin', 'hr', 'globalreader'],
   'expenses:read:all':     ['superadmin', 'admin', 'globalreader'],
   'expenses:approve':      ['superadmin', 'admin', 'manager'],
   
   // LEAVES
   'leaves:read:own':       ['*'],
-  'leaves:read:team':      ['manager'],
+  'leaves:read:team':      ['manager', 'superadmin', 'admin', 'hr', 'globalreader'],
   'leaves:read:all':       ['superadmin', 'admin', 'hr', 'globalreader'],
   'leaves:approve':        ['superadmin', 'admin', 'hr', 'manager'],
   
@@ -40,10 +40,11 @@ const PERMISSIONS = {
   
   // TICKETING
   'tickets:read:own':      ['*'],
-  'tickets:read:team':     ['manager', 'admin'],
-  'tickets:read:all':      ['superadmin', 'globalreader'],
+  'tickets:read:team':     ['manager', 'superadmin', 'admin', 'globalreader'],
+  'tickets:read:all':      ['superadmin', 'admin', 'globalreader'],
   'tickets:create':        ['*'],
   'tickets:assign':        ['superadmin', 'admin'],
+  'tickets:edit':          ['superadmin', 'admin'],
   'tickets:manage_status': ['superadmin', 'admin', 'manager'],
   
   // PROJECTS / TASKS
