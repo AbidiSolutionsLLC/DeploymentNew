@@ -53,13 +53,28 @@ class UserService {
   }
 
   async sendInviteEmail(user) {
-    const frontendLoginUrl = "https://abidipro.abidisolutions.com/auth/login";
+    let resetToken = null;
+    const crypto = require("crypto");
+    
+    // Always generate a fresh reset token for the invitation
+    resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpires = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
+    await user.save();
+
+    const frontendBaseUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
+        ? process.env.FRONTEND_URL.replace(/\/+$/, '')
+        : 'https://abidipro.abidisolutions.com';
+    const loginUrlWithToken = `${frontendBaseUrl}/auth/reset-password/${resetToken}`;
+
     try {
       await sendInvitationEmail({
         to: user.email,
         name: user.name,
         role: user.role,
-        loginURL: frontendLoginUrl,
+        loginURL: loginUrlWithToken,
         companyId: user.company
       });
     } catch (error) {

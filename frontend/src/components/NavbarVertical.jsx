@@ -28,7 +28,7 @@ const NavbarVertical = ({ onNotificationClick }) => {
  name: "Admin",
  to: "/admin",
  icon: AdjustmentsHorizontalIcon,
- show: hasRole(["Super Admin", "Admin", "HR", "Manager"]),
+ show: hasRole(["Super Admin", "Admin", "HR", "Manager", "Global Reader"]),
  },
  ];
 

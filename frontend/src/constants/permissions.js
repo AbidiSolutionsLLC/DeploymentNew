@@ -1,5 +1,8 @@
 const PERMISSIONS = {
-  // USER MANAGEMENT
+  // GENERAL ADMIN PORTAL ACCESS
+  'admin:access':          ['superadmin', 'admin', 'hr', 'globalreader', 'manager'],
+
+  // USERS
   'users:read':          ['superadmin', 'admin', 'hr', 'globalreader'],
   'users:create':        ['superadmin', 'admin', 'hr'],
   'users:update':        ['superadmin', 'admin', 'hr'],
@@ -41,9 +44,11 @@ const PERMISSIONS = {
   // TICKETING
   'tickets:read:own':      ['*'],
   'tickets:read:team':     ['manager', 'superadmin', 'admin', 'globalreader'],
-  'tickets:read:all':      ['superadmin', 'globalreader'],
+  'tickets:read:all':      ['superadmin', 'admin', 'globalreader'],
   'tickets:create':        ['*'],
   'tickets:assign':        ['superadmin', 'admin'],
+  'tickets:admin_assign':  ['superadmin', 'admin'],
+  'tickets:edit':          ['superadmin', 'admin'],
   'tickets:manage_status': ['superadmin', 'admin', 'manager'],
   
   // PROJECTS / TASKS

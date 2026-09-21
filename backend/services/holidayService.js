@@ -24,7 +24,7 @@ class HolidayService {
     const { moment } = require("../utils/dateUtils");
     const holidayDate = moment.utc(date, 'YYYY-MM-DD').toDate();
 
-    const allUsers = await User.find({ empStatus: "Active" }).select("_id");
+    const allUsers = await User.find({ empStatus: "Active" }).select("_id company");
     const userIds = allUsers.map(user => user._id);
 
     const existingEntries = await TimeTracker.find({
@@ -46,6 +46,7 @@ class HolidayService {
       if (!existingUserIds.has(user._id.toString())) {
         entriesToCreate.push({
           user: user._id,
+          company: user.company,
           date: holidayDate,
           status: 'Holiday',
           notes: `Holiday: ${holidayName}`
@@ -99,7 +100,7 @@ class HolidayService {
         { $set: { status: 'Present', notes: '' } }
       );
 
-      const allUsers = await User.find({ empStatus: "Active" }).select("_id");
+      const allUsers = await User.find({ empStatus: "Active" }).select("_id company");
       const timeTrackerEntries = [];
 
       for (const u of allUsers) {
@@ -113,6 +114,7 @@ class HolidayService {
         } else {
           timeTrackerEntries.push({
             user: u._id,
+            company: u.company,
             date: newDate,
             status: 'Holiday',
             notes: `Holiday: ${holiday.holidayName}`

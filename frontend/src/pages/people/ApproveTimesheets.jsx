@@ -293,6 +293,7 @@ const ApproveTimesheets = () => {
       toast.success(`Successfully approved ${selectedIds.length} timesheets`);
       setSelectedIds([]);
       fetchWeeklyTimesheets();
+      fetchAllTimesheets();
     } catch (error) {
       console.error("Bulk approval failed:", error);
       toast.error("Failed to approve some timesheets");
@@ -326,6 +327,7 @@ const ApproveTimesheets = () => {
  
  // Refresh list after update
  await fetchWeeklyTimesheets();
+ await fetchAllTimesheets();
  
  setShowDetails(false);
  setSelectedTimesheet(null);
@@ -819,11 +821,14 @@ const ApproveTimesheets = () => {
  <ApproveTimesheetViewModal
  timesheet={selectedTimesheet}
  onClose={() => { setShowDetails(false); setSelectedTimesheet(null); }}
- onApprove={activeTab === 0 && (String(currentUser?._id || currentUser?.id) !== String(selectedTimesheet?.employee?._id || selectedTimesheet?.employee)) ? handleApprove : undefined}
- onReject={activeTab === 0 && (String(currentUser?._id || currentUser?.id) !== String(selectedTimesheet?.employee?._id || selectedTimesheet?.employee)) ? handleReject : undefined}
+ onApprove={selectedTimesheet?.status === 'Pending' && (String(currentUser?._id || currentUser?.id) !== String(selectedTimesheet?.employee?._id || selectedTimesheet?.employee)) ? handleApprove : undefined}
+ onReject={selectedTimesheet?.status === 'Pending' && (String(currentUser?._id || currentUser?.id) !== String(selectedTimesheet?.employee?._id || selectedTimesheet?.employee)) ? handleReject : undefined}
  loading={updating}
- isApprovedTab={activeTab === 1}
- onCommentAdded={() => fetchWeeklyTimesheets()}
+ isApprovedTab={activeTab === 1 || selectedTimesheet?.status === 'Approved'}
+ onCommentAdded={() => {
+ fetchWeeklyTimesheets();
+ fetchAllTimesheets();
+ }}
  />
  )}
 

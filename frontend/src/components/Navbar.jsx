@@ -107,11 +107,22 @@ const Navbar = () => {
  }
  };
 
- const navLinks = [
- { name: "Peoples", to: "/people", icon: UsersIcon },
- { name: "Project ", to: "/project", icon: projectIcon },
- { name: "Admin ", to: "/admin", icon: adminIcon },
- ];
+  const baseNavLinks = [
+    { name: "Peoples", to: "/people", icon: UsersIcon },
+    { name: "Project ", to: "/project", icon: projectIcon },
+    { name: "Admin ", to: "/admin", icon: adminIcon },
+  ];
+
+  // Only show Admin portal to specific roles
+  const allowedAdminRoles = ["superadmin", "admin", "hr", "manager", "globalreader"];
+  const userRole = (user?.role || "").replace(/\s+/g, "").toLowerCase();
+  
+  const navLinks = baseNavLinks.filter(link => {
+    if (link.name === "Admin " && !allowedAdminRoles.includes(userRole)) {
+      return false;
+    }
+    return true;
+  });
 
  const handleThemeChange = (theme) => {
  localStorage.setItem("theme", theme);

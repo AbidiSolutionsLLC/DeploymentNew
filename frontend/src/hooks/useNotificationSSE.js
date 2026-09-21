@@ -25,14 +25,24 @@ export const useNotificationSSE = (isAuthenticated) => {
 
  const accounts = msalInstance.getAllAccounts();
  const activeAccount = msalInstance.getActiveAccount() || accounts[0];
- if (!activeAccount) return;
+ let token = null;
 
- const tokenResponse = await msalInstance.acquireTokenSilent({
- ...loginRequest,
- account: activeAccount,
- });
+ if (activeAccount) {
+   try {
+     const tokenResponse = await msalInstance.acquireTokenSilent({
+       ...loginRequest,
+       account: activeAccount,
+     });
+     token = tokenResponse.idToken;
+   } catch (error) {
+     console.error("MSAL token acquire error", error);
+   }
+ }
 
- const token = tokenResponse.idToken;
+ if (!token) {
+   token = localStorage.getItem("accessToken");
+ }
+
  if (!token) return;
 
  // Close any existing connection

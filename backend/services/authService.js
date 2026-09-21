@@ -97,6 +97,11 @@ class AuthService {
     user.otpGeneratedAt = undefined;
     user.otpExpires = undefined;
 
+    // Activate the user if they are logging in for the first time
+    if (user.empStatus === "Pending") {
+      user.empStatus = "Active";
+    }
+
     await user.populate({ path: 'company', select: 'isMasterTenant companyName' });
 
     const accessToken = generateToken(user);
@@ -165,6 +170,12 @@ class AuthService {
     user.password = password; // Will be hashed by pre-save hook
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
+
+    // Activate the user if they were pending
+    if (user.empStatus === "Pending") {
+      user.empStatus = "Active";
+    }
+
     await user.save();
 
     const newToken = generateToken(user);

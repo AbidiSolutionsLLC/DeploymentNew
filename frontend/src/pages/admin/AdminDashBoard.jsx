@@ -298,53 +298,54 @@ const AdminDashBoard = () => {
  </div>
  </div>
 
- {/* Live System Activity */}
+ {/* Live System Activity - Hidden for now */}
+ {/*
  <div className="glass-card p-4">
- <div className="flex items-center justify-between mb-4">
- <h3 className="text-sm font-bold text-heading uppercase tracking-wide">Live System Activity</h3>
- <div className="flex items-center gap-2">
- <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
- <span className="text-xs font-medium text-muted">Live Updates</span>
+   <div className="flex items-center justify-between mb-4">
+     <h3 className="text-sm font-bold text-heading uppercase tracking-wide">Live System Activity</h3>
+     <div className="flex items-center gap-2">
+       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+       <span className="text-xs font-medium text-muted">Live Updates</span>
+     </div>
+   </div>
+   
+   <div className="h-64 overflow-y-auto pr-2 custom-scrollbar">
+     {data.logs.map((log, index) => (
+       <div 
+         key={index} 
+         className="flex items-start gap-3 py-3 border-b last:border-0 border-border-subtle group hover:bg-surface dark:bg-app px-2 rounded-lg transition-colors"
+       >
+         <div className={`w-2 h-2 mt-2 rounded-full shrink-0 ${
+           log.level === 'error' ? 'bg-red-500' : 
+           log.level === 'warning' ? 'bg-yellow-500' : 'bg-green-500'
+         }`}></div>
+         <div className="flex-1 min-w-0">
+           <p className="text-sm text-main font-medium truncate">{log.message}</p>
+           <div className="flex items-center justify-between mt-1">
+             <span className="text-xs text-muted font-medium">{log.time}</span>
+             <span className={`text-xs font-medium px-2 py-1 rounded ${
+               log.level === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 
+               log.level === 'warning' ? 'bg-yellow-50 text-yellow-600' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+             }`}>
+               {log.level.toUpperCase()}
+             </span>
+           </div>
+         </div>
+       </div>
+     ))}
+     
+     {data.logs.length === 0 && (
+       <div className="flex flex-col items-center justify-center h-full text-center py-8">
+         <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center mb-3">
+           <FaCheckCircle className="text-muted text-xl" />
+         </div>
+         <p className="text-muted text-sm font-medium">No recent activities logged</p>
+         <p className="text-muted text-xs mt-1">All systems are stable</p>
+       </div>
+     )}
+   </div>
  </div>
- </div>
- 
- <div className="h-64 overflow-y-auto pr-2 custom-scrollbar">
- {data.logs.map((log, index) => (
- <div 
- key={index} 
- className="flex items-start gap-3 py-3 border-b last:border-0 border-border-subtle group hover:bg-surface dark:bg-app px-2 rounded-lg transition-colors"
- >
- <div className={`w-2 h-2 mt-2 rounded-full shrink-0 ${
- log.level === 'error' ? 'bg-red-500' : 
- log.level === 'warning' ? 'bg-yellow-500' : 'bg-green-500'
- }`}></div>
- <div className="flex-1 min-w-0">
- <p className="text-sm text-main font-medium truncate">{log.message}</p>
- <div className="flex items-center justify-between mt-1">
- <span className="text-xs text-muted font-medium">{log.time}</span>
- <span className={`text-xs font-medium px-2 py-1 rounded ${
- log.level === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 
- log.level === 'warning' ? 'bg-yellow-50 text-yellow-600' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400'
- }`}>
- {log.level.toUpperCase()}
- </span>
- </div>
- </div>
- </div>
- ))}
- 
- {data.logs.length === 0 && (
- <div className="flex flex-col items-center justify-center h-full text-center py-8">
- <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center mb-3">
- <FaCheckCircle className="text-muted text-xl" />
- </div>
- <p className="text-muted text-sm font-medium">No recent activities logged</p>
- <p className="text-muted text-xs mt-1">All systems are stable</p>
- </div>
- )}
- </div>
- </div>
-
+ */}
  {/* Summary Footer */}
  <div className="mt-4 glass-card p-4">
  <div className="flex flex-wrap justify-between items-center gap-4">

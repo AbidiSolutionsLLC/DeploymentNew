@@ -3,7 +3,8 @@ const User = require("../models/userSchema");
 const TimeTracker = require("../models/timeTrackerSchema");
 const { moment, TIMEZONE, calculateBusinessDays } = require("../utils/dateUtils");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
-const sendEmail = require('../utils/emailService');
+const { sendEmail } = require('../config/emailConfig');
+const emailTemplates = require('../utils/emailTemplates');
 const { createNotification } = require('../utils/notificationService');
 const APIFeatures = require("../utils/apiFeatures");
 const { getTeamIds } = require("../utils/hierarchy"); // Assuming getTeamIds is centralized in hierarchy.js as used in expenseController
@@ -550,6 +551,7 @@ class LeaveService {
         } else {
           timeTrackerEntries.push({
             user: leaveRequest.employee,
+            company: leaveRequest.company,
             date: dateStart,
             status: 'Leave',
             notes: `Leave: ${leaveRequest.leaveType} - ${leaveRequest.reason || 'No reason provided'}`

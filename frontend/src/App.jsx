@@ -213,13 +213,13 @@ function App() {
 
  <Route path="/admin/*">
  <Route index element={<Navigate to="dashboard" replace />} />
- <Route index path="dashboard" element={<AdminDashBoard />} />
+ <Route index path="dashboard" element={<PrivateRoute requiredPermission="admin:access"><AdminDashBoard /></PrivateRoute>} />
  <Route path="leaveTrackerAdmin" element={<PrivateRoute requiredPermission="leaves:approve"><LeaveTrackerAdmin /></PrivateRoute>} />
  <Route path="upload" element={<PrivateRoute requiredPermission="files:manage"><UploadDocument /></PrivateRoute>} />
  <Route path="userManagement" element={<PrivateRoute requiredPermission="users:read"><UserManagement /></PrivateRoute>} />
  <Route path="approve" element={<PrivateRoute requiredPermission="timesheets:approve"><ApproveTimesheets /></PrivateRoute>} />
- <Route path="assign-ticket" element={<PrivateRoute requiredPermission="tickets:assign"><AdminTickets /></PrivateRoute>} />
- <Route path="assign-ticket/:ticketId" element={<PrivateRoute requiredPermission="tickets:assign"><AssignTicket /></PrivateRoute>} />
+ <Route path="assign-ticket" element={<PrivateRoute requiredPermission="tickets:admin_assign"><AdminTickets /></PrivateRoute>} />
+ <Route path="assign-ticket/:ticketId" element={<PrivateRoute requiredPermission="tickets:admin_assign"><AssignTicket /></PrivateRoute>} />
  <Route path="attendance" element={<PrivateRoute requiredPermission="attendance:read:team"><AdminAttendance /></PrivateRoute>} />
  <Route path="ExpenseManagement" element={<PrivateRoute requiredPermission="expenses:approve"><ExpenseManagement /></PrivateRoute>} />
  <Route path="payroll" element={<PrivateRoute requiredPermission="payroll:manage"><PayrollManagement /></PrivateRoute>} />

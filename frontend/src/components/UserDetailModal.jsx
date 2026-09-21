@@ -118,6 +118,13 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
  return;
  }
 
+ const restrictedRoles = ['Super Admin', 'Admin'];
+ if ((currentUser.role === 'Admin' || currentUser.role === 'HR') && restrictedRoles.includes(user.role)) {
+ toast.error("Permission Denied: You cannot modify Admins or Super Admins.");
+ setIsEditing(false);
+ return;
+ }
+
  if (!validateForm()) return toast.error("Fix validation errors");
 
  setIsLoading(true);

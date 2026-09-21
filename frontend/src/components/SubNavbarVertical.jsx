@@ -75,7 +75,7 @@ const SubNavbarVertical = () => {
  const permMap = {
    "User Management": "users:read",
    "Approve Time Sheets": "timesheets:approve",
-   "Assign Ticket": "tickets:assign",
+   "Assign Ticket": "tickets:admin_assign",
    "Assigned Tickets": "tickets:assign",
    "Expense Tracker": "expenses:approve",
    "Expense Management": "expenses:approve",
