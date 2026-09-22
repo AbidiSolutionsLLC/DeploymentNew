@@ -17,9 +17,9 @@ const PERMISSIONS = {
   
   // TIMESHEETS
   'timesheets:read:own':   ['*'],
-  'timesheets:read:team':  ['manager', 'superadmin', 'admin', 'hr', 'globalreader'],
-  'timesheets:read:all':   ['superadmin', 'admin', 'hr', 'globalreader'],
-  'timesheets:approve':    ['superadmin', 'admin', 'hr', 'manager'],
+  'timesheets:read:team':  ['manager', 'superadmin', 'admin', 'globalreader'],
+  'timesheets:read:all':   ['superadmin', 'admin', 'globalreader'],
+  'timesheets:approve':    ['superadmin', 'admin', 'manager'],
   
   // EXPENSES
   'expenses:read:own':     ['*'],
