@@ -37,31 +37,26 @@ const MyTask = () => {
  }
  };
 
- const CustomTopBar = ({ openModal }) => {
- return (
- <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
- <SearchBar />
- <button className="flex items-center justify-center gap-2 w-full sm:w-auto btn btn-primary">
- Sort By <FaSortDown className="text-xs" />
- </button>
- </div>
- );
- };
-
  return (
  <PageContainer
  title="My Tasks"
  subtitle="View and manage tasks assigned to you"
  isCard={true}
+ headerActions={
+ <div className="flex items-center gap-3">
+ <SearchBar />
+ <button className="flex items-center gap-2 btn btn-primary py-2.5 px-4">
+ Sort By <FaSortDown className="text-xs" />
+ </button>
+ </div>
+ }
  >
  <div className="my-2">
  <MyTasksTable 
  tasks={tasks} 
  loading={loading}
  onUpdate={handleUpdateTask}
- >
- <CustomTopBar openModal={() => setShowModal(true)} />
- </MyTasksTable>
+ />
  </div>
  <AddTaskDrawer 
  isOpen={showModal} 

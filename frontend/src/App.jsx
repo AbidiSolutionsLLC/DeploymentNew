@@ -43,6 +43,7 @@ import UploadDocument from "./pages/people/UploadDocument";
 import FAQs from "./pages/people/FAQ";
 import AssignTicket from "./pages/tickets/AssignTickets";
 import ProjectDetail from "./pages/projects/ProjectDetail";
+import ProjectGroups from "./pages/projects/ProjectGroups";
 import ComingSoon from "./pages/projects/ComingSoon";
 import OrgChartPage from "./pages/admin/OrgChart";
 import AssignedTickets from "./pages/people/AssignedTickets";
@@ -202,9 +203,7 @@ function App() {
 
  <Route path="/project/*">
  <Route index element={<ComingSoon />} />
- <Route path="projectDashboard" element={<ComingSoon />} />
- <Route path="projects" element={<ComingSoon />} />
- <Route path="projectDetailed/:id" element={<ComingSoon />} />
+ <Route path="*" element={<ComingSoon />} />
  </Route>
 
  <Route path="/faq/*">

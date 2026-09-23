@@ -8,7 +8,7 @@ const statusColors = {
 };
 
 function expenseSubmitted(d) {
-  let html = HEADER('KARBEXA', 'Pending', statusColors.pending.statusColor, statusColors.pending.statusBg, statusColors.pending.statusBorder);
+  let html = HEADER('ABIDI PRO', 'Pending', statusColors.pending.statusColor, statusColors.pending.statusBg, statusColors.pending.statusBorder);
   html += TITLE('New expense submitted', `${d.employeeName} has submitted an expense for review.`);
   html += DETAILS_TABLE([
     { label: 'Employee', value: d.employeeName },
@@ -32,7 +32,7 @@ function expenseStatusUpdated(d) {
   if (isRejected) colors = statusColors.rejected;
   if (isReimbursed) colors = statusColors.reimbursed;
 
-  let html = HEADER('KARBEXA', d.status, colors.statusColor, colors.statusBg, colors.statusBorder);
+  let html = HEADER('ABIDI PRO', d.status, colors.statusColor, colors.statusBg, colors.statusBorder);
   html += TITLE(`Expense ${d.status.toLowerCase()}`, `Your expense "${d.title}" has been ${d.status.toLowerCase()}.`);
   html += DETAILS_TABLE([
     { label: 'Expense Title', value: d.title },

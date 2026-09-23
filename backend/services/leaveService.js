@@ -5,6 +5,7 @@ const { moment, TIMEZONE, calculateBusinessDays } = require("../utils/dateUtils"
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
 const { sendEmail } = require('../config/emailConfig');
 const emailTemplates = require('../utils/emailTemplates');
+const { generateActionUrl } = require('../utils/urlGenerator');
 const { createNotification } = require('../utils/notificationService');
 const APIFeatures = require("../utils/apiFeatures");
 const { getTeamIds } = require("../utils/hierarchy"); // Assuming getTeamIds is centralized in hierarchy.js as used in expenseController
@@ -494,9 +495,9 @@ class LeaveService {
 
     if (leaveRequest.email) {
       const emailSubject = `Leave Request ${status}`;
-      const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-        ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/leaveTrackerAdmin`
-        : 'https://abidipro.abidisolutions.com/admin/leaveTrackerAdmin';
+      const User = require("../models/userSchema");
+      const requester = await User.findOne({ email: leaveRequest.email, company: leaveRequest.company });
+      const actionUrl = generateActionUrl(requester ? requester.role : 'employee', 'leave', 'status');
 
       const payload = {
         employeeName: leaveRequest.employeeName || 'Employee',
@@ -738,11 +739,7 @@ class LeaveService {
     if (recipientEmails.length > 0) {
       const subject = `New Leave Request: ${leaveRequest.employeeName} - ${leaveRequest.leaveType}`;
       
-      const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-        ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/leaveTrackerAdmin`
-        : 'https://abidipro.abidisolutions.com/admin/leaveTrackerAdmin';
-      
-      const payload = {
+      const payloadBase = {
         employeeName: leaveRequest.employeeName || employee?.name || 'Employee',
         leaveType: leaveRequest.leaveType === 'PTO' ? 'Paid Time Off (PTO)' : leaveRequest.leaveType,
         startDate: moment.utc(leaveRequest.startDate).format('MMM DD, YYYY'),
@@ -750,13 +747,18 @@ class LeaveService {
         days: calculateBusinessDays(leaveRequest.startDate, leaveRequest.endDate),
         submittedDate: moment(leaveRequest.appliedAt || leaveRequest.createdAt || new Date()).tz(TIMEZONE).format('MMM DD, YYYY'),
         reason: leaveRequest.reason || '',
-        actionUrl: actionUrl,
         refId: (leaveRequest._id ? leaveRequest._id.toString() : '').slice(-6).toUpperCase()
       };
       
-      const htmlContent = emailTemplates.leaveSubmitted(payload);
-     
+      const User = require("../models/userSchema");
+      const users = await User.find({ email: { $in: recipientEmails }, company: leaveRequest.company });
+      const userRoleMap = {};
+      users.forEach(u => { userRoleMap[u.email] = u.role; });
+
       recipientEmails.forEach(email => {
+        const role = userRoleMap[email] || 'employee';
+        const actionUrl = generateActionUrl(role, 'leave', 'created');
+        const htmlContent = emailTemplates.leaveSubmitted({ ...payloadBase, actionUrl });
         sendEmail({
           to: email,
           subject: subject,
@@ -770,9 +772,10 @@ class LeaveService {
   async sendLeaveResponseNotification(leaveRequest, responder, responseContent) {
     if (leaveRequest.email && leaveRequest.email !== responder.email) {
       const subject = `New Response on Your Leave Request: ${leaveRequest.leaveType}`;
-      const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-        ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/leaveTrackerAdmin`
-        : 'https://abidipro.abidisolutions.com/admin/leaveTrackerAdmin';
+      const User = require("../models/userSchema");
+      const requester = await User.findOne({ email: leaveRequest.email, company: leaveRequest.company });
+      const actionUrl = generateActionUrl(requester ? requester.role : 'employee', 'leave', 'response');
+
         
       const payload = {
         employeeName: leaveRequest.employeeName || 'Employee',

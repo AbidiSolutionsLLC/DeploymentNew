@@ -7,7 +7,7 @@ const statusColors = {
 };
 
 function leaveSubmitted(d) {
-  let html = HEADER('KARBEXA', 'Pending', statusColors.pending.statusColor, statusColors.pending.statusBg, statusColors.pending.statusBorder);
+  let html = HEADER('ABIDI PRO', 'Pending', statusColors.pending.statusColor, statusColors.pending.statusBg, statusColors.pending.statusBorder);
   html += TITLE('New leave request submitted', `Requested by ${d.employeeName} for ${d.leaveType} leave.`);
   html += DETAILS_TABLE([
     { label: 'Employee', value: d.employeeName },
@@ -22,7 +22,7 @@ function leaveSubmitted(d) {
 }
 
 function leaveApproved(d) {
-  let html = HEADER('KARBEXA', 'Approved', statusColors.approved.statusColor, statusColors.approved.statusBg, statusColors.approved.statusBorder);
+  let html = HEADER('ABIDI PRO', 'Approved', statusColors.approved.statusColor, statusColors.approved.statusBg, statusColors.approved.statusBorder);
   html += TITLE('Leave request approved', `Your request for ${d.leaveType} leave has been approved.`);
   html += DETAILS_TABLE([
     { label: 'Employee', value: d.employeeName },
@@ -36,7 +36,7 @@ function leaveApproved(d) {
 }
 
 function leaveRejected(d) {
-  let html = HEADER('KARBEXA', 'Rejected', statusColors.rejected.statusColor, statusColors.rejected.statusBg, statusColors.rejected.statusBorder);
+  let html = HEADER('ABIDI PRO', 'Rejected', statusColors.rejected.statusColor, statusColors.rejected.statusBg, statusColors.rejected.statusBorder);
   html += TITLE('Leave request rejected', `Your request for ${d.leaveType} leave has been rejected.`);
   html += DETAILS_TABLE([
     { label: 'Employee', value: d.employeeName },
@@ -50,7 +50,7 @@ function leaveRejected(d) {
 }
 
 function leaveResponseAdded(d) {
-  let html = HEADER('KARBEXA');
+  let html = HEADER('ABIDI PRO');
   html += TITLE('New comment on leave request', `${d.authorName} added a response to your leave request.`);
   html += DETAILS_TABLE([
     { label: 'Employee', value: d.employeeName },

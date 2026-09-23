@@ -1,7 +1,7 @@
 const { EMAIL_WRAP, HEADER, TITLE, DETAILS_TABLE, NOTE_BOX, CTA, FOOTER } = require('./components');
 
 function invitation(d) {
-  let html = HEADER('KARBEXA');
+  let html = HEADER('ABIDI PRO');
   html += TITLE(`Welcome to the team, ${d.name}!`, 'Your account has been created. Set up your password to get started.');
   html += DETAILS_TABLE([
     { label: 'Name', value: d.name },
@@ -10,11 +10,11 @@ function invitation(d) {
   ]);
   html += CTA('Set Up Password & Login', d.loginUrl);
   html += FOOTER('INV-' + (d.empId || Date.now().toString(36).toUpperCase()));
-  return EMAIL_WRAP(html, 'Welcome to Karbexa');
+  return EMAIL_WRAP(html, 'Welcome to Abidi Pro');
 }
 
 function otpEmail(d) {
-  let html = HEADER('KARBEXA');
+  let html = HEADER('ABIDI PRO');
   html += TITLE('Your verification code', `Use the code below to complete ${d.purpose}.`);
   html += DETAILS_TABLE([
     { label: 'Name', value: d.name },
@@ -36,8 +36,8 @@ function otpEmail(d) {
 }
 
 function passwordReset(d) {
-  let html = HEADER('KARBEXA');
-  html += TITLE('Reset your password', 'We received a request to reset your Karbexa password.');
+  let html = HEADER('ABIDI PRO');
+  html += TITLE('Reset your password', 'We received a request to reset your Abidi Pro password.');
   html += DETAILS_TABLE([
     { label: 'Name', value: d.name },
     { label: 'Request', value: 'Password Reset' },

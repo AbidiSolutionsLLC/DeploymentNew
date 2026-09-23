@@ -1,24 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiMoreVertical, FiTrash2, FiClipboard } from "react-icons/fi";
 
-const assignedTasks = [
- {
- title: "Prepare project update deck",
- status: "In Progress",
- action: "Open Task",
- },
- {
- title: "Finalize team onboarding",
- status: "Pending",
- },
- {
- title: "Submit time log for April",
- status: "Completed",
- action: "Review",
- },
-];
-
-const TasksAssignedToMeCard = ({ onDelete }) => {
+const TasksAssignedToMeCard = ({ tasks = [], onDelete }) => {
  const [menuOpen, setMenuOpen] = useState(false);
  const menuRef = useRef();
 
@@ -33,17 +16,15 @@ const TasksAssignedToMeCard = ({ onDelete }) => {
  }, []);
 
  return (
- <div className="relative bg-background rounded-xl shadow-md p-5 pt-10 overflow-visible">
+ <div className="bg-surface border border-border-subtle rounded-xl shadow-sm p-5 flex flex-col h-full w-full">
  {/* Icon top left */}
- <div className="absolute -top-4 left-4 bg-purple-200 text-purple-800 w-10 h-10 flex items-center justify-center rounded-md shadow z-99">
- <FiClipboard className="text-xl" />
- </div>
+ 
 
  {/* Header */}
  <div className="flex justify-between items-start mb-4">
  <div>
- <h2 className="text-lg text-text font-semibold">Tasks Assigned to Me</h2>
- <p className="text-cardDescription text-sm font-medium">
+ <h2 className="text-lg text-heading font-semibold">Tasks Assigned to Me</h2>
+ <p className="text-muted text-sm font-medium">
  Active and pending tasks
  </p>
  </div>
@@ -52,28 +33,12 @@ const TasksAssignedToMeCard = ({ onDelete }) => {
  </div>
 
  {/* Task list */}
- <ul className="space-y-2 text-sm">
- {assignedTasks.map((item, index) => (
- <li
- key={index}
- style={{ backgroundColor: "rgba(var(--color-primary-rgb), 0.3)" }}
- className="bg-primary rounded px-4 py-3 flex items-center justify-between gap-3"
- >
- <div className="min-w-0">
- <span className="font-medium text-text">{item.title}</span>
- <div className="text-description text-sm">Status: {item.status}</div>
- </div>
-
- {item.action && (
- <button className="btn btn-primary">
- {item.action}
- </button>
- )}
- </li>
- ))}
- </ul>
+ {tasks.length === 0 ? (<div className="flex flex-col items-center justify-center h-full text-muted py-8 flex-1"><p>No active tasks found.</p></div>) : (<ul className="space-y-2 text-sm flex-1">{tasks.map((item, index) => (<li key={index} className="bg-secondary/50 rounded-lg px-4 py-3 flex items-center justify-between gap-3 border border-border-subtle"><div className="min-w-0"><span className="font-medium text-heading">{item.title}</span><div className="text-description text-sm">Status: {item.status || "Pending"}</div></div><button className="btn btn-primary text-[10px] px-3 py-1.5 h-auto">View</button></li>))}</ul>)}
  </div>
  );
 };
 
 export default TasksAssignedToMeCard;
+
+
+

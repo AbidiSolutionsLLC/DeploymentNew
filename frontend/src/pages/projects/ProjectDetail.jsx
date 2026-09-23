@@ -8,7 +8,7 @@ import ProjectHeader from "../../components/project/ProjectHeader";
 import TabNavigation from "../../components/project/TabNavigation";
 import KanbanBoard from "../../components/project/KanbanBoard";
 import CommentsSection from "../../components/project/CommentSection";
-import MyTasksView from "../../components/project/MyTaskView";
+import ListView from "../../components/project/ListView";
 import AddTaskDrawer from "../../components/project/AddTaskDrawer";
 
 import PageContainer from "../../components/ui/PageContainer";
@@ -20,7 +20,7 @@ const ProjectDetail = () => {
  const { tasks, loading: tasksLoading, updateTaskStatus, createTask } = useTasks(id);
  
  const [showModal, setShowModal] = useState(false);
- const [activeTab, setActiveTab] = useState("all-tasks");
+ const [activeTab, setActiveTab] = useState("board");
  const [searchQuery, setSearchQuery] = useState("");
 
  const handleCreateTask = async (taskData) => {
@@ -53,29 +53,34 @@ const ProjectDetail = () => {
  ) || [];
 
  const renderTabContent = () => {
- switch (activeTab) {
- case 'all-tasks':
- return (
- <KanbanBoard 
- tasks={filteredTasks} 
- onDragEnd={handleDragEnd}
- loading={tasksLoading}
- />
- );
- case 'my-tasks':
- return <MyTasksView tasks={filteredTasks} onDragEnd={handleDragEnd} />;
- case 'comments':
- return <CommentsSection projectId={id} />;
- default:
- return (
- <KanbanBoard 
- tasks={filteredTasks} 
- onDragEnd={handleDragEnd}
- loading={tasksLoading}
- />
- );
- }
- };
+  switch (activeTab) {
+  case 'board':
+  return (
+  <KanbanBoard 
+  tasks={filteredTasks} 
+  onDragEnd={handleDragEnd}
+  loading={tasksLoading}
+  />
+  );
+  case 'list':
+  return (
+  <ListView 
+  tasks={filteredTasks} 
+  onTaskClick={(task) => console.log("Task clicked:", task)} 
+  />
+  );
+  case 'comments':
+  return <CommentsSection projectId={id} />;
+  default:
+  return (
+  <KanbanBoard 
+  tasks={filteredTasks} 
+  onDragEnd={handleDragEnd}
+  loading={tasksLoading}
+  />
+  );
+  }
+  };
 
  return (
  <PageContainer

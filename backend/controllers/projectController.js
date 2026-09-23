@@ -31,3 +31,8 @@ exports.getUserProjects = catchAsync(async (req, res) => {
   const projects = await projectService.getUserProjects(req.user, req.companyId);
   res.status(200).json(ApiResponse.success(projects, 'User projects retrieved successfully'));
 });
+
+exports.getProjectDashboard = catchAsync(async (req, res) => {
+  const dashboardData = await projectService.getProjectDashboard(req.user, req.companyId);
+  res.status(200).json(ApiResponse.success(dashboardData, 'Project dashboard retrieved successfully'));
+});

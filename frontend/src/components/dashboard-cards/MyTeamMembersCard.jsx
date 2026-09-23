@@ -45,17 +45,15 @@ export default function MyTeamMembersCard() {
  }, []);
 
  return (
- <div className="relative bg-background rounded-xl shadow-md p-5 pt-10 overflow-visible ">
+ <div className="bg-surface border border-border-subtle rounded-xl shadow-sm p-5 flex flex-col h-full w-full">
  {/* Icon top left */}
- <div className="absolute -top-4 left-4 bg-amber-200 dark:bg-amber-900/50 text-amber-800 dark:text-amber-400 w-10 h-10 flex items-center justify-center rounded-md shadow z-99">
- <FiUsers className="text-xl" />
- </div>
+ 
 
  {/* Header */}
  <div className="flex justify-between items-start mb-4">
  <div>
- <h2 className="text-lg text-text font-semibold">My Team Members</h2>
- <p className="text-cardDescription text-sm font-medium">
+ <h2 className="text-lg text-heading font-semibold">My Team Members</h2>
+ <p className="text-muted text-sm font-medium">
  People you are working with
  </p>
  </div>
@@ -73,8 +71,7 @@ export default function MyTeamMembersCard() {
  {teamMembers.map((member, index) => (
  <li
  key={index}
- style={{ backgroundColor: "rgba(var(--color-primary-rgb), 0.3)" }}
- className="bg-primary rounded px-4 py-3 flex items-center gap-3"
+ className="bg-secondary/50 rounded-lg px-4 py-3 flex items-center gap-3 border border-border-subtle"
  >
  <img
  src={member.avatar}
@@ -82,7 +79,7 @@ export default function MyTeamMembersCard() {
  className="w-10 h-10 rounded-full object-cover border border-border-subtle"
  />
  <div className="min-w-0">
- <span className="font-medium text-text block truncate">
+ <span className="font-medium text-heading block truncate">
  {member.name}
  </span>
  <div className="text-description text-sm truncate">
@@ -95,3 +92,5 @@ export default function MyTeamMembersCard() {
  </div>
  );
 }
+
+

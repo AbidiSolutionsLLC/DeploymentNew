@@ -208,6 +208,55 @@ class ProjectService {
       .populate("team", "name email avatar")
       .populate("owner", "name email avatar");
   }
+
+  async getProjectDashboard(user, companyId) {
+    const userId = user.id || user._id;
+
+    const activeProjects = await Project.countDocuments({
+      company: companyId,
+      status: { $in: ["Active", "In Progress"] },
+      $or: [{ owner: userId }, { team: userId }],
+    });
+
+    const completedProjects = await Project.countDocuments({
+      company: companyId,
+      status: "Completed",
+      $or: [{ owner: userId }, { team: userId }],
+    });
+
+    const openTasks = await Task.countDocuments({
+      company: companyId,
+      status: { $ne: "Done" },
+      team: userId,
+    });
+
+    const projectGroups = await Project.countDocuments({
+      company: companyId,
+      $or: [{ owner: userId }, { team: userId }],
+    });
+
+    // Fetch lists for dynamic dashboard mapping
+    const recentProjects = await Project.find({
+      company: companyId,
+      status: { $in: ["Active", "In Progress", "Planning"] },
+      $or: [{ owner: userId }, { team: userId }],
+    }).sort({ updatedAt: -1 }).limit(5);
+
+    const recentTasks = await Task.find({
+      company: companyId,
+      status: { $ne: "Done" },
+      team: userId,
+    }).sort({ dueDate: 1 }).limit(5);
+
+    return {
+      activeProjects,
+      completedProjects,
+      openTasks,
+      projectGroups,
+      recentProjects,
+      recentTasks,
+    };
+  }
 }
 
 module.exports = new ProjectService();

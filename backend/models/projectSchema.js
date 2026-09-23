@@ -59,11 +59,7 @@ const projectSchema = new mongoose.Schema(
         size: Number,
       },
     ],
-    status: {
-      type: String,
-      enum: ['Open', 'In Progress', 'On Hold', 'Completed'],
-      default: 'Open',
-    },
+
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Department',

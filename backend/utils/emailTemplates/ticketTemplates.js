@@ -7,7 +7,7 @@ const ticketColors = {
 };
 
 function ticketCreated(d) {
-  let html = HEADER('KARBEXA', d.status, ticketColors.created.statusColor, ticketColors.created.statusBg, ticketColors.created.statusBorder);
+  let html = HEADER('ABIDI PRO', d.status, ticketColors.created.statusColor, ticketColors.created.statusBg, ticketColors.created.statusBorder);
   html += TITLE('New support ticket created', d.subject);
   html += DETAILS_TABLE([
     { label: 'Ticket ID', value: d.ticketId },
@@ -24,7 +24,7 @@ function ticketCreated(d) {
 }
 
 function ticketInProgress(d) {
-  let html = HEADER('KARBEXA', d.status, ticketColors.inProgress.statusColor, ticketColors.inProgress.statusBg, ticketColors.inProgress.statusBorder);
+  let html = HEADER('ABIDI PRO', d.status, ticketColors.inProgress.statusColor, ticketColors.inProgress.statusBg, ticketColors.inProgress.statusBorder);
   html += TITLE('Ticket update: ' + d.ticketId, d.subject);
   html += DETAILS_TABLE([
     { label: 'Ticket ID', value: d.ticketId },
@@ -41,7 +41,7 @@ function ticketInProgress(d) {
 }
 
 function ticketResolved(d) {
-  let html = HEADER('KARBEXA', d.status, ticketColors.resolved.statusColor, ticketColors.resolved.statusBg, ticketColors.resolved.statusBorder);
+  let html = HEADER('ABIDI PRO', d.status, ticketColors.resolved.statusColor, ticketColors.resolved.statusBg, ticketColors.resolved.statusBorder);
   html += TITLE('Ticket resolved: ' + d.ticketId, d.subject);
   html += DETAILS_TABLE([
     { label: 'Ticket ID', value: d.ticketId },

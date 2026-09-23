@@ -34,11 +34,11 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
  if (!isOpen) return null;
 
  return (
- <div className="fixed inset-0 z-50 overflow-hidden">
- <div className="absolute inset-0 bg-app " onClick={onClose}></div>
+ <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+ <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
  
- <div className="absolute right-0 top-0 h-full w-full max-w-md transform transition-transform duration-300 ease-in-out">
- <div className="h-full p-6 shadow-xl bg-secondary">
+ <div className="relative w-full max-w-lg rounded-xl shadow-2xl bg-surface dark:bg-app border border-white/20 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+ <div className="p-6">
  <div className="flex items-center justify-between mb-6">
  <h2 className="text-lg font-semibold text-heading">
  Add New Task

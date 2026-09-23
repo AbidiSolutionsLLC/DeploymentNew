@@ -1,6 +1,6 @@
 import React from "react";
-import { FaPlus, FaSearch } from "react-icons/fa";
-import { useTheme } from "../../context/ThemeContext"; // Keep this import
+import { FaPlus } from "react-icons/fa";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
 const TabNavigation = ({ 
  activeTab, 
@@ -9,11 +9,10 @@ const TabNavigation = ({
  setSearchQuery, 
  onAddTask 
 }) => {
- const { selectedTheme } = useTheme(); // Keep this import, though colors are now via CSS vars
 
  const tabs = [
- { id: 'all-tasks', label: 'All Tasks' },
- { id: 'my-tasks', label: 'My Tasks' },
+ { id: 'board', label: 'Board' },
+ { id: 'list', label: 'List View' },
  { id: 'comments', label: 'Comments' }
  ];
 
@@ -27,8 +26,8 @@ const TabNavigation = ({
  <button
  key={tab.id}
  onClick={() => setActiveTab(tab.id)}
- className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
- activeTab === tab.id ? 'shadow-sm bg-secondary text-text' : 'text-description hover:text-text'
+ className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+ activeTab === tab.id ? 'shadow-sm bg-surface text-heading' : 'text-muted hover:text-heading'
  }`}
  >
  {tab.label}
@@ -40,8 +39,8 @@ const TabNavigation = ({
  <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full lg:w-auto">
  <div className="flex-1 sm:flex-initial relative">
  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
- <FaSearch 
- className="w-4 h-4 text-description"
+ <MagnifyingGlassIcon 
+ className="w-4 h-4 text-muted"
  />
  </div>
  <input
@@ -49,7 +48,7 @@ const TabNavigation = ({
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
  placeholder="Search tasks..."
- className="w-full pl-10 pr-4 py-2 text-sm rounded-lg border border-primary/40 focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all bg-secondary text-text"
+ className="w-full pl-10 pr-4 py-2 text-sm rounded-lg border border-border-subtle focus:ring-2 focus:ring-brand focus:border-transparent transition-all bg-surface text-heading placeholder-gray-400"
  />
  </div>
  <button

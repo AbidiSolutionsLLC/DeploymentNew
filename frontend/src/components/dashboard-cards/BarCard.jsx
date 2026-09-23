@@ -61,16 +61,14 @@ const BarCard = ({ onDelete }) => {
  };
 
  return (
- <div className="relative bg-background rounded-xl shadow-md p-4 pt-10 overflow-visible">
+  <div className="bg-surface border border-border-subtle rounded-xl shadow-sm p-5 flex flex-col h-full w-full">
  {/* Icon top left */}
- <div className="absolute -top-4 left-4 bg-indigo-200 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-400 w-10 h-10 flex items-center justify-center rounded-md shadow z-99">
- <FiBarChart2 className="text-xl" />
- </div>
+ 
  {/* Header */}
  <div className="flex justify-between items-start mb-2">
  <div>
- <h2 className="text-lg text-text font-semibold">Weekly Hours</h2>
- <p className="text-cardDescription text-sm font-medium">
+ <h2 className="text-lg text-heading font-semibold">Weekly Hours</h2>
+ <p className="text-muted text-sm font-medium">
  Hours logged per day this week
  </p>
  </div>
@@ -84,3 +82,5 @@ const BarCard = ({ onDelete }) => {
 };
 
 export default BarCard;
+
+

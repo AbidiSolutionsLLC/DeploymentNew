@@ -17,9 +17,8 @@ export default function useProjects({ autoFetch = true } = {}) {
  setError(null);
  try {
  const res = await api.getProjects();
- // projectApi returns { data: [...] } (axios-like shape in our mock)
- setProjects(res.data);
- return res.data;
+ setProjects(res || []);
+ return res;
  } catch (err) {
  // Normalize error message
  const message =
@@ -43,7 +42,7 @@ export default function useProjects({ autoFetch = true } = {}) {
  try {
  const res = await api.getProjects();
  if (!mounted) return;
- setProjects(res.data);
+ setProjects(res || []);
  } catch (err) {
  if (!mounted) return;
  const message =

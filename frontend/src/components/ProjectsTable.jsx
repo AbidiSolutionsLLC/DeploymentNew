@@ -10,6 +10,7 @@ const ProjectsTable = ({
  onUpdate,
  onDelete,
  openModal,
+ onRowClick
 }) => {
  const confirm = useConfirm();
 
@@ -38,117 +39,89 @@ const ProjectsTable = ({
 
  const projectColumns = [
  {
- key: "id",
+ key: "projectID",
  label: "ID",
- render: (val) => <span className="whitespace-nowrap">{val}</span>
+ render: (val, project) => <span className="whitespace-nowrap font-medium text-muted">{val || project._id?.slice(-6).toUpperCase()}</span>
  },
  {
- key: "name",
+ key: "title",
  label: "Project Name",
  render: (val, project) => (
  <div className="whitespace-nowrap relative group">
- <span>{val}</span>
- <button
- onClick={() => console.log("View project:", project)}
- className="absolute right-0 top-1/2 -translate-y-1/2 bg-amber-200 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 px-3 py-1 rounded hover:bg-amber-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300"
- >
- View Project
- </button>
+ <span className="font-semibold text-main">{val}</span>
  </div>
  )
  },
  {
- key: "ProjectOwner",
+ key: "owner",
  label: "Project Owner",
- render: (val) => <span className="whitespace-nowrap">{val || "N/A"}</span>
+ render: (val) => <span className="whitespace-nowrap">{val?.name || "N/A"}</span>
  },
  {
- key: "NoOfUser",
+ key: "team",
  label: "No.Of User",
- render: (val) => <span className="whitespace-nowrap">{val}</span>
+ render: (val) => <span className="whitespace-nowrap">{val?.length || 0}</span>
  },
  {
- key: "Status",
+ key: "status",
  label: "Status",
- render: (val) => (
- <span
- className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
- val === "Active"
- ? "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400"
- : val === "Completed"
- ? "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400"
- : "bg-app text-main"
- }`}
- >
- {val}
+ render: (val) => {
+ const status = val || "Planning";
+ let colorClass = "bg-app text-main";
+ if (status === "Active") colorClass = "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400";
+ if (status === "Completed") colorClass = "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-400";
+ if (status === "On Hold") colorClass = "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400";
+ 
+ return (
+ <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${colorClass}`}>
+ {status}
  </span>
- )
+ );
+ }
  },
  {
- key: "StartDate",
+ key: "startDate",
  label: "Start Date",
- render: (val) => <span className="whitespace-nowrap">{new Date(val).toLocaleDateString()}</span>
+ render: (val) => <span className="whitespace-nowrap text-muted">{val ? new Date(val).toLocaleDateString() : "N/A"}</span>
  },
  {
- key: "EndDate",
+ key: "dueDate",
  label: "End Date",
- render: (val) => <span className="whitespace-nowrap">{new Date(val).toLocaleDateString()}</span>
+ render: (val) => <span className="whitespace-nowrap text-muted">{val ? new Date(val).toLocaleDateString() : "N/A"}</span>
  },
  {
  key: "completion",
  label: "Progress",
- render: (val) => (
- <div className="whitespace-nowrap w-32">
+ render: (val, project) => { const statusProgressMap = { 'Completed': 100, 'Active': 50, 'In Progress': 50, 'On Hold': 30, 'Planning': 15 }; const progress = val || statusProgressMap[project?.status] || 0; return ( <div className="whitespace-nowrap w-24">
+ <div className="w-full bg-app rounded-full h-2.5 overflow-hidden border border-border-subtle">
  <div
+ className="h-full transition-all duration-300"
  style={{
- background: "#e0e0e0",
- borderRadius: "10px",
- height: "20px",
- width: "100%",
- overflow: "hidden",
+ width: `${progress}%`,
+ background: getProgressColor(progress),
  }}
- >
- <div
- style={{
- height: "100%",
- width: `${val}%`,
- background: getProgressColor(val),
- textAlign: "center",
- color: "white",
- fontSize: "12px",
- lineHeight: "20px",
- transition: "width 0.3s ease-in-out",
- }}
- >
- {val}%
+ ></div>
  </div>
  </div>
- </div>
- )
+ );
+ }
  }
  ];
 
  return (
- <div className="bg-surface rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] p-4 w-full overflow-hidden">
- <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
- <SearchBar />
- <button
- onClick={openModal}
- className="flex items-center gap-2 w-full sm:w-auto justify-center btn btn-primary"
- >
- <FaPlus /> New Project
- </button>
- </div>
-
+ <div className="w-full flex flex-col gap-4">
  <TableWithPagination
  columns={projectColumns}
  data={projects}
  loading={loading}
  emptyMessage="No projects found"
  defaultSort={{ key: "createdAt", direction: "desc" }}
+ onRowClick={onRowClick}
  />
  </div>
  );
 };
 
 export default ProjectsTable;
+
+

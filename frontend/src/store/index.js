@@ -6,6 +6,7 @@ import userReducer from "../slices/userSlice"; // Import user slice
 import attendanceTimerSlice from '../slices/attendanceTimer';
 import projectReducer from "./projectSlice";
 import taskReducer from "./taskSlice";
+import projectGroupReducer from "./projectGroupSlice";
 import attendanceReducer from "../slices/attendanceSlice";
 import notificationReducer from "../slices/notificationSlice";
 
@@ -15,6 +16,7 @@ const rootReducer = combineReducers({
  attendance: attendanceReducer,
  projects: projectReducer,
  tasks: taskReducer,
+ projectGroups: projectGroupReducer,
  attendanceTimer: attendanceTimerSlice,
  notifications: notificationReducer, // NOT persisted — always fresh from server
 });

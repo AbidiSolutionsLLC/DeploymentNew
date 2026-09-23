@@ -10,6 +10,7 @@ const APIFeatures = require("../utils/apiFeatures");
 const { normalizeRole } = require("../utils/rbacUtils");
 const { sendEmail } = require('../config/emailConfig');
 const emailTemplates = require('../utils/emailTemplates');
+const { generateActionUrl } = require('../utils/urlGenerator');
 const { moment } = require("../utils/dateUtils");
 
 class ExpenseService {
@@ -55,22 +56,15 @@ class ExpenseService {
         ]
       });
 
-      const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-        ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/expenseAdmin`
-        : 'https://abidipro.abidisolutions.com/admin/expenseAdmin';
-
-      const emailPayload = {
+      const emailPayloadBase = {
         employeeName: submitter.name,
         title: expense.title,
         amount: `$${expense.amount.toFixed(2)}`,
         date: moment(expense.createdAt).format('MMM DD, YYYY'),
         description: expense.description,
-        actionUrl,
         refId: expense._id.toString().slice(-6).toUpperCase()
       };
       
-      const emailHtml = emailTemplates.expenseSubmitted(emailPayload);
-
       notifyRecipients.forEach(recipient => {
         if (recipient._id.toString() !== user._id.toString()) {
           createNotification({
@@ -82,6 +76,9 @@ class ExpenseService {
           }).catch(err => console.error('[Notification Error] Expense submission:', err.message));
           
           if (recipient.email) {
+            const actionUrl = generateActionUrl(recipient.role, 'expense', 'created');
+            const emailHtml = emailTemplates.expenseSubmitted({ ...emailPayloadBase, actionUrl });
+            
             sendEmail({
               to: recipient.email,
               subject: `New Expense Submitted: ${expense.title}`,
@@ -188,9 +185,8 @@ class ExpenseService {
         ? `Your expense "${updatedExpense.title}" for $${updatedExpense.amount} has been approved.`
         : `Your expense "${updatedExpense.title}" for $${updatedExpense.amount} has been rejected.`;
 
-      const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-        ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/expenses`
-        : 'https://abidipro.abidisolutions.com/expenses';
+      const submitterUser = await User.findById(updatedExpense.submittedBy._id || updatedExpense.submittedBy);
+      const actionUrl = generateActionUrl(submitterUser ? submitterUser.role : 'employee', 'expense', 'status');
         
       const payload = {
         title: updatedExpense.title,
@@ -203,7 +199,7 @@ class ExpenseService {
       };
       const emailHtml = emailTemplates.expenseStatusUpdated(payload);
 
-      const submitterUser = await User.findById(updatedExpense.submittedBy._id || updatedExpense.submittedBy);
+
       if (submitterUser && submitterUser.email) {
         sendEmail({
           to: submitterUser.email,
@@ -254,9 +250,8 @@ class ExpenseService {
     expense.approvedAt = Date.now();
     await expense.save();
 
-    const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-      ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/expenses`
-      : 'https://abidipro.abidisolutions.com/expenses';
+    const submitterUser = await User.findById(expense.submittedBy._id || expense.submittedBy);
+    const actionUrl = generateActionUrl(submitterUser ? submitterUser.role : 'employee', 'expense', 'status');
       
     const payload = {
       title: expense.title,
@@ -269,7 +264,7 @@ class ExpenseService {
     };
     const emailHtml = emailTemplates.expenseStatusUpdated(payload);
 
-    const submitterUser = await User.findById(expense.submittedBy._id || expense.submittedBy);
+
     if (submitterUser && submitterUser.email) {
       sendEmail({
         to: submitterUser.email,
@@ -322,9 +317,8 @@ class ExpenseService {
     expense.rejectedAt = Date.now();
     await expense.save();
 
-    const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-      ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/expenses`
-      : 'https://abidipro.abidisolutions.com/expenses';
+    const submitterUser = await User.findById(expense.submittedBy._id || expense.submittedBy);
+    const actionUrl = generateActionUrl(submitterUser ? submitterUser.role : 'employee', 'expense', 'status');
       
     const payload = {
       title: expense.title,
@@ -337,7 +331,7 @@ class ExpenseService {
     };
     const emailHtml = emailTemplates.expenseStatusUpdated(payload);
 
-    const submitterUser = await User.findById(expense.submittedBy._id || expense.submittedBy);
+
     if (submitterUser && submitterUser.email) {
       sendEmail({
         to: submitterUser.email,

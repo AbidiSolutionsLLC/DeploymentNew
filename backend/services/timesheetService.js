@@ -8,7 +8,7 @@ const { normalizeRole } = require("../utils/rbacUtils");
 const { getSearchScope, getApprovalScope } = require("../utils/rbac");
 const { sendEmail } = require('../config/emailConfig');
 const emailTemplates = require('../utils/emailTemplates');
-
+const { generateActionUrl } = require('../utils/urlGenerator');
 class TimesheetService {
   async createTimesheet(user, companyId, data) {
     let { name, description, timeLogs, date, employeeId } = data;
@@ -85,22 +85,25 @@ class TimesheetService {
       const recipientEmails = [...new Set(recipients.map(u => u.email).filter(Boolean))];
 
       if (recipientEmails.length > 0) {
-        const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-          ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/timesheet`
-          : 'https://abidipro.abidisolutions.com/admin/timesheet';
-
-        const payload = {
+        const payloadBase = {
           employeeName: employeeName,
           periodStart: moment(startOfWeek).format('MMM DD, YYYY'),
           periodEnd: moment(endOfWeek).format('MMM DD, YYYY'),
           totalHours: submittedHours.toString(),
-          actionUrl,
           refId: savedTimesheet._id.toString().slice(-6).toUpperCase()
         };
-        const htmlContent = emailTemplates.timesheetSubmitted(payload);
+
+        const User = require("../models/userSchema");
+        const users = await User.find({ email: { $in: recipientEmails }, company: companyId });
+        const userRoleMap = {};
+        users.forEach(u => { userRoleMap[u.email] = u.role; });
 
         recipientEmails.forEach(email => {
           if (email !== user.email) {
+            const role = userRoleMap[email] || 'employee';
+            const actionUrl = generateActionUrl(role, 'timesheet', 'created');
+            const htmlContent = emailTemplates.timesheetSubmitted({ ...payloadBase, actionUrl });
+            
             sendEmail({
               to: email,
               subject: `New Timesheet Submitted: ${employeeName}`,
@@ -262,7 +265,7 @@ class TimesheetService {
   async updateTimesheetStatus(user, companyId, id, data) {
     const { status, approvedHours, comment } = data;
     const scope = await getSearchScope(user, 'timesheet');
-    const timesheet = await Timesheet.findOne({ _id: id, company: companyId, ...scope }).populate('employee', 'name email');
+    const timesheet = await Timesheet.findOne({ _id: id, company: companyId, ...scope }).populate('employee', 'name email role');
     if (!timesheet) throw new NotFoundError("Timesheet or you do not have permission to modify it");
 
     const currentUserId = (user.id || user._id).toString();
@@ -298,9 +301,7 @@ class TimesheetService {
         const startOfWeek = moment(timesheet.date).tz(TIMEZONE).startOf('isoWeek');
         const endOfWeek = moment(timesheet.date).tz(TIMEZONE).endOf('isoWeek');
         
-        const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-          ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/timesheet`
-          : 'https://abidipro.abidisolutions.com/timesheet';
+        const actionUrl = generateActionUrl(timesheet.employee.role || 'employee', 'timesheet', 'status');
 
         const payload = {
           periodStart: startOfWeek.format('MMM DD, YYYY'),

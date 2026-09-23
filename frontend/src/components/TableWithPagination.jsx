@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { FaAngleLeft, FaAngleRight, FaAnglesLeft, FaAnglesRight } from "react-icons/fa6";
 import Loader from "./ui/Loader";
 
-const TableWithPagination = ({
- columns,
- data,
- loading,
+ const TableWithPagination = ({
+  columns,
+  data = [],
+  loading,
  error,
  emptyMessage = "No data found",
  rowsPerPage = 5,

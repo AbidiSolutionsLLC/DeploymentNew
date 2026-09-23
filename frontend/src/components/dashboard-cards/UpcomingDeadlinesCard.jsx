@@ -31,17 +31,15 @@ export default function UpcomingDeadlinesCard() {
  }, []);
 
  return (
- <div className="relative bg-background rounded-xl shadow-md p-5 pt-10 overflow-visible">
+ <div className="bg-surface border border-border-subtle rounded-xl shadow-sm p-5 flex flex-col h-full w-full">
  {/* Icon top left */}
- <div className="absolute -top-4 left-4 bg-yellow-200 text-yellow-800 w-10 h-10 flex items-center justify-center rounded-md shadow z-99">
- <FiCalendar className="text-xl" />
- </div>
+ 
 
  {/* Header */}
  <div className="flex justify-between items-start mb-4">
  <div>
- <h2 className="text-lg text-text font-semibold">Upcoming Deadlines</h2>
- <p className="text-cardDescription text-sm font-medium">
+ <h2 className="text-lg text-heading font-semibold">Upcoming Deadlines</h2>
+ <p className="text-muted text-sm font-medium">
  Keep track of critical dates and statuses
  </p>
  </div>
@@ -79,13 +77,12 @@ export default function UpcomingDeadlinesCard() {
  return (
  <li
  key={i}
- className="bg-primary rounded px-4 py-3 flex flex-col gap-2"
- style={{ backgroundColor: "rgba(var(--color-primary-rgb), 0.3)" }}
+ className="bg-secondary/50 rounded-lg px-4 py-3 flex flex-col gap-2 border border-border-subtle"
  >
  <div className="flex justify-between items-start gap-3">
  <div className="min-w-0">
- <h3 className="font-medium text-text truncate">{d.task}</h3>
- <p className="text-cardDescription text-sm truncate">
+ <h3 className="font-medium text-heading truncate">{d.task}</h3>
+ <p className="text-muted text-sm truncate">
  {d.project} &middot; Due {new Date(d.dueDate).toLocaleDateString()}
  </p>
  </div>
@@ -104,7 +101,7 @@ export default function UpcomingDeadlinesCard() {
  style={{ width: `${d.completion}%` }}
  />
  </div>
- <div className="text-xs font-semibold text-text w-12 text-right">
+ <div className="text-xs font-semibold text-heading w-12 text-right">
  {d.completion}%
  </div>
  </div>
@@ -115,3 +112,5 @@ export default function UpcomingDeadlinesCard() {
  </div>
  );
 }
+
+

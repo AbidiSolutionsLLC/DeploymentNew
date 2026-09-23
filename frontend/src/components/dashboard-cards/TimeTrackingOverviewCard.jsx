@@ -33,17 +33,15 @@ export default function TimeTrackingOverviewCard() {
  const percentage = Math.round((timeData.totalHours / timeData.targetHours) * 100);
 
  return (
- <div className="relative bg-background rounded-xl shadow-md p-5 pt-10 overflow-visible">
+ <div className="bg-surface border border-border-subtle rounded-xl shadow-sm p-5 flex flex-col h-full w-full">
  {/* Icon top left */}
- <div className="absolute -top-4 left-4 bg-green-200 dark:bg-green-900/50 text-green-800 dark:text-green-400 w-10 h-10 flex items-center justify-center rounded-md shadow z-10">
- <FiClock className="text-xl" />
- </div>
+ 
 
  {/* Header */}
  <div className="flex justify-between items-start mb-4">
  <div>
- <h2 className="text-lg text-text font-semibold">Time Tracking Overview</h2>
- <p className="text-cardDescription text-sm font-medium">
+ <h2 className="text-lg text-heading font-semibold">Time Tracking Overview</h2>
+ <p className="text-muted text-sm font-medium">
  Your logged hours vs weekly target
  </p>
  </div>
@@ -117,3 +115,5 @@ export default function TimeTrackingOverviewCard() {
  </div>
  );
 }
+
+

@@ -1,28 +1,28 @@
 import React from 'react';
 
 const ProjectCard = ({ title, value, badgeColor, icon }) => {
- return (
- <div className="relative bg-surface rounded-2xl shadow-md px-4 py-6 mb-8 flex items-center justify-between w-78">
- {/* Badge */}
- <div className={`absolute -top-6 left-4 ${badgeColor} text-white p-4 rounded-lg`}>
- {icon}
- </div>
-
- {/* Content */}
- <div className="flex justify-between w-full items-center">
- <div className="text-center w-1/2 mx-2">
- <p className="text-sm text-main whitespace-nowrap">{title}</p>
- </div>
-
- {/* Divider */}
- <div className="w-px h-14 bg-gray-300 mx-2"></div>
-
- <div className="text-center w-1/2">
- <p className="text-sm text-main whitespace-nowrap"> Available : <span className="font-semibold">{value}</span> </p>
- </div>
- </div>
- </div>
- );
+  return (
+    <div className="w-full bg-surface border border-border-subtle rounded-xl shadow-sm p-5 hover:border-brand/30 transition-all group overflow-hidden relative">
+      {/* Decorative subtle background element */}
+      <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 transition-transform group-hover:scale-150 ${badgeColor}`}></div>
+      
+      <div className="flex items-center gap-4 relative z-10">
+        {/* Icon */}
+        <div className={`flex items-center justify-center w-12 h-12 rounded-lg ${badgeColor} bg-opacity-20 text-brand`}>
+          {icon}
+        </div>
+        
+        {/* Content */}
+        <div className="flex flex-col flex-grow">
+          <p className="text-sm font-semibold text-muted uppercase tracking-wider">{title}</p>
+          <div className="flex items-end gap-2 mt-1">
+            <span className="text-2xl font-bold text-heading">{value}</span>
+            <span className="text-xs font-medium text-muted mb-1">Total</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default ProjectCard;

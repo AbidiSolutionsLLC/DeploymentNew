@@ -3,6 +3,7 @@ const User = require("../models/userSchema");
 const Payslip = require("../models/payslipSchema");
 const { sendEmail } = require('../config/emailConfig');
 const emailTemplates = require('../utils/emailTemplates');
+const { generateActionUrl } = require('../utils/urlGenerator');
 const { moment } = require("../utils/dateUtils");
 
 class PayrollService {
@@ -78,9 +79,7 @@ class PayrollService {
         const start = moment(data.periodStartDate).format('MMM DD, YYYY');
         const end = moment(data.periodEndDate).format('MMM DD, YYYY');
         
-        const actionUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost'))
-          ? `${process.env.FRONTEND_URL.replace(/\/+$/, '')}/admin/payrollAdmin`
-          : 'https://abidipro.abidisolutions.com/admin/payrollAdmin';
+        const actionUrl = generateActionUrl('Super Admin', 'payroll');
           
         const payload = {
           batchId: Date.now().toString(36).toUpperCase(),

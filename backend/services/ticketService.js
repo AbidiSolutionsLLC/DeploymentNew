@@ -6,6 +6,7 @@ const { getSearchScope } = require("../utils/rbac");
 const { sendEmail } = require('../config/emailConfig');
 const templates = require('../utils/emailTemplates');
 const { createNotification } = require('../utils/notificationService');
+const { generateActionUrl } = require('../utils/urlGenerator');
 
 class TicketService {
   async createTicket(user, companyId, data, files) {
@@ -404,18 +405,25 @@ class TicketService {
 
   async sendTicketCreationEmail(recipients, ticket) {
     const subject = `New Ticket Created - #${ticket.ticketID}: ${ticket.subject}`;
-    const htmlContent = templates.ticketCreated({
-      ticketId: ticket.ticketID,
-      subject: ticket.subject,
-      priority: ticket.priority,
-      status: ticket.status,
-      raisedBy: ticket.emailAddress,
-      assignedTo: ticket.assignedTo ? ticket.assignedTo.name : 'Unassigned',
-      createdDate: new Date(ticket.createdAt || Date.now()).toLocaleString(),
-      description: ticket.description,
-      actionUrl: `https://abidipro.abidisolutions.com/tickets/${ticket._id}`
-    });
+    const User = require("../models/userSchema");
+    const users = await User.find({ email: { $in: recipients }, company: ticket.company });
+    const userRoleMap = {};
+    users.forEach(u => { userRoleMap[u.email] = u.role; });
+
     recipients.forEach(email => {
+      const role = userRoleMap[email] || 'employee';
+      const actionUrl = generateActionUrl(role, 'ticket', 'created');
+      const htmlContent = templates.ticketCreated({
+        ticketId: ticket.ticketID,
+        subject: ticket.subject,
+        priority: ticket.priority,
+        status: ticket.status,
+        raisedBy: ticket.emailAddress,
+        assignedTo: ticket.assignedTo ? ticket.assignedTo.name : 'Unassigned',
+        createdDate: new Date(ticket.createdAt || Date.now()).toLocaleString(),
+        description: ticket.description,
+        actionUrl
+      });
       sendEmail({ to: email, subject, htmlContent, companyId: ticket.company })
         .catch(err => console.error(`❌ Failed to send background email to ${email}:`, err.message));
     });
@@ -423,6 +431,9 @@ class TicketService {
 
   async sendAssignmentEmail(email, ticket) {
     const subject = `Ticket #${ticket.ticketID} Assigned to You: ${ticket.subject}`;
+    const User = require("../models/userSchema");
+    const assignedUser = await User.findOne({ email, company: ticket.company });
+    const actionUrl = generateActionUrl(assignedUser ? assignedUser.role : 'employee', 'ticket', 'assigned');
     const htmlContent = templates.ticketInProgress({
       ticketId: ticket.ticketID,
       subject: ticket.subject,
@@ -433,7 +444,7 @@ class TicketService {
       createdDate: new Date(ticket.createdAt || Date.now()).toLocaleString(),
       description: ticket.description,
       latestUpdate: 'This ticket has been assigned to you.',
-      actionUrl: `https://abidipro.abidisolutions.com/tickets/${ticket._id}`
+      actionUrl
     });
     sendEmail({ to: email, subject, htmlContent, companyId: ticket.company })
       .catch(err => console.error(`❌ Failed to send assignment email to ${email}:`, err.message));

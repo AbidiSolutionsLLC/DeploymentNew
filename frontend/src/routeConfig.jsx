@@ -87,6 +87,8 @@ export const moduleConfigs = {
  links: [
  { name: "Project DashBoard", path: "/project/projectDashboard", roles: ["All"] },
  { name: "Projects", path: "/project/projects", roles: ["All"] },
+ { name: "My Tasks", path: "/project/myTasks", roles: ["All"] },
+ { name: "Project Groups", path: "/project/projectGroups", roles: ["All"] },
  ],
  },
 

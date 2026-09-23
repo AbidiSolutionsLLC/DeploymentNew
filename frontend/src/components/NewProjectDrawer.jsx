@@ -5,12 +5,16 @@ const NewProjectDrawer = ({ isOpen, onClose }) => {
  if (!isOpen) return null;
 
  return (
- <div className="fixed inset-0 bg-app flex justify-end z-50">
- <div className="w-full sm:w-[600px] md:w-[700px] bg-surface h-full shadow-lg flex flex-col p-6 relative">
+ <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+ <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
+ 
+ <div className="relative w-full max-w-lg rounded-xl shadow-2xl bg-surface dark:bg-app border border-white/20 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col p-6 max-h-[90vh]">
  {/* Header */}
  <div className="flex justify-between items-center mb-6">
- <h2 className="text-lg font-semibold">New Projects</h2>
- <button onClick={onClose} className="btn-ghost text-muted">&times;</button>
+ <h2 className="text-lg font-semibold text-heading">New Project</h2>
+ <button onClick={onClose} className="text-muted hover:text-heading transition-colors">
+ <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+ </button>
  </div>
 
  {/* Form */}

@@ -8,11 +8,11 @@ const KanbanBoard = ({ tasks, onDragEnd, loading }) => {
  const [draggedOver, setDraggedOver] = useState(null);
 
  const kanbanColumns = [
- { id: 'backlog', title: 'Backlog', bgColor: 'bg-app', borderColor: 'border-border-subtle' },
- { id: 'todo', title: 'To Do', bgColor: 'bg-amber-50 dark:bg-amber-900/30', borderColor: 'border-amber-200 dark:border-amber-800/50' },
- { id: 'in-progress', title: 'In Progress', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' },
- { id: 'under-review', title: 'Under Review', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
- { id: 'done', title: 'Done', bgColor: 'bg-green-50 dark:bg-green-900/30', borderColor: 'border-green-200 dark:border-green-800/50' }
+ { id: 'backlog', title: 'Backlog', bgColor: 'bg-surface/50' },
+ { id: 'todo', title: 'To Do', bgColor: 'bg-surface/50' },
+ { id: 'in-progress', title: 'In Progress', bgColor: 'bg-surface/50' },
+ { id: 'under-review', title: 'Under Review', bgColor: 'bg-surface/50' },
+ { id: 'done', title: 'Done', bgColor: 'bg-surface/50' }
  ];
 
  const getTasksByStatus = (status) => {
@@ -94,11 +94,11 @@ const KanbanBoard = ({ tasks, onDragEnd, loading }) => {
  return (
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
  {kanbanColumns.map(column => (
- <div 
- key={column.id} 
- className={`${column.bgColor} rounded-lg p-3 sm:p-4 border-2 border-dashed ${column.borderColor} ${
- draggedOver === column.id ? ' scale-105 shadow-lg' : ''
- } transition-all duration-200`}
+  <div 
+  key={column.id} 
+  className={`${column.bgColor} rounded-xl p-3 sm:p-4 border border-border-subtle shadow-sm ${
+  draggedOver === column.id ? ' scale-105 shadow-md border-brand/50 bg-surface' : ''
+  } transition-all duration-200`}
  onDragOver={(e) => handleDragOver(e, column.id)}
  onDragLeave={handleDragLeave}
  onDrop={(e) => handleDrop(e, column.id)}

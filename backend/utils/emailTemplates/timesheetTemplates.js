@@ -7,7 +7,7 @@ const statusColors = {
 };
 
 function timesheetSubmitted(d) {
-  let html = HEADER('KARBEXA', 'Pending', statusColors.pending.statusColor, statusColors.pending.statusBg, statusColors.pending.statusBorder);
+  let html = HEADER('ABIDI PRO', 'Pending', statusColors.pending.statusColor, statusColors.pending.statusBg, statusColors.pending.statusBorder);
   html += TITLE('Timesheet submitted', `${d.employeeName} has submitted a timesheet for review.`);
   html += DETAILS_TABLE([
     { label: 'Employee', value: d.employeeName },
@@ -23,7 +23,7 @@ function timesheetStatusUpdated(d) {
   const isApproved = d.status === 'Approved';
   let colors = isApproved ? statusColors.approved : statusColors.rejected;
 
-  let html = HEADER('KARBEXA', d.status, colors.statusColor, colors.statusBg, colors.statusBorder);
+  let html = HEADER('ABIDI PRO', d.status, colors.statusColor, colors.statusBg, colors.statusBorder);
   html += TITLE(`Timesheet ${d.status.toLowerCase()}`, `Your timesheet for ${d.periodStart} to ${d.periodEnd} has been ${d.status.toLowerCase()}.`);
   html += DETAILS_TABLE([
     { label: 'Period', value: `${d.periodStart} to ${d.periodEnd}` },

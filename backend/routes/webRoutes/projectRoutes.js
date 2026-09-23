@@ -14,6 +14,7 @@ router
   .post(isLoggedIn, upload.array("attachments", 5), validate(projectSchema), projectController.createProject)
   .get(isLoggedIn, projectController.getAllProjects);
 
+router.get("/dashboard", isLoggedIn, projectController.getProjectDashboard);
 router.get("/user", isLoggedIn, projectController.getUserProjects);
 
 router
