@@ -280,7 +280,7 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
  Timesheet Date*
  </label>
  <DatePicker
- selected={selectedDate ? new Date(selectedDate) : null}
+ selected={selectedDate ? moment(selectedDate, 'YYYY-MM-DD').toDate() : null}
  onChange={(date) => setSelectedDate(date ? moment(date).format('YYYY-MM-DD') : "")}
  maxDate={new Date()} // replaces max={getTodayString()}
  dateFormat="M/d/yyyy"

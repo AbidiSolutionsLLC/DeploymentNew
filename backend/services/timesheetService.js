@@ -29,6 +29,20 @@ class TimesheetService {
 
     let timesheetDate = date ? moment.tz(date, TIMEZONE).startOf('day').toDate() : getStartOfDay();
 
+    const dateStr = moment(timesheetDate).tz(TIMEZONE).format('YYYY-MM-DD');
+    const LeaveRequest = require("../models/leaveRequestSchema");
+    const existingLeave = await LeaveRequest.findOne({
+      employee,
+      company: companyId,
+      status: { $in: ["Approved", "Pending"] },
+      startDate: { $lte: dateStr },
+      endDate: { $gte: dateStr }
+    });
+
+    if (existingLeave) {
+      throw new BadRequestError("You are on leave on this day, can't apply timesheet for that day.");
+    }
+
     const existingTimesheet = await Timesheet.findOne({
       company: companyId,
       employee,
