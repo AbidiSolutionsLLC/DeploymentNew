@@ -17,7 +17,9 @@ export const getTodayESTString = () => {
 export const parseISOToLocalDate = (dateString) => {
  if (!dateString) return new Date();
  const datePart = dateString.split('T')[0];
- if (datePart.includes('-')) {
+ 
+ // Only split and manually parse if it matches YYYY-MM-DD format strictly
+ if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(datePart)) {
  const [year, month, day] = datePart.split('-').map(Number);
  // month is 0-indexed in JS Date
  return new Date(year, month - 1, day);

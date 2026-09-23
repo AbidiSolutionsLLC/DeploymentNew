@@ -66,8 +66,8 @@ class LeaveService {
         leaveHistory: {
           leaveId: savedLeaveRequest._id,
           leaveType,
-          startDate: start,
-          endDate: end,
+          startDate: startDate,
+          endDate: endDate,
           status: 'Pending',
           daysTaken: daysDiff,
           reason: reason,
