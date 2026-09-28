@@ -125,7 +125,7 @@ const SubNavbarVertical = () => {
  {/* ── Logo header ── */}
  <div className="w-full py-4 flex items-center justify-center mb-2 rounded-t-[2rem] theme-sidebar-header">
  <div className="w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md rounded-[6px] theme-brand-badge">
- A
+ K
  </div>
  </div>
 

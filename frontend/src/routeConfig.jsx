@@ -51,8 +51,8 @@ const adminLinks = [
  { name: "Attendance", path: "/admin/attendance", icon: CalendarDaysIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
  { name: "Leaves", path: "/admin/leaveManagement", icon: BriefcaseIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
  { name: "Time Sheets", path: "/admin/timesheet", icon: ClockIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
- { name: "Payroll", path: "/admin/payroll", icon: DollarSignIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
- { name: "Expense Tracker", path: "/admin/ExpenseManagement", icon: DollarSignIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
+ // { name: "Payroll", path: "/admin/payroll", icon: DollarSignIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
+ // { name: "Expense Tracker", path: "/admin/ExpenseManagement", icon: DollarSignIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
 
  // Assign Ticket remains Admin/Super Admin (and Tech Managers) only
  {
@@ -100,8 +100,8 @@ export const moduleConfigs = {
  { name: "Leave Management", path: "/admin/leaveTrackerAdmin", icon: BriefcaseIcon },
  { name: "Approve Time Sheets", path: "/admin/approve", icon: CheckBadgeIcon },
  { name: "Assign Ticket", path: "/admin/assign-ticket", icon: TicketIcon },
- { name: "Expense Tracker", path: "/admin/ExpenseManagement", icon: DollarSignIcon },
- { name: "Payroll", path: "/admin/payroll", icon: DollarSignIcon },
+ // { name: "Expense Tracker", path: "/admin/ExpenseManagement", icon: DollarSignIcon },
+ // { name: "Payroll", path: "/admin/payroll", icon: DollarSignIcon },
  { name: "Tenant Management", path: "/admin/tenantManagement", icon: ShieldCheckIcon },
 
  ],
