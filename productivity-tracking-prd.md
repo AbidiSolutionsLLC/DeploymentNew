@@ -1,7 +1,7 @@
-# 🕵️ ABIDI Pro — Productivity & Idle Time Tracking Module PRD
+# 🕵️ KARBEXA — Productivity & Idle Time Tracking Module PRD
 ### Insightful-Style Productivity Insights (Scoped, Not a Full Clone) · v1.0
 
-> **How to use this document**: This is the single source of truth for the productivity-tracking feature build inside the existing ABIDI Pro (Karbexa) codebase. It extends — does NOT replace — the existing `timeTrackerSchema.js` / `timeTrackerController.js` / `timeTrackerService.js` module described in `project-context.md` and `project-map.md`. Read those two documents first. Execute phase by phase. Do not skip the "Blockers & Constraints" section before writing any agent/desktop code — most real-world failures in this category of feature happen there, not in the UI.
+> **How to use this document**: This is the single source of truth for the productivity-tracking feature build inside the existing KARBEXA (Karbexa) codebase. It extends — does NOT replace — the existing `timeTrackerSchema.js` / `timeTrackerController.js` / `timeTrackerService.js` module described in `project-context.md` and `project-map.md`. Read those two documents first. Execute phase by phase. Do not skip the "Blockers & Constraints" section before writing any agent/desktop code — most real-world failures in this category of feature happen there, not in the UI.
 
 ---
 
@@ -27,7 +27,7 @@
 
 You explicitly do **not** want a full Insightful clone. Insightful's actual feature set (confirmed from their site and independent reviews) includes: automatic time tracking, productive/unproductive/neutral app & website classification, idle time detection, screenshots at intervals (with blur/privacy controls), stealth/silent mode, offline time tracking, productivity scores/benchmarking/trends, and project/task time attribution.
 
-**In scope for ABIDI Pro (v1):**
+**In scope for KARBEXA (v1):**
 - Total work time (already partially exists via `timeTrackerSchema.js`)
 - Active time vs. Idle time vs. Offline/disconnected time
 - Productive vs. Unproductive vs. Neutral time, broken down by application/website category
@@ -48,7 +48,7 @@ If a future phase genuinely needs screenshots, treat it as a **separate PRD** wi
 
 ## 2. Why a Desktop Agent Is Unavoidable
 
-The existing ABIDI Pro stack is a **browser-based React SPA**. A browser tab cannot see:
+The existing KARBEXA stack is a **browser-based React SPA**. A browser tab cannot see:
 - Which application has OS focus (Chrome, VS Code, Slack desktop, Photoshop, etc.)
 - The system idle time (no mouse/keyboard input) when the browser tab itself is in the background or minimized
 - Websites visited in *other* browser tabs/windows or other browsers entirely
@@ -65,7 +65,7 @@ A browser can only report on itself, and only while the tab is open and foregrou
 
 ```
 ┌─────────────────────────────┐      ┌──────────────────────────────┐
-│   ABIDI Pro Desktop Agent    │      │      ABIDI Pro Web App        │
+│   KARBEXA Desktop Agent    │      │      KARBEXA Web App        │
 │   (new Electron app)         │      │  (existing frontend/ React)   │
 │                               │      │                                │
 │  - Tray icon + on/off toggle │      │  - Productivity dashboard     │
@@ -245,7 +245,7 @@ Employee monitoring is legal in essentially all jurisdictions when tied to a leg
 2. **Written policy + acknowledgment before rollout.** Add a company policy document and an in-app acknowledgment/consent checkbox as part of onboarding (Phase 2 of the rollout plan, §12) — store the acknowledgment timestamp per user (new field on `userSchema.js`, e.g., `monitoringPolicyAcceptedAt`).
 3. **Data minimization.** Only collect what you need for the stated productivity metrics (app name, category, duration, idle/active state). Because this PRD explicitly excludes screenshots and keystroke content (§1), you avoid the highest-risk data categories entirely (e.g., Illinois BIPA-style biometric exposure doesn't apply here since no biometric data is collected; screenshot/keylogging tools carry materially higher legal exposure than app-category tracking).
 4. **Personal-device / off-hours boundaries.** If any employees use personal devices (BYOD) rather than company-issued laptops, the agent must have an explicit, easily accessible "pause tracking" control, and tracking should not run outside a defined work-hours window by default. Do not track personal devices at all if avoidable — restrict the agent to company-owned hardware where possible.
-5. **International/remote employees.** If ABIDI Pro's users include remote staff outside Pakistan (EU, US, UK), the strictest applicable jurisdiction's notice/consent rules should be the company-wide default rather than maintaining per-country configurations in v1 — simpler to build and safer legally.
+5. **International/remote employees.** If KARBEXA's users include remote staff outside Pakistan (EU, US, UK), the strictest applicable jurisdiction's notice/consent rules should be the company-wide default rather than maintaining per-country configurations in v1 — simpler to build and safer legally.
 6. **Access control on productivity data.** Only direct managers/admins should see individual-level productivity breakdowns by default; apply the same `restrictTo` RBAC pattern already used elsewhere in the codebase. Peer-level visibility (coworkers seeing each other's productivity scores) should be off by default.
 
 ---
@@ -359,7 +359,7 @@ Every phase must produce **passing, documented test cases** before being marked 
 
 ## 13. Agent Operating Rules
 
-For the Antigravity agent (or any LLM agent) executing this PRD inside the ABIDI Pro repo:
+For the Antigravity agent (or any LLM agent) executing this PRD inside the KARBEXA repo:
 
 1. Read `project-context.md` and `project-map.md` before touching any file — match existing naming/patterns exactly (controller → service delegation, `catchAsync`, `ExpressError`, Joi validation, `company` scoping on every query).
 2. The new `activityController.js`/`activityService.js` etc. go in the **existing** `backend/controllers/` and `backend/services/` directories, following the existing file-per-domain convention — do not create a parallel folder structure.
@@ -392,6 +392,6 @@ Quick-reference list an agent or QA engineer can walk through before sign-off on
 ---
 
 *Document Version: 1.0*
-*Prepared for: ABIDI Pro / Karbexa — Productivity Tracking Module*
+*Prepared for: KARBEXA / Karbexa — Productivity Tracking Module*
 *Companion to: `prd.md`, `project-map.md`, `project-context.md`*
 *This document is the single source of truth for this feature. Update §14 as new edge cases surface during implementation.*

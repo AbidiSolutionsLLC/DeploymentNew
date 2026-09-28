@@ -1,5 +1,5 @@
 /**
- * Universal Form Validation Utilities for ABIDI Pro
+ * Universal Form Validation Utilities for KARBEXA
  */
 
 /**

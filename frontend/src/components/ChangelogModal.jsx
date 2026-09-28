@@ -94,7 +94,7 @@ export default function ChangelogModal() {
             </svg>
           </div>
           <p>
-            <strong className="font-semibold">Heads up:</strong> Abidi Pro is going to become Sowaye — same great platform, new name. More details to come!
+            <strong className="font-semibold">Heads up:</strong> KARBEXA is going to become Sowaye — same great platform, new name. More details to come!
           </p>
         </div>
       </div>

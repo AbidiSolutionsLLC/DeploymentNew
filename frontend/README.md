@@ -1,8 +1,8 @@
-# 🚀 ABIDI Pro - Frontend
+# 🚀 KARBEXA - Frontend
 
 ## Overview
 
-**ABIDI Pro Frontend** is a modern React application built with Vite, Redux, and Tailwind CSS. It provides a comprehensive user interface for the ABIDI Pro HRM and Project Management system.
+**KARBEXA Frontend** is a modern React application built with Vite, Redux, and Tailwind CSS. It provides a comprehensive user interface for the KARBEXA HRM and Project Management system.
 
 ## Tech Stack
 
@@ -87,7 +87,7 @@ VITE_API_BASE_URL=http://localhost:3000/api
 VITE_AZURE_TENANT_ID=your_tenant_id
 VITE_AZURE_CLIENT_ID=your_client_id
 VITE_AZURE_REDIRECT_URI=http://localhost:5173
-VITE_APP_NAME=ABIDI Pro
+VITE_APP_NAME=KARBEXA
 ```
 
 ## Component Guidelines

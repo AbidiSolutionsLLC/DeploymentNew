@@ -59,10 +59,10 @@ const AppLayout = () => {
  <div className="md:hidden flex items-center justify-between px-4 py-3 bg-transparent z-50 shrink-0">
  <div className="flex items-center gap-2">
  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shadow-md theme-brand-badge">
- A
+ K
  </div>
  <span className="text-sm font-bold tracking-tight uppercase theme-mobile-label">
- Abidi Pro
+ Karbexa
  </span>
  </div>
  <button

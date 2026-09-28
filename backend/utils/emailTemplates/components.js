@@ -133,7 +133,7 @@ function FOOTER(refId) {
     </table>
   </td></tr>
   <tr><td style="padding: 0 24px 24px 24px; text-align: center;">
-    <p style="margin: 0; font-size: 11px; color: #CBD5E1;">This is an automated notification from the Abidi Pro platform.</p>
+    <p style="margin: 0; font-size: 11px; color: #CBD5E1;">This is an automated notification from the KARBEXA platform.</p>
   </td></tr>`;
 }
 

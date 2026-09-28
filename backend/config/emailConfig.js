@@ -68,7 +68,7 @@ const sendInvitationEmail = async ({ to, name, role, loginURL, companyId }) => {
 
     await sendEmail({
       to,
-      subject: "Welcome to Abidi Pro - Account Created",
+      subject: "Welcome to Karbexa - Account Created",
       htmlContent,
       companyId
     });
