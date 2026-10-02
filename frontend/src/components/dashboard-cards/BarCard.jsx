@@ -13,7 +13,7 @@ import { FiBarChart2, FiMoreVertical, FiTrash2 } from "react-icons/fi";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const BarCard = ({ onDelete }) => {
+const BarCard = ({ timeTracking, onDelete }) => {
  const [menuOpen, setMenuOpen] = useState(false);
  const menuRef = useRef();
 
@@ -27,13 +27,20 @@ const BarCard = ({ onDelete }) => {
  return () => document.removeEventListener("mousedown", handleClickOutside);
  }, []);
 
- // Dummy data inside component
+ const dailyBreakdown = timeTracking?.dailyBreakdown || [
+ { day: "Mon", hours: 0 },
+ { day: "Tue", hours: 0 },
+ { day: "Wed", hours: 0 },
+ { day: "Thu", hours: 0 },
+ { day: "Fri", hours: 0 }
+ ];
+
  const data = {
- labels: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+ labels: dailyBreakdown.map(d => d.day),
  datasets: [
  {
  label: "Hours Logged",
- data: [8, 6, 7, 5, 9],
+ data: dailyBreakdown.map(d => d.hours),
  backgroundColor: "#6366f1", // Tailwind Indigo-500
  borderRadius: 5,
  },

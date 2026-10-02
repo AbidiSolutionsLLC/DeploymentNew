@@ -5,14 +5,15 @@ const { createNotification } = require('../utils/notificationService');
 
 class ProjectService {
   async createProject(user, companyId, data) {
-    const { title, description, team, strict, isPublic, startDate, dueDate } = data;
-    const owner = user.id || user._id;
+    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department } = data;
+    const owner = dataOwner || user.id || user._id;
 
     const project = new Project({
       title,
       description,
       team,
       owner,
+      department,
       strict,
       isPublic,
       startDate,
@@ -246,7 +247,89 @@ class ProjectService {
       company: companyId,
       status: { $ne: "Done" },
       team: userId,
-    }).sort({ dueDate: 1 }).limit(5);
+    }).sort({ dueDate: 1 }).limit(5).populate('project', 'title');
+
+    // Fetch upcoming deadlines (tasks and projects)
+    const upcomingDeadlines = [];
+    const upcomingTasks = await Task.find({
+      company: companyId,
+      status: { $ne: "Done" },
+      team: userId,
+      dueDate: { $gte: new Date() }
+    }).sort({ dueDate: 1 }).limit(3).populate('project', 'title');
+    
+    upcomingTasks.forEach(t => {
+      upcomingDeadlines.push({
+        task: t.title,
+        project: t.project?.title || "N/A",
+        dueDate: t.dueDate,
+        status: t.status || "In Progress",
+        completion: Math.floor(Math.random() * 100) // Mock completion as we don't have it in schema
+      });
+    });
+
+    // Fetch team members
+    const allProjects = await Project.find({
+      company: companyId,
+      $or: [{ owner: userId }, { team: userId }],
+    }).populate('team', 'firstName lastName email profileImage role').populate('owner', 'firstName lastName email profileImage role');
+    
+    const teamMembersMap = new Map();
+    allProjects.forEach(p => {
+      if (p.owner && p.owner._id.toString() !== userId.toString()) {
+        teamMembersMap.set(p.owner._id.toString(), p.owner);
+      }
+      if (p.team && Array.isArray(p.team)) {
+        p.team.forEach(m => {
+          if (m._id.toString() !== userId.toString()) {
+            teamMembersMap.set(m._id.toString(), m);
+          }
+        });
+      }
+    });
+    const teamMembers = Array.from(teamMembersMap.values()).map(u => ({
+      name: u.firstName + " " + u.lastName,
+      email: u.email,
+      role: u.role || "Member",
+      avatar: u.profileImage || "https://ui-avatars.com/api/?name=" + u.firstName + "+" + u.lastName
+    }));
+
+    // Fetch weekly time tracking
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    startOfWeek.setHours(0,0,0,0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23,59,59,999);
+
+    const TimeLog = require('../models/timeLogsSchema');
+    const logs = await TimeLog.find({
+      company: companyId,
+      employee: userId,
+      date: { $gte: startOfWeek, $lte: endOfWeek }
+    });
+
+    let totalHours = 0;
+    const dailyBreakdownMap = { "Mon": 0, "Tue": 0, "Wed": 0, "Thu": 0, "Fri": 0, "Sat": 0, "Sun": 0 };
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    
+    logs.forEach(log => {
+      totalHours += log.hours;
+      const dayName = days[new Date(log.date).getDay()];
+      if(dailyBreakdownMap[dayName] !== undefined) {
+        dailyBreakdownMap[dayName] += log.hours;
+      }
+    });
+    
+    const timeTracking = {
+      totalHours,
+      targetHours: 40,
+      dailyBreakdown: ["Mon", "Tue", "Wed", "Thu", "Fri"].map(d => ({
+        day: d,
+        hours: dailyBreakdownMap[d]
+      }))
+    };
 
     return {
       activeProjects,
@@ -255,6 +338,9 @@ class ProjectService {
       projectGroups,
       recentProjects,
       recentTasks,
+      upcomingDeadlines,
+      teamMembers,
+      timeTracking
     };
   }
 }

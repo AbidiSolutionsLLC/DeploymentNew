@@ -170,7 +170,7 @@ const isLoggedIn = async (req, res, next) => {
         } else {
           // --- SECURITY: REJECT UNINVITED USERS ---
           console.warn(`Blocked login attempt from uninvited email: ${email}`);
-          return next(new UnauthorizedError("Access Denied: You must be invited to the portal by an Admin."));
+          return next(new UnauthorizedError(`Access Denied: You must be invited to the portal by an Admin. (Attempted email: ${email})`));
         }
       }
 

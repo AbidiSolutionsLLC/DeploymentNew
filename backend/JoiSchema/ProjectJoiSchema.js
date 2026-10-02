@@ -12,7 +12,9 @@ const projectSchema = Joi.object({
   strict: Joi.boolean().optional(),
   isPublic: Joi.boolean().optional(),
   startDate: Joi.date().allow(null, "").optional(),
-  dueDate: Joi.date().allow(null, "").optional()
+  dueDate: Joi.date().allow(null, "").optional(),
+  owner: Joi.string().optional(),
+  department: Joi.string().optional()
 });
 
 module.exports = { projectSchema };

@@ -8,11 +8,18 @@ import { fetchMyTasks, createTask, updateTask } from "../../store/taskSlice";
 import { toast } from "react-toastify";
 
 import PageContainer from "../../components/ui/PageContainer";
+import useVariant from "../../components/prototype/useVariant";
+import PrototypeSwitcher from "../../components/prototype/PrototypeSwitcher";
+import MyTasksA from "./prototype/a/MyTasks";
+import MyTasksB from "./prototype/b/MyTasks";
+import MyTasksC from "./prototype/c/MyTasks";
 
+// PROTOTYPE: `?variant=` renders one of three redesign proposals; absent → current UI.
 const MyTask = () => {
  const dispatch = useDispatch();
  const { tasks, loading } = useSelector((state) => state.tasks);
  const [showModal, setShowModal] = useState(false);
+ const { variant } = useVariant();
 
  useEffect(() => {
  dispatch(fetchMyTasks());
@@ -37,33 +44,47 @@ const MyTask = () => {
  }
  };
 
+ const content =
+  variant === "a" ? (
+   <MyTasksA tasks={tasks} loading={loading} onNew={() => setShowModal(true)} />
+  ) : variant === "b" ? (
+   <MyTasksB tasks={tasks} loading={loading} onNew={() => setShowModal(true)} />
+  ) : variant === "c" ? (
+   <MyTasksC tasks={tasks} loading={loading} onNew={() => setShowModal(true)} />
+  ) : (
+   <PageContainer
+    title="My Tasks"
+    subtitle="View and manage tasks assigned to you"
+    isCard={true}
+    headerActions={
+     <div className="flex items-center gap-3">
+      <SearchBar />
+      <button className="flex items-center gap-2 btn btn-primary py-2.5 px-4">
+       Sort By <FaSortDown className="text-xs" />
+      </button>
+     </div>
+    }
+   >
+    <div className="my-2">
+     <MyTasksTable
+      tasks={tasks}
+      loading={loading}
+      onUpdate={handleUpdateTask}
+     />
+    </div>
+   </PageContainer>
+  );
+
  return (
- <PageContainer
- title="My Tasks"
- subtitle="View and manage tasks assigned to you"
- isCard={true}
- headerActions={
- <div className="flex items-center gap-3">
- <SearchBar />
- <button className="flex items-center gap-2 btn btn-primary py-2.5 px-4">
- Sort By <FaSortDown className="text-xs" />
- </button>
- </div>
- }
- >
- <div className="my-2">
- <MyTasksTable 
- tasks={tasks} 
- loading={loading}
- onUpdate={handleUpdateTask}
- />
- </div>
- <AddTaskDrawer 
- isOpen={showModal} 
- onClose={() => setShowModal(false)}
- onSubmit={handleCreateTask}
- />
- </PageContainer>
+  <>
+   {content}
+   <AddTaskDrawer
+    isOpen={showModal}
+    onClose={() => setShowModal(false)}
+    onSubmit={handleCreateTask}
+   />
+   <PrototypeSwitcher />
+  </>
  );
 };
 

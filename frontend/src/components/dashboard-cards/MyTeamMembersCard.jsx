@@ -3,34 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { FiMoreVertical, FiUsers } from "react-icons/fi";
 import { ArrowRightIcon } from "@heroicons/react/24/solid";
 
-const teamMembers = [
- {
- name: "Sarah Johnson",
- role: "UI/UX Designer",
- email: "sarah.johnson@example.com",
- avatar: "https://randomuser.me/api/portraits/women/44.jpg",
- },
- {
- name: "Michael Smith",
- role: "Frontend Developer",
- email: "michael.smith@example.com",
- avatar: "https://randomuser.me/api/portraits/men/32.jpg",
- },
- {
- name: "Emma Brown",
- role: "Backend Developer",
- email: "emma.brown@example.com",
- avatar: "https://randomuser.me/api/portraits/women/65.jpg",
- },
- {
- name: "David Wilson",
- role: "QA Engineer",
- email: "david.wilson@example.com",
- avatar: "https://randomuser.me/api/portraits/men/76.jpg",
- },
-];
-
-export default function MyTeamMembersCard() {
+export default function MyTeamMembersCard({ teamMembers = [] }) {
  const [menuOpen, setMenuOpen] = useState(false);
  const menuRef = useRef();
 

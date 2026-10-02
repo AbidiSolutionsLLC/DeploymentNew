@@ -8,7 +8,13 @@ import GlassModal from '../../components/ui/GlassModal';
 import { toast } from 'react-toastify';
 import TableWithPagination from '../../components/TableWithPagination';
 import { useConfirm } from '../../context/ConfirmContext';
+import useVariant from '../../components/prototype/useVariant';
+import PrototypeSwitcher from '../../components/prototype/PrototypeSwitcher';
+import GroupsA from './prototype/a/Groups';
+import GroupsB from './prototype/b/Groups';
+import GroupsC from './prototype/c/Groups';
 
+// PROTOTYPE: `?variant=` renders one of three redesign proposals; absent → current UI.
 const ProjectGroups = () => {
   const dispatch = useDispatch();
   const { groups = [], loading } = useSelector((state) => state.projectGroups || {});
@@ -16,6 +22,7 @@ const ProjectGroups = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const confirm = useConfirm();
+  const { variant } = useVariant();
 
   useEffect(() => {
     dispatch(fetchProjectGroups());
@@ -59,12 +66,22 @@ const ProjectGroups = () => {
     {
       key: 'description',
       label: 'Description',
-      render: (val) => <span className="text-muted">{val || '-'}</span>
+      render: (val) => <span className="text-muted truncate max-w-xs block">{val || '-'}</span>
+    },
+    {
+      key: 'owner',
+      label: 'Owner',
+      render: (val) => <span className="text-heading whitespace-nowrap">{val?.firstName ? `${val.firstName} ${val.lastName}` : (val?.name || val?.email || 'N/A')}</span>
     },
     {
       key: 'projects',
-      label: 'Projects Count',
-      render: (val) => <span className="text-heading font-medium">{val?.length || 0}</span>
+      label: 'Projects',
+      render: (val) => <span className="text-heading font-medium whitespace-nowrap">{val?.length || 0} Projects</span>
+    },
+    {
+      key: 'createdAt',
+      label: 'Created Date',
+      render: (val) => <span className="text-muted whitespace-nowrap">{val ? new Date(val).toLocaleDateString() : '-'}</span>
     },
     {
       key: 'actions',
@@ -80,7 +97,14 @@ const ProjectGroups = () => {
     }
   ];
 
-  return (
+  const content =
+    variant === 'a' ? (
+      <GroupsA groups={groups} loading={loading} onNew={() => setShowModal(true)} onDelete={handleDelete} />
+    ) : variant === 'b' ? (
+      <GroupsB groups={groups} loading={loading} onNew={() => setShowModal(true)} onDelete={handleDelete} />
+    ) : variant === 'c' ? (
+      <GroupsC groups={groups} loading={loading} onNew={() => setShowModal(true)} onDelete={handleDelete} />
+    ) : (
     <PageContainer
       title="Project Groups"
       subtitle="Manage your portfolios and groupings"
@@ -107,6 +131,13 @@ const ProjectGroups = () => {
           defaultSort={{ key: 'createdAt', direction: 'desc' }}
         />
       </div>
+
+    </PageContainer>
+  );
+
+  return (
+    <>
+      {content}
 
       <GlassModal
         isOpen={showModal}
@@ -139,7 +170,9 @@ const ProjectGroups = () => {
           </div>
         </form>
       </GlassModal>
-    </PageContainer>
+
+      <PrototypeSwitcher />
+    </>
   );
 };
 

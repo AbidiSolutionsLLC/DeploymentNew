@@ -1,86 +1,181 @@
-import React from 'react';
-import { FaCalendarAlt } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import GlassModal from './ui/GlassModal';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import api from '../axios';
 
-const NewProjectDrawer = ({ isOpen, onClose }) => {
- if (!isOpen) return null;
+const NewProjectDrawer = ({ isOpen, onClose, onSubmit }) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [owner, setOwner] = useState('');
+  const [department, setDepartment] = useState('');
+  const [team, setTeam] = useState([]);
+  const [startDate, setStartDate] = useState(null);
+  const [dueDate, setDueDate] = useState(null);
 
- return (
- <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
- <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
- 
- <div className="relative w-full max-w-lg rounded-xl shadow-2xl bg-surface dark:bg-app border border-white/20 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col p-6 max-h-[90vh]">
- {/* Header */}
- <div className="flex justify-between items-center mb-6">
- <h2 className="text-lg font-semibold text-heading">New Project</h2>
- <button onClick={onClose} className="text-muted hover:text-heading transition-colors">
- <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
- </button>
- </div>
+  const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
- {/* Form */}
- <form className="space-y-4 overflow-y-auto flex-1">
- <div className="grid grid-cols-2 gap-4">
- <input
- type="text"
- placeholder="Project Name"
- className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-amber-200"
- />
- <select className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-amber-200">
- <option value="">Project Owner</option>
- <option value="Alice">Alice</option>
- <option value="Bob">Bob</option>
- <option value="Charlie">Charlie</option>
- </select>
- </div>
+  useEffect(() => {
+    if (isOpen) {
+      fetchUsersAndDepts();
+    }
+  }, [isOpen]);
 
- <div className="grid grid-cols-2 gap-4">
- <div className="relative">
- <input
- type="date"
- placeholder="Start Date"
- className="w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring focus:ring-amber-200"
- />
- <FaCalendarAlt className="absolute top-3 right-3 text-muted" />
- </div>
- <div className="relative">
- <input
- type="date"
- placeholder="End Date"
- className="w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring focus:ring-amber-200"
- />
- <FaCalendarAlt className="absolute top-3 right-3 text-muted" />
- </div>
- </div>
+  const fetchUsersAndDepts = async () => {
+    setLoadingUsers(true);
+    try {
+      const [usersRes, deptsRes] = await Promise.all([
+        api.get('/users'),
+        api.get('/departments')
+      ]);
+      setUsers(usersRes.data?.data || usersRes.data || []);
+      setDepartments(deptsRes.data?.data || deptsRes.data || []);
+    } catch (error) {
+      console.error("Failed to fetch users or departments", error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
- <textarea
- placeholder="Description"
- rows="3"
- className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-amber-200"
- ></textarea>
+  const handleTeamChange = (e) => {
+    const value = Array.from(e.target.selectedOptions, option => option.value);
+    setTeam(value);
+  };
 
- <select className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-amber-200">
- <option value="">Department</option>
- <option value="IT">IT</option>
- <option value="Marketing">Marketing</option>
- <option value="HR">HR</option>
- </select>
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!title || !owner || !department) return;
+    onSubmit({
+      title,
+      description,
+      owner,
+      department,
+      team,
+      startDate,
+      dueDate
+    });
+    // Reset form on success will be handled by parent unmounting/closing it
+  };
 
- <select className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-amber-200">
- <option value="">Users</option>
- <option value="User A">User A</option>
- <option value="User B">User B</option>
- <option value="User C">User C</option>
- </select>
+  const footer = (
+    <div className="flex justify-end gap-3 w-full">
+      <button type="button" onClick={onClose} className="btn-ghost text-muted">
+        Cancel
+      </button>
+      <button type="button" onClick={handleSubmit} className="btn btn-primary">
+        Save Project
+      </button>
+    </div>
+  );
 
- <div className="flex justify-end mt-4">
- <button type="submit" className="btn btn-primary">
- Save Project
- </button>
- </div>
- </form>
- </div>
- </div>
- );
+  return (
+    <GlassModal isOpen={isOpen} onClose={onClose} title="New Project" footer={footer}>
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Project Name*</label>
+            <input
+              type="text"
+              placeholder="Project Name"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full bg-surface/50 border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Project Owner*</label>
+            <select
+              value={owner}
+              onChange={(e) => setOwner(e.target.value)}
+              className="w-full bg-surface border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all"
+              required
+            >
+              <option className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800" value="">Select Owner</option>
+              {users.map(u => (
+                <option className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800" key={u._id || u.id} value={u._id || u.id}>
+                  {u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="relative">
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Start Date</label>
+            <DatePicker
+              selected={startDate}
+              onChange={(d) => setStartDate(d)}
+              dateFormat="M/d/yyyy"
+              placeholderText="Select Date"
+              className="w-full bg-surface border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 cursor-pointer"
+              popperProps={{ strategy: "fixed" }}
+            />
+          </div>
+          <div className="relative">
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">End Date</label>
+            <DatePicker
+              selected={dueDate}
+              onChange={(d) => setDueDate(d)}
+              dateFormat="M/d/yyyy"
+              placeholderText="Select Date"
+              className="w-full bg-surface border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 cursor-pointer"
+              popperProps={{ strategy: "fixed" }}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-muted mb-2 uppercase">Description</label>
+          <textarea
+            placeholder="Description"
+            rows="3"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full bg-surface border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 resize-none transition-all"
+          ></textarea>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Department*</label>
+            <select
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              className="w-full bg-surface border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all"
+              required
+            >
+              <option className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800" value="">Select Department</option>
+              {departments.map(d => (
+                <option className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800" key={d._id || d.id} value={d._id || d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted mb-2 uppercase">Team Members</label>
+            <select
+              multiple
+              value={team}
+              onChange={handleTeamChange}
+              className="w-full bg-surface border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all h-24 custom-scrollbar-visible"
+            >
+              {users.map(u => (
+                <option className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800" key={u._id || u.id} value={u._id || u.id}>
+                  {u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-muted mt-1">Hold Ctrl/Cmd to select multiple</p>
+          </div>
+        </div>
+      </form>
+    </GlassModal>
+  );
 };
 
 export default NewProjectDrawer;

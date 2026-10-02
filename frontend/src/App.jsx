@@ -202,8 +202,12 @@ function App() {
  </Route>
 
  <Route path="/project/*">
- <Route index element={<ComingSoon />} />
- <Route path="*" element={<ComingSoon />} />
+ <Route index element={<Navigate to="projectDashboard" replace />} />
+ <Route path="projectDashboard" element={<ProjectDashBoard />} />
+ <Route path="projects" element={<Projects />} />
+ <Route path="projectDetailed/:id" element={<ProjectDetail />} />
+ <Route path="myTasks" element={<MyTask />} />
+ <Route path="projectGroups" element={<ProjectGroups />} />
  </Route>
 
  <Route path="/faq/*">

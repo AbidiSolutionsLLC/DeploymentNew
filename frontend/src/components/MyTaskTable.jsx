@@ -17,11 +17,10 @@ const MyTasksTable = ({ tasks, setTasks, children }) => {
  setSelectedTask(null);
  };
  const myTaskColumns = [
- { key: "name", label: "Task Name", render: (val) => <span className="whitespace-nowrap">{val}</span> },
- { key: "description", label: "Description", render: (val) => <span className="whitespace-nowrap">{val}</span> },
- { key: "startDate", label: "Start Date", render: (val) => <span className="whitespace-nowrap">{val}</span> },
- { key: "endDate", label: "End Date", render: (val) => <span className="whitespace-nowrap">{val}</span> },
- { key: "assignedBy", label: "Assigned By", render: (val) => <span className="whitespace-nowrap">{val}</span> },
+ { key: "title", label: "Task Name", render: (val) => <span className="whitespace-nowrap font-medium">{val}</span> },
+ { key: "project", label: "Project", render: (val) => <span className="whitespace-nowrap">{val?.title || 'N/A'}</span> },
+ { key: "description", label: "Description", render: (val) => <span className="whitespace-nowrap truncate max-w-xs block">{val}</span> },
+ { key: "dueDate", label: "Due Date", render: (val) => <span className="whitespace-nowrap">{val ? new Date(val).toLocaleDateString() : 'N/A'}</span> },
  { key: "priority", label: "Priority", render: (val) => <span className="whitespace-nowrap">{val}</span> },
  {
  key: "status",

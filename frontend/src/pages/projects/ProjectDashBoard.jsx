@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-import { toast } from "react-toastify";
 import { BsFileEarmarkCheckFill } from "react-icons/bs";
 import { MdPeople } from "react-icons/md";
 import ProjectCard from "../../components/ProjectCard";
@@ -13,14 +12,20 @@ import MyTeamMembersCard from "../../components/dashboard-cards/MyTeamMembersCar
 import TimeTrackingOverviewCard from "../../components/dashboard-cards/TimeTrackingOverviewCard";
 import PageContainer from "../../components/ui/PageContainer";
 import Loader from "../../components/ui/Loader";
+import useVariant from "../../components/prototype/useVariant";
+import PrototypeSwitcher from "../../components/prototype/PrototypeSwitcher";
+import DashboardA from "./prototype/a/Dashboard";
+import DashboardB from "./prototype/b/Dashboard";
+import DashboardC from "./prototype/c/Dashboard";
 
+// PROTOTYPE: `?variant=` renders one of three redesign proposals; absent → current UI.
 const ProjectDashBoard = () => {
  const dispatch = useDispatch();
  const { dashboardData, loading } = useSelector((state) => state.projects);
+ const { variant } = useVariant();
 
  useEffect(() => {
  dispatch(fetchProjectDashboard());
-  toast.info("This portal is under development. We are working on it and it will be fully available soon.", { autoClose: 5000, toastId: "project-portal-dev" });
  }, [dispatch]);
 
  if (loading) {
@@ -58,47 +63,61 @@ const ProjectDashBoard = () => {
   },
   ];
 
-  return (
-  <PageContainer
-  title="Project Dashboard"
-  subtitle="Overview of your active projects and tasks"
-  loading={loading}
-  isCard={false}
-  >
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-  {leaveData.map((item, index) => (
-  <div key={index} className="w-full text-heading">
-  <ProjectCard
-  title={item.label}
-  value={item.available}
-  icon={item.icon}
-  badgeColor={item.badgeColor}
-  />
-  </div>
-  ))}
-  </div>
+  const content =
+    variant === "a" ? (
+      <DashboardA data={dashboardData} />
+    ) : variant === "b" ? (
+      <DashboardB data={dashboardData} />
+    ) : variant === "c" ? (
+      <DashboardC data={dashboardData} />
+    ) : (
+      <PageContainer
+        title="Project Dashboard"
+        subtitle="Overview of your active projects and tasks"
+        loading={loading}
+        isCard={false}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {leaveData.map((item, index) => (
+            <div key={index} className="w-full text-heading">
+              <ProjectCard
+                title={item.label}
+                value={item.available}
+                icon={item.icon}
+                badgeColor={item.badgeColor}
+              />
+            </div>
+          ))}
+        </div>
 
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6 auto-rows-fr">
-  <div className="h-full">
-  <ActiveProjectsCard projects={dashboardData?.recentProjects || []} />
-  </div>
-  <div className="h-full">
-  <BarCard />
-  </div>
-  <div className="h-full">
-  <TasksAssignedToMeCard tasks={dashboardData?.recentTasks || []} />
-  </div>
-  <div className="h-full">
-  <UpcomingDeadlinesCard />
-  </div>
-  <div className="h-full">
-  <MyTeamMembersCard />
-  </div>
-  <div className="h-full">
-  <TimeTrackingOverviewCard />
-  </div>
-  </div>
-  </PageContainer>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6 auto-rows-fr">
+          <div className="h-full">
+            <ActiveProjectsCard projects={dashboardData?.recentProjects || []} />
+          </div>
+          <div className="h-full">
+            <BarCard timeTracking={dashboardData?.timeTracking} />
+          </div>
+          <div className="h-full">
+            <TasksAssignedToMeCard tasks={dashboardData?.recentTasks || []} />
+          </div>
+          <div className="h-full">
+            <UpcomingDeadlinesCard deadlines={dashboardData?.upcomingDeadlines || []} />
+          </div>
+          <div className="h-full">
+            <MyTeamMembersCard teamMembers={dashboardData?.teamMembers || []} />
+          </div>
+          <div className="h-full">
+            <TimeTrackingOverviewCard timeTracking={dashboardData?.timeTracking} />
+          </div>
+        </div>
+      </PageContainer>
+    );
+
+  return (
+    <>
+      {content}
+      <PrototypeSwitcher />
+    </>
   );
 };
 

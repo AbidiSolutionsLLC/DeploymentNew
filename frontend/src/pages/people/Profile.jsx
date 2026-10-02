@@ -13,6 +13,7 @@ import { FiCamera, FiEdit2 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import PageContainer from "../../components/ui/PageContainer";
 import Loader from "../../components/ui/Loader";
+import { Image } from "antd";
 
 export default function Profile({ userId: propUserId }) {
  const navigate = useNavigate();
@@ -176,11 +177,16 @@ export default function Profile({ userId: propUserId }) {
  {/* --- PROFILE PICTURE (Absolute positioned) --- */}
  <div className="absolute -bottom-12 md:-bottom-16 left-6 md:left-10 z-30">
  <div className="relative inline-block">
- <img
+ <div className="w-24 h-24 md:w-36 md:h-36 rounded-full shadow-xl border-[4px] border-white bg-surface overflow-hidden flex items-center justify-center">
+ <Image
  src={user.avatar || `https://randomuser.me/api/portraits/lego/${user?._id ? user._id.length % 10 : 1}.jpg`}
  alt={user?.name}
- className="w-24 h-24 md:w-36 md:h-36 rounded-full object-cover shadow-xl border-[4px] border-white bg-surface"
+ width="100%"
+ height="100%"
+ style={{ objectFit: 'cover' }}
+ preview={{ mask: null }}
  />
+ </div>
 
  {/* Small Circle Camera Button */}
  {!targetUserId && (
