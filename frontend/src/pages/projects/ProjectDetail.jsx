@@ -28,6 +28,7 @@ import AddTaskForm from "../../components/projectPortal/AddTaskForm";
 import EditProjectForm from "../../components/projectPortal/EditProjectForm";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
 import TaskCommentsDrawer from "../../components/projectPortal/TaskCommentsDrawer";
+import TaskCard from "../../components/projectPortal/TaskCard";
 
 const KANBAN_COLUMNS = [
   { id: "backlog", title: "Backlog" },
