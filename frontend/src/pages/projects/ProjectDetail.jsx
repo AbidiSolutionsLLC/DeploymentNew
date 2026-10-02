@@ -80,6 +80,8 @@ const ProjectDetail = () => {
       await dispatch(createTask({ ...taskData, project: id })).unwrap();
       toast.success("Task created successfully");
       setShowAddTask(false);
+      // Refetch project tasks to ensure the board is in sync
+      dispatch(fetchProjectTasks(id));
     } catch (err) {
       toast.error(err?.message || "Failed to create task");
     }
