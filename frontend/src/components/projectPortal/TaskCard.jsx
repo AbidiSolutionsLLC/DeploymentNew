@@ -1,4 +1,4 @@
-import { FaCalendar, FaComment, FaClock } from "react-icons/fa";
+import { FaCalendar, FaComment, FaClock, FaGripLines } from "react-icons/fa";
 import Pill, { TASK_STATUS_TONE, PRIORITY_TONE } from "./Pill";
 import Progress from "./Progress";
 import { formatDate, isOverdue, taskProgress, personName } from "./helpers";
@@ -6,25 +6,46 @@ import { formatDate, isOverdue, taskProgress, personName } from "./helpers";
 /**
  * TaskCard — compact card for Kanban columns and list view.
  * Uses only design tokens; no hard-coded colors.
+ * Supports native HTML5 drag-and-drop for Kanban board.
  */
 export default function TaskCard({
   task,
   onClick,
   onOpenComments,
+  onDragStart,
+  onDragEnd,
   isDragging = false,
+  columnId,
 }) {
   const overdue = isOverdue(task.dueDate, task.status);
   const dueSoon = task.dueDate && new Date(task.dueDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) && !overdue;
   const pct = taskProgress(task);
 
+  const handleDragStart = (e) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("taskId", task._id);
+    e.dataTransfer.setData("sourceColumn", columnId || "");
+    onDragStart?.(e, task);
+  };
+
+  const handleDragEnd = (e) => {
+    onDragEnd?.(e);
+  };
+
   return (
     <div
+      draggable
       className={`p-3 rounded-lg shadow-sm border border-border-subtle cursor-pointer hover:shadow-md hover:bg-amber-50/50 transition-all duration-200 ${isDragging ? "rotate-2 shadow-lg scale-105 z-50 opacity-80" : ""}`}
       onClick={onClick}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h4 className="font-medium text-sm leading-tight break-words text-heading flex-1 min-w-0">{task.title}</h4>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <FaGripLines className="text-muted cursor-grab flex-shrink-0" aria-hidden="true" />
+          <h4 className="font-medium text-sm leading-tight break-words text-heading flex-1 min-w-0">{task.title}</h4>
+        </div>
         <Pill tone={PRIORITY_TONE[task.priority] || "neutral"}>{task.priority || "Medium"}</Pill>
       </div>
 

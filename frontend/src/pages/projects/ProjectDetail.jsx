@@ -76,6 +76,47 @@ const ProjectDetail = () => {
   const [showTaskDetail, setShowTaskDetail] = useState(null);
   const [showComments, setShowComments] = useState(null);
   const [showEditProject, setShowEditProject] = useState(false);
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
+  const [dragOverColumn, setDragOverColumn] = useState(null);
+
+  const handleDragStart = (e, task) => {
+    setDraggedTaskId(task._id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTaskId(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragOver = (e, columnId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverColumn(columnId);
+  };
+
+  const handleDragLeave = (e, columnId) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      if (dragOverColumn === columnId) setDragOverColumn(null);
+    }
+  };
+
+  const handleDrop = (e, columnId) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData("taskId");
+    const sourceColumn = e.dataTransfer.getData("sourceColumn");
+    if (taskId && sourceColumn !== columnId) {
+      const newStatus = columnId === "backlog" ? "Todo"
+        : columnId === "todo" ? "Todo"
+        : columnId === "in-progress" ? "In Progress"
+        : columnId === "in-review" ? "In Review"
+        : columnId === "done" ? "Done"
+        : null;
+      if (newStatus) handleUpdateStatus(taskId, newStatus);
+    }
+    setDraggedTaskId(null);
+    setDragOverColumn(null);
+  };
 
   useEffect(() => {
     if (id) {
@@ -244,7 +285,13 @@ const ProjectDetail = () => {
         {activeTab === "board" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
             {KANBAN_COLUMNS.map((col) => (
-              <div key={col.id} className="glass-card rounded-xl p-3 sm:p-4 border border-border-subtle shadow-sm flex flex-col min-h-[400px]">
+              <div
+                key={col.id}
+                className={`glass-card rounded-xl p-3 sm:p-4 border border-border-subtle shadow-sm flex flex-col min-h-[400px] ${dragOverColumn === col.id ? "bg-amber-50/50 border-border-accent" : ""}`}
+                onDragOver={(e) => handleDragOver(e, col.id)}
+                onDragLeave={(e) => handleDragLeave(e, col.id)}
+                onDrop={(e) => handleDrop(e, col.id)}
+              >
                 <div className="flex items-center justify-between mb-4 flex-shrink-0">
                   <h3 className="font-semibold text-sm sm:text-base truncate text-heading">{col.title}</h3>
                   <span className="text-xs px-2 py-1 rounded-full flex-shrink-0 ml-2 bg-card text-muted tabular-nums">
@@ -256,14 +303,17 @@ const ProjectDetail = () => {
                     <TaskCard
                       key={task._id}
                       task={task}
+                      columnId={col.id}
                       onClick={() => setShowTaskDetail(task)}
-                      onStatusChange={(newStatus) => handleUpdateStatus(task._id, newStatus)}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
                       onOpenComments={() => setShowComments(task)}
+                      isDragging={draggedTaskId === task._id}
                     />
                   ))}
                   {getTasksByStatus(col.id).length === 0 && (
-                    <div className="flex items-center justify-center h-32 text-sm rounded-lg border-2 border-dashed border-border-subtle text-muted">
-                      No tasks
+                    <div className={`flex items-center justify-center h-32 text-sm rounded-lg border-2 border-dashed ${dragOverColumn === col.id ? "border-brand text-brand" : "border-border-subtle text-muted"}`}>
+                      {dragOverColumn === col.id ? "Drop here" : "No tasks"}
                     </div>
                   )}
                 </div>
