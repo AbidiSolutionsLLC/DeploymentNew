@@ -385,12 +385,6 @@ const ProjectDetail = () => {
         title="New Task"
         description="Create a task in this project"
         maxWidth="max-w-2xl"
-        footer={
-          <div className="flex justify-end gap-2 w-full">
-            <GlassButton variant="secondary" onClick={() => setShowAddTask(false)}>Cancel</GlassButton>
-            <GlassButton variant="primary" onClick={() => {}}>Create Task</GlassButton>
-          </div>
-        }
       >
         <AddTaskForm projectId={id} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} />
       </GlassModal>

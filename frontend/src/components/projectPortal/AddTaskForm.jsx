@@ -7,7 +7,13 @@ import api from "../../axios";
 import projectApi from "../../api/projectApi";
 
 const PRIORITIES = ["Low", "Medium", "High"];
-const STATUSES = ["backlog", "todo", "in-progress", "in-review", "done"];
+const STATUS_OPTIONS = [
+  { value: "Todo", label: "Todo" },
+  { value: "In Progress", label: "In Progress" },
+  { value: "In Review", label: "In Review" },
+  { value: "Done", label: "Done" },
+  { value: "Blocked", label: "Blocked" },
+];
 
 const EMPTY_FORM = {
   title: "",
@@ -15,7 +21,7 @@ const EMPTY_FORM = {
   project: "",
   assignee: "",
   priority: "Medium",
-  status: "backlog",
+  status: "Todo",
   dueDate: "",
 };
 
@@ -158,7 +164,7 @@ export default function AddTaskForm({ projectId, onSubmit, onClose }) {
           name="status"
           value={form.status}
           onChange={(e) => set("status", e.target.value)}
-          options={STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1).replace("-", " ") }))}
+          options={STATUS_OPTIONS}
         />
       </div>
 
