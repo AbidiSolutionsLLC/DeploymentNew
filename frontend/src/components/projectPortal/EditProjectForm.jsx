@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
 import ModernDatePicker from "../ui/ModernDatePicker";
-import api from "../axios";
+import api from "../../axios";
 
 const PROJECT_STATUSES = ["Planning", "Active", "On Hold", "Completed", "Cancelled"];
 

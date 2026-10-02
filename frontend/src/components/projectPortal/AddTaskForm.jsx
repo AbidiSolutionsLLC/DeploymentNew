@@ -3,8 +3,8 @@ import { useSelector } from "react-redux";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
 import ModernDatePicker from "../ui/ModernDatePicker";
-import api from "../axios";
-import projectApi from "../api/projectApi";
+import api from "../../axios";
+import projectApi from "../../api/projectApi";
 
 const PRIORITIES = ["Low", "Medium", "High"];
 const STATUSES = ["backlog", "todo", "in-progress", "in-review", "done"];

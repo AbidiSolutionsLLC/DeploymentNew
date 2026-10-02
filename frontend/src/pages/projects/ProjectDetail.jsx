@@ -24,6 +24,8 @@ import Progress from "../../components/projectPortal/Progress";
 import PanelHead from "../../components/projectPortal/PanelHead";
 import EmptyState from "../../components/projectPortal/EmptyState";
 import { formatDate, shortDate, isOverdue, projectProgress, taskProgress, personName } from "../../components/projectPortal/helpers";
+import AddTaskForm from "../../components/projectPortal/AddTaskForm";
+import EditProjectForm from "../../components/projectPortal/EditProjectForm";
 
 const TASK_STATUSES = ["backlog", "todo", "in-progress", "in-review", "done"];
 const KANBAN_COLUMNS = [
