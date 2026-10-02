@@ -6,7 +6,7 @@ import ModernSelect from "../ui/ModernSelect";
 import ModernDatePicker from "../ui/ModernDatePicker";
 import Pill, { TASK_STATUS_TONE, PRIORITY_TONE } from "./Pill";
 import Progress from "./Progress";
-import { formatDate, isOverdue, taskProgress, personName } from "./helpers";
+import { formatDate, isOverdue, taskProgress, getAssigneeName } from "./helpers";
 
 const STATUS_OPTIONS = ["Todo", "In Progress", "In Review", "Done", "Blocked"];
 const STATUS_DISPLAY = {
@@ -98,12 +98,16 @@ export default function TaskDetailDrawer({
                 {overdue && <span className="text-danger">(Overdue)</span>}
               </span>
             )}
-            {task?.assignee && (
-              <span className="flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                {personName(task.assignee)}
-              </span>
-            )}
+            {(() => {
+              const assigneeName = getAssigneeName(task);
+              if (assigneeName === "—") return null;
+              return (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  {assigneeName}
+                </span>
+              );
+            })()}
             <span className="flex items-center gap-1">
               <Progress value={pct} style={{ width: "60px" }} />
               <span className="font-bold tabular-nums">{pct}%</span>

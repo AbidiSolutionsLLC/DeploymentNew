@@ -1,7 +1,7 @@
 import { FaCalendar, FaComment, FaClock, FaGripLines } from "react-icons/fa";
 import Pill, { TASK_STATUS_TONE, PRIORITY_TONE } from "./Pill";
 import Progress from "./Progress";
-import { formatDate, isOverdue, taskProgress, personName } from "./helpers";
+import { formatDate, isOverdue, taskProgress, getAssigneeName } from "./helpers";
 
 /**
  * TaskCard — compact card for Kanban columns and list view.
@@ -67,14 +67,18 @@ export default function TaskCard({
       {/* Footer */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {task.assignee && (
-            <div className="flex items-center gap-1">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-50 border border-border-accent flex items-center justify-center flex-shrink-0">
-                <span className="text-brand-text font-black text-xs">{personName(task.assignee)?.[0] || "U"}</span>
+          {(() => {
+            const assigneeName = getAssigneeName(task);
+            if (assigneeName === "—") return null;
+            return (
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-50 border border-border-accent flex items-center justify-center flex-shrink-0">
+                  <span className="text-brand-text font-black text-xs">{assigneeName?.[0] || "U"}</span>
+                </div>
+                <span className="text-xs truncate max-w-[80px] text-muted">{assigneeName}</span>
               </div>
-              <span className="text-xs truncate max-w-[80px] text-muted">{personName(task.assignee)}</span>
-            </div>
-          )}
+            );
+          })()}
           {task.dueDate && (
             <div className="flex items-center">
               <FaCalendar className="w-3 h-3 mr-1 flex-shrink-0 text-muted" />

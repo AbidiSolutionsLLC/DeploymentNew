@@ -36,6 +36,7 @@ export function isOverdue(value, status) {
  */
 export function projectProgress(project) {
   if (typeof project?.progress === "number") return project.progress;
+  // Fallback based on status
   switch (project?.status) {
     case "Completed":
       return 100;
@@ -48,6 +49,21 @@ export function projectProgress(project) {
     default:
       return 20;
   }
+}
+
+/** Calculate exact project progress from tasks if available */
+export function calculateProjectProgress(project) {
+  // If backend already computed progress, use it
+  if (typeof project?.progress === "number") return project.progress;
+  
+  // If we have tasks array with completionPercent, calculate average
+  if (Array.isArray(project?.tasks) && project.tasks.length > 0) {
+    const total = project.tasks.reduce((sum, t) => sum + (t.completionPercent || 0), 0);
+    return Math.round(total / project.tasks.length);
+  }
+  
+  // Fallback to status-based estimate
+  return projectProgress(project);
 }
 
 /** Task progress = real completionPercent; Done without a percent still shows 100. */
@@ -66,6 +82,22 @@ export function personName(person) {
     person.email ||
     "—"
   );
+}
+
+/** Get assignee from task - handles assignee, team[0], assignedTo */
+export function getTaskAssignee(task) {
+  if (!task) return null;
+  // Priority: assignee (populated object) > team[0] > assignedTo
+  if (task.assignee) return task.assignee;
+  if (Array.isArray(task.team) && task.team.length > 0) return task.team[0];
+  if (task.assignedTo) return task.assignedTo;
+  return null;
+}
+
+/** Get assignee name for display */
+export function getAssigneeName(task) {
+  const assignee = getTaskAssignee(task);
+  return personName(assignee);
 }
 
 export const PRIORITY_RANK = { High: 0, Medium: 1, Low: 2 };

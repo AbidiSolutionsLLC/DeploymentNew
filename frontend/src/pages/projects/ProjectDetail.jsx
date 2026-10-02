@@ -12,7 +12,7 @@ import {
   ClockIcon,
 } from "@heroicons/react/24/outline";
 import { fetchProjectById } from "../../store/projectSlice";
-import { fetchProjectTasks, createTask, updateTaskStatus, addTaskComment } from "../../store/taskSlice";
+import { fetchProjectTasks, createTask, updateTaskStatus, addTaskComment, fetchTaskComments } from "../../store/taskSlice";
 import projectApi from "../../api/projectApi";
 import Loader from "../../components/ui/Loader";
 import GlassModal from "../../components/ui/GlassModal";
@@ -23,7 +23,7 @@ import Pill, { PROJECT_STATUS_TONE, TASK_STATUS_TONE, PRIORITY_TONE } from "../.
 import Progress from "../../components/projectPortal/Progress";
 import PanelHead from "../../components/projectPortal/PanelHead";
 import EmptyState from "../../components/projectPortal/EmptyState";
-import { formatDate, shortDate, isOverdue, projectProgress, taskProgress, personName } from "../../components/projectPortal/helpers";
+import { formatDate, shortDate, isOverdue, projectProgress, taskProgress, getAssigneeName } from "../../components/projectPortal/helpers";
 import AddTaskForm from "../../components/projectPortal/AddTaskForm";
 import EditProjectForm from "../../components/projectPortal/EditProjectForm";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
@@ -124,6 +124,13 @@ const ProjectDetail = () => {
       dispatch(fetchProjectTasks(id));
     }
   }, [id, dispatch]);
+
+  // Fetch task comments when task detail opens
+  useEffect(() => {
+    if (showTaskDetail?._id) {
+      dispatch(fetchTaskComments(showTaskDetail._id));
+    }
+  }, [showTaskDetail, dispatch]);
 
   const filteredTasks = tasks?.filter((task) =>
     task.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -352,7 +359,7 @@ const ProjectDetail = () => {
                         <td className="px-4 py-3 hidden md:table-cell">
                           <Pill tone={TASK_STATUS_TONE[task.status] || "neutral"}>{STATUS_DISPLAY[task.status] || task.status}</Pill>
                         </td>
-                        <td className="px-4 py-3 hidden lg:table-cell text-sm text-main whitespace-nowrap">{personName(task.assignee)}</td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-sm text-main whitespace-nowrap">{getAssigneeName(task)}</td>
                         <td className="px-4 py-3 hidden md:table-cell text-xs text-muted whitespace-nowrap">
                           {formatDate(task.dueDate)}
                           {isOverdue(task.dueDate, task.status) && <span className="block text-[9px] uppercase tracking-widest text-danger">Overdue</span>}
