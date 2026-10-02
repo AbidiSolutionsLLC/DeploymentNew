@@ -26,8 +26,9 @@ import EmptyState from "../../components/projectPortal/EmptyState";
 import { formatDate, shortDate, isOverdue, projectProgress, taskProgress, personName } from "../../components/projectPortal/helpers";
 import AddTaskForm from "../../components/projectPortal/AddTaskForm";
 import EditProjectForm from "../../components/projectPortal/EditProjectForm";
+import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
+import TaskCommentsDrawer from "../../components/projectPortal/TaskCommentsDrawer";
 
-const TASK_STATUSES = ["backlog", "todo", "in-progress", "in-review", "done"];
 const KANBAN_COLUMNS = [
   { id: "backlog", title: "Backlog" },
   { id: "todo", title: "To Do" },
@@ -42,6 +43,18 @@ const STATUS_DISPLAY = {
   "in-review": "In Review",
   done: "Done",
 };
+
+/** Map backend status to Kanban column ID */
+function toColumnId(status) {
+  if (!status) return "backlog";
+  const s = String(status).toLowerCase();
+  if (s === "todo") return "todo";
+  if (s === "in progress") return "in-progress";
+  if (s === "in review") return "in-review";
+  if (s === "done") return "done";
+  if (s === "blocked") return "in-review"; // blocked goes to In Review column
+  return "backlog";
+}
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -128,7 +141,8 @@ const ProjectDetail = () => {
     }
   };
 
-  const getTasksByStatus = (status) => filteredTasks.filter((t) => t.status === status);
+  const getTasksByStatus = (status) =>
+    filteredTasks.filter((t) => toColumnId(t.status) === status);
 
   if (!project) {
     return loading ? (

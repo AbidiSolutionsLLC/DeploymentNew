@@ -8,8 +8,14 @@ import Pill, { TASK_STATUS_TONE, PRIORITY_TONE } from "./Pill";
 import Progress from "./Progress";
 import { formatDate, isOverdue, taskProgress, personName } from "./helpers";
 
-const STATUS_OPTIONS = ["backlog", "todo", "in-progress", "in-review", "done"];
+const STATUS_OPTIONS = ["Todo", "In Progress", "In Review", "Done", "Blocked"];
 const STATUS_DISPLAY = {
+  Todo: "To Do",
+  "In Progress": "In Progress",
+  "In Review": "In Review",
+  Done: "Done",
+  Blocked: "Blocked",
+  // Legacy lowercase support
   backlog: "Backlog",
   todo: "To Do",
   "in-progress": "In Progress",
@@ -27,10 +33,10 @@ export default function TaskDetailDrawer({
   const { userInfo } = useSelector((state) => state.user || {});
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [status, setStatus] = useState(task?.status || "backlog");
+  const [status, setStatus] = useState(task?.status || "Todo");
 
   useEffect(() => {
-    setStatus(task?.status || "backlog");
+    setStatus(task?.status || "Todo");
   }, [task]);
 
   const handleSubmitComment = async (e) => {
