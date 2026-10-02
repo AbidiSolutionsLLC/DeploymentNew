@@ -1,11 +1,11 @@
 const Task = require("../models/taskSchema");
 const Project = require("../models/projectSchema");
-const { NotFoundError, BadRequestError } = require("../utils/ExpressError");
+const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { createNotification } = require('../utils/notificationService');
 
 class TaskService {
   async createTask(companyId, data) {
-    const { title, description, project, team, priority, dueDate, duration } = data;
+    const { title, description, project, team, priority, status, dueDate, duration } = data;
 
     const projectExists = await Project.findOne({ _id: project, company: companyId });
     if (!projectExists) throw new NotFoundError("Project");
@@ -16,6 +16,7 @@ class TaskService {
       project,
       team,
       priority,
+      status,
       dueDate,
       duration,
       company: companyId,

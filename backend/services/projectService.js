@@ -1,11 +1,12 @@
 const Project = require("../models/projectSchema");
 const Task = require("../models/taskSchema");
-const { NotFoundError, BadRequestError } = require("../utils/ExpressError");
+const ProjectGroup = require("../models/projectGroupSchema");
+const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { createNotification } = require('../utils/notificationService');
 
 class ProjectService {
   async createProject(user, companyId, data) {
-    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department } = data;
+    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status } = data;
     const owner = dataOwner || user.id || user._id;
 
     const project = new Project({
@@ -14,6 +15,7 @@ class ProjectService {
       team,
       owner,
       department,
+      status,
       strict,
       isPublic,
       startDate,
@@ -36,6 +38,28 @@ class ProjectService {
     }
 
     return savedProject;
+  }
+
+  // Progress rule (single definition, used everywhere):
+  // progress = average completionPercent across the project's tasks.
+  // Projects without tasks get NO entry, so the UI can show its documented status-based estimate.
+  async getProjectProgressMap(projectIds, companyId) {
+    const map = new Map();
+    if (!projectIds || projectIds.length === 0) return map;
+
+    const tasks = await Task.find({ company: companyId, project: { $in: projectIds } })
+      .select("project completionPercent");
+
+    const sums = new Map();
+    const counts = new Map();
+    tasks.forEach((t) => {
+      if (!t.project) return;
+      const key = t.project.toString();
+      sums.set(key, (sums.get(key) || 0) + (t.completionPercent || 0));
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    sums.forEach((sum, key) => map.set(key, Math.round(sum / counts.get(key))));
+    return map;
   }
 
   async getAllProjects(user, companyId, query) {
@@ -68,8 +92,18 @@ class ProjectService {
       Project.countDocuments(filter)
     ]);
 
+    const progressMap = await this.getProjectProgressMap(
+      data.map((p) => p._id),
+      companyId
+    );
+
     return {
-      data,
+      data: data.map((p) => {
+        const project = p.toObject();
+        const progress = progressMap.get(project._id.toString());
+        if (progress !== undefined) project.progress = progress;
+        return project;
+      }),
       pagination: {
         total,
         page: Number(page),
@@ -103,7 +137,7 @@ class ProjectService {
   }
 
   async updateProject(user, companyId, projectId, data) {
-    const { title, description, team, status, strict, isPublic, startDate, dueDate } = data;
+    const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department } = data;
 
     const project = await Project.findOne({ _id: projectId, company: companyId });
     if (!project) throw new NotFoundError("Project");
@@ -122,15 +156,19 @@ class ProjectService {
     }
 
     const previousTeam = project.team.map(id => id.toString());
+    const previousStatus = project.status;
 
     project.title = title || project.title;
-    project.description = description || project.description;
+    // Allow clearing optional fields (undefined = leave untouched, null/"" = clear)
+    project.description = description !== undefined ? description : project.description;
     project.team = team || project.team;
     project.status = status || project.status;
     project.strict = strict !== undefined ? strict : project.strict;
     project.isPublic = isPublic !== undefined ? isPublic : project.isPublic;
-    project.startDate = startDate || project.startDate;
-    project.dueDate = dueDate || project.dueDate;
+    project.startDate = startDate !== undefined ? startDate : project.startDate;
+    project.dueDate = dueDate !== undefined ? dueDate : project.dueDate;
+    project.owner = owner || project.owner;
+    project.department = department || project.department;
 
     const updatedProject = await project.save();
 
@@ -147,7 +185,7 @@ class ProjectService {
       });
     }
 
-    if (status && status !== project.status) {
+    if (status && status !== previousStatus) {
       const recipients = [...new Set([...updatedProject.team.map(id => id.toString()), updatedProject.owner.toString()])];
       recipients.forEach(memberId => {
         createNotification({
@@ -215,7 +253,7 @@ class ProjectService {
 
     const activeProjects = await Project.countDocuments({
       company: companyId,
-      status: { $in: ["Active", "In Progress"] },
+      status: "Active",
       $or: [{ owner: userId }, { team: userId }],
     });
 
@@ -231,17 +269,26 @@ class ProjectService {
       team: userId,
     });
 
-    const projectGroups = await Project.countDocuments({
-      company: companyId,
-      $or: [{ owner: userId }, { team: userId }],
-    });
+    // "Project Groups" must count ProjectGroup documents (was: count of projects)
+    const projectGroups = await ProjectGroup.countDocuments({ company: companyId });
 
     // Fetch lists for dynamic dashboard mapping
     const recentProjects = await Project.find({
       company: companyId,
-      status: { $in: ["Active", "In Progress", "Planning"] },
+      status: { $in: ["Active", "Planning"] },
       $or: [{ owner: userId }, { team: userId }],
     }).sort({ updatedAt: -1 }).limit(5);
+
+    const recentProgress = await this.getProjectProgressMap(
+      recentProjects.map((p) => p._id),
+      companyId
+    );
+    const recentProjectsWithProgress = recentProjects.map((p) => {
+      const project = p.toObject();
+      const progress = recentProgress.get(project._id.toString());
+      if (progress !== undefined) project.progress = progress;
+      return project;
+    });
 
     const recentTasks = await Task.find({
       company: companyId,
@@ -263,8 +310,8 @@ class ProjectService {
         task: t.title,
         project: t.project?.title || "N/A",
         dueDate: t.dueDate,
-        status: t.status || "In Progress",
-        completion: Math.floor(Math.random() * 100) // Mock completion as we don't have it in schema
+        status: t.status || "Todo",
+        completion: t.completionPercent || 0
       });
     });
 
@@ -272,26 +319,26 @@ class ProjectService {
     const allProjects = await Project.find({
       company: companyId,
       $or: [{ owner: userId }, { team: userId }],
-    }).populate('team', 'firstName lastName email profileImage role').populate('owner', 'firstName lastName email profileImage role');
+    }).populate('team', 'name email avatar role').populate('owner', 'name email avatar role');
     
     const teamMembersMap = new Map();
     allProjects.forEach(p => {
-      if (p.owner && p.owner._id.toString() !== userId.toString()) {
+      if (p.owner && p.owner._id && p.owner._id.toString() !== userId.toString()) {
         teamMembersMap.set(p.owner._id.toString(), p.owner);
       }
       if (p.team && Array.isArray(p.team)) {
         p.team.forEach(m => {
-          if (m._id.toString() !== userId.toString()) {
+          if (m && m._id && m._id.toString() !== userId.toString()) {
             teamMembersMap.set(m._id.toString(), m);
           }
         });
       }
     });
     const teamMembers = Array.from(teamMembersMap.values()).map(u => ({
-      name: u.firstName + " " + u.lastName,
+      name: u.name || u.email,
       email: u.email,
       role: u.role || "Member",
-      avatar: u.profileImage || "https://ui-avatars.com/api/?name=" + u.firstName + "+" + u.lastName
+      avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || u.email || "User")}`
     }));
 
     // Fetch weekly time tracking
@@ -336,7 +383,7 @@ class ProjectService {
       completedProjects,
       openTasks,
       projectGroups,
-      recentProjects,
+      recentProjects: recentProjectsWithProgress,
       recentTasks,
       upcomingDeadlines,
       teamMembers,
