@@ -45,12 +45,12 @@ const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { projects } = useSelector((state) => state.projects);
+  const { projects, currentProject } = useSelector((state) => state.projects);
   const { projectTasks, projectTasksLoading, taskComments } = useSelector((state) => state.tasks);
   const { userInfo } = useSelector((state) => state.user || {});
   const currentUserId = userInfo?.user?._id || userInfo?._id || userInfo?.id;
 
-  const project = projects?.find((p) => p._id === id);
+  const project = currentProject?._id === id ? currentProject : projects?.find((p) => p._id === id);
   const tasks = projectTasks || [];
   const loading = projectTasksLoading;
 
