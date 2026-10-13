@@ -62,6 +62,10 @@ const userSchema = new mongoose.Schema(
       enum: ['light', 'dark', 'violet', 'slate', 'system'],
       default: 'system'
     },
+    lastSeenReleaseNote: {
+      type: String,
+      default: ''
+    },
     notificationPreferences: {
       email: {
         ticketUpdates: { type: Boolean, default: true },

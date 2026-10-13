@@ -277,9 +277,12 @@ const Home = () => {
 
   if (loading)
     return (
-      <div className="p-6 text-center">
-        <Loader size="lg" text="Loading..." />
-      </div>
+      <>
+        <div className="p-6 text-center">
+          <Loader size="lg" text="Loading..." />
+        </div>
+        <WhatsNewModal />
+      </>
     );
 
   return (

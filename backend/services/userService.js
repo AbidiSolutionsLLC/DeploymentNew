@@ -573,9 +573,10 @@ class UserService {
   }
 
   async updateMySettings(userId, settings) {
-    const { theme, notificationPreferences } = settings;
+    const { theme, notificationPreferences, lastSeenReleaseNote } = settings;
     const updates = {};
     if (theme) updates.theme = theme;
+    if (lastSeenReleaseNote !== undefined) updates.lastSeenReleaseNote = lastSeenReleaseNote;
     
     if (notificationPreferences) {
       const user = await User.findById(userId);
