@@ -54,7 +54,7 @@ export default function NotificationBell() {
  <button
  id="notification-bell-btn"
  onClick={() => setOpen((prev) => !prev)}
- className="relative p-2 rounded-full hover:bg-teal-700 transition-colors duration-200 focus:outline-none"
+  className="relative p-2 rounded-full hover:bg-card-hover transition-colors duration-200 focus:outline-none"
  aria-label="Notifications"
  aria-haspopup="true"
  aria-expanded={open}
@@ -137,7 +137,7 @@ export default function NotificationBell() {
  key={notif._id}
  onClick={() => handleNotifClick(notif)}
  role="listitem"
- className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-teal-50 dark:bg-teal-900/30 ${
+ className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-card-hover ${
  !notif.isRead ? 'bg-amber-50 dark:bg-amber-900/30/60' : 'bg-surface'
  }`}
  >
@@ -169,7 +169,7 @@ export default function NotificationBell() {
  <div className="px-4 py-3 border-t border-border-subtle bg-app text-center">
  <button
  onClick={() => { navigate('/notifications'); setOpen(false); }}
- className="text-xs text-teal-600 dark:text-teal-400 hover:text-teal-800 dark:text-teal-400 hover:underline font-medium transition-colors"
+ className="text-xs text-brand-text hover:underline font-medium transition-colors"
  >
  View all notifications →
  </button>

@@ -1,20 +1,34 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { IoCalendarNumberOutline, IoDownloadOutline, IoPencil, IoTrash } from "react-icons/io5";
-import { FaAngleLeft, FaAngleRight, FaEye, FaCommentDots } from "react-icons/fa";
+import { IoPencil } from "react-icons/io5";
+import { FiTrash2 } from "react-icons/fi";
+import {
+  FaEye,
+  FaCommentDots,
+  FaClipboardList,
+  FaHourglassHalf,
+  FaClock,
+  FaCheckCircle,
+ FaExclamationTriangle,
+ FaCalendarDay,
+ FaChevronLeft,
+ FaChevronRight,
+} from "react-icons/fa";
 import { downloadFile } from "../../utils/downloadFile";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
-import TableWithPagination from "../../components/TableWithPagination";
+import StyledTable from "../../components/ui/StyledTable";
 import ViewTimesheetModal from "../../components/ViewTimesheetModal";
 import EditTimesheetModal from "../../components/EditTimesheetModal";
 import { moment, TIMEZONE, formatDateForAPI } from "../../utils/dateUtils";
-import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
+import StatCard from "../../components/ui/StatCard";
+import FilterPanel from "../../components/ui/FilterPanel";
+import FilterRow from "../../components/ui/FilterRow";
 import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
-import Loader from "../../components/ui/Loader";
 
 const Timesheet = ({ refreshTrigger }) => {
  const [showCalendar, setShowCalendar] = useState(false);
@@ -312,55 +326,114 @@ const Timesheet = ({ refreshTrigger }) => {
  }
  ];
 
- const tableActions = [
- {
- icon: <FaEye size={14} />,
- title: "View Details",
- className: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:bg-amber-900/40",
- onClick: (row) => handleViewDetails(row)
- },
- {
- icon: <IoPencil size={14} />,
- title: "Edit",
- className: (row) => `hover:bg-green-100 dark:bg-green-900/40 ${row.status === 'Pending' ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-surface text-muted cursor-not-allowed'}`,
- onClick: (row) => handleEditClick(row)
- },
- {
- icon: <IoTrash size={14} />,
- title: "Delete",
- className: (row) => `hover:bg-red-100 dark:bg-red-900/40 ${row.status === 'Pending' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-surface text-muted cursor-not-allowed'}`,
- onClick: (row) => handleDeleteClick(row)
- }
- ];
+const tableActions = [
+  {
+  icon: <FaEye size={14} />,
+  title: "View Details",
+  className: "lm-success-badge",
+  onClick: (row) => handleViewDetails(row)
+  },
+  {
+  icon: <IoPencil size={14} />,
+  title: "Edit",
+  className: (row) => row.status === 'Pending' ? "lm-success-badge" : "bg-surface text-muted cursor-not-allowed",
+  onClick: (row) => handleEditClick(row)
+  },
+  {
+  icon: <FiTrash2 size={14} />,
+  title: "Delete",
+  className: (row) => row.status === 'Pending' ? "lm-success-badge" : "bg-surface text-muted cursor-not-allowed",
+  onClick: (row) => handleDeleteClick(row)
+  }
+  ];
+
+ const timesheetCount = weeklyData.timesheets?.length || 0;
+ const approvedHoursWeek = (weeklyData.timesheets || []).reduce(
+ (sum, ts) => sum + (ts.approvedHours || 0),
+ 0
+ );
+ const remaining = weeklyData.remainingHours || 0;
+ const remainingTone =
+ remaining > 10
+ ? "text-sky-600 dark:text-sky-400"
+ : remaining > 0
+ ? "text-amber-600 dark:text-amber-400"
+ : "text-rose-600 dark:text-rose-400";
 
  return (
- <PageContainer
+ <div className="flex flex-col gap-4">
+ {error ? (
+ /* ============ ERROR STATE ============ */
+ <div className="glass-card text-center py-14">
+ <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-danger-bg border border-danger-border flex items-center justify-center">
+ <FaExclamationTriangle size={22} className="text-danger" />
+ </div>
+ <p className="text-sm font-bold text-heading">Failed to load timesheets</p>
+ <p className="text-xs text-muted mt-1 mb-5">{error}</p>
+ <GlassButton variant="primary" onClick={fetchWeeklyTimesheets}>
+ RETRY
+ </GlassButton>
+ </div>
+ ) : (
+ <>
+ {/* ============ KPI CARDS ============ */}
+ <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
+ <StatCard
+ title="Timesheets"
+ value={timesheetCount}
+ sub={formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}
+ icon={FaClipboardList}
+ tone="text-main"
+ />
+ <StatCard
+ title="Total Hours"
+ value={(weeklyData.weeklyTotal || 0).toFixed(1)}
+ sub="Submitted this week"
+ icon={FaHourglassHalf}
+ tone="text-amber-600 dark:text-amber-400"
+ />
+ <StatCard
+ title="Remaining"
+ value={remaining.toFixed(1)}
+ sub="Hours left of weekly target"
+ icon={FaClock}
+ tone={remainingTone}
+ />
+ <StatCard
+ title="Approved Hours"
+ value={approvedHoursWeek.toFixed(1)}
+ sub="Approved this week"
+ icon={FaCheckCircle}
+ tone="text-emerald-600 dark:text-emerald-400"
+ />
+ </div>
+
+ {/* ============ FILTERS ============ */}
+ <FilterPanel
  title="Weekly Timesheets"
- subtitle="Track your work hours and timesheets"
- loading={loading}
- isCard={true}
- headerActions={
- <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
- <div className="flex flex-row items-center gap-3">
+ subtitle={`${timesheetCount} timesheets · ${formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}`}
+ hint="Step through weeks with the arrows or jump to any week from the calendar. Click a row to view a timesheet."
+ >
+ <FilterRow>
  <button
  onClick={navigateToPreviousWeek}
- className="btn-ghost p-2.5 rounded-lg text-muted"
- title="Previous Week"
  disabled={loading}
+ className="w-[42px] h-[42px] flex items-center justify-center rounded-xl border border-border-subtle bg-surface text-muted hover:text-heading hover:border-border-accent hover:bg-card-hover transition-all shadow-sm group disabled:opacity-50"
+ title="Previous Week"
  >
- <FaAngleLeft size={18} />
+ <FaChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
  </button>
 
- <div className="relative" ref={calendarRef}>
+ <div className="relative flex-1 sm:flex-none min-w-[190px]" ref={calendarRef}>
  <button
- className="px-3 bg-surface rounded-lg flex items-center gap-2 hover:bg-hover btn btn-secondary"
+ className="w-full h-[42px] px-4 flex items-center gap-2 bg-surface border border-border-subtle text-main rounded-xl font-semibold text-xs hover:border-border-accent transition-all min-w-[190px] justify-center shadow-sm disabled:opacity-50"
  onClick={() => setShowCalendar(!showCalendar)}
  disabled={loading}
  >
- <IoCalendarNumberOutline size={18} className="text-muted" />
- <span className="text-sm font-medium">
- {formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}
- </span>
+ <span className="cal-chip" aria-hidden="true">
+  <FaCalendarDay size={14} />
+  </span>
+ <span className="truncate">{formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}</span>
  </button>
 
  <AnimatePresence>
@@ -385,69 +458,31 @@ const Timesheet = ({ refreshTrigger }) => {
 
  <button
  onClick={navigateToNextWeek}
- className="btn-ghost p-2.5 rounded-lg text-muted"
- title="Next Week"
  disabled={loading}
+ className="w-[42px] h-[42px] flex items-center justify-center rounded-xl border border-border-subtle bg-surface text-muted hover:text-heading hover:border-border-accent hover:bg-card-hover transition-all shadow-sm group disabled:opacity-50"
+ title="Next Week"
  >
- <FaAngleRight size={18} />
+ <FaChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
  </button>
- </div>
+ </FilterRow>
+ </FilterPanel>
 
- <div className="flex flex-col sm:flex-row gap-2 items-center">
- <div className="bg-amber-50 dark:bg-amber-900/30/80 border border-amber-200 dark:border-amber-800/50 px-3 py-2 rounded-lg shadow-sm">
- <span className="text-xs font-medium text-amber-900">
- Total: <span className="font-bold">{weeklyData.weeklyTotal?.toFixed(1) || 0}h</span>
- </span>
- </div>
- <div className={`px-3 py-2 rounded-lg shadow-sm border ${
- (weeklyData.remainingHours || 0) > 10 ? 'bg-blue-50 dark:bg-blue-900/30/80 border-blue-200 dark:border-blue-800/50 text-blue-900 dark:text-blue-100' :
- (weeklyData.remainingHours || 0) > 0 ? 'bg-yellow-50/80 border-yellow-200 text-yellow-900' : 'bg-red-50 dark:bg-red-900/30/80 border-red-200 dark:border-red-800/50 text-red-900'
- }`}>
- <span className="text-xs font-medium">
- Remaining: <span className="font-bold">{(weeklyData.remainingHours || 0).toFixed(1)}h</span>
- </span>
- </div>
- </div>
- </div>
- }
- >
- <div className="bg-surface rounded-2xl border border-border-subtle shadow-sm overflow-hidden flex flex-col">
- <AnimatePresence mode="wait">
- <motion.div
- key={selectedWeekStart?.getTime?.() || 'default'}
- initial={{ x: 300, opacity: 0 }}
- animate={{ x: 0, opacity: 1 }}
- exit={{ x: -300, opacity: 0 }}
- transition={{ duration: 0.2 }}
- >
- {loading && (
-        <Loader size="lg" text="Loading weekly timesheets..." />
- )}
-
- {error && (
- <div className="text-red-500 p-4 text-center text-sm bg-red-50 dark:bg-red-900/30 rounded-lg">
- {error}
- </div>
- )}
-
- {!loading && !error && (
- <TableWithPagination
+ {/* ============ TABLE ============ */}
+ <div key={selectedWeekStart?.getTime?.() || "default"} className="animate-fadeIn">
+ <StyledTable
  columns={timesheetColumns}
  data={weeklyData.timesheets || []}
  loading={loading}
- error={error}
  emptyMessage={`No timesheets for ${formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}`}
  rowsPerPage={5}
  actions={tableActions}
  onRowClick={(row) => handleViewDetails(row)}
- defaultSort={{ key: 'date', direction: 'desc' }}
+ defaultSort={{ key: "date", direction: "desc" }}
+ countLabel="timesheets"
  />
- )}
- 
- 
- </motion.div>
- </AnimatePresence>
  </div>
+ </>
+ )}
 
  {/* View Details Modal */}
  {showViewModal && selectedTimesheet && (
@@ -507,7 +542,7 @@ const Timesheet = ({ refreshTrigger }) => {
  </p>
  </div>
  </GlassModal>
- </PageContainer>
+ </div>
  );
 };
 

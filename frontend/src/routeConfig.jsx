@@ -1,20 +1,22 @@
 import {
- HomeIcon,
- UserCircleIcon,
- CalendarDaysIcon,
- ClockIcon,
- BriefcaseIcon,
- TicketIcon,
- ClipboardDocumentCheckIcon,
- UsersIcon,
- ClipboardDocumentListIcon,
- ChartBarIcon,
- ChartPieIcon,
- ShieldCheckIcon,
- CheckBadgeIcon,
- UserGroupIcon
+  HomeIcon,
+  UserCircleIcon,
+  CalendarDaysIcon,
+  ClockIcon,
+  BriefcaseIcon,
+  TicketIcon,
+  ClipboardDocumentCheckIcon,
+  UserPlusIcon,
+  UsersIcon,
+  ClipboardDocumentListIcon,
+  ChartBarIcon,
+  ChartPieIcon,
+  ShieldCheckIcon,
+  CheckBadgeIcon
 } from "@heroicons/react/24/solid";
+// WrenchScrewdriverIcon removed — no longer used
 import { DollarSignIcon } from "lucide-react";
+import { FaSitemap } from "react-icons/fa";
 
 // People Module
 const peopleLinks = [
@@ -23,7 +25,7 @@ const peopleLinks = [
  { name: "Attendance", path: "/people/attendance", icon: CalendarDaysIcon, roles: ["All"] },
  { name: "Time Tracker", path: "/people/timetracker", icon: ClockIcon, roles: ["All"] },
  { name: "Leave Tracker", path: "/people/summary", icon: BriefcaseIcon, roles: ["All"] },
- { name: "Raise a Ticket", path: "/people/raise", icon: TicketIcon, roles: ["All"] },
+  { name: "Raise a Ticket", path: "/people/raise", icon: TicketIcon, roles: ["All"] },
 
  {
  name: "Assigned Tickets",
@@ -36,7 +38,7 @@ const peopleLinks = [
  {
  name: "Org Chart",
  path: "/people/org-chart",
- icon: UserGroupIcon,
+ icon: FaSitemap,
  roles: ["All"]
  },
 
@@ -45,7 +47,7 @@ const peopleLinks = [
 ];
 
 // Admin Module
-const adminLinks = [
+export const adminLinks = [
  { name: "Dashboard", path: "/admin/dashboard", icon: ShieldCheckIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
  { name: "User Management", path: "/admin/userManagement", icon: UsersIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
  { name: "Attendance", path: "/admin/attendance", icon: CalendarDaysIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
@@ -55,12 +57,12 @@ const adminLinks = [
  // { name: "Expense Tracker", path: "/admin/ExpenseManagement", icon: DollarSignIcon, roles: ["Super Admin", "Admin", "HR", "Global Reader"] },
 
  // Assign Ticket remains Admin/Super Admin (and Tech Managers) only
- {
- name: "Assign Ticket",
- path: "/admin/assign-ticket",
- icon: TicketIcon,
- roles: ["Super Admin", "Admin"]
- },
+  {
+    name: "Assign Ticket",
+    path: "/admin/assign-ticket",
+    icon: UserPlusIcon,
+    roles: ["Super Admin", "Admin"]
+  },
  {
  name: "Tenant Management",
  path: "/admin/tenantManagement",
@@ -99,7 +101,7 @@ export const moduleConfigs = {
  { name: "User Management", path: "/admin/userManagement", icon: UsersIcon },
  { name: "Leave Management", path: "/admin/leaveTrackerAdmin", icon: BriefcaseIcon },
  { name: "Approve Time Sheets", path: "/admin/approve", icon: CheckBadgeIcon },
- { name: "Assign Ticket", path: "/admin/assign-ticket", icon: TicketIcon },
+  { name: "Assign Ticket", path: "/admin/assign-ticket", icon: UserPlusIcon },
  // { name: "Expense Tracker", path: "/admin/ExpenseManagement", icon: DollarSignIcon },
  // { name: "Payroll", path: "/admin/payroll", icon: DollarSignIcon },
  { name: "Tenant Management", path: "/admin/tenantManagement", icon: ShieldCheckIcon },

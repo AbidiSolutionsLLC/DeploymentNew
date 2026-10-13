@@ -12,19 +12,31 @@ export const ThemeProvider = ({ children }) => {
     return localStorage.getItem("themeMode") || "system"; // light, dark, system
   });
 
+  // Resolved theme (what the `.dark` class actually is right now).
+  // Needed by JS-driven animation because `system` mode also resolves to dark.
+  const [isDark, setIsDark] = useState(
+    () =>
+      localStorage.getItem("themeMode") === "dark" ||
+      (localStorage.getItem("themeMode") !== "light" && getSystemTheme() === "dark")
+  );
+
   useEffect(() => {
     const root = document.documentElement;
-    
+
     const applyThemeClass = (mode) => {
       if (mode === "dark") {
         root.classList.add("dark");
+        setIsDark(true);
       } else if (mode === "light") {
         root.classList.remove("dark");
+        setIsDark(false);
       } else if (mode === "system") {
         if (getSystemTheme() === "dark") {
           root.classList.add("dark");
+          setIsDark(true);
         } else {
           root.classList.remove("dark");
+          setIsDark(false);
         }
       }
     };
@@ -47,6 +59,7 @@ export const ThemeProvider = ({ children }) => {
   const value = {
     themeMode,
     setThemeMode,
+    isDark,
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

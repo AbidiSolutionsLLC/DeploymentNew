@@ -5,7 +5,8 @@ import React from "react";
  */
 export default function GlassTable({ headers, children }) {
  return (
- <table className="min-w-full text-sm border-separate border-spacing-0">
+<div>
+<table className="min-w-full text-sm border-separate border-spacing-0">
  <thead>
  <tr className="bg-surface/50 ">
  {headers.map((header, idx) => (
@@ -22,5 +23,6 @@ export default function GlassTable({ headers, children }) {
  {children}
  </tbody>
  </table>
+ </div>
  );
 }

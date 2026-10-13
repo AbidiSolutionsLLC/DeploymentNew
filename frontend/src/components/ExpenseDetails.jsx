@@ -1,10 +1,12 @@
 import React from "react";
-import { X, CheckCircle, XCircle, Trash2, Calendar, User, Paperclip, AlertCircle } from "lucide-react";
+import { X, CheckCircle, XCircle, Calendar, User, Paperclip, AlertCircle } from "lucide-react";
+import { FiTrash2 } from "react-icons/fi";
 import { IoCalendarNumberOutline } from "react-icons/io5";
 import { toast } from "react-toastify";
 import { downloadFile } from "../utils/downloadFile";
 import GlassModal from "./ui/GlassModal";
 import { useConfirm } from "../context/ConfirmContext";
+import StatusBadge from "./StatusBadge";
 
 const ExpenseDetail = ({
  expense,
@@ -74,9 +76,7 @@ const ExpenseDetail = ({
       <h3 className="text-xs font-bold text-main uppercase tracking-widest">
         Expense Details
       </h3>
-      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${expense.status === 'approved' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100' : expense.status === 'rejected' ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-100' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100'} uppercase tracking-wide`}>
-        {expense.status}
-      </span>
+      <StatusBadge status={expense.status} />
     </div>
   );
 
@@ -104,7 +104,7 @@ const ExpenseDetail = ({
           onClick={() => onDelete(expense._id)}
           className="btn bg-rose-600 hover:bg-rose-700 text-white flex-1 flex justify-center items-center gap-2 shadow-lg shadow-rose-600/20"
         >
-          <Trash2 size={14} /> Delete
+          <FiTrash2 size={14} /> Delete
         </button>
       )}
     </div>
@@ -159,18 +159,18 @@ const ExpenseDetail = ({
         </div>
 
         {expense.approvedBy && (
-          <div className="bg-emerald-50 dark:bg-emerald-900/30/50 rounded-xl p-4 border border-emerald-100">
+          <div className="lm-success-badge bg-emerald-50/50 dark:bg-emerald-900/30 border-emerald-100 p-4 rounded-xl">
             <div className="flex items-center gap-2 mb-2">
-              <CheckCircle size={14} className="text-emerald-500" />
-              <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400/60 uppercase tracking-wider">
+              <CheckCircle size={14} className="lm-success-value" />
+              <p className="lm-success-text uppercase tracking-wider">
                 Approved By
               </p>
             </div>
-            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+            <p className="lm-success-value">
               {expense.approvedByName || expense.approvedBy?.name || "Unknown"}
             </p>
             {expense.approvedAt && (
-              <p className="text-[10px] text-emerald-600 dark:text-emerald-400/50 font-medium">
+              <p className="lm-success-text font-medium">
                 {formatDate(expense.approvedAt)}
               </p>
             )}

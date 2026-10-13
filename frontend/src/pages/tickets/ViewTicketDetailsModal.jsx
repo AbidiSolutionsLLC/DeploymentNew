@@ -1,14 +1,28 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import api from "../../axios";
 import { downloadFile } from "../../utils/downloadFile";
-import { toast } from "react-toastify";
 import { FaPaperPlane } from "react-icons/fa";
-import { XMarkIcon, PaperClipIcon } from "@heroicons/react/24/solid";
+import { PaperClipIcon } from "@heroicons/react/24/solid";
 import { Paperclip } from "lucide-react";
-import { format } from "date-fns";
-import { validateDescription } from "../../utils/validationUtils";
+import { validateDescription, getApiError } from "../../utils/validationUtils";
 import GlassModal from "../../components/ui/GlassModal";
 import Loader from "../../components/ui/Loader";
+import {
+  resolvePriorityPill,
+  priorityLabel,
+  statusBadgeClass,
+} from "../../components/StatusBadge";
+
+const formatDateTime = (value) => {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
 
 const DetailItem = ({ label, value }) => (
  <div className="space-y-1">
@@ -17,20 +31,17 @@ const DetailItem = ({ label, value }) => (
  </div>
 );
 
-const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
+const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose, showToast }) => {
  const [ticket, setTicket] = useState(initialTicket);
  const [commentText, setCommentText] = useState("");
  const [errors, setErrors] = useState({});
  const [sending, setSending] = useState(false);
- const modalRef = useRef(null);
 
  if (!ticket) return null;
 
- const handleBackdropClick = (e) => {
- if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
+ const notify = (message, type = "success") => {
+  if (typeof showToast === "function") showToast(message, type);
  };
-
- // Removed getDownloadUrl since we use downloadFile utility now
 
  // --- SEND RESPONSE FUNCTION ---
  const handleSendResponse = async () => {
@@ -43,30 +54,23 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
 
  setSending(true);
  try {
- // Get current user info for optimistic update (optional) or just wait for server
  const { data: updatedTicket } = await api.post(`/tickets/${ticket._id}/response`, {
  content: commentText
  });
- 
- setTicket(updatedTicket); // Update local state with new response
+
+ setTicket(updatedTicket);
  setCommentText("");
- toast.success("Reply sent!");
+ notify("Reply sent!");
  } catch (error) {
- toast.error("Failed to send reply");
+ notify(getApiError(error, "Failed to send reply"), "error");
  } finally {
  setSending(false);
  }
  };
 
- const statusStyles = ticket.status?.toLowerCase() === "open"
- ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100"
- : ticket.status?.toLowerCase() === "in progress" 
- ? "bg-purple-50 text-purple-600 border-purple-100"
- : "bg-app text-muted border-border-subtle";
-
   const titleContent = (
     <div>
-      <h2 className="text-lg font-black text-heading uppercase tracking-widest">TICKET OVERVIEW</h2>
+      <h2 className="text-lg font-black text-heading uppercase tracking-widest">Ticket Overview</h2>
       <p className="text-[10px] text-muted font-bold mt-1">ID: {ticket.ticketID}</p>
     </div>
   );
@@ -79,12 +83,20 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
       maxWidth="max-w-2xl"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <DetailItem label="Created On" value={new Date(ticket.createdAt).toLocaleDateString()} />
+        <DetailItem label="Created On" value={formatDateTime(ticket.createdAt)} />
         <div>
           <label className="block text-[10px] font-black text-muted mb-1 uppercase tracking-widest">STATUS</label>
-          <span className={`inline-block px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg border ${statusStyles}`}>{ticket.status}</span>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border whitespace-nowrap ${statusBadgeClass(ticket.status)}`}>
+            {ticket.status}
+          </span>
         </div>
         <DetailItem label="Subject" value={ticket.subject} />
+        <div>
+          <label className="block text-[10px] font-black text-muted mb-1 uppercase tracking-widest">PRIORITY</label>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${resolvePriorityPill(ticket.priority)}`}>
+            {priorityLabel(ticket.priority)}
+          </span>
+        </div>
         <DetailItem label="Requester" value={ticket.emailAddress} />
       </div>
 
@@ -103,7 +115,7 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
           </label>
           <div className="grid gap-2">
             {ticket.attachments.map((file, idx) => (
-              <button 
+              <button
                 key={idx}
                 onClick={(e) => { e.preventDefault(); downloadFile(file.blobName || file.url, file.name); }}
                 className="w-full flex items-center justify-between p-3 bg-surface rounded-xl border border-border-subtle hover:bg-amber-50 dark:bg-amber-900/30 hover:border-amber-200 dark:border-amber-800/50 transition-all group cursor-pointer text-left"
@@ -123,11 +135,10 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
         </div>
       )}
 
-      {/* --- TRIANGULAR CHAT SECTION --- */}
+      {/* --- DISCUSSION --- */}
       <div className="border-t border-border-subtle pt-6">
         <h3 className="text-xs font-black text-muted uppercase tracking-widest mb-4">DISCUSSION HISTORY</h3>
-        
-        {/* Message List */}
+
         <div className="space-y-4 mb-4">
           {ticket.responses?.length > 0 ? (
             ticket.responses.map((res, i) => (
@@ -135,12 +146,12 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose }) => {
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">
-                      {res.author.charAt(0)}
+                      {res.author?.charAt(0)}
                     </div>
                     <span className="text-xs font-bold text-heading">{res.author}</span>
                   </div>
                   <span className="text-[10px] text-muted font-medium">
-                    {format(new Date(res.time), "MMM dd, HH:mm")}
+                    {formatDateTime(res.time)}
                   </span>
                 </div>
                 <p className="text-sm text-muted pl-8">{res.content}</p>

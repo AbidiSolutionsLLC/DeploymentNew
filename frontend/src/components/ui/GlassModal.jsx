@@ -55,13 +55,13 @@ export default function GlassModal({
 
       {/* Modal Card */}
       <div
-        className={`relative z-[10000] w-full ${maxWidth} bg-surface border border-border-subtle rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-slideInUp`}
+        className={`relative z-[10000] w-full ${maxWidth} bg-surface border border-border-subtle rounded-xl shadow-2xl flex flex-col max-h-[90vh] mx-2 sm:mx-4 overflow-hidden animate-slideInUp`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 bg-surface border-b border-border-subtle flex-shrink-0">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+        <div className="flex flex-col space-y-1.5 px-6 pt-6 pb-4 border-b border-slate-100 flex-shrink-0">
+          <div className="flex items-start justify-between">
+            <div>
               {typeof title === "string" ? (
                 <h2
                   id="modal-title"
@@ -77,20 +77,22 @@ export default function GlassModal({
             <button
               type="button"
               onClick={onClose}
+              className="btn-ghost ml-2 flex-shrink-0 rounded-sm shrink-0 p-2 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors" 
               aria-label="Close modal"
-              className="ml-2 shrink-0 p-2 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4 text-slate-500" />
             </button>
           </div>
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 bg-surface custom-scrollbar-visible text-main">{children}</div>
+        <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar-visible text-slate-700 dark:text-slate-300">
+          {children}
+        </div>
 
         {/* Footer (Optional) */}
         {footer && (
-          <div className="flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end sm:gap-2 px-6 py-4 bg-surface border-t border-border-subtle">
+          <div className="flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 px-4 py-3 border-t border-slate-100 bg-slate-50 dark:bg-slate-800/50/50">
             {footer}
           </div>
         )}

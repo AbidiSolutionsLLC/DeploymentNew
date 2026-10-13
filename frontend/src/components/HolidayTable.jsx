@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import holidayApi from '../api/holidayApi';
 import Loader from './ui/Loader';
 import TableWithPagination from './TableWithPagination';
+import StatusBadge from './StatusBadge';
 
 const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 }) => {
  const [holidays, setHolidays] = useState(propHolidays || []);
@@ -71,7 +72,7 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
  .sort((a, b) => extractDate(a.date) - extractDate(b.date))
  .slice(0, 5);
 
-  const getColumns = (isUpcoming) => [
+const getColumns = (isUpcoming) => [
   { 
     key: "date", 
     label: "Date",
@@ -96,9 +97,7 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
     key: "holidayType", 
     label: "Type",
     render: (_, row) => (
-      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-surface border border-border-subtle text-muted shadow-sm">
-        {row.holidayType || "Holiday"}
-      </span>
+      <StatusBadge status={row.holidayType || "Holiday"} />
     )
   },
   { 
@@ -107,26 +106,19 @@ const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 
     render: (_, row) => {
       const holidayDate = extractDate(row.date);
       let daysCount;
-      let statusClass;
 
       if (isUpcoming) {
         daysCount = Math.ceil((holidayDate - today) / (1000 * 60 * 60 * 24));
-        statusClass = daysCount === 0
-          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-          : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
       } else {
         daysCount = Math.ceil((today - holidayDate) / (1000 * 60 * 60 * 24));
-        statusClass = "bg-surface text-muted border border-border-subtle";
       }
 
-      return (
-        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm ${statusClass}`}>
-          {daysCount === 0 ? 'Today' : `${daysCount} day${daysCount !== 1 ? 's' : ''} ${isUpcoming ? '' : 'ago'}`}
-        </span>
-      );
+      const label = daysCount === 0 ? 'Today' : `${daysCount} day${daysCount !== 1 ? 's' : ''} ${isUpcoming ? '' : 'ago'}`;
+      
+      return <span className="lm-success-badge">{label}</span>;
     }
   }
-  ];
+];
 
   const renderTable = (title, data, isUpcoming = true) => {
   return (

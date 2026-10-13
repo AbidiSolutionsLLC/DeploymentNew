@@ -73,9 +73,9 @@ export default function NotificationItem({ notif, onClick, isDense = false, chil
  {notif.type.startsWith('PROJECT') && (
  <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[8px] font-black rounded uppercase border border-indigo-100">Project</span>
  )}
- {notif.type.includes('TIMESHEET') && (
- <span className="px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[8px] font-black rounded uppercase border border-emerald-100">Timesheet</span>
- )}
+{notif.type.includes('TIMESHEET') && (
+  <span className="lm-success-badge text-[8px]">Timesheet</span>
+  )}
  {notif.type.startsWith('USER') && (
  <span className="px-1.5 py-0.5 bg-app text-muted text-[8px] font-black rounded uppercase border border-slate-100">System</span>
  )}

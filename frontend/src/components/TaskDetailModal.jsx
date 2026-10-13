@@ -4,6 +4,7 @@ import GlassButton from "./ui/GlassButton";
 import Pill, { TASK_STATUS_TONE, PRIORITY_TONE } from "../projectPortal/Pill";
 import Progress from "../projectPortal/Progress";
 import { formatDate, isOverdue, taskProgress, getAssigneeName } from "../projectPortal/helpers";
+import StatusBadge from "./StatusBadge";
 
 /**
  * TaskDetailModal — read-only task detail using design tokens.

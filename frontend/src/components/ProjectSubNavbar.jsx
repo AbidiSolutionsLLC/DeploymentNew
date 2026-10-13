@@ -51,7 +51,7 @@ const SubNavbar = () => {
  to={link.path}
  end={pathname === link.path}
  className={({ isActive }) =>
- `px-3 py-2 rounded-md transition-colors duration-100 ${isActive ? "bg-primary text-white" : "text-text hover:text-text"
+ `px-3 py-2 rounded-md transition-colors duration-100 ${isActive ? "btn-primary" : "text-text hover:text-text"
  }`
  }
  >
@@ -68,19 +68,19 @@ const SubNavbar = () => {
  <Navbar className="fixed top-16 z-10 w-full rounded-none px-4 py-2 lg:px-8 lg:py-4 bg-background shadow-none border-none">
  <div className="hidden lg:flex items-center justify-between w-full">
  {/* Desktop layout: 20% - 60% - 20% */}
- <div className="w-1/5 flex justify-start">
- <Button
- size="lg"
- className={`my-2 py-2 w-full max-w-[140px] hide-on-mobile-device font-semibold shadow transition ${checkedIn
- ? "bg-red-400 text-red-800 dark:text-red-400"
- : "bg-green-400 text-green-800 dark:text-green-400"
- }`}
- onClick={checkedIn ? handleCheckOut : handleCheckIn}
- disabled={loading || !userId}
- >
- {loading ? <CircularProgress size={15} color="primary" /> : checkedIn ? "Check Out" : "Check In"}
- </Button>
- </div>
+<div className="w-1/5 flex justify-start">
+  <Button
+  size="lg"
+  className={`my-2 py-2 w-full max-w-[140px] hide-on-mobile-device font-semibold shadow transition ${checkedIn
+  ? "bg-red-500 hover:bg-red-600 text-white"
+  : "btn-primary"
+  }`}
+  onClick={checkedIn ? handleCheckOut : handleCheckIn}
+  disabled={loading || !userId}
+  >
+  {loading ? <CircularProgress size={15} color="primary" /> : checkedIn ? "Check Out" : "Check In"}
+  </Button>
+  </div>
 
  <div className="w-3/5 flex justify-center">{navLinks}</div>
 
@@ -90,19 +90,19 @@ const SubNavbar = () => {
  </div>
  </div>
 
- {/* Mobile layout */}
- <div className="flex items-center justify-between lg:hidden w-full">
- <Button
- size="lg"
- className={`w-full max-w-[140px] hide-on-mobile-device font-semibold shadow transition ${checkedIn
- ? "bg-red-400 text-red-800 dark:text-red-400"
- : "bg-green-400 text-green-800 dark:text-green-400"
- }`}
- onClick={checkedIn ? handleCheckOut : handleCheckIn}
- disabled={loading || !userId}
- >
- {loading ? <CircularProgress size={15} color="primary" /> : checkedIn ? "Check Out" : "Check In"}
- </Button>
+{/* Mobile layout */}
+  <div className="flex items-center justify-between lg:hidden w-full">
+  <Button
+  size="lg"
+  className={`w-full max-w-[140px] hide-on-mobile-device font-semibold shadow transition ${checkedIn
+  ? "bg-red-500 hover:bg-red-600 text-white"
+  : "btn-primary"
+  }`}
+  onClick={checkedIn ? handleCheckOut : handleCheckIn}
+  disabled={loading || !userId}
+  >
+  {loading ? <CircularProgress size={15} color="primary" /> : checkedIn ? "Check Out" : "Check In"}
+  </Button>
 
  <IconButton
  variant="text"

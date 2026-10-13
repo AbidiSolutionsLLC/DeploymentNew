@@ -14,6 +14,9 @@ export default {
         'brand-text': 'var(--color-brand-text)',
         app: 'var(--color-bg-app)',
         surface: 'var(--color-bg-primary)',
+        // Opaque version of the gold hover tint — for surfaces that must
+        // stay fully opaque (frozen/sticky table columns).
+        'surface-hover': 'var(--color-bg-hover-solid)',
         card: 'var(--color-bg-secondary)',
         'card-hover': 'var(--color-bg-hover)',
         main: 'var(--color-text-primary)',

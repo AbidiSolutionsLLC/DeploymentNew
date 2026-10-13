@@ -53,7 +53,7 @@ const SubNavbar = ({ onAddTimeLog, activeTab, onCreateTimesheet }) => {
  <NavLink
  to={link.path}
  className={({ isActive }) =>
- `px-3 py-2 rounded-md transition-colors duration-100 ${isActive ? "bg-primary text-white" : "text-text hover:text-text"
+ `px-3 py-2 rounded-md transition-colors duration-100 ${isActive ? "btn-primary" : "text-text hover:text-text"
  }`
  }
  >
@@ -69,16 +69,16 @@ const SubNavbar = ({ onAddTimeLog, activeTab, onCreateTimesheet }) => {
  return (
  <Navbar className="fixed top-12 z-10 max-w-full rounded-nonemy-2 px-4 my-4 py-2 lg:px-8 lg:py-4 bg-background shadow-none border-none">
  <div className="flex items-center justify-between text-blue-gray-900">
- {/* Check In/Out Button */}
- <Button
- size="lg"
- className={`my-2 py-2 w-full max-w-[140px] hide-on-mobile-device font-semibold shadow transition ${checkedIn ? "bg-red-400 text-red-800 dark:text-red-400" : "bg-green-400 text-green-800 dark:text-green-400"
- } ${loading || !userId ? 'opacity-50 cursor-not-allowed' : ''}`}
- onClick={checkedIn ? handleCheckOut : handleCheckIn}
- disabled={loading || !userId}
- >
- {loading ? <CircularProgress size={15} color="primary" /> : checkedIn ? "Check Out" : "Check In"}
- </Button>
+{/* Check In/Out Button */}
+  <Button
+  size="lg"
+  className={`my-2 py-2 w-full max-w-[140px] hide-on-mobile-device font-semibold shadow transition ${checkedIn ? "bg-red-500 hover:bg-red-600 text-white" : "btn-primary"
+  } ${loading || !userId ? 'opacity-50 cursor-not-allowed' : ''}`}
+  onClick={checkedIn ? handleCheckOut : handleCheckIn}
+  disabled={loading || !userId}
+  >
+  {loading ? <CircularProgress size={15} color="primary" /> : checkedIn ? "Check Out" : "Check In"}
+  </Button>
 
 
  {/* Nav Links Center */}
@@ -88,22 +88,22 @@ const SubNavbar = ({ onAddTimeLog, activeTab, onCreateTimesheet }) => {
  <div className="hidden lg:flex items-center space-x-4">
  {moduleKey === "history" && activeTab === 1 ? (
  <Button
- className="bg-primary text-heading hover:bg-primary-dark text-white"
+ className="btn-primary"
  onClick={onCreateTimesheet}
  >
  Create Timesheet
  </Button>
  ) : moduleKey === "history" ? (
  <Button
- className="bg-primary text-heading hover:bg-primary-dark text-white"
+ className="btn-primary"
  onClick={onAddTimeLog}
  >
  Add Time Log
  </Button>
  ) : (
  <>
- <PhoneIcon className="w-5 h-5 text-text hover:text-teal-700 dark:text-teal-400 cursor-pointer" />
- <CalendarDaysIcon className="w-5 h-5 text-text hover:text-teal-700 dark:text-teal-400 cursor-pointer" />
+ <PhoneIcon className="w-5 h-5 text-text hover:text-brand-text cursor-pointer" />
+ <CalendarDaysIcon className="w-5 h-5 text-text hover:text-brand-text cursor-pointer" />
  </>
  )}
  </div>
@@ -161,22 +161,22 @@ const SubNavbar = ({ onAddTimeLog, activeTab, onCreateTimesheet }) => {
  <div className="items-center space-x-4">
  {moduleKey === "history" && activeTab === 1 ? (
  <Button
- className="bg-primary text-heading hover:bg-primary-dark text-white"
+ className="btn-primary"
  onClick={onCreateTimesheet}
  >
  Create Timesheet
  </Button>
  ) : moduleKey === "history" ? (
  <Button
- className="bg-primary text-heading hover:bg-primary-dark text-white"
+ className="btn-primary"
  onClick={onAddTimeLog}
  >
  Add Time Log
  </Button>
  ) : (
  <>
- <PhoneIcon className="w-5 h-5 text-text hover:text-teal-700 dark:text-teal-400 cursor-pointer" />
- <CalendarDaysIcon className="w-5 h-5 text-text hover:text-teal-700 dark:text-teal-400 cursor-pointer" />
+ <PhoneIcon className="w-5 h-5 text-text hover:text-brand-text cursor-pointer" />
+ <CalendarDaysIcon className="w-5 h-5 text-text hover:text-brand-text cursor-pointer" />
  </>
  )}
  </div>

@@ -1,269 +1,428 @@
-import React, { useState, useEffect } from "react";
-import TableWithPagination from "../../components/TableWithPagination"; 
-import { FiTrash2, FiPlus } from "react-icons/fi";
-import { FaEye } from "react-icons/fa";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { FaPlus, FaTicketAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaEye, FaFileCsv, FaExclamationTriangle, FaSpinner } from "react-icons/fa";
+import { TicketIcon } from "@heroicons/react/20/solid";
 import { useSelector } from "react-redux";
 import api from "../../axios";
 import RaiseTicketModal from "../../pages/tickets/RaiseTicketModal";
 import ViewTicketDetailsModal from "../../pages/tickets/ViewTicketDetailsModal";
-import { toast } from "react-toastify";
 import PageContainer from "../../components/ui/PageContainer";
-import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
+import PortalHero from "../../components/ui/PortalHero";
+import StatCard from "../../components/ui/StatCard";
+import FilterPanel from "../../components/ui/FilterPanel";
+import FilterRow from "../../components/ui/FilterRow";
+import GlassInput from "../../components/ui/GlassInput";
+import ModernSelect from "../../components/ui/ModernSelect";
+import GlassButton from "../../components/ui/GlassButton";
+import StyledTable from "../../components/ui/StyledTable";
+import Toast from "../../components/Toast";
+import {
+  resolvePriorityPill,
+  priorityLabel,
+  statusBadgeClass,
+} from "../../components/StatusBadge";
+import { formatDisplayDate } from "../../utils/dateUtils";
+import { downloadCsv } from "../../utils/tableUtils";
+import { getApiError } from "../../utils/validationUtils";
+
+const statusLabel = (status) => {
+  const s = String(status || "").toLowerCase();
+  if (s === "open" || s === "opened") return "Open";
+  if (s === "closed") return "Closed";
+  if (s === "in progress") return "In Progress";
+  return status || "Unknown";
+};
 
 const Ticket = () => {
- const [tickets, setTickets] = useState([]);
- const [searchTerm, setSearchTerm] = useState("");
- const [filteredTickets, setFilteredTickets] = useState([]);
- const [showModal, setShowModal] = useState(false);
- const [selectedTicket, setSelectedTicket] = useState(null);
- const [loading, setLoading] = useState(true);
+  const [tickets, setTickets] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [toast, setToast] = useState(null);
 
- // Get current user from Redux
- const user = useSelector((state) => state.auth.user);
+  const user = useSelector((state) => state.auth.user);
 
- useEffect(() => {
- const fetchTickets = async () => {
- try {
- if (!user?.email) return;
- const res = await api.get(`/tickets`);
- 
- // --- VISIBILITY FIX: Filter ONLY tickets created by ME ---
- // Even if backend sends assigned tickets (for Technicians), we filter here.
- const currentUserId = user.id || user._id;
- const allTickets = res.data || [];
- 
- const myCreatedTickets = allTickets.filter(ticket => {
-   const creatorId = ticket.closedBy?._id || ticket.closedBy || ticket.user?._id || ticket.user;
-   return creatorId === currentUserId;
- });
- // --------------------------------------------------------
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
 
- setTickets(myCreatedTickets);
- setFilteredTickets(myCreatedTickets);
- } catch (error) {
- console.error("Error fetching tickets:", error);
- toast.error("Failed to load tickets");
- } finally {
- setLoading(false);
- }
- };
+  const fetchTickets = useCallback(async () => {
+    try {
+      if (!user?.email) return;
+      setLoading(true);
+      setError(false);
+      const res = await api.get(`/tickets`);
 
- fetchTickets();
- }, [user]);
+      const currentUserId = user.id || user._id;
+      const allTickets = res.data || [];
 
- useEffect(() => {
- const results = tickets.filter(
- (ticket) =>
- String(ticket.ticketID || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
- String(ticket.subject || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
- String(ticket.description || "").toLowerCase().includes(searchTerm.toLowerCase())
- );
- setFilteredTickets(results);
- }, [searchTerm, tickets]);
+      const myCreatedTickets = allTickets.filter((ticket) => {
+        const creatorId = ticket.closedBy?._id || ticket.closedBy || ticket.user?._id || ticket.user;
+        return creatorId === currentUserId;
+      });
 
- const handleDelete = async (id) => {
- try {
- await api.delete(`/tickets/${id}`);
- const updated = tickets.filter((ticket) => ticket._id !== id);
- setTickets(updated);
- setFilteredTickets(prev => prev.filter(t => t._id !== id));
- toast.success("Ticket deleted successfully!");
- } catch (error) {
- console.error("Failed to delete ticket:", error);
- toast.error(error.response?.data?.message || "Failed to delete ticket");
- }
- };
+      setTickets(myCreatedTickets);
+    } catch (err) {
+      console.error("Error fetching tickets:", err);
+      setError(true);
+      showToast(getApiError(err, "Failed to load tickets"), "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [user, showToast]);
 
- const formatDate = (dateString) => {
- if (!dateString) return "";
- return new Date(dateString).toLocaleDateString('en-US', {
- month: 'short',
- day: 'numeric',
- year: 'numeric'
- });
- };
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
 
- const StatusBadge = ({ status }) => {
- const labelMap = {
- open: "Open",
- opened: "Open",
- closed: "Closed",
- "in progress": "In Progress"
- };
- const variant = STATUS_VARIANTS[resolveStatusVariant(status)] || STATUS_VARIANTS.neutral;
- const label = labelMap[status?.toLowerCase()] || status || "Unknown";
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/tickets/${id}`);
+      setTickets((prev) => prev.filter((ticket) => ticket._id !== id));
+      showToast("Ticket deleted successfully");
+    } catch (err) {
+      console.error("Failed to delete ticket:", err);
+      showToast(getApiError(err, "Failed to delete ticket"), "error");
+    }
+  };
 
- return (
- <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${variant.badge}`}>
- {label}
- </span>
- );
- };
+  const filteredTickets = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return tickets.filter((ticket) => {
+      const matchesSearch =
+        !q ||
+        String(ticket.ticketID || "").toLowerCase().includes(q) ||
+        String(ticket.subject || "").toLowerCase().includes(q) ||
+        String(ticket.description || "").toLowerCase().includes(q);
+      const status = String(ticket.status || "").toLowerCase();
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "open" && (status === "open" || status === "opened")) ||
+        status === statusFilter;
+      const matchesPriority =
+        priorityFilter === "all" ||
+        String(ticket.priority || "").toLowerCase().includes(priorityFilter.toLowerCase());
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [tickets, searchTerm, statusFilter, priorityFilter]);
 
- const ticketColumns = [
- {
- key: "ticketID",
- label: "Ticket ID",
- sortable: true,
- render: (_, row) => (
- <span className="font-bold text-amber-600 dark:text-amber-400" title={row.ticketID || row._id}>
- #{row.ticketID || row._id.slice(0, 8).toUpperCase()}
- </span>
- )
- },
- {
- key: "createdAt",
- label: "Date",
- sortable: true,
- render: (_, row) => (
- <span className="text-muted whitespace-nowrap">
- {formatDate(row.createdAt)}
- </span>
- )
- },
- {
- key: "subject",
- label: "Subject",
- sortable: true,
- render: (_, row) => (
- <div className="font-bold text-main truncate max-w-[180px]" title={row.subject}>
- {row.subject}
- </div>
- )
- },
- {
- key: "description",
- label: "Description",
- sortable: false,
- render: (_, row) => (
- <div className="text-muted truncate max-w-[200px]" title={row.description}>
- {row.description}
- </div>
- )
- },
- {
- key: "priority",
- label: "Priority",
- sortable: true,
- render: (_, row) => (
- <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${
- row.priority?.toLowerCase().includes('high') ? STATUS_VARIANTS.danger.badge :
- row.priority?.toLowerCase().includes('medium') ? STATUS_VARIANTS.warning.badge :
- STATUS_VARIANTS.neutral.badge
- }`}>
- {row.priority?.replace(' Priority', '') || 'Normal'}
- </span>
- )
- },
- {
- key: "status",
- label: "Status",
- sortable: true,
- render: (_, row) => <StatusBadge status={row.status} />
- },
- ];
+  const kpis = useMemo(() => {
+    const count = (s) =>
+      filteredTickets.filter((t) => String(t.status || "").toLowerCase() === s).length;
+    return {
+      total: filteredTickets.length,
+      open: filteredTickets.filter((t) => {
+        const s = String(t.status || "").toLowerCase();
+        return s === "open" || s === "opened";
+      }).length,
+      inProgress: count("in progress"),
+      closed: count("closed"),
+    };
+  }, [filteredTickets]);
 
- const ticketActions = [
- {
- icon: <FaEye size={16} />,
- title: "View Details",
- className: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:bg-amber-900/40",
- onClick: (row) => setSelectedTicket(row)
- },
- {
- icon: <FiTrash2 size={16} />,
- title: "Delete",
- className: "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:bg-red-900/40",
- onClick: (row) => handleDelete(row._id)
- }
- ];
+  const hasFilters = searchTerm || statusFilter !== "all" || priorityFilter !== "all";
 
- return (
- <PageContainer
- title="My Tickets"
- subtitle={
- <div className="flex items-center gap-1 mt-1">
- <span className="font-medium text-muted">Total Tickets:</span>
- <span className="font-bold text-heading">{filteredTickets.length}</span>
- </div>
- }
- loading={loading}
- isCard={true}
- headerActions={
- <button
- onClick={() => setShowModal(true)}
- className="btn btn-primary flex items-center justify-center gap-2"
- >
- <FiPlus className="h-4 w-4" />
- Raise Ticket
- </button>
- }
- filters={
- <div className="relative flex-grow sm:flex-grow-0 sm:w-64">
- <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
- <svg className="h-4 w-4 text-heading" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
- </svg>
- </div>
- <input
- type="text"
- placeholder="Search tickets..."
- className="w-full pl-10 pr-10 py-2.5 rounded-lg shadow-sm text-sm bg-surface text-main border border-border-subtle focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500"
- value={searchTerm}
- onChange={(e) => setSearchTerm(e.target.value)}
- />
- {searchTerm && (
- <button
- onClick={() => setSearchTerm("")}
- className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted hover:text-muted transition-colors"
- title="Clear search"
- >
- <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
- </svg>
- </button>
- )}
- </div>
- }
- >
- <div className="bg-surface rounded-2xl border border-border-subtle shadow-sm overflow-hidden flex flex-col">
- <TableWithPagination
- columns={ticketColumns}
- data={filteredTickets}
- loading={loading}
- error={null}
- emptyMessage={
- searchTerm 
- ? `No tickets found matching "${searchTerm}"`
- : "You haven't raised any tickets yet. Click 'Raise Ticket' to get started."
- }
- onRowClick={(row) => setSelectedTicket(row)}
- actions={ticketActions}
- rowsPerPage={10}
- defaultSort={{ key: "createdAt", direction: "desc" }}
- />
+  const resetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setPriorityFilter("all");
+  };
 
- </div>
+  const exportCsv = () => {
+    const header = ["S.No.", "Ticket ID", "Subject", "Description", "Priority", "Status", "Raised On"];
+    const rows = filteredTickets.map((t, i) => [
+      i + 1,
+      t.ticketID || t._id?.slice(0, 8) || "-",
+      t.subject || "-",
+      t.description || "-",
+      priorityLabel(t.priority),
+      statusLabel(t.status),
+      t.createdAt ? formatDisplayDate(t.createdAt) : "-",
+    ]);
+    downloadCsv(`my-tickets-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
+    showToast("My tickets exported");
+  };
 
- {showModal && (
- <RaiseTicketModal
- onClose={() => setShowModal(false)}
- onSubmit={(newTicket) => {
- // Optimistic update
- setTickets((prev) => [...prev, newTicket]);
- setFilteredTickets((prev) => [...prev, newTicket]);
- setShowModal(false);
- }}
- />
- )}
- {selectedTicket && (
- <ViewTicketDetailsModal 
- ticket={selectedTicket} 
- onClose={() => setSelectedTicket(null)} 
- />
- )}
- </PageContainer>
- );
+  const columns = useMemo(
+    () => [
+      {
+        key: "__index",
+        label: "S.No.",
+        sortable: false,
+        type: "index",
+        className: "text-muted text-xs font-bold",
+      },
+      {
+        key: "ticketID",
+        label: "Ticket ID",
+        render: (_, row) => (
+          <span
+            className="font-mono text-xs font-bold text-amber-600 dark:text-amber-400"
+            title={row.ticketID || row._id}
+          >
+            #{row.ticketID || row._id?.slice(0, 8).toUpperCase()}
+          </span>
+        ),
+      },
+      {
+        key: "subject",
+        label: "Subject",
+        render: (_, row) => (
+          <div className="min-w-[180px] max-w-[240px]">
+            <p className="text-sm font-bold text-heading truncate leading-tight">{row.subject}</p>
+            <p className="text-[10px] text-muted mt-0.5 line-clamp-1">{row.description}</p>
+          </div>
+        ),
+      },
+      {
+        key: "priority",
+        label: "Priority",
+        render: (_, row) => (
+          <span
+            className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border whitespace-nowrap ${resolvePriorityPill(
+              row.priority
+            )}`}
+          >
+            {priorityLabel(row.priority)}
+          </span>
+        ),
+      },
+      {
+        key: "status",
+        label: "Status",
+        render: (_, row) => (
+          <span
+            className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border whitespace-nowrap ${statusBadgeClass(
+              row.status
+            )}`}
+          >
+            {statusLabel(row.status)}
+          </span>
+        ),
+      },
+      {
+        key: "createdAt",
+        label: "Raised On",
+        render: (value) => (
+          <span className="text-xs font-medium text-main whitespace-nowrap">
+            {value ? formatDisplayDate(value) : "-"}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const actions = useMemo(
+    () => [
+      {
+        icon: <FaEye size={12} />,
+        title: "View ticket",
+        onClick: (row) => setSelectedTicket(row),
+      },
+      {
+        icon: <FaTimesCircle size={12} />,
+        title: "Delete ticket",
+        onClick: (row) => handleDelete(row._id),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const heroChips = [
+    { icon: FaTicketAlt, value: kpis.total, label: " Tickets" },
+    { icon: FaHourglassHalf, value: kpis.open, label: " Open" },
+    { pulse: true, value: kpis.inProgress, label: " In progress" },
+    { icon: FaCheckCircle, value: kpis.closed, label: " Closed" },
+  ];
+
+  const statusOptions = useMemo(
+    () => [
+      { value: "all", label: "All Status" },
+      { value: "open", label: "Open" },
+      { value: "in progress", label: "In Progress" },
+      { value: "closed", label: "Closed" },
+    ],
+    []
+  );
+
+  const priorityOptions = useMemo(
+    () => [
+      { value: "all", label: "All Priority" },
+      { value: "High", label: "High" },
+      { value: "Medium", label: "Medium" },
+      { value: "Low", label: "Low" },
+      { value: "Critical", label: "Critical" },
+    ],
+    []
+  );
+
+  if (error) {
+    return (
+      <PageContainer isCard={false}>
+        {toast && (
+          <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+        )}
+        <div className="glass-card text-center py-14">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-danger-bg border border-danger-border flex items-center justify-center">
+            <FaExclamationTriangle size={22} className="text-danger" />
+          </div>
+          <p className="text-sm font-bold text-heading">Failed to load tickets</p>
+          <p className="text-xs text-muted mt-1 mb-5">
+            We couldn't load your tickets. Please try again.
+          </p>
+          <GlassButton variant="primary" onClick={fetchTickets}>
+            RETRY
+          </GlassButton>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  return (
+    <PageContainer isCard={false} loading={loading}>
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
+
+      <div className="flex flex-col gap-4 w-full">
+        <PortalHero
+            label="Support center"
+          title="My Tickets"
+          description="Raise requests and track progress across your support tickets — all from one place."
+          emblem={TicketIcon}
+          chips={heroChips}
+        />
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <GlassButton variant="primary" icon={FaPlus} onClick={() => setShowModal(true)}>
+              Raise Ticket
+            </GlassButton>
+          </div>
+        </div>
+
+        <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
+          <StatCard
+            title="Total Tickets"
+            value={kpis.total}
+            sub="Tickets you've raised"
+            icon={FaTicketAlt}
+            tone="text-main"
+            iconBg="bg-app"
+          />
+          <StatCard
+            title="Open"
+            value={kpis.open}
+            sub="Awaiting resolution"
+            icon={FaHourglassHalf}
+            tone="text-amber-600 dark:text-amber-400"
+            iconBg="bg-amber-100 dark:bg-amber-900/40"
+          />
+          <StatCard
+            title="In Progress"
+            value={kpis.inProgress}
+            sub="Being worked on"
+            icon={FaSpinner}
+            tone="text-indigo-600 dark:text-indigo-400"
+            iconBg="bg-indigo-100 dark:bg-indigo-900/40"
+          />
+          <StatCard
+            title="Closed"
+            value={kpis.closed}
+            sub="Resolved tickets"
+            icon={FaCheckCircle}
+            tone="text-emerald-600 dark:text-emerald-400"
+            iconBg="bg-emerald-100 dark:bg-emerald-900/40"
+          />
+        </div>
+
+        <FilterPanel
+          title="Ticket filters"
+          subtitle={`${filteredTickets.length} of ${tickets.length} tickets · updated just now`}
+          hint="Click View on any ticket to open its full details and discussion thread"
+          actions={
+            <>
+              {hasFilters && (
+                <GlassButton variant="ghost" size="sm" onClick={resetFilters}>
+                  RESET
+                </GlassButton>
+              )}
+              <GlassButton variant="secondary" size="sm" icon={FaFileCsv} onClick={exportCsv}>
+                EXPORT CSV
+              </GlassButton>
+            </>
+          }
+        >
+          <FilterRow>
+            <GlassInput
+              placeholder="Search ticket ID, subject or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-[220px]"
+            />
+            <div className="min-w-[160px]">
+              <ModernSelect
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                options={statusOptions}
+                placeholder="All Status"
+              />
+            </div>
+            <div className="min-w-[150px]">
+              <ModernSelect
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                options={priorityOptions}
+                placeholder="All Priority"
+              />
+            </div>
+          </FilterRow>
+        </FilterPanel>
+
+        <StyledTable
+          columns={columns}
+          data={filteredTickets}
+          loading={loading}
+          emptyMessage={
+            hasFilters
+              ? "No tickets match these filters"
+              : "You haven't raised any tickets yet. Click Raise Ticket to get started."
+          }
+          onEmptyAction={hasFilters ? resetFilters : undefined}
+          emptyActionLabel="Clear all filters"
+          actions={actions}
+          rowsPerPage={10}
+          defaultSort={{ key: "createdAt", direction: "desc" }}
+          countLabel="tickets"
+        />
+      </div>
+
+      {showModal && (
+        <RaiseTicketModal
+          onClose={() => setShowModal(false)}
+          onSubmit={(newTicket) => {
+            setTickets((prev) => [...prev, newTicket]);
+            setShowModal(false);
+            showToast("Ticket submitted successfully");
+          }}
+          showToast={showToast}
+        />
+      )}
+      {selectedTicket && (
+        <ViewTicketDetailsModal
+          ticket={selectedTicket}
+          onClose={() => setSelectedTicket(null)}
+          showToast={showToast}
+        />
+      )}
+    </PageContainer>
+  );
 };
 
 export default Ticket;

@@ -18,16 +18,14 @@ const AdminDashboardStatCard = ({ title, value, icon, gradient, trend, subtext, 
  <div className={`p-3 rounded-2xl bg-app text-muted transition-colors group-hover:bg-slate-900 group-hover:text-white`} aria-hidden="true">
  {icon}
  </div>
- {trend && (
- <div 
- className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
- trend.isPositive ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
- }`}
- aria-label={`Trend: ${trend.isPositive ? 'Up' : 'Down'} ${trend.value}%`}
- >
- {trend.isPositive ? '↑' : '↓'} {trend.value}%
- </div>
- )}
+{trend && (
+  <div 
+  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider lm-success-badge`}
+  aria-label={`Trend: ${trend.isPositive ? 'Up' : 'Down'} ${trend.value}%`}
+  >
+  {trend.isPositive ? '↑' : '↓'} {trend.value}%
+  </div>
+  )}
  </div>
 
  <div className="mt-auto">

@@ -79,7 +79,7 @@ const FilterBar = ({
  <div className="flex items-center gap-2">
  <button
  onClick={() => setMobileExpanded(!mobileExpanded)}
- className="md:hidden btn btn-outline gap-2 px-4 py-2"
+ className="md:hidden btn btn-secondary gap-2 px-4 py-2"
  >
  <Filter className="w-4 h-4" />
  <span>Filters</span>

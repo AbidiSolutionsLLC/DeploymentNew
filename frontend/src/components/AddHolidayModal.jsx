@@ -155,7 +155,7 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
  error={errors.date}
  />
 
- <div className="flex items-center gap-3 p-4 bg-surface/50 dark:bg-slate-800/50 rounded-xl border border-dashed border-border-subtle dark:border-slate-700">
+ <div className="flex items-center gap-3 p-4 bg-app rounded-xl border border-dashed border-border-subtle">
  <input
  type="checkbox"
  id="isRecurring"

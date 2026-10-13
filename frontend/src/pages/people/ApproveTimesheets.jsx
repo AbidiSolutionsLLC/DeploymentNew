@@ -1,30 +1,70 @@
-import React, { useState, useEffect, useRef } from "react";
-import { IoCalendarNumberOutline } from "react-icons/io5";
-import { FaAngleLeft, FaAngleRight, FaEye, FaCommentDots } from "react-icons/fa";
-import { AnimatePresence, motion } from "framer-motion";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { motion as Motion } from "framer-motion";
+import {
+ FaEye,
+ FaCommentDots,
+ FaClipboardList,
+ FaHourglassHalf,
+ FaCheckCircle,
+ FaTimesCircle,
+ FaExclamationTriangle,
+ FaFileCsv,
+ FaUsers,
+ FaPlus,
+ FaChevronLeft,
+ FaChevronRight,
+ FaCalendarDay,
+} from "react-icons/fa";
+import { CheckBadgeIcon } from "@heroicons/react/20/solid";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
-import { toast } from "react-toastify";
-import { Download, Plus, X, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "../../axios";
-import TableWithPagination from "../../components/TableWithPagination";
 import ApproveTimesheetViewModal from "../../components/ApproveTimesheetViewModal";
 import AdminAddTimeLogModal from "../../components/AdminAddTimeLogModal";
 import AdminCreateTimesheetModal from "../../components/AdminCreateTimesheetModal";
 import ExportSelectionModal from "../../components/ExportSelectionModal";
 import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
+import Toast from "../../components/Toast";
 import PageContainer from "../../components/ui/PageContainer";
+import PortalHero from "../../components/ui/PortalHero";
+import PortalTabBar from "../../components/ui/PortalTabBar";
 import ModernSelect from "../../components/ui/ModernSelect";
+import GlassInput from "../../components/ui/GlassInput";
+import GlassButton from "../../components/ui/GlassButton";
+import FilterRow from "../../components/ui/FilterRow";
+import FilterPanel from "../../components/ui/FilterPanel";
+import StatCard from "../../components/ui/StatCard";
+import StyledTable from "../../components/ui/StyledTable";
+import { getInitials } from "../../utils/tableUtils";
 import { formatDateForAPI } from "../../utils/dateUtils";
-import Loader from "../../components/ui/Loader";
 import { useConfirm } from "../../context/ConfirmContext";
 import { useSelector } from "react-redux";
 
+/* Status pill helpers — same tokens as the Leave Management tabs */
+const statusBadge = (status) =>
+ STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
+
+/* Hours pills (theme safe — dark variants included) */
+const HOURS_PILL = {
+  submitted: "lm-success-badge",
+  approved: "lm-success-badge",
+};
+
+const EASE = [0.16, 1, 0.3, 1];
+
 const ApproveTimesheets = () => {
-   const confirm = useConfirm();
-   const authStateUser = useSelector((state) => state.auth.user);
-   const currentUser = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
+ const confirm = useConfirm();
+ const authStateUser = useSelector((state) => state.auth.user);
+ const currentUser = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
+
+ // Toast (same pattern as Leave Management)
+ const [toast, setToast] = useState(null);
+ const showToast = (message, type = "success") => {
+  setToast({ message, type });
+  setTimeout(() => setToast(null), 3000);
+ };
+
  // Helper functions defined first
  function getMonday(date) {
  const d = new Date(date);
@@ -43,13 +83,13 @@ const ApproveTimesheets = () => {
  return sunday;
  }
 
- 
+
  const [selectedWeekStart, setSelectedWeekStart] = useState(() => {
-    return getMonday(new Date());
-  });
-  const [weeklyData, setWeeklyData] = useState({
-    weekStart: getMonday(new Date()),
-    weekEnd: getSunday(new Date()),
+ return getMonday(new Date());
+ });
+ const [weeklyData, setWeeklyData] = useState({
+ weekStart: getMonday(new Date()),
+ weekEnd: getSunday(new Date()),
  timesheets: [], // Pending
  approvedTimesheets: [],
  rejectedTimesheets: [],
@@ -59,6 +99,7 @@ const ApproveTimesheets = () => {
  });
 
  const [loading, setLoading] = useState(false);
+ const [error, setError] = useState(false);
  const [updating, setUpdating] = useState(false);
  const [selectedTimesheet, setSelectedTimesheet] = useState(null);
  const [showDetails, setShowDetails] = useState(false);
@@ -71,7 +112,6 @@ const ApproveTimesheets = () => {
 
  const calendarRef = useRef(null);
  const [searchTerm, setSearchTerm] = useState("");
- const [isSearchActive, setIsSearchActive] = useState(false);
  const [selectedIds, setSelectedIds] = useState([]);
  const [rowsPerPage, setRowsPerPage] = useState(() => {
  return parseInt(localStorage.getItem('approve_timesheets_rows_per_page')) || 10;
@@ -86,10 +126,10 @@ const ApproveTimesheets = () => {
 
 
  const tabs = [
- { title: "Pending Timesheets", status: "Pending", count: 0 },
- { title: "Approved Timesheets", status: "Approved", count: 0 },
- { title: "Rejected Timesheets", status: "Rejected", count: 0 },
- { title: "All Timesheets", status: "All", count: 0 }
+ { title: "Pending", status: "Pending", icon: FaHourglassHalf, count: 0 },
+ { title: "Approved", status: "Approved", icon: FaCheckCircle, count: 0 },
+ { title: "Rejected", status: "Rejected", icon: FaTimesCircle, count: 0 },
+ { title: "All", status: "All", icon: FaClipboardList, count: 0 },
  ];
 
  const ensureDate = (date) => {
@@ -152,20 +192,22 @@ const ApproveTimesheets = () => {
 
  const fetchAllTimesheets = async () => {
  setAllLoading(true);
+ setError(false);
  try {
  const params = {};
  if (filterEmployee !== "All") params.employeeId = filterEmployee;
  if (filterStatus !== "All") params.status = filterStatus;
-  if (filterDate) {
-  params.startDate = formatDateForAPI(filterDate);
-  params.endDate = formatDateForAPI(filterDate);
-  }
- 
+ if (filterDate) {
+ params.startDate = formatDateForAPI(filterDate);
+ params.endDate = formatDateForAPI(filterDate);
+ }
+
  const response = await timesheetApi.getAllTimesheets(params);
  setAllTimesheets(Array.isArray(response) ? response : []);
  } catch (error) {
  console.error("Error loading all timesheets:", error);
- toast.error("Failed to load all timesheets");
+ setError(true);
+ showToast("Failed to load all timesheets");
  } finally {
  setAllLoading(false);
  }
@@ -173,15 +215,16 @@ const ApproveTimesheets = () => {
 
  const fetchWeeklyTimesheets = async () => {
  setLoading(true);
+ setError(false);
  try {
  const weekStartObj = ensureDate(selectedWeekStart);
  const weekEndObj = getSunday(weekStartObj);
 
  // Validation: If future date range selected and no data, we will handle it in the UI
  if (weekStartObj > new Date()) {
-  setWeeklyData({
-  weekStart: weekStartObj,
-  weekEnd: weekEndObj,
+ setWeeklyData({
+ weekStart: weekStartObj,
+ weekEnd: weekEndObj,
  timesheets: [],
  approvedTimesheets: [],
  rejectedTimesheets: [],
@@ -193,19 +236,19 @@ const ApproveTimesheets = () => {
  return;
  }
 
-  // FIX: Use YYYY-MM-DD for the query
-  const startStr = formatDateForAPI(weekStartObj);
-  const endStr = formatDateForAPI(weekEndObj);
+ // FIX: Use YYYY-MM-DD for the query
+ const startStr = formatDateForAPI(weekStartObj);
+ const endStr = formatDateForAPI(weekEndObj);
 
-  const params = { startDate: startStr, endDate: endStr };
-  if (filterEmployee !== "All") params.employeeId = filterEmployee;
+ const params = { startDate: startStr, endDate: endStr };
+ if (filterEmployee !== "All") params.employeeId = filterEmployee;
 
  // FIX: Call the ADMIN endpoint with startDate/endDate/employeeId
  const response = await timesheetApi.getAllTimesheets(params);
- 
+
  // The Admin endpoint returns an ARRAY, not an object.
  const allTimesheets = Array.isArray(response) ? response : (response.timesheets || []);
- 
+
  // Safety filter for date range (TC_PT_002)
  const filteredInRange = allTimesheets.filter(ts => {
  if (!ts.date) return true;
@@ -213,7 +256,7 @@ const ApproveTimesheets = () => {
  tsDate.setHours(0,0,0,0);
  return tsDate >= weekStartObj && tsDate <= weekEndObj;
  });
- 
+
  const pendingTimesheets = filteredInRange.filter(ts => ts.status === "Pending");
  const approvedTimesheets = filteredInRange.filter(ts => ts.status === "Approved");
  const rejectedTimesheets = filteredInRange.filter(ts => ts.status === "Rejected");
@@ -232,10 +275,17 @@ const ApproveTimesheets = () => {
  setWeeklyData(processedResponse);
  } catch (error) {
  console.error("Error loading admin timesheets:", error);
- toast.error("Failed to load timesheets");
+ setError(true);
+ showToast("Failed to load timesheets");
  } finally {
  setLoading(false);
  }
+ };
+
+ const handleRetry = () => {
+ setError(false);
+ if (activeTab === 3) fetchAllTimesheets();
+ else fetchWeeklyTimesheets();
  };
 
  const navigateToPreviousWeek = () => {
@@ -258,10 +308,6 @@ const ApproveTimesheets = () => {
  setShowCalendar(false);
  };
 
- const handleClearDateRange = () => {
- setSelectedWeekStart(getMonday(new Date()));
- };
-
  const handleSelectAll = (e) => {
  const currentData = getFilteredData();
  if (e.target.checked) {
@@ -272,36 +318,36 @@ const ApproveTimesheets = () => {
  };
 
  const handleSelectRow = (id) => {
- setSelectedIds(prev => 
+ setSelectedIds(prev =>
  prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
  );
  };
 
  const handleBulkApprove = async () => {
  if (selectedIds.length === 0) return;
- await confirm({ 
-  title: "Bulk Approve", 
-  message: `Are you sure you want to approve ${selectedIds.length} timesheets?`, 
-  confirmText: "Approve", 
-  isDanger: false,
-  onConfirmAction: async () => {
-    setUpdating(true);
-    try {
-      await Promise.all(selectedIds.map(id => 
-        timesheetApi.updateTimesheetStatus(id, { status: "Approved" })
-      ));
-      toast.success(`Successfully approved ${selectedIds.length} timesheets`);
-      setSelectedIds([]);
-      fetchWeeklyTimesheets();
-      fetchAllTimesheets();
-    } catch (error) {
-      console.error("Bulk approval failed:", error);
-      toast.error("Failed to approve some timesheets");
-      throw error;
-    } finally {
-      setUpdating(false);
-    }
-  }
+ await confirm({
+ title: "Bulk Approve",
+ message: `Are you sure you want to approve ${selectedIds.length} timesheets?`,
+ confirmText: "Approve",
+ isDanger: false,
+ onConfirmAction: async () => {
+ setUpdating(true);
+ try {
+ await Promise.all(selectedIds.map(id =>
+ timesheetApi.updateTimesheetStatus(id, { status: "Approved" })
+ ));
+ showToast(`Successfully approved ${selectedIds.length} timesheets`);
+ setSelectedIds([]);
+ fetchWeeklyTimesheets();
+ fetchAllTimesheets();
+ } catch (error) {
+ console.error("Bulk approval failed:", error);
+ showToast("Failed to approve some timesheets");
+ throw error;
+ } finally {
+ setUpdating(false);
+ }
+ }
  });
  };
 
@@ -312,7 +358,7 @@ const ApproveTimesheets = () => {
  setShowDetails(true);
  } catch (error) {
  console.error("Failed to fetch timesheet details:", error);
- toast.error("Failed to load details");
+ showToast("Failed to load details");
  }
  };
 
@@ -324,18 +370,18 @@ const ApproveTimesheets = () => {
  if (comment && comment.trim()) updateData.comment = comment.trim();
 
  await timesheetApi.updateTimesheetStatus(timesheetId, updateData);
- 
+
  // Refresh list after update
  await fetchWeeklyTimesheets();
  await fetchAllTimesheets();
- 
+
  setShowDetails(false);
  setSelectedTimesheet(null);
- toast.success(`Timesheet ${status.toLowerCase()} successfully`);
+ showToast(`Timesheet ${status.toLowerCase()} successfully`);
  } catch (error) {
  console.error("Failed to update timesheet:", error);
  const errorMessage = error.response?.data?.message || "Failed to update timesheet";
- toast.error(errorMessage);
+ showToast(errorMessage);
  } finally {
  setUpdating(false);
  }
@@ -360,14 +406,20 @@ const ApproveTimesheets = () => {
  default: data = [];
  }
 
- if (!searchTerm) return data;
- 
+ // Normalize so employee sorting/rendering works on every row
+ const normalized = data.map(ts => ({
+ ...ts,
+ employeeName: ts.employee?.name || ts.employeeName || "Unknown",
+ }));
+
+ if (!searchTerm) return normalized;
+
  const lowerSearch = searchTerm.toLowerCase();
- return data.filter(ts => {
- const employeeName = (ts.employee?.name || ts.employeeName || "").toLowerCase();
+ return normalized.filter(ts => {
+ const employeeName = (ts.employeeName || "").toLowerCase();
  const tsName = (ts.name || "").toLowerCase();
  const tsStatus = (ts.status || "").toLowerCase();
- 
+
  return employeeName.includes(lowerSearch) ||
  tsName.includes(lowerSearch) ||
  tsStatus.includes(lowerSearch);
@@ -376,10 +428,56 @@ const ApproveTimesheets = () => {
 
  const getCurrentData = () => getFilteredData();
 
+ /* ---------------- KPIs (reflect the active scope) ---------------- */
+ const baseData = useMemo(() => {
+ if (activeTab === 3) return allTimesheets;
+ return [
+ ...(weeklyData.timesheets || []),
+ ...(weeklyData.approvedTimesheets || []),
+ ...(weeklyData.rejectedTimesheets || []),
+ ];
+ }, [activeTab, allTimesheets, weeklyData]);
+
+ const kpis = useMemo(() => {
+ const byStatus = (s) => baseData.filter((r) => (r.status || "Pending") === s);
+ const pending = byStatus("Pending");
+ const approved = byStatus("Approved");
+ const rejected = byStatus("Rejected");
+ const sumHrs = (list, key) => list.reduce((sum, r) => sum + (Number(r[key]) || 0), 0);
+ return {
+ total: baseData.length,
+ totalHrs: sumHrs(baseData, "submittedHours"),
+ pending: pending.length,
+ pendingHrs: sumHrs(pending, "submittedHours"),
+ approved: approved.length,
+ approvedHrs: sumHrs(approved, "approvedHours"),
+ rejected: rejected.length,
+ };
+ }, [baseData]);
+
+ /* ---------------- filters ---------------- */
+ const weekChanged =
+ ensureDate(selectedWeekStart).getTime() !== getMonday(new Date()).getTime();
+ const hasFilters =
+ Boolean(searchTerm) ||
+ filterEmployee !== "All" ||
+ Boolean(filterDate) ||
+ (activeTab !== 3 && weekChanged);
+
+ const resetFilters = () => {
+ setSearchTerm("");
+ setFilterEmployee("All");
+ setFilterDate(null);
+ setFilterStatus("All");
+ setSelectedWeekStart(getMonday(new Date()));
+ };
+
+ const currentData = getCurrentData();
+
  const handleExportCSV = () => {
  const dataToExport = getCurrentData();
  if (dataToExport.length === 0) {
- toast.warn("No data to export");
+  showToast("No data to export", "error");
  return;
  }
  setIsExportModalOpen(true);
@@ -387,20 +485,20 @@ const ApproveTimesheets = () => {
 
  const performExportCSV = (selectedData) => {
  if (!selectedData || selectedData.length === 0) {
- toast.warn("No timesheets selected for export");
+  showToast("No timesheets selected for export", "error");
  return;
  }
 
  const headers = [
- "Employee Name", 
- "Email", 
- "Timesheet Date", 
- "Timesheet Name", 
- "Status", 
- "Submitted Hours", 
- "Approved Hours", 
- "Timelog Job", 
- "Timelog Description", 
+ "Employee Name",
+ "Email",
+ "Timesheet Date",
+ "Timesheet Name",
+ "Status",
+ "Submitted Hours",
+ "Approved Hours",
+ "Timelog Job",
+ "Timelog Description",
  "Timelog Hours"
  ];
 
@@ -444,27 +542,9 @@ const ApproveTimesheets = () => {
  document.body.appendChild(link);
  link.click();
  document.body.removeChild(link);
- toast.success(`Exported ${selectedData.length} timesheets successfully`);
+ showToast(`Exported ${selectedData.length} timesheets successfully`);
  };
 
-
- const getCurrentActions = () => {
- if (activeTab === 0) {
- return [{
- icon: <FaEye size={14} />,
- title: "View Details",
- className: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:bg-amber-900/40",
- onClick: (row) => handleViewDetails(row)
- }];
- } else {
- return [{
- icon: <FaEye size={14} />,
- title: "View Details",
- className: "bg-surface text-muted hover:bg-surface",
- onClick: (row) => handleViewDetails(row)
- }];
- }
- };
 
  const getEmptyMessage = () => {
  if (activeTab === 3) return "No timesheets found matching the filters";
@@ -478,17 +558,19 @@ const ApproveTimesheets = () => {
  {
  key: "select",
  label: (
- <input 
- type="checkbox" 
+ <input
+ type="checkbox"
+ aria-label="Select all timesheets"
  className="w-4 h-4 rounded border-border-primary text-amber-600 dark:text-amber-400 focus:ring-amber-500"
  onChange={handleSelectAll}
- checked={selectedIds.length > 0 && selectedIds.length === getFilteredData().length}
+ checked={selectedIds.length > 0 && selectedIds.length === currentData.length}
  />
  ),
  sortable: false,
  render: (_, row) => (
- <input 
- type="checkbox" 
+ <input
+ type="checkbox"
+ aria-label={`Select timesheet of ${row.employeeName}`}
  className="w-4 h-4 rounded border-border-primary text-amber-600 dark:text-amber-400 focus:ring-amber-500"
  checked={selectedIds.includes(row._id)}
  onChange={() => handleSelectRow(row._id)}
@@ -499,149 +581,301 @@ const ApproveTimesheets = () => {
  {
  key: "employeeName",
  label: "Employee",
- sortable: true,
- render: (_, row) => (
- <div className="flex items-center gap-2">
+ render: (_, row) => {
+ const dateObj = ensureDate(row.date);
+ const dateLabel = isNaN(dateObj.getTime())
+ ? ""
+ : dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+ return (
+ <div className="flex items-center gap-2.5 min-w-[140px] md:min-w-[180px]">
  {row.employee?.avatar ? (
- <img src={row.employee.avatar} alt="" className="w-6 h-6 rounded-full object-cover" />
+ <img
+ src={row.employee.avatar}
+ alt=""
+ className="w-8 h-8 rounded-full object-cover border border-border-subtle flex-shrink-0"
+ />
  ) : (
- <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">
- {row.employee?.name?.charAt(0) || "U"}
+ <div className="w-8 h-8 rounded-full bg-amber-100 text-brand-text border border-amber-200 dark:bg-amber-900/40 dark:border-amber-800 dark:text-amber-400 flex items-center justify-center text-[11px] font-black flex-shrink-0">
+ {getInitials(row.employeeName)}
  </div>
  )}
- <span className="text-main font-medium">{row.employee?.name || row.employeeName || "Unknown"}</span>
+ <div className="min-w-0">
+ <p className="text-sm font-bold text-heading truncate leading-tight">{row.employeeName}</p>
+ <p className="text-[10px] text-muted truncate">
+ <span className="hidden sm:inline">{row.employee?.email || "—"}</span>
+ <span className="sm:hidden">{dateLabel || row.employee?.email || "—"}</span>
+ </p>
  </div>
- )
+ </div>
+ );
+ },
  },
  {
  key: "date",
  label: "Date",
- sortable: true,
+ hideBelow: "sm",
  render: (_, row) => {
  const dateObj = ensureDate(row.date);
+ if (isNaN(dateObj.getTime())) return <span className="text-xs text-muted">-</span>;
  return (
- <span className="text-main font-medium">
- {isNaN(dateObj.getTime()) ? "Invalid Date" : dateObj.toLocaleDateString('en-US', {
- weekday: 'short', month: 'short', day: 'numeric'
- })}
- </span>
+ <div className="min-w-[110px]">
+ <p className="text-xs font-bold text-heading whitespace-nowrap">
+ {dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+ </p>
+ <p className="text-[10px] text-muted mt-0.5">
+ {dateObj.toLocaleDateString("en-US", { weekday: "long" })}
+ </p>
+ </div>
  );
- }
+ },
  },
  {
  key: "name",
- label: "Timesheet Name",
- sortable: true,
+ label: "Timesheet",
+ hideBelow: "md",
  render: (_, row) => (
- <span className="text-main font-medium truncate max-w-[150px] inline-block" title={row.name || "Unnamed"}>
+ <span
+ className="text-xs font-semibold text-main truncate max-w-[160px] inline-block"
+ title={row.name || "Unnamed"}
+ >
  {row.name || "Unnamed"}
  </span>
- )
+ ),
  },
  {
  key: "submittedHours",
- label: "Submitted Hours",
- sortable: true,
- render: (_, row) => <span className="text-main font-medium">{(row.submittedHours || 0).toFixed(1)}</span>
+ label: "Submitted",
+ align: "right",
+ render: (_, row) => (
+ <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tabular-nums border whitespace-nowrap ${HOURS_PILL.submitted}`}>
+ {(row.submittedHours || 0).toFixed(1)} h
+ </span>
+ ),
  },
  {
  key: "approvedHours",
- label: activeTab === 0 ? "To Approve" : "Approved Hours",
- sortable: true,
- render: (_, row) => <span className="text-main font-medium">{(row.approvedHours || 0).toFixed(1)}</span>
+ label: activeTab === 0 ? "To Approve" : "Approved",
+ align: "right",
+ render: (_, row) => (
+ <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tabular-nums border whitespace-nowrap ${HOURS_PILL.approved}`}>
+ {(row.approvedHours || 0).toFixed(1)} h
+ </span>
+ ),
  },
  {
  key: "status",
  label: "Status",
- sortable: true,
  render: (_, row) => (
- <span className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${
- STATUS_VARIANTS[resolveStatusVariant(row.status)]?.badge || STATUS_VARIANTS.neutral.badge
- }`}>
+ <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border whitespace-nowrap ${statusBadge(row.status)}`}>
  {row.status || "Pending"}
  </span>
- )
+ ),
  },
  {
  key: "comments",
  label: "Comments",
  sortable: false,
+ hideBelow: "lg",
  render: (_, row) => {
  const commentCount = row.comments?.length || 0;
- if (commentCount === 0) {
- return <span className="text-muted text-xs">No comments</span>;
- }
+ if (commentCount === 0) return <span className="text-muted text-xs">No comments</span>;
  return (
- <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
- <FaCommentDots size={14} />
- <span className="text-xs font-medium">{commentCount} comment{commentCount !== 1 ? 's' : ''}</span>
- </div>
+ <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-text whitespace-nowrap">
+ <FaCommentDots size={13} />
+ {commentCount} comment{commentCount !== 1 ? "s" : ""}
+ </span>
  );
- }
- }
+ },
+ },
  ];
+
+ const tableActions = [
+ {
+ icon: <FaEye size={13} />,
+ title: "View timesheet",
+ onClick: (row) => handleViewDetails(row),
+ },
+ ];
+
+ /* ============ Tab bar model (Leave Management style) ============ */
+ const HINTS = [
+ "Timesheets waiting for your approval",
+ "Timesheets approved in this scope",
+ "Timesheets rejected in this scope",
+ "Every timesheet regardless of status",
+ ];
+ const tabItems = tabs.map((item, index) => ({
+ key: index,
+ title: item.title,
+ icon: item.icon,
+ hint: HINTS[index],
+ badge: item.count,
+ }));
+
+
+ const totalHrsValue =
+ activeTab === 0
+ ? (weeklyData.weeklySubmitted || 0).toFixed(2)
+ : activeTab === 3
+ ? (allTimesheets.reduce((sum, ts) => sum + (ts.approvedHours || 0), 0) || 0).toFixed(2)
+ : (weeklyData.approvedTimesheets?.reduce((sum, ts) => sum + (ts.approvedHours || 0), 0) || 0).toFixed(2);
 
  return (
  <>
- <PageContainer
- title="Approve Timesheets"
- subtitle="Manage team timesheets and time logs"
- isCard={true}
- headerActions={
- <div className="flex items-center gap-3">
+ <PageContainer isCard={false}>
+ {toast && (
+ <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+ )}
+
+ <div className="flex flex-col gap-4 w-full">
+{/* ============ HERO (Leave Management style) ============ */}
+<PortalHero
+      label="Timesheet approval overview"
+   title="Approve Timesheets"
+description="Review submitted hours, dig into time logs and approve or reject team timesheets — all from one place."
+emblem={CheckBadgeIcon}
+chips={[
+ { icon: FaUsers, value: allUsers.length, label: " Employees" },
+ { pulse: true, value: kpis.pending, label: " Awaiting approval" },
+ ]}
+ />
+
+ {/* ============ TAB BAR (Leave Management style) ============ */}
+ <PortalTabBar
+ tabs={tabItems}
+ activeKey={activeTab}
+ onChange={setActiveTab}
+ idPrefix="ts-tab"
+ panelId="timesheet-tabpanel"
+ ariaLabel="Timesheet status"
+ layoutId="ts-tab-pill"
+ right={
+ <>
+ <div className="hidden sm:flex items-center gap-2 bg-surface border border-border-subtle px-3.5 py-1.5 rounded-2xl whitespace-nowrap">
+ <span className="text-[9px] font-black uppercase tracking-widest text-muted">
+ {activeTab === 0 ? "Total Submitted" : "Total Approved"}
+ </span>
+ <span className="text-sm font-black text-heading tabular-nums">
+ {totalHrsValue}
+ <span className="ml-1 text-[10px] text-muted">HRS</span>
+ </span>
+ </div>
+
+ <div className="flex flex-wrap items-center gap-2">
  {selectedIds.length > 0 && (
- <button
+ <GlassButton
+ variant="primary"
+ size="sm"
  onClick={handleBulkApprove}
  disabled={updating}
- className="btn btn-primary shadow-brand-primary/20 active:scale-95 disabled:opacity-50"
+ isLoading={updating}
  >
  Bulk Approve ({selectedIds.length})
- </button>
+ </GlassButton>
  )}
- <button
- onClick={() => setIsAddTimeLogOpen(true)}
- className="btn btn-secondary flex items-center gap-2 active:scale-95"
- >
- <Plus size={16} strokeWidth={3} /> Time Log
- </button>
- <button
- onClick={() => setIsCreateTimesheetOpen(true)}
- className="btn btn-primary flex items-center gap-2 active:scale-95"
- >
- <Plus size={16} strokeWidth={3} /> Timesheet
- </button>
+ <GlassButton variant="secondary" size="sm" icon={FaPlus} onClick={() => setIsAddTimeLogOpen(true)}>
+ Time Log
+ </GlassButton>
+ <GlassButton variant="primary" size="sm" icon={FaPlus} onClick={() => setIsCreateTimesheetOpen(true)}>
+ Timesheet
+ </GlassButton>
  </div>
+ </>
  }
- filters={
- <div className="flex flex-col w-full">
+ />
 
- {/* ══ ROW 2: Input Controls ══ */}
- <div className="flex flex-wrap items-center gap-4">
+ {/* Tab content — remount on change so it fades in fresh */}
+ <Motion.div
+ key={activeTab}
+ id="timesheet-tabpanel"
+ role="tabpanel"
+ aria-labelledby={`ts-tab-${activeTab}`}
+ initial={{ opacity: 0, y: 10 }}
+ animate={{ opacity: 1, y: 0 }}
+ transition={{ duration: 0.45, delay: 0.14, ease: EASE }}
+ className="flex flex-col gap-4"
+ >
+ {error ? (
+ /* ============ ERROR STATE ============ */
+ <div className="glass-card text-center py-14">
+ <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-danger-bg border border-danger-border flex items-center justify-center">
+ <FaExclamationTriangle size={22} className="text-danger" />
+ </div>
+ <p className="text-sm font-bold text-heading">Failed to load timesheets</p>
+ <p className="text-xs text-muted mt-1 mb-5">
+ We couldn't load the timesheets. Please try again.
+ </p>
+ <GlassButton variant="primary" onClick={handleRetry}>
+ RETRY
+ </GlassButton>
+ </div>
+ ) : (
+ <>
+ {/* ============ KPI CARDS ============ */}
+ <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
+ <StatCard
+ title="Total Timesheets"
+ value={kpis.total}
+ sub={`${kpis.totalHrs.toFixed(1)} hrs submitted`}
+ icon={FaClipboardList}
+ tone="text-main"
+ iconBg="bg-app"
+ />
+ <StatCard
+ title="Pending"
+ value={kpis.pending}
+ sub={`${kpis.pendingHrs.toFixed(1)} hrs awaiting`}
+ icon={FaHourglassHalf}
+ tone="text-amber-600 dark:text-amber-400"
+ iconBg="bg-amber-100 dark:bg-amber-900/40"
+ />
+ <StatCard
+ title="Approved"
+ value={kpis.approved}
+ sub={`${kpis.approvedHrs.toFixed(1)} hrs approved`}
+ icon={FaCheckCircle}
+ tone="text-emerald-600 dark:text-emerald-400"
+ iconBg="bg-emerald-100 dark:bg-emerald-900/40"
+ />
+ <StatCard
+ title="Rejected"
+ value={kpis.rejected}
+ sub="Timesheets declined"
+ icon={FaTimesCircle}
+ tone="text-rose-600 dark:text-rose-400"
+ iconBg="bg-rose-100 dark:bg-rose-900/40"
+ />
+ </div>
 
- {/* Search */}
- <div className="relative group">
- <input
- type="text"
+ {/* ============ FILTERS ============ */}
+ <FilterPanel
+ title="Timesheets"
+ subtitle={`${currentData.length} of ${baseData.length} timesheets · ${
+ activeTab === 3 ? "all dates" : formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)
+ }`}
+ hint="Click View on any timesheet to review its details, time logs and comments, then approve or reject it"
+ actions={
+ <>
+ {hasFilters && (
+ <GlassButton variant="ghost" size="sm" onClick={resetFilters}>
+ RESET
+ </GlassButton>
+ )}
+ <GlassButton variant="secondary" size="sm" icon={FaFileCsv} onClick={handleExportCSV}>
+ EXPORT CSV
+ </GlassButton>
+ </>
+ }
+ >
+ <FilterRow>
+ <GlassInput
  placeholder="Search by name or status..."
  value={searchTerm}
  onChange={(e) => setSearchTerm(e.target.value)}
- className="glass-input pl-9 pr-9 w-52"
+ className="min-w-full sm:min-w-[220px] sm:flex-1"
  />
- <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-brand-primary transition-colors pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
- </svg>
- {searchTerm && (
- <button
- onClick={() => setSearchTerm("")}
- className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-heading transition-colors"
- >
- <X size={14} />
- </button>
- )}
- </div>
 
- {/* Employee Filter — always visible */}
- <div className="w-[200px]">
+ <div className="w-full sm:w-auto sm:min-w-[180px] sm:max-w-[240px]">
  <ModernSelect
  value={filterEmployee}
  onChange={(e) => setFilterEmployee(e.target.value)}
@@ -661,159 +895,82 @@ const ApproveTimesheets = () => {
  onChange={(date) => setFilterDate(date)}
  placeholderText="Select Date"
  isClearable
- className="h-[42px] pl-9 pr-3 bg-surface border border-border-subtle rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-100 transition-all min-w-[150px] text-main cursor-pointer hover:border-border-accent"
+ className="h-[42px] pl-9 pr-3 bg-surface border border-border-subtle rounded-xl text-xs font-semibold focus:ring-2 focus:ring-border-accent transition-all min-w-[150px] text-main cursor-pointer hover:border-border-accent"
  />
  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
- <IoCalendarNumberOutline size={16} />
+ <FaCalendarDay size={16} />
  </div>
  </div>
  ) : (
- <div className="flex items-center gap-2">
+ <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
  <button
  onClick={navigateToPreviousWeek}
  disabled={loading}
- className="w-[42px] h-[42px] flex items-center justify-center rounded-xl border border-border-subtle bg-surface text-muted hover:text-main hover:border-amber-400/50 hover:bg-amber-400/5 transition-all shadow-sm group"
+ className="w-[42px] h-[42px] flex items-center justify-center rounded-xl border border-border-subtle bg-surface text-muted hover:text-heading hover:border-border-accent hover:bg-card-hover transition-all shadow-sm group disabled:opacity-50"
+ title="Previous week"
  >
- <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+ <FaChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
  </button>
 
- <div className="relative" ref={calendarRef}>
+ <div className="relative flex-1 sm:flex-none min-w-[170px]" ref={calendarRef}>
  <button
  onClick={() => setShowCalendar(!showCalendar)}
  disabled={loading}
- className="h-[42px] px-4 flex items-center gap-2 bg-surface border border-border-subtle text-main rounded-xl font-semibold text-xs hover:border-amber-400/50 transition-all min-w-[190px] justify-center shadow-sm"
+ className="w-full h-[42px] px-4 flex items-center gap-2 bg-surface border border-border-subtle text-main rounded-xl font-semibold text-xs hover:border-border-accent transition-all min-w-[170px] justify-center shadow-sm disabled:opacity-50"
  >
- <IoCalendarNumberOutline size={15} className="text-amber-500 flex-shrink-0" />
- <span>{formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}</span>
+ <span className="cal-chip" aria-hidden="true">
+  <FaCalendarDay size={14} />
+  </span>
+ <span className="truncate">{formatWeekRange(weeklyData.weekStart, weeklyData.weekEnd)}</span>
  </button>
- <AnimatePresence>
  {showCalendar && (
- <motion.div
- initial={{ opacity: 0, y: 8 }}
- animate={{ opacity: 1, y: 0 }}
- exit={{ opacity: 0, y: 8 }}
- className="absolute z-50 mt-2 rounded-2xl shadow-2xl left-0"
- >
+ <div className="absolute z-50 mt-2 rounded-2xl shadow-2xl left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 animate-fadeIn">
  <DatePicker
  selected={ensureDate(selectedWeekStart)}
  onChange={handleWeekSelect}
  maxDate={new Date()}
  inline
  />
- </motion.div>
+ </div>
  )}
- </AnimatePresence>
  </div>
 
  <button
  onClick={navigateToNextWeek}
  disabled={loading}
- className="w-[42px] h-[42px] flex items-center justify-center rounded-xl border border-border-subtle bg-surface text-muted hover:text-main hover:border-amber-400/50 hover:bg-amber-400/5 transition-all shadow-sm group"
+ className="w-[42px] h-[42px] flex items-center justify-center rounded-xl border border-border-subtle bg-surface text-muted hover:text-heading hover:border-border-accent hover:bg-card-hover transition-all shadow-sm group disabled:opacity-50"
+ title="Next week"
  >
- <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+ <FaChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
  </button>
  </div>
  )}
+ </FilterRow>
+ </FilterPanel>
 
- {/* Reset button — always visible */}
- <button
- onClick={() => {
- setFilterEmployee("All");
- setFilterDate(null);
- setFilterStatus("All");
- setSearchTerm("");
- if (activeTab !== 3) handleClearDateRange();
- }}
- title="Reset all filters"
- className="flex items-center gap-1.5 h-[42px] px-4 rounded-xl text-xs font-semibold text-muted hover:text-main hover:bg-app border border-transparent hover:border-border-subtle transition-all"
- >
- <RotateCcw size={13} />
- Reset
- </button>
- </div>
-
- {/* ══ ROW 3: Tabs (left) + Export + Summary (right) ══ */}
- <div className="flex flex-wrap justify-between items-center gap-4 mt-4">
-
- {/* LEFT: Status Tabs */}
- <div className="inline-flex items-center bg-surface p-1 rounded-xl shadow-sm border border-border-subtle">
- {tabs.map((item, index) => (
- <button
- key={index}
- onClick={() => setActiveTab(index)}
- className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
- activeTab === index
- ? "bg-surface text-brand-primary shadow-sm"
- : "text-muted hover:text-heading hover:bg-surface"
- }`}
- >
- {item.title.split(' ')[0]}
- {item.count > 0 && (
- <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] ${
- activeTab === index ? 'bg-brand-primary/10 text-brand-primary' : 'bg-app text-muted'
- }`}>
- {item.count}
- </span>
- )}
- </button>
- ))}
- </div>
-
- {/* RIGHT: Export + Summary card */}
- <div className="flex items-center gap-4">
- <button
- onClick={handleExportCSV}
- className="btn btn-secondary flex items-center gap-2"
- >
- <Download size={15} /> Export CSV
- </button>
-
- <div className="bg-surface border border-border-subtle px-5 py-2 rounded-2xl flex flex-col items-end">
- <span className="text-[9px] font-black uppercase tracking-widest text-muted">
- {activeTab === 0 ? "Total Submitted" : "Total Approved"}
- </span>
- <span className="text-sm font-black text-heading">
- {activeTab === 0
- ? (weeklyData.weeklySubmitted || 0).toFixed(2)
- : (activeTab === 3
- ? (allTimesheets.reduce((sum, ts) => sum + (ts.approvedHours || 0), 0) || 0).toFixed(2)
- : (weeklyData.approvedTimesheets?.reduce((sum, ts) => sum + (ts.approvedHours || 0), 0) || 0).toFixed(2)
- )
- }
- <span className="ml-1 text-[10px] text-muted">HRS</span>
- </span>
- </div>
- </div>
- </div>
-
- </div>
- }
- >
-
- <div className="rounded-[1.5rem] shadow-sm border border-border-subtle overflow-hidden">
- <AnimatePresence mode="wait">
- <motion.div key={`${activeTab}-${selectedWeekStart}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }}>
- {loading || allLoading ? (
- <div className="flex flex-col items-center justify-center py-12">
- <Loader size="lg" className="mb-4" text="Loading data..." />
- </div>
- ) : (
- <TableWithPagination
+ {/* ============ TABLE ============ */}
+ <div key={`${activeTab}-${selectedWeekStart}`} className="animate-fadeIn">
+ <StyledTable
  columns={timesheetColumns}
- data={getCurrentData()}
+ data={currentData}
  loading={loading || allLoading}
  emptyMessage={getEmptyMessage()}
+ onEmptyAction={hasFilters ? resetFilters : undefined}
+ emptyActionLabel="Clear all filters"
+ actions={tableActions}
+ onRowClick={(row) => handleViewDetails(row)}
  rowsPerPage={rowsPerPage}
  onRowsPerPageChange={(newVal) => {
  setRowsPerPage(newVal);
  localStorage.setItem('approve_timesheets_rows_per_page', newVal);
  }}
- actions={getCurrentActions()}
- onRowClick={(row) => handleViewDetails(row)}
+ defaultSort={{ key: "date", direction: "desc" }}
+ countLabel="timesheets"
  />
+ </div>
+ </>
  )}
- </motion.div>
- </AnimatePresence>
+ </Motion.div>
  </div>
  </PageContainer>
 
@@ -864,4 +1021,3 @@ const ApproveTimesheets = () => {
 };
 
 export default ApproveTimesheets;
-

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { refreshUserData } from "../slices/userSlice";
 import { toast } from "react-toastify";
@@ -11,6 +11,8 @@ import { calculateWorkingDays, parseISOToLocalDate, formatDateForAPI } from "../
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
 import { useConfirm } from "../context/ConfirmContext";
+
+const EMPTY_LEAVES = {};
 
 const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
   const confirm = useConfirm();
@@ -35,7 +37,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  const { user: authUser } = useSelector((state) => state.auth || {});
  const { userInfo } = useSelector((state) => state.user || {});
  const userData = userInfo || authUser?.user || authUser || {};
- const userLeaves = userData.leaves || {};
+ const userLeaves = userData.leaves || EMPTY_LEAVES;
 
  const calculateDays = (start, end) => {
  return calculateWorkingDays(start, end);
@@ -46,6 +48,20 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  const mapping = { "PTO": "pto", "Sick": "sick" };
  return mapping[leaveType] || leaveType.toLowerCase();
  };
+
+ // The stored balance already has this leave's days deducted at creation time.
+ // When editing, credit those days back so validation only blocks going beyond the original quota.
+ const originalLeaveType = normalizeLeaveType(leaveData?.leaveType);
+ const originalDays = leaveData?.startDate && leaveData?.endDate
+ ? calculateDays(parseISOToLocalDate(leaveData.startDate), parseISOToLocalDate(leaveData.endDate))
+ : 0;
+
+ const getEffectiveBalance = useCallback((type) => {
+ if (!type) return null;
+ const key = getLeaveBalanceKey(type);
+ const credit = type === originalLeaveType ? originalDays : 0;
+ return (userLeaves[key] || 0) + credit;
+ }, [userLeaves, originalLeaveType, originalDays]);
 
  useEffect(() => {
  if (isOpen && leaveData) {
@@ -62,8 +78,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  if (leaveType && startDate && endDate) {
  const days = calculateDays(startDate, endDate);
  setDaysRequested(days);
- const balanceKey = getLeaveBalanceKey(leaveType);
- const availableBalance = userLeaves[balanceKey] || 0;
+ const availableBalance = getEffectiveBalance(leaveType) || 0;
 
  if (days > availableBalance) {
  setQuotaError(`INSUFFICIENT BALANCE. AVAILABLE: ${availableBalance} DAYS`);
@@ -74,7 +89,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  setDaysRequested(0);
  setQuotaError("");
  }
- }, [leaveType, startDate, endDate, userLeaves]);
+ }, [leaveType, startDate, endDate, getEffectiveBalance]);
 
  const validateField = (name, value) => {
  let error = null;
@@ -85,11 +100,12 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  case "startDate":
  if (!value) error = "Please select a valid date.";
  break;
- case "endDate":
+ case "endDate": {
  if (!value) error = "Please select a valid date.";
  const rangeError = validateDateRange(startDate, value);
  if (rangeError) error = rangeError;
  break;
+ }
  case "reason":
  error = validateDescription(value, { min: 2, max: 500, required: true });
  break;
@@ -125,7 +141,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  reason,
  };
 
- const response = await api.put(`/leaves/${leaveData._id}`, leaveDataUpdate);
+ await api.put(`/leaves/${leaveData._id}`, leaveDataUpdate);
  toast.success("Leave request updated successfully");
 
  if (userData?._id) {
@@ -152,8 +168,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  setIsOpen(false);
  };
 
- const balanceKey = getLeaveBalanceKey(leaveType);
- const availableBalance = leaveType ? (userLeaves[balanceKey] || 0) : null;
+ const availableBalance = getEffectiveBalance(leaveType);
 
  return (
  <GlassModal
@@ -200,11 +215,11 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.leaveType}</p>
  )}
  </div>
- {availableBalance !== null && (
- <p className="mt-2 text-[10px] font-bold text-emerald-500 uppercase tracking-tight">
- AVAILABLE BALANCE: {availableBalance} DAYS
- </p>
- )}
+{availableBalance !== null && (
+  <p className="mt-2 lm-success-text uppercase tracking-tight">
+  AVAILABLE BALANCE: {availableBalance} DAYS
+  </p>
+  )}
  </div>
 
  <div className="grid grid-cols-2 gap-4">

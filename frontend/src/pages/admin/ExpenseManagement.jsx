@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import api from "../../axios";
 import {
- Search, Calendar, Clock, User, CheckCircle,
- AlertCircle, XCircle, Download, Edit2, Save, X, ArrowRight,
- FileText, DollarSign, TrendingUp, Filter, Eye,
- Upload, Image as ImageIcon, File, Trash2
+  Search, Calendar, Clock, User, CheckCircle,
+  AlertCircle, XCircle, Download, Edit2, Save, X, ArrowRight,
+  FileText, DollarSign, TrendingUp, Filter, Eye,
+  Upload, Image as ImageIcon, File
 } from "lucide-react";
+import { FiTrash2 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -22,6 +23,7 @@ import expensesApi from "../../api/expensesApi";
 import GlassModal from "../../components/ui/GlassModal";
 import { dispatchReadOnlyModal } from "../../utils/readOnlyEvent";
 import { useConfirm } from "../../context/ConfirmContext";
+import StatusBadge from "../../components/StatusBadge";
 
 // --- MAIN COMPONENT ---
 const ExpenseManagement = () => {
@@ -303,13 +305,14 @@ const ExpenseManagement = () => {
  .reduce((sum, e) => sum + (e.amount || 0), 0)
  };
 
- const getStatusBadge = (status) => {
- switch (status) {
- case "approved": return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 uppercase tracking-wide">Approved</span>;
- case "rejected": return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-100 uppercase tracking-wide">Rejected</span>;
- default: return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100 uppercase tracking-wide">Pending</span>;
- }
- };
+const getStatusBadge = (status) => {
+  const statusMap = {
+    approved: "Approved",
+    rejected: "Rejected",
+    pending: "Pending"
+  };
+  return <StatusBadge status={statusMap[status] || status} />;
+  };
 
  const getCategoryLabel = (category) => {
  const categories = { travel: "Travel", food: "Food", supplies: "Supplies", equipment: "Equipment", other: "Other" };
@@ -571,7 +574,7 @@ const ExpenseManagement = () => {
  onClick={() => {
  handleReject(editingExpense._id, editFormData.rejectionReason);
  }}
- className="flex-1 py-2 bg-rose-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-rose-600 shadow-md shadow-rose-500/20 flex justify-center items-center gap-2 transition-all"
+  className="flex-1 py-2 bg-rose-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-rose-600 shadow-md shadow-rose-500/20 flex justify-center items-center gap-2 transition-all"
  >
  <XCircle size={14} /> Reject
  </button>

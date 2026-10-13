@@ -175,9 +175,9 @@ export default function NotificationsPage() {
  <button
  onClick={() => setPage((p) => Math.max(1, p - 1))}
  disabled={page === 1}
- className="text-[10px] font-bold text-muted disabled:opacity-30 hover:text-teal-600 dark:text-teal-400 uppercase tracking-tighter"
- >
- ← Prev
+  className="text-[10px] font-bold text-muted disabled:opacity-30 hover:text-brand-text uppercase tracking-tighter"
+  >
+  ← Prev
  </button>
  <span className="text-[10px] text-muted uppercase tracking-widest font-bold">
  {page} / {totalPages}
@@ -185,9 +185,9 @@ export default function NotificationsPage() {
  <button
  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
  disabled={page === totalPages}
- className="text-[10px] font-bold text-muted disabled:opacity-30 hover:text-teal-600 dark:text-teal-400 uppercase tracking-tighter"
- >
- Next →
+  className="text-[10px] font-bold text-muted disabled:opacity-30 hover:text-brand-text uppercase tracking-tighter"
+  >
+  Next →
  </button>
  </div>
  )}

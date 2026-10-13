@@ -345,16 +345,16 @@ const ExpenseForm = ({ onSubmitSuccess, onCancel }) => {
  {/* Step 2: Expense Form */}
  {step === "form" && (
  <form onSubmit={handleSubmit} className="space-y-6">
- {/* Success Banner */}
- <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 dark:border-green-800/50 rounded-xl p-4 flex items-center gap-3">
- <CheckCircle size={20} className="text-green-600 dark:text-green-400 flex-shrink-0" />
- <div>
- <p className="text-xs font-bold text-green-900">Receipt Processed Successfully!</p>
- <p className="text-[10px] text-green-700 dark:text-green-400 mt-1">
- Review and edit the auto-filled details below before submitting.
- </p>
- </div>
- </div>
+{/* Success Banner */}
+  <div className="lm-success-badge bg-emerald-50/50 dark:bg-emerald-900/30 border-emerald-100 p-4 rounded-xl flex items-center gap-3">
+  <CheckCircle size={20} className="lm-success-value flex-shrink-0" />
+  <div>
+  <p className="lm-success-text font-bold uppercase tracking-wider">Receipt Processed Successfully!</p>
+  <p className="lm-success-text font-medium mt-1">
+  Review and edit the auto-filled details below before submitting.
+  </p>
+  </div>
+  </div>
 
  {/* Title */}
  <div>

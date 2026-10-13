@@ -31,7 +31,7 @@ export default function ChangelogModal() {
       footer={
         <button
           onClick={handleClose}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          className="btn btn-primary px-6 py-2 rounded-lg font-medium"
         >
           Got it
         </button>

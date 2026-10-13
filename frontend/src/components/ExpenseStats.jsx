@@ -1,5 +1,6 @@
 import React from "react";
 import { DollarSign, Clock, CheckCircle, XCircle } from "lucide-react";
+import "../styles/adminPortal.css";
 
 const ExpenseStats = ({ stats }) => {
  const statCards = [
@@ -10,7 +11,8 @@ const ExpenseStats = ({ stats }) => {
  icon: DollarSign,
  textColor: "text-main",
  iconColor: "text-main",
- iconBg: "bg-app"
+ iconBg: "bg-app",
+ accent: "#64748B"
  },
  {
  title: "Pending",
@@ -19,7 +21,8 @@ const ExpenseStats = ({ stats }) => {
  icon: Clock,
  textColor: "text-amber-600 dark:text-amber-400",
  iconColor: "text-amber-600 dark:text-amber-400",
- iconBg: "bg-amber-100 dark:bg-amber-900/40"
+ iconBg: "bg-amber-100 dark:bg-amber-900/40",
+ accent: "#F59E0B"
  },
  {
  title: "Approved",
@@ -28,7 +31,8 @@ const ExpenseStats = ({ stats }) => {
  icon: CheckCircle,
  textColor: "text-emerald-600 dark:text-emerald-400",
  iconColor: "text-emerald-600 dark:text-emerald-400",
- iconBg: "bg-emerald-100 dark:bg-emerald-900/40"
+ iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+ accent: "#10B981"
  },
  {
  title: "Rejected",
@@ -41,7 +45,8 @@ const ExpenseStats = ({ stats }) => {
  icon: XCircle,
  textColor: "text-rose-600 dark:text-rose-400",
  iconColor: "text-rose-600 dark:text-rose-400",
- iconBg: "bg-rose-100 dark:bg-rose-900/40"
+ iconBg: "bg-rose-100 dark:bg-rose-900/40",
+ accent: "#F43F5E"
  }
  ];
 
@@ -63,8 +68,12 @@ const ExpenseStats = ({ stats }) => {
  {stat.subValue}
  </p>
  </div>
- <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.iconBg} flex-shrink-0`}>
- <Icon size={20} className={stat.iconColor} />
+ <div
+ className={`lm-ico-ring w-10 h-10 rounded-xl flex items-center justify-center ${stat.iconBg} flex-shrink-0`}
+ style={{ "--lm-accent": stat.accent }}
+ >
+ <span className="lm-glow" aria-hidden="true" />
+ <Icon size={20} className={`relative z-[2] ${stat.iconColor}`} />
  </div>
  </div>
  );

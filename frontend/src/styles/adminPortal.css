@@ -1,0 +1,1119 @@
+/* ============================================================
+   Admin Portal chrome — universal visual polish layer
+   Golden White Glassmorphism · shimmer / aurora
+   Shared by every admin screen (Leave Management, Attendance…)
+   via components/ui/PortalHero + PortalTabBar + StatCard.
+   Class names are prefixed with "lm-" so nothing leaks.
+   ============================================================ */
+
+@property --lm-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes lm-spin {
+  to { --lm-angle: 360deg; }
+}
+
+@keyframes lm-rot {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes lm-float {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-18px, 16px, 0) scale(1.08); }
+}
+
+@keyframes lm-shine {
+  0% { background-position: 180% 0; }
+  100% { background-position: -80% 0; }
+}
+
+@keyframes lm-halo {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.5); }
+  70% { box-shadow: 0 0 0 10px rgba(212, 175, 55, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+}
+
+@keyframes lm-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ==================== HERO ==================== */
+
+.lm-hero {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--radius-2xl, 1rem);
+  /* Clips the decorative layers (::before corner washes, the blurred orbs,
+     the dot texture) to the rounded card shape. Without this the square
+     ::before / the bottom-left orb paint outside the border radius and show
+     as a pointed gold wedge past the curved corner. */
+  overflow: hidden;
+}
+
+.lm-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 150% at 88% -25%, rgba(212, 175, 55, 0.3), transparent 55%),
+    radial-gradient(95% 130% at -12% 125%, rgba(180, 130, 20, 0.24), transparent 60%);
+}
+
+/* Glowing gold hairline across the top of the hero */
+.lm-hero::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 0;
+  height: 1.5px;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 221, 140, 0.95), transparent);
+  animation: lm-glint 4.5s ease-in-out infinite;
+}
+
+@keyframes lm-glint {
+  0%, 100% { opacity: 0.35; left: 12%; right: 12%; }
+  50% { opacity: 1; left: 4%; right: 4%; }
+}
+
+.lm-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(52px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: lm-float 14s ease-in-out infinite;
+}
+
+.lm-orb-1 {
+  width: 260px;
+  height: 260px;
+  right: -70px;
+  top: -100px;
+  background: rgba(212, 175, 55, 0.75);
+}
+
+.lm-orb-2 {
+  width: 220px;
+  height: 220px;
+  left: -80px;
+  bottom: -120px;
+  background: rgba(176, 128, 24, 0.6);
+  animation-delay: -6s;
+}
+
+.lm-dots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image: radial-gradient(rgba(212, 175, 55, 0.75) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(75% 80% at 62% 35%, #000 0%, transparent 78%);
+  mask-image: radial-gradient(75% 80% at 62% 35%, #000 0%, transparent 78%);
+}
+
+.lm-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-brand-primary);
+  animation: lm-halo 2.2s ease-out infinite;
+}
+
+.lm-title-wrap {
+  position: relative;
+  display: block;
+}
+
+.lm-title {
+  font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  /* line-height >= ~1.2 + a little padding keeps ascenders/descenders inside
+     the background box, so background-clip:text never crops the glyphs */
+  line-height: 1.2;
+  padding-bottom: 0.06em;
+  background-image: linear-gradient(135deg, #F7E7B4 0%, #EDBB3E 38%, #D9A21F 62%, #F5D77A 100%);
+  background-size: 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: lm-shine 7s linear infinite;
+}
+
+.dark .lm-title,
+[data-theme="dark"] .lm-title {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-brand-text) 0%,
+    var(--color-brand-primary) 30%,
+    #f2d98b 48%,
+    var(--color-brand-primary) 66%,
+    var(--color-brand-text) 100%
+  );
+}
+
+.lm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.72rem;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--color-border-secondary);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+.dark .lm-chip,
+[data-theme="dark"] .lm-chip {
+  background: rgba(30, 41, 59, 0.6);
+  color: var(--color-text-primary);
+}
+
+.lm-chip b {
+  color: var(--color-brand-text);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rotating emblem on the right of the hero */
+.lm-emblem {
+  position: relative;
+  width: 116px;
+  height: 116px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  animation: lm-bob 5s ease-in-out infinite;
+}
+
+/* Every layer is tinted by --lm-accent so each hero can carry its own
+   colour (set it on the .lm-emblem element via style={{ "--lm-accent": … }}).
+   Falls back to the brand gold when no accent is supplied. */
+.lm-emblem::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent);
+  animation: lm-rot 20s linear infinite;
+}
+
+/* Glass disc the emblem icon sits on — the "circle with the icon
+   inside" shell, exactly like .lm-ico-emblem::after on the card
+   icon chips. Centred so it lines up with .lm-emblem-core. */
+.lm-emblem::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  z-index: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.35) 45%, transparent 70%),
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent);
+  box-shadow:
+    0 4px 12px -6px color-mix(in srgb, var(--lm-accent, #D4AF37) 40%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.lm-emblem .lm-glow {
+  position: absolute;
+  inset: -11px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--lm-angle),
+    transparent 0deg,
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent) 70deg,
+    transparent 150deg,
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 20%, transparent) 250deg,
+    transparent 330deg
+  );
+  filter: blur(9px);
+  opacity: 0.35;
+  animation: lm-spin 6s linear infinite;
+}
+
+.lm-emblem .lm-emblem-core {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  color: var(--lm-accent, var(--color-brand-primary));
+}
+
+/* Icon libraries disagree on sizing: heroicons ignore the size prop and
+   stretch to fill the 56px core, while react-icons honour it (22px) — so
+   FaSitemap-style emblems rendered tiny next to the heroicons. Pin every
+   core svg to the full core so all hero emblems read at the same size.
+   CSS beats the width/height presentation attributes react-icons sets. */
+.lm-emblem .lm-emblem-core > svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ==================== TAB BAR ==================== */
+
+.lm-frame {
+  position: relative;
+  isolation: isolate;
+}
+
+.lm-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--lm-angle),
+    transparent 0deg,
+    transparent 235deg,
+    rgba(255, 219, 138, 0.25) 295deg,
+    rgba(255, 248, 226, 0.35) 320deg,
+    transparent 355deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: lm-spin 7s linear infinite;
+}
+
+.lm-tab {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+}
+
+.lm-tab.is-active {
+  color: var(--color-brand-text);
+}
+
+.lm-tab-pill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 0.8rem;
+  overflow: hidden;
+  background: linear-gradient(
+    140deg,
+    rgba(212, 175, 55, 0.2),
+    rgba(212, 175, 55, 0.07) 55%,
+    rgba(255, 255, 255, 0.14)
+  );
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 8px 18px -12px rgba(212, 175, 55, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.lm-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  color: #42320a;
+  background: linear-gradient(135deg, #ffe19a, var(--color-brand-primary));
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 3px 10px rgba(212, 175, 55, 0.3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==================== DASHBOARD CARDS ====================
+   A calmer, structured card system used by the admin dashboard.
+   One accent colour drives the top hairline, the icon chip, the
+   hover wash and the lift shadow, so cards read as one family.
+   Set the accent per card with style={{ "--lm-accent": "#F59E0B" }}.
+   ======================================================== */
+
+.lm-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-2xl, 1rem);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 10px 30px -16px rgba(15, 23, 42, 0.22);
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+/* Accent hairline hugging the top edge */
+.lm-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 85%, transparent),
+    transparent
+  );
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.lm-card:hover::before {
+  opacity: 0.5;
+}
+
+/* Accent-tinted corner wash, revealed on hover */
+.lm-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    110% 95% at 4% 0%,
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 18%, transparent),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.lm-card:hover::after {
+  opacity: 0;
+}
+
+.lm-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Home + Profile pages opt out of the accent hairline / corner wash so
+   every card reads with the plain, neutral chrome. */
+.lm-plain-cards .lm-card::before {
+  display: none !important;
+}
+
+.lm-plain-cards .lm-card::after,
+.lm-plain-cards .lm-card:hover::after {
+  opacity: 0 !important;
+}
+
+/* Subtle hover for plain cards (home/profile) — gentle lift + brand-tinted border */
+.lm-plain-cards .lm-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 14px 36px -18px rgba(15, 23, 42, 0.28),
+    0 0 0 1px color-mix(in srgb, var(--color-brand-primary) 25%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-primary) 35%, var(--color-border-primary));
+}
+
+/* ---------- card header ---------- */
+
+.lm-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.95rem 1.25rem;
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+/* Square icon tile used in .lm-card-head.
+   NOTE: deliberately NOT named ".lm-chip" — that class belongs to the pill
+   chips in PortalHero and the two rules used to clobber each other. */
+.lm-ico-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  border-radius: 0.7rem;
+  color: var(--lm-accent, var(--color-brand-primary));
+  background-color: color-mix(in srgb, var(--lm-accent, #D4AF37) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lm-accent, #D4AF37) 26%, transparent);
+}
+
+/* Miniature version of the hero emblem (.lm-emblem) for card icon chips —
+   same shell: static round glass disc, rotating dashed ring and a
+   spinning conic glow. Used by People Portal home cards + Profile cards.
+   NOTE: no lm-bob here — these small tiles stay still on the page; the
+   up/down float is reserved for the hero card (.lm-emblem). */
+.lm-ico-emblem {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--lm-accent, var(--color-brand-primary));
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.lm-ico-emblem::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent);
+  animation: lm-rot 20s linear infinite;
+}
+
+.lm-ico-emblem::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.35) 45%, transparent 70%),
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent);
+  box-shadow:
+    0 4px 12px -6px color-mix(in srgb, var(--lm-accent, #D4AF37) 40%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.lm-ico-emblem .lm-glow {
+  position: absolute;
+  inset: -7px;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--lm-angle),
+    transparent 0deg,
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent) 70deg,
+    transparent 150deg,
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 20%, transparent) 250deg,
+    transparent 330deg
+  );
+  filter: blur(7px);
+  opacity: 0.35;
+  animation: lm-spin 6s linear infinite;
+}
+
+.lm-ico-emblem > svg {
+  position: relative;
+  z-index: 2;
+}
+
+/* Square emblem variant — same glass/emblem treatment as .lm-ico-emblem
+   but with rounded-square shape (matching KPI icon border-radius).
+   Used wherever a square icon with rotating dashed ring + conic glow is needed
+   without the gradient fill of .lm-kpi-icon.
+   Radii are percentages (not rem) so the shape stays the same
+   squircle on every tile size — the profile cards (40px) and the
+   home dashboard cards (32px) read with the same square silhouette
+   instead of the smaller tile turning into a near-circle. */
+.lm-ico-emblem-square {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 36%;
+  color: var(--lm-accent, var(--color-brand-primary));
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.lm-ico-emblem-square::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 36%;
+  border: 1px dashed color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent);
+  animation: lm-rot 20s linear infinite;
+}
+
+.lm-ico-emblem-square::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 36%;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.35) 45%, transparent 70%),
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent);
+  box-shadow:
+    0 4px 12px -6px color-mix(in srgb, var(--lm-accent, #D4AF37) 40%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.lm-ico-emblem-square .lm-glow {
+  position: absolute;
+  inset: -11px;
+  z-index: -1;
+  border-radius: 36%;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--lm-angle),
+    transparent 0deg,
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent) 70deg,
+    transparent 150deg,
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 20%, transparent) 250deg,
+    transparent 330deg
+  );
+  filter: blur(9px);
+  opacity: 0.35;
+  animation: lm-spin 6s linear infinite;
+}
+
+.lm-ico-emblem-square > svg {
+  position: relative;
+  z-index: 2;
+}
+
+/* Dark mode for square emblem */
+.dark .lm-ico-emblem-square {
+  color: var(--lm-accent, var(--color-brand-secondary));
+}
+
+.dark .lm-ico-emblem-square::before {
+  border-color: color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent);
+}
+
+.dark .lm-ico-emblem-square::after {
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.14), transparent 62%),
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 12%, transparent);
+  border-color: color-mix(in srgb, var(--lm-accent, #D4AF37) 30%, transparent);
+  box-shadow:
+    0 8px 20px -14px color-mix(in srgb, var(--lm-accent, #D4AF37) 50%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.dark .lm-ico-emblem-square .lm-glow {
+  opacity: 0.25;
+  filter: blur(11px);
+}
+
+.lm-card-title {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-heading);
+}
+
+.lm-card-sub {
+  margin-top: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.lm-card-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.lm-card-body {
+  padding: 1.25rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ---------- KPI ---------- */
+
+.lm-kpi-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  border-radius: 0.9rem;
+  color: #fff;
+  background-image: var(--lm-grad, linear-gradient(135deg, #fbbf24, #f97316));
+  box-shadow:
+    0 8px 20px -10px color-mix(in srgb, var(--lm-accent, #D4AF37) 85%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Same emblem treatment as .lm-ico-emblem: a rotating dashed ring around
+   the tile plus a spinning conic glow behind it, both tinted by --lm-accent
+   so every KPI card gets the hero-card emblem effect in its own colour.
+   `.lm-ico-ring` exposes the same treatment to any other icon tile (e.g.
+   the Expense stat cards) — just add the class + a <span className="lm-glow" />. */
+.lm-ico-ring {
+  position: relative;
+}
+
+.lm-kpi-icon::before,
+.lm-ico-ring::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 1.15rem;
+  border: 1px dashed color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent);
+  animation: lm-rot 20s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.lm-kpi-icon .lm-glow,
+.lm-ico-ring .lm-glow {
+  position: absolute;
+  inset: -11px;
+  border-radius: 1.3rem;
+  pointer-events: none;
+  z-index: -1;
+  background: conic-gradient(
+    from var(--lm-angle),
+    transparent 0deg,
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent) 70deg,
+    transparent 150deg,
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 20%, transparent) 250deg,
+    transparent 330deg
+  );
+  filter: blur(9px);
+  opacity: 0.35;
+  animation: lm-spin 6s linear infinite;
+}
+
+.lm-kpi-icon > svg,
+.lm-ico-ring > svg {
+  position: relative;
+  z-index: 2;
+}
+
+.lm-kpi-value {
+  font-size: 2.125rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-heading);
+}
+
+.lm-kpi-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 100%;
+  height: 3px;
+  transform: scaleX(0);
+  transform-origin: left;
+  background-image: var(--lm-grad, linear-gradient(90deg, #fbbf24, #f97316));
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------- list rows (attendance legend, action centre) ---------- */
+
+.lm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--color-border-secondary);
+  background-color: color-mix(in srgb, var(--color-bg-primary) 55%, transparent);
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lm-row:hover {
+  transform: translateX(2px);
+  border-color: color-mix(in srgb, var(--lm-accent, #D4AF37) 40%, var(--color-border-secondary));
+}
+
+.lm-meter {
+  height: 0.3rem;
+  border-radius: 9999px;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+}
+
+.lm-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------- footer stat strip ---------- */
+
+.lm-stat-strip {
+  display: grid;
+  gap: 1px;
+  background-color: var(--color-border-secondary);
+}
+
+.lm-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1rem 1.25rem;
+  background-color: var(--color-bg-secondary);
+}
+
+/* ---------- dark mode ---------- */
+
+/* Tabs (PortalTabBar) — golden in BOTH themes (dark keeps the gold glass pill) */
+.dark .lm-tab.is-active {
+  color: var(--color-brand-text);
+}
+
+.dark .lm-tab .lm-badge {
+  background: linear-gradient(135deg, #ffe19a, #D4AF37);
+  color: #42320a;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 3px 10px rgba(212, 175, 55, 0.35);
+}
+
+.dark .lm-tab:hover:not(.is-active) {
+  background-color: rgba(212, 175, 55, 0.12);
+  color: var(--color-brand-text);
+}
+
+.dark .lm-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 12px 32px -18px rgba(0, 0, 0, 0.9);
+}
+
+.dark .lm-card::after {
+  opacity: 0.45;
+}
+
+.dark .lm-card:hover::after {
+  opacity: 0.8;
+}
+
+/* Dark mode hover for plain cards (home/profile) — subtle lift */
+.dark .lm-plain-cards .lm-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 16px 40px -20px rgba(0, 0, 0, 0.95),
+    0 0 0 1px color-mix(in srgb, var(--color-brand-primary) 30%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-primary) 40%, var(--color-border-primary));
+}
+
+/* KPI / stat cards stay calm on hover: no brighten, no accent border,
+   no icon pop and no sweeping bar — the hover effects were removed. */
+.dark .lm-card-lift:hover::after {
+  opacity: 0.45;
+}
+
+/* ---------- dark theme: calm, non-animated summary cards ----------
+    The accent line along the bottom edge never sweeps on these cards. */
+.dark .lm-kpi-bar {
+  display: none;
+}
+
+/* ---------- dark theme: dim the animated gold borders ----------
+   The rotating conic border on the tab bar and the glinting hairline on
+   the hero card are both very bright on an obsidian background. Turn the
+   lightness down so they read as a faint accent instead of a light show.
+   `filter` is used for the hero because `lm-glint` animates `opacity`
+   and would win against a plain opacity override. */
+.dark .lm-frame::after {
+  opacity: 0.22;
+}
+
+.dark .lm-hero::after {
+  filter: brightness(0.42);
+}
+
+/* ---------- dark theme: dim the hero emblem so the icon reads ----------
+   The emblem disc behind the icon stacks a near-white radial highlight,
+   a gold fill, a gold border and a large gold drop shadow. On the light
+   theme that reads as glass; on obsidian it washes the disc out and the
+   bright-gold icon on top disappears into it. Drop every layer to a
+   fraction of its original lightness and darken the disc fill so the
+   icon becomes the brightest thing in the badge again. */
+.dark .lm-emblem .lm-glow {
+  opacity: 0.2;
+  filter: blur(18px);
+}
+
+.dark .lm-emblem::before {
+  border-color: color-mix(in srgb, var(--lm-accent, #D4AF37) 32%, transparent);
+}
+
+.dark .lm-emblem::after {
+  background:
+    radial-gradient(
+      circle at 32% 26%,
+      rgba(255, 255, 255, 0.12),
+      transparent 62%
+    ),
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 10%, transparent);
+  border-color: color-mix(in srgb, var(--lm-accent, #D4AF37) 26%, transparent);
+  box-shadow:
+    0 10px 26px -16px color-mix(in srgb, var(--lm-accent, #D4AF37) 45%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* The icon itself keeps full-strength accent plus a soft halo, so it now
+   reads clearly against the dimmed disc instead of blending into it. */
+.dark .lm-emblem .lm-emblem-core {
+  color: var(--lm-accent, var(--color-brand-secondary));
+  text-shadow: 0 0 12px color-mix(in srgb, var(--lm-accent, #D4AF37) 40%, transparent);
+}
+
+/* Mini emblem chips (card icons) get the same dark-mode dimming. */
+.dark .lm-ico-emblem {
+  color: var(--lm-accent, var(--color-brand-secondary));
+}
+
+.dark .lm-ico-emblem::before {
+  border-color: color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent);
+}
+
+.dark .lm-ico-emblem::after {
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.14), transparent 62%),
+    color-mix(in srgb, var(--lm-accent, #D4AF37) 12%, transparent);
+  border-color: color-mix(in srgb, var(--lm-accent, #D4AF37) 30%, transparent);
+  box-shadow:
+    0 8px 20px -14px color-mix(in srgb, var(--lm-accent, #D4AF37) 50%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.dark .lm-ico-emblem .lm-glow {
+  opacity: 0.25;
+  filter: blur(9px);
+}
+
+/* KPI emblem rings glow at the same reduced strength on dark surfaces. */
+.dark .lm-kpi-icon::before,
+.dark .lm-ico-ring::before {
+  border-color: color-mix(in srgb, var(--lm-accent, #D4AF37) 35%, transparent);
+}
+
+.dark .lm-kpi-icon .lm-glow,
+.dark .lm-ico-ring .lm-glow {
+  opacity: 0.25;
+  filter: blur(11px);
+}
+
+/* ==================== SHARED FX ==================== */
+
+/* `backwards` (not `both`): once the entrance finishes the animation stops
+   overriding transforms, so .lm-card-lift:hover can actually lift the card. */
+.lm-stagger > * {
+  animation: lm-rise 0.55s var(--transition-timing, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
+}
+
+@keyframes lm-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lm-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.lm-stagger > *:nth-child(2) { animation-delay: 0.12s; }
+.lm-stagger > *:nth-child(3) { animation-delay: 0.19s; }
+.lm-stagger > *:nth-child(4) { animation-delay: 0.26s; }
+.lm-stagger > *:nth-child(5) { animation-delay: 0.33s; }
+.lm-stagger > *:nth-child(6) { animation-delay: 0.4s; }
+
+/* ==================== TABLE SUCCESS STYLES ====================
+   Standardized green/emerald text and badges for tables.
+   Use these classes instead of inline tailwind for consistency. */
+
+.lm-success-text {
+  color: var(--color-success, #10B981);
+  font-weight: 700;
+  font-size: 0.75rem; /* text-xs */
+  line-height: 1.25;
+}
+
+.dark .lm-success-text {
+  color: var(--color-success-dark, #34D399);
+}
+
+.lm-success-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem; /* gap-1.5 */
+  padding: 0.25rem 0.625rem; /* py-1 px-2.5 */
+  border-radius: 9999px; /* rounded-full */
+  font-size: 0.625rem; /* text-[10px] */
+  font-weight: 800; /* font-black */
+  text-transform: uppercase;
+  letter-spacing: 0.05em; /* tracking-wider */
+  line-height: 1;
+  border: 1px solid;
+  background-color: color-mix(in srgb, var(--color-success, #10B981) 12%, transparent);
+  color: var(--color-success, #10B981);
+  border-color: color-mix(in srgb, var(--color-success, #10B981) 25%, transparent);
+}
+
+.dark .lm-success-badge {
+  background-color: color-mix(in srgb, var(--color-success-dark, #34D399) 12%, transparent);
+  color: var(--color-success-dark, #34D399);
+  border-color: color-mix(in srgb, var(--color-success-dark, #34D399) 25%, transparent);
+}
+
+.lm-success-badge::before {
+  display: none;
+}
+
+/* Success value text for KPI/numeric displays */
+.lm-success-value {
+  color: var(--color-success, #10B981);
+  font-weight: 900; /* font-black */
+  font-variant-numeric: tabular-nums;
+}
+
+.dark .lm-success-value {
+  color: var(--color-success-dark, #34D399);
+}
+
+/* Warning badge (amber) */
+.lm-warning-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  border: 1px solid;
+  background-color: color-mix(in srgb, #F59E0B 12%, transparent);
+  color: #F59E0B;
+  border-color: color-mix(in srgb, #F59E0B 25%, transparent);
+}
+
+.dark .lm-warning-badge {
+  background-color: color-mix(in srgb, #FBBF24 12%, transparent);
+  color: #FBBF24;
+  border-color: color-mix(in srgb, #FBBF24 25%, transparent);
+}
+
+/* Neutral badge (slate) */
+.lm-neutral-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  border: 1px solid;
+  background-color: color-mix(in srgb, #64748B 12%, transparent);
+  color: #64748B;
+  border-color: color-mix(in srgb, #64748B 25%, transparent);
+}
+
+.dark .lm-neutral-badge {
+  background-color: color-mix(in srgb, #94A3B8 12%, transparent);
+  color: #94A3B8;
+  border-color: color-mix(in srgb, #94A3B8 25%, transparent);
+}
+
+/* Danger badge (rose/red) */
+.lm-danger-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  border: 1px solid;
+  background-color: color-mix(in srgb, #F43F5E 12%, transparent);
+  color: #F43F5E;
+  border-color: color-mix(in srgb, #F43F5E 25%, transparent);
+}
+
+.dark .lm-danger-badge {
+  background-color: color-mix(in srgb, #FB7185 12%, transparent);
+  color: #FB7185;
+  border-color: color-mix(in srgb, #FB7185 25%, transparent);
+}
+
+/* ==================== REDUCED MOTION ==================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .lm-orb,
+  .lm-title,
+  .lm-hero::after,
+  .lm-emblem,
+  .lm-emblem::before,
+  .lm-emblem .lm-glow,
+  .lm-ico-emblem,
+  .lm-ico-emblem::before,
+  .lm-ico-emblem .lm-glow,
+  .lm-kpi-icon::before,
+  .lm-kpi-icon .lm-glow,
+  .lm-ico-ring::before,
+  .lm-ico-ring .lm-glow,
+  .lm-frame::after,
+  .lm-pulse,
+  .lm-stagger > *,
+  .lm-card,
+  .lm-card-lift,
+  .lm-kpi-icon,
+  .lm-kpi-bar,
+  .lm-row {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,29 +1,43 @@
-import React, { useState, useEffect } from "react";
-import PageContainer from "../../components/ui/PageContainer";
-import GlassModal from "../../components/ui/GlassModal";
-import TableWithPagination from "../../components/TableWithPagination";
-import ModernSelect from "../../components/ui/ModernSelect";
-import api from "../../axios";
-import { toast } from "react-toastify";
-import Loader from "../../components/ui/Loader";
-import { Plus, X, Search, ShieldCheck, Eye, Edit2, Trash2 } from "lucide-react";
-import { useConfirm } from "../../context/ConfirmContext";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { motion as Motion } from "framer-motion";
 
-const TenantManagement = () => {
+import ModernSelect from "../../components/ui/ModernSelect";
+import PageContainer from "../../components/ui/PageContainer";
+import PortalHero from "../../components/ui/PortalHero";
+import PortalTabBar from "../../components/ui/PortalTabBar";
+import GlassInput from "../../components/ui/GlassInput";
+import GlassButton from "../../components/ui/GlassButton";
+import GlassModal from "../../components/ui/GlassModal";
+import Loader from "../../components/ui/Loader";
+import FilterRow from "../../components/ui/FilterRow";
+import FilterPanel from "../../components/ui/FilterPanel";
+import StatCard from "../../components/ui/StatCard";
+import StyledTable from "../../components/ui/StyledTable";
+import Toast from "../../components/Toast";
+import { FaBuilding, FaUsers, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaFileCsv, FaSyncAlt, FaPlus, FaSearch, FaTimes, FaShieldAlt, FaEye, FaPen, FaTrash } from "react-icons/fa";
+import { Squares2X2Icon } from "@heroicons/react/20/solid";
+import api from "../../axios";
+import { useConfirm } from "../../context/ConfirmContext";
+import { downloadCsv } from "../../utils/tableUtils";
+import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
+
+const EASE = [0.16, 1, 0.3, 1];
+
+function TenantManagement() {
   const confirm = useConfirm();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
-  
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
-
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setFaSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("All");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  
+  const [activeTab, setActiveTab] = useState(0);
+  const [error, setError] = useState(false);
+
+  const [showToast, setShowToast] = useState(null);
+
   const initialFormState = {
     companyName: "",
     companyOwner: "",
@@ -51,25 +65,34 @@ const TenantManagement = () => {
 
   const [formData, setFormData] = useState(initialFormState);
 
-  const fetchCompanies = async () => {
+  const fetchCompanies = useCallback(async () => {
     try {
       setLoading(true);
+      setError(false);
       const res = await api.get("/master/companies");
       setCompanies(res.data || []);
-    } catch (error) {
-      if (error.response?.status === 403) {
-        toast.error("Access Denied: Master Tenant Only");
+    } catch (err) {
+      console.error("Failed to load companies:", err);
+      if (err.response?.status === 403) {
+        setShowToast({
+          message: "Access Denied: Master Tenant Only",
+          type: "error"
+        });
       } else {
-        toast.error("Failed to load companies");
+        setShowToast({
+          message: "Failed to load companies",
+          type: "error"
+        });
       }
+      setError(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCompanies();
-  }, []);
+  }, [fetchCompanies]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -78,8 +101,8 @@ const TenantManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const finalCompanyType = formData.companyType === "Other" && formData.customCompanyType 
-        ? formData.customCompanyType 
+      const finalCompanyType = formData.companyType === "Other" && formData.customCompanyType
+        ? formData.customCompanyType
         : formData.companyType;
 
       const payload = {
@@ -90,8 +113,8 @@ const TenantManagement = () => {
         website: formData.website,
         address: formData.address,
         noOfEmployees: formData.noOfEmployees,
-        ...formData,
         companyType: finalCompanyType,
+        ...formData,
         emailConfig: {
           provider: formData.emailProvider,
           smtpHost: formData.smtpHost,
@@ -102,12 +125,15 @@ const TenantManagement = () => {
         }
       };
       await api.post("/master/onboard", payload);
-      toast.success("Company onboarded successfully");
+      setShowToast({ message: "Company onboarded successfully", type: "success" });
       setIsModalOpen(false);
       setFormData(initialFormState);
       fetchCompanies();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to onboard company");
+      setShowToast({
+        message: error.response?.data?.message || "Failed to onboard company",
+        type: "error"
+      });
     }
   };
 
@@ -121,8 +147,7 @@ const TenantManagement = () => {
         companyEmail: formData.companyEmail,
         website: formData.website,
         address: formData.address,
-        noOfEmployees: formData.noOfEmployees,
-        maxUsers: formData.maxUsers,
+        noOfEmployees: formData.maxUsers,
         subscriptionStatus: formData.subscriptionStatus,
         azureTenantId: formData.azureTenantId,
         azureClientId: formData.azureClientId,
@@ -136,21 +161,27 @@ const TenantManagement = () => {
         }
       };
       await api.put(`/master/companies/${selectedTenant._id}`, payload);
-      toast.success("Company configuration updated");
+      setShowToast({ message: "Company configuration updated", type: "success" });
       setIsEditModalOpen(false);
       fetchCompanies();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update company");
+      setShowToast({
+        message: error.response?.data?.message || "Failed to update company",
+        type: "error"
+      });
     }
   };
 
   const handleDelete = async (id) => {
     try {
       await api.delete(`/master/companies/${id}`);
-      toast.success("Company deleted successfully");
+      setShowToast({ message: "Company deleted successfully", type: "success" });
       fetchCompanies();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to delete company");
+      setShowToast({
+        message: error.response?.data?.message || "Failed to delete company",
+        type: "error"
+      });
     }
   };
 
@@ -179,211 +210,396 @@ const TenantManagement = () => {
     setIsEditModalOpen(true);
   };
 
-  // Filter Data
+  // Filter data — search, type AND the active status tab (0=All, 1=Active, 2=Suspended)
   const getFilteredData = () => {
     return companies.filter(c => {
       const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = !searchTerm || 
-                            (c.companyName?.toLowerCase() || "").includes(searchLower) ||
-                            (c.companyOwner?.toLowerCase() || "").includes(searchLower) ||
-                            (c.companyEmail?.toLowerCase() || "").includes(searchLower);
+      const matchesFaSearch =
+        !searchTerm ||
+        (c.companyName?.toLowerCase() || "").includes(searchLower) ||
+        (c.companyOwner?.toLowerCase() || "").includes(searchLower) ||
+        (c.companyEmail?.toLowerCase() || "").includes(searchLower);
       const matchesType = filterType === "All" || c.companyType === filterType;
-      const matchesStatus = filterStatus === "All" || (c.subscriptionStatus || "Active") === filterStatus;
-      return matchesSearch && matchesType && matchesStatus;
+      const status = c.subscriptionStatus || "Active";
+      const matchesTab =
+        activeTab === 0 ||
+        (activeTab === 1 && status === "Active") ||
+        (activeTab === 2 && status === "Suspended");
+      return matchesFaSearch && matchesType && matchesTab;
     });
   };
 
-  // Table Columns Setup
-  const tenantColumns = [
-    {
-      key: "companyName",
-      label: "Company Name",
-      sortable: true,
-      render: (_, row) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm font-bold shrink-0">
-            {row.companyName?.charAt(0).toUpperCase() || "C"}
-          </div>
-          <span className="text-main font-medium truncate max-w-[200px]" title={row.companyName}>
-            {row.companyName}
-          </span>
-        </div>
-      )
-    },
-    {
-      key: "companyOwner",
-      label: "Owner",
-      sortable: true,
-      render: (_, row) => <span className="text-main font-medium">{row.companyOwner}</span>
-    },
-    {
-      key: "companyEmail",
-      label: "Admin Email",
-      sortable: true,
-      render: (_, row) => <span className="text-muted text-sm">{row.companyEmail}</span>
-    },
-    {
-      key: "companyType",
-      label: "Type",
-      sortable: true,
-      render: (_, row) => (
-        <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-blue-100/50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-          {row.companyType}
-        </span>
-      )
-    },
-    {
-      key: "maxUsers",
-      label: "User Limit",
-      sortable: true,
-      render: (_, row) => <span className="text-main font-medium">{row.maxUsers || 50}</span>
-    },
-    {
-      key: "isMasterTenant",
-      label: "Master Tenant",
-      sortable: true,
-      render: (_, row) => (
-        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 w-max ${
-          row.isMasterTenant 
-            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" 
-            : "bg-surface border border-border-subtle text-muted"
-        }`}>
-          {row.isMasterTenant && <ShieldCheck size={12} />}
-          {row.isMasterTenant ? "Yes" : "No"}
-        </span>
-      )
-    }
+  const resetFilters = () => {
+    setFaSearchTerm("");
+    setFilterType("All");
+    setActiveTab(0);
+  };
+
+  // KPI helpers
+  const activeCount = useMemo(() => companies.filter(c => (c.subscriptionStatus || "Active") === "Active").length, [companies]);
+  const suspendedCount = useMemo(() => companies.filter(c => (c.subscriptionStatus || "Active") === "Suspended").length, [companies]);
+
+  // Status render helper for table column
+  const statusBadgeClass = (status) => {
+    const variant = STATUS_VARIANTS[resolveStatusVariant(status)];
+    return variant ? variant.badge : STATUS_VARIANTS.neutral.badge;
+  };
+
+  // CSV export header
+  const exportCsv = () => {
+    const header = [
+      "S.No.",
+      "Company Name",
+      "Owner",
+      "Admin Email",
+      "Type",
+      "Status",
+      "User Limit",
+      "Master Tenant"
+    ];
+    const rows = getFilteredData().map((c, i) => [
+      i + 1,
+      c.companyName || "-",
+      c.companyOwner || "-",
+      c.companyEmail || "-",
+      c.companyType || "-",
+      c.subscriptionStatus || "Active",
+      c.maxUsers || 50,
+      c.isMasterTenant ? "Yes" : "No"
+    ]);
+    downloadCsv(`tenants-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
+    setShowToast({ message: "Tenant data exported", type: "success" });
+  };
+
+  // ---------- Tabs ----------
+  const tabs = [
+    { key: 0, title: "All Tenants", icon: FaBuilding, hint: "All isolated tenants", badge: companies.length },
+    { key: 1, title: "Active", icon: FaCheckCircle, hint: "Active tenants", badge: activeCount },
+    { key: 2, title: "Suspended", icon: FaTimesCircle, hint: "Suspended tenants", badge: suspendedCount }
   ];
 
-  const tableActions = [
-    {
-      icon: <Eye size={16} />,
-      title: "View Details",
-      onClick: (row) => {
-        setSelectedTenant(row);
-        setIsViewModalOpen(true);
-      }
-    },
-    {
-      icon: <Edit2 size={16} />,
-      title: "Edit Configuration",
-      onClick: (row) => openEditModal(row)
-    },
-    {
-      icon: <Trash2 size={16} />,
-      title: "Delete Tenant",
-      onClick: (row) => {
-        if (row.isMasterTenant) {
-          toast.warn("Master Tenant cannot be deleted.");
-          return;
-        }
-        confirm({
-          title: "Delete Tenant?",
-          message: `Are you sure you want to completely remove ${row.companyName}? This action is irreversible and deletes all associated user accounts.`,
-          confirmText: "Delete",
-          cancelText: "Cancel",
-          onConfirmAction: () => handleDelete(row._id)
-        });
+  // ---------- Portal Hero ----------
+
+  const heroChips = [
+    { icon: FaBuilding, value: companies.length, label: " Tenants" },
+    { pulse: true, value: suspendedCount, label: " Suspended" },
+    { icon: FaCheckCircle, value: activeCount, label: " Active" },
+  ];
+
+  // ---------- Portal TabBar right ----------
+  const rightTabActions = (
+    <>
+      <span className="hidden xl:block text-[10px] font-black uppercase tracking-widest text-muted">
+        Tenant Directory
+      </span>
+      <button
+        onClick={() => fetchCompanies()}
+        disabled={loading}
+        className="btn btn-primary w-full lg:w-auto flex items-center justify-center gap-2 disabled:opacity-60 active:scale-95 transition-transform"
+        title="Refresh tenant data"
+      >
+        <FaSyncAlt size={13} className={loading ? "animate-spin" : ""} />
+        Refresh
+      </button>
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className="btn btn-primary ml-2"
+        title="Onboard new tenant"
+      >
+        <FaPlus size={14} strokeWidth={3} /> Onboard Tenant
+      </button>
+    </>
+  );
+
+  // ---------- Table columns (declared before the early return so the hook always runs) ----------
+  const columns = useMemo(
+    () => [
+      {
+        key: "__index",
+        label: "S.No.",
+        sortable: false,
+        type: "index",
+        className: "text-muted text-xs font-bold",
       },
-      className: (row) => row.isMasterTenant ? "text-slate-300 dark:text-slate-600 cursor-not-allowed" : "text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 transition-colors"
-    }
-  ];
-
-  return (
-    <PageContainer 
-      title="Tenant Management" 
-      subtitle="Manage and onboard isolated tenants"
-      isCard={true}
-      headerActions={
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => { setFormData(initialFormState); setIsModalOpen(true); }}
-            className="btn btn-primary flex items-center gap-2 active:scale-95"
-          >
-            <Plus size={16} strokeWidth={3} /> Onboard New Tenant
-          </button>
-        </div>
-      }
-      filters={
-        <div className="flex flex-col w-full">
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Search */}
-            <div className="relative group">
-              <input
-                type="text"
-                placeholder="Search tenants..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="glass-input pl-9 pr-9 w-64"
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-brand-primary transition-colors pointer-events-none" />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-heading transition-colors"
-                >
-                  <X size={14} />
-                </button>
-              )}
+      {
+        key: "companyName",
+        label: "Company Name",
+        sortable: true,
+        render: (_, c) => (
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm font-bold shrink-0">
+              {c.companyName?.charAt(0).toUpperCase() || "C"}
             </div>
-
-            {/* Type Filter */}
-            <div className="w-[180px]">
-              <ModernSelect
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                options={[
-                  { value: "All", label: "All Types" },
-                  { value: "Tech", label: "Tech" },
-                  { value: "Marketing", label: "Marketing" },
-                  { value: "E-Commerce", label: "E-Commerce" },
-                  { value: "Other", label: "Other" }
-                ]}
-                placeholder="Company Type"
-              />
-            </div>
-            
-            {/* Status Filter */}
-            <div className="w-[180px]">
-              <ModernSelect
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                options={[
-                  { value: "All", label: "All Statuses" },
-                  { value: "Active", label: "Active" },
-                  { value: "Suspended", label: "Suspended" }
-                ]}
-                placeholder="Status"
-              />
-            </div>
-            
-            {/* Counter Badge */}
-            <div className="ml-auto bg-surface border border-border-subtle px-4 py-1.5 rounded-xl flex items-center gap-2 shadow-sm">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Total Tenants</span>
-              <span className="text-sm font-black text-heading">{getFilteredData().length}</span>
-            </div>
+            <span className="text-main font-medium truncate max-w-[220px]" title={c.companyName}>
+              {c.companyName}
+            </span>
           </div>
-        </div>
-      }
-    >
-      <div className="rounded-[1.5rem] shadow-sm border border-border-subtle overflow-hidden bg-surface dark:bg-app h-full">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader size="lg" className="mb-4" text="Loading tenants..." />
+        )
+      },
+      {
+        key: "companyOwner",
+        label: "Owner",
+        sortable: true,
+        render: (_, c) => <span className="text-main font-medium">{c.companyOwner}</span>
+      },
+      {
+        key: "companyEmail",
+        label: "Admin Email",
+        sortable: true,
+        render: (_, c) => <span className="text-muted text-sm">{c.companyEmail}</span>
+      },
+      {
+        key: "companyType",
+        label: "Type",
+        sortable: true,
+        render: (_, c) => (
+          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-100/50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+            {c.companyType}
+          </span>
+        )
+      },
+      {
+        key: "status",
+        label: "Status",
+        sortable: true,
+        render: (_, c) => {
+          const status = c?.subscriptionStatus || "Active";
+          return (
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border ${statusBadgeClass(status)}`}
+            >
+              {status}
+            </span>
+          );
+        }
+      },
+      {
+        key: "maxUsers",
+        label: "User Limit",
+        sortable: true,
+        render: (_, c) => <span className="text-main font-medium">{c.maxUsers || 50}</span>
+      },
+      {
+        key: "isMasterTenant",
+        label: "Master Tenant",
+        sortable: true,
+        render: (_, c) => (
+          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 w-max ${
+            c.isMasterTenant
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+              : "bg-surface border border-border-subtle text-muted"
+          }`}>
+            {c.isMasterTenant && <FaShieldAlt size={12} />}
+            {c.isMasterTenant ? "Yes" : "No"}
+          </span>
+        )
+      },
+      {
+        key: "actions",
+        label: "Actions",
+        align: "right",
+        render: (_, c) => (
+          <div className="flex justify-end items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <FaEye
+              size={16}
+              onClick={() => {
+                setSelectedTenant(c);
+                setIsViewModalOpen(true);
+              }}
+            />
+            <FaPen
+              size={16}
+              onClick={() => openEditModal(c)}
+            />
+            <FaTrash
+              size={16}
+              onClick={() => {
+                if (c.isMasterTenant) {
+                  setShowToast({
+                    message: "Master Tenant cannot be deleted.",
+                    type: "error"
+                  });
+                  return;
+                }
+                confirm({
+                  title: "Delete Tenant?",
+                  message: `Are you sure you want to completely remove ${c.companyName}? This action is irreversible and deletes all associated user accounts.`,
+                  confirmText: "Delete",
+                  cancelText: "Cancel",
+                  onConfirmAction: () => handleDelete(c._id)
+                });
+              }}
+              className={c.isMasterTenant ? "text-slate-300 dark:text-slate-600 cursor-not-allowed" : "text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 transition-colors"}
+            />
           </div>
-        ) : (
-          <TableWithPagination
-            columns={tenantColumns}
-            data={getFilteredData()}
-            loading={loading}
-            emptyMessage="No tenants found."
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(newVal) => setRowsPerPage(newVal)}
-            onRowClick={(row) => { setSelectedTenant(row); setIsViewModalOpen(true); }}
-            actions={tableActions}
-          />
-        )}
+        )
+      }
+    ],
+    []
+  );
+
+  // ---------- Error render ----------
+  if (error && companies.length === 0) {
+    return (
+      <div className="glass-card text-center py-14">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-danger-bg border border-danger-border flex items-center justify-center">
+          <FaExclamationTriangle size={22} className="text-danger" />
+        </div>
+        <p className="text-sm font-bold text-heading">Failed to load tenants</p>
+        <p className="text-xs text-muted mt-1 mb-5">
+          We couldn't load the tenant directory. Please try again.
+        </p>
+        <GlassButton variant="primary" onClick={fetchCompanies}>
+          RETRY
+        </GlassButton>
       </div>
+    );
+  }
+
+  // ---------- Render ----------
+  return (
+    <>
+      {/* Page-level Toast */}
+      {showToast && (
+        <Toast
+          message={showToast.message}
+          type={showToast.type}
+          onClose={() => setShowToast(null)}
+        />
+      )}
+
+      <PageContainer isCard={false}>
+        <div className="flex flex-col gap-4 w-full">
+
+          {/* ==================== HERO ==================== */}
+          <PortalHero
+                label="Tenant administration"
+              title="Tenant Management"
+            description="Onboard isolated workspaces, tune licensing and SSO, and keep every tenant healthy."
+            emblem={Squares2X2Icon}
+            chips={heroChips}
+          />
+
+          {/* ==================== TAB BAR ==================== */}
+          <PortalTabBar
+            tabs={tabs.map((t) => (t.key === 0 ? { ...t, badge: companies.length } : t))}
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            idPrefix="tenant-tab"
+            panelId="tenant-tabpanel"
+            ariaLabel="Tenant sections"
+            layoutId="tk-tab-pill"
+            right={rightTabActions}
+          />
+
+          {/* Tab content — remount on change */}
+          <Motion.div
+            key={activeTab}
+            id="tenant-tabpanel"
+            role="tabpanel"
+            aria-labelledby={`tenant-tab-${activeTab}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.14, ease: EASE }}
+            className="space-y-4"
+          >
+            {/* ==================== KPI CARDS ==================== */}
+            <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
+              <StatCard
+                title="Total Tenants"
+                value={companies.length}
+                sub="Tenants in current view"
+                icon={FaBuilding}
+                tone="text-main"
+                iconBg="bg-app"
+              />
+              <StatCard
+                title="Active"
+                value={activeCount}
+                sub="Subscription healthy"
+                icon={FaCheckCircle}
+                tone="text-emerald-600 dark:text-emerald-400"
+                iconBg="bg-emerald-100 dark:bg-emerald-900/40"
+              />
+              <StatCard
+                title="Suspended"
+                value={suspendedCount}
+                sub="Needs attention"
+                icon={FaTimesCircle}
+                tone="text-rose-600 dark:text-rose-400"
+                iconBg="bg-rose-100 dark:bg-rose-900/40"
+              />
+              <StatCard
+                title="Licensed Seats"
+                value={companies.reduce((sum, c) => sum + (c.maxUsers || 0), 0)}
+                sub="Total user capacity"
+                icon={FaUsers}
+                tone="text-sky-600 dark:text-sky-400"
+                iconBg="bg-sky-100 dark:bg-sky-900/40"
+              />
+            </div>
+
+            {/* ==================== FILTERS ==================== */}
+            <FilterPanel
+              title="Tenant Directory"
+              subtitle={`${getFilteredData().length} of ${companies.length} tenants · updated just now`}
+              hint="Click a tenant row to view its full configuration. Master tenant cannot be deleted."
+              actions={
+                <>
+                  {(searchTerm || filterType !== "All" || activeTab !== 0) && (
+                    <GlassButton variant="ghost" size="sm" onClick={resetFilters}>
+                      RESET
+                    </GlassButton>
+                  )}
+                  <GlassButton variant="secondary" size="sm" icon={FaFileCsv} onClick={exportCsv}>
+                    EXPORT CSV
+                  </GlassButton>
+                </>
+              }
+            >
+              <FilterRow>
+                <GlassInput
+                  placeholder="FaSearch tenants..."
+                  value={searchTerm}
+                  onChange={(e) => setFaSearchTerm(e.target.value)}
+                  className="flex-1 min-w-[220px]"
+                />
+                <div className="min-w-[160px]">
+                  <ModernSelect
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    options={[
+                      { value: "All", label: "All Types" },
+                      { value: "Tech", label: "Tech" },
+                      { value: "Marketing", label: "Marketing" },
+                      { value: "E-Commerce", label: "E-Commerce" },
+                      { value: "Other", label: "Other" }
+                    ]}
+                    placeholder="Company Type"
+                  />
+                </div>
+              </FilterRow>
+            </FilterPanel>
+
+            {/* ==================== TABLE ==================== */}
+            <StyledTable
+              columns={columns}
+              data={getFilteredData()}
+              loading={loading}
+              emptyMessage={searchTerm || filterType !== "All" || activeTab !== 0
+                ? "No tenants match these filters"
+                : "No tenants found."
+              }
+              onEmptyAction={resetFilters}
+              emptyActionLabel="Clear all filters"
+              actions={[]}
+              
+              defaultSort={{ key: "companyName", direction: "asc" }}
+              countLabel="tenants"
+            />
+          </Motion.div>
+        </div>
+      </PageContainer>
 
       {/* --- CREATE MODAL --- */}
       <GlassModal
@@ -455,11 +671,10 @@ const TenantManagement = () => {
           <div className="bg-surface border border-border-subtle p-5 rounded-2xl relative shadow-sm group mt-6">
             <h4 className="absolute -top-3 left-4 bg-surface px-2 text-[10px] font-black tracking-widest uppercase text-muted group-focus-within:text-brand-primary transition-colors">Email Service</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-              <select name="emailProvider" onChange={handleInputChange} className="glass-input sm:col-span-2 cursor-pointer">
+              <select name="emailProvider" onChange={handleInputChange} className="glass-input cursor-pointer">
                 <option value="Default">Use Default (Abidi Solutions Gmail)</option>
                 <option value="Custom">Custom SMTP Credentials</option>
               </select>
-              
               {formData.emailProvider === "Custom" && (
                 <>
                   <input name="smtpHost" placeholder="SMTP Host" onChange={handleInputChange} className="glass-input" />
@@ -543,14 +758,13 @@ const TenantManagement = () => {
                   <option value="Custom">Custom SMTP Credentials</option>
                 </select>
               </div>
-              
               {formData.emailProvider === "Custom" && (
                 <>
-                  <input name="smtpHost" placeholder="SMTP Host" value={formData.smtpHost} onChange={handleInputChange} className="glass-input" />
-                  <input name="smtpPort" placeholder="SMTP Port" value={formData.smtpPort} onChange={handleInputChange} className="glass-input" />
-                  <input name="smtpUser" placeholder="SMTP User" value={formData.smtpUser} onChange={handleInputChange} className="glass-input" />
-                  <input name="smtpPass" type="password" placeholder="SMTP Pass" value={formData.smtpPass} onChange={handleInputChange} className="glass-input" />
-                  <input name="fromEmail" placeholder="From Email" value={formData.fromEmail} onChange={handleInputChange} className="glass-input sm:col-span-2" />
+                  <input name="smtpHost" value={formData.smtpHost} placeholder="SMTP Host" onChange={handleInputChange} className="glass-input" />
+                  <input name="smtpPort" value={formData.smtpPort} placeholder="SMTP Port" onChange={handleInputChange} className="glass-input" />
+                  <input name="smtpUser" value={formData.smtpUser} placeholder="SMTP User" onChange={handleInputChange} className="glass-input" />
+                  <input name="smtpPass" type="password" value={formData.smtpPass} placeholder="SMTP Pass" onChange={handleInputChange} className="glass-input" />
+                  <input name="fromEmail" value={formData.fromEmail} placeholder="From Email" onChange={handleInputChange} className="glass-input sm:col-span-2" />
                 </>
               )}
             </div>
@@ -571,7 +785,6 @@ const TenantManagement = () => {
       >
         {selectedTenant && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-            
             <div className="space-y-4">
               <div className="bg-surface border border-border-subtle p-5 rounded-2xl shadow-sm">
                 <div className="flex items-center gap-4 mb-4">
@@ -581,11 +794,11 @@ const TenantManagement = () => {
                   <div>
                     <h3 className="text-lg font-bold text-heading">{selectedTenant.companyName}</h3>
                     <p className="text-xs text-muted flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded-full ${selectedTenant.subscriptionStatus === "Suspended" ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"} font-bold tracking-widest uppercase text-[9px]`}>
+                      <span className={`lm-success-badge ${selectedTenant.subscriptionStatus === "Suspended" ? "lm-danger-badge" : ""}`}>
                         {selectedTenant.subscriptionStatus || "Active"}
                       </span>
                       {selectedTenant.isMasterTenant && (
-                        <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold tracking-widest uppercase text-[9px]">Master</span>
+                        <span className="lm-success-badge">Master</span>
                       )}
                     </p>
                   </div>
@@ -649,14 +862,11 @@ const TenantManagement = () => {
                 </div>
               </div>
             </div>
-            
           </div>
         )}
       </GlassModal>
-
-    </PageContainer>
+    </>
   );
-};
+}
 
 export default TenantManagement;
-
