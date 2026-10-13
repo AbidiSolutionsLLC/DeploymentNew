@@ -35,7 +35,7 @@ export default function ProgressCard() {
  transform="rotate(-90 48 48)"
  />
  </svg>
- <div className="absolute inset-0 flex items-center justify-center text-lg font-bold text-green-600 dark:text-green-400">
+ <div className="absolute inset-0 flex items-center justify-center text-lg font-bold text-success">
  {dummyData.progress}%
  </div>
  </div>

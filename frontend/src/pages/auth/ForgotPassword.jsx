@@ -69,7 +69,7 @@ const ForgotPassword = () => {
             </button>
           </form>
         ) : (
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 p-4 rounded-xl text-sm font-medium mb-6">
+          <div className="lm-success-text p-4 rounded-xl bg-emerald-50/20 dark:bg-emerald-900/20 border border-emerald-500/20 text-sm font-medium mb-6">
             We've sent a password reset link to <span className="font-bold">{email}</span>. Please check your inbox and spam folder.
           </div>
         )}

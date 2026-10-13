@@ -121,14 +121,14 @@ const FileTable = ({ files, onDownload, loading, searchTerm = "" }) => {
  >
  <FiEye className="text-lg text-purple-600" />
  </a>
- <button 
- onClick={() => onDownload(file._id)} 
- title="Download" 
- className="hover:brightness-110 disabled:opacity-50"
- disabled={loading}
- >
- <FiDownload className="text-lg text-green-600 dark:text-green-400" />
- </button>
+<button 
+  onClick={() => onDownload(file._id)} 
+  title="Download" 
+  className="hover:brightness-110 disabled:opacity-50 text-success"
+  disabled={loading}
+  >
+  <FiDownload className="text-lg" />
+  </button>
  </div>
  )
  }

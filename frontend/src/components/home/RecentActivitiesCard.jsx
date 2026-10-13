@@ -19,10 +19,10 @@ function timeAgo(dateStr) {
 }
 
 const levelStyles = {
-  success: "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400",
-  warning: "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400",
-  error: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400",
-  info: "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400",
+  success: "lm-success-badge",
+  warning: "lm-success-badge",
+  error: "lm-success-badge",
+  info: "lm-success-badge",
 };
 
 const RecentActivitiesCard = ({ onDelete }) => {

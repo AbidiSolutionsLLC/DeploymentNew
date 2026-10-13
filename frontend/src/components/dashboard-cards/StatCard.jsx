@@ -14,7 +14,7 @@ export default function StatCard() {
  <div>
  <h3 className="text-sm font-medium text-muted">{dummyData.title}</h3>
  <p className="text-2xl font-semibold text-main">{dummyData.value}</p>
- <p className="text-sm text-green-500 flex items-center gap-1">
+ <p className="text-sm text-success flex items-center gap-1">
  <HiTrendingUp /> {dummyData.trend}
  </p>
  </div>

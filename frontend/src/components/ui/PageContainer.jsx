@@ -6,15 +6,16 @@ import Loader from "./Loader";
  * Ensures consistent padding, margins, card layouts, and typography across all pages.
  */
 export default function PageContainer({ 
- title, 
- subtitle, 
- headerActions, 
- filters, 
- topWidgets,
- bottomWidgets,
- isCard = true, 
- loading = false,
- children 
+  title, 
+  subtitle, 
+  icon: Icon,
+  headerActions, 
+  filters, 
+  topWidgets,
+  bottomWidgets,
+  isCard = true, 
+  loading = false,
+  children 
 }) {
  return (
  <div className="flex flex-col gap-4 w-full h-full">
@@ -26,10 +27,13 @@ export default function PageContainer({
  {/* Header Title & Actions */}
  {(title || subtitle || headerActions) && (
  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
- <div>
- {title && <h2 className="text-base font-bold text-heading uppercase tracking-tight">{title}</h2>}
- {subtitle && <p className="text-muted text-[10px] sm:text-xs font-medium uppercase tracking-wide mt-1">{subtitle}</p>}
- </div>
+                    <div className="flex items-center gap-2">
+                      {Icon && <Icon className="w-5 h-5 text-amber-500" />}
+                      <div>
+                        {title && <h2 className="text-base font-bold text-heading uppercase tracking-tight">{title}</h2>}
+                        {subtitle && <p className="text-muted text-[10px] sm:text-xs font-medium uppercase tracking-wide mt-1">{subtitle}</p>}
+                      </div>
+                    </div>
  
  {headerActions && (
  <div className="flex items-center gap-2">

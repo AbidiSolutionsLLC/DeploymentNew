@@ -8,12 +8,14 @@ import ModernSelect from "../../components/ui/ModernSelect";
 import { downloadFile } from "../../utils/downloadFile";
 import { validateDescription, getApiError } from "../../utils/validationUtils";
 import {
-  ArrowLeft, Trash2, ChevronDown, Flag, User, AlertTriangle,
-  Clock, Check, UserPlus, Paperclip, Send, Mail, Calendar, ShieldAlert
-} from "lucide-react";
+  FaArrowLeft, FaTrash, FaChevronDown, FaFlag, FaUser, FaExclamationTriangle,
+  FaClock, FaCheck, FaUserPlus, FaPaperPlane, FaEnvelope, FaCalendarDay, FaShieldAlt
+} from "react-icons/fa";
+import { UserPlusIcon } from "@heroicons/react/20/solid";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
 import Loader from "../../components/ui/Loader";
+import StatusBadge from "../../components/StatusBadge";
 
 const STATUS_OPTIONS = [
   { value: "Open", label: "Open" },
@@ -209,16 +211,13 @@ const AssignTicket = () => {
     <>
       <button
         onClick={() => setAssignDropdownOpen(!assignDropdownOpen)}
-        className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm ${selectedAssignee
-          ? "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800/50"
-          : "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50"
-        } hover:brightness-95`}
+        className="px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm lm-success-badge hover:brightness-95"
       >
-        <User size={16} />
+        <FaUser size={16} />
         <span className="text-sm font-medium hidden sm:inline">
           {selectedAssignee ? selectedAssignee.name : "Assign"}
         </span>
-        <ChevronDown size={16} />
+        <FaChevronDown size={16} />
       </button>
 
       {assignDropdownOpen && (
@@ -241,7 +240,7 @@ const AssignTicket = () => {
                       } ${selectedAssigneeId === user._id ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "text-main"
                       }`}
                     >
-                      <User className="w-4 h-4 text-muted" />
+                      <FaUser className="w-4 h-4 text-muted" />
                       <div className="flex flex-col truncate flex-1">
                         <span className="font-medium truncate">{user.name}</span>
                         <span className="text-[10px] text-muted uppercase">
@@ -251,7 +250,7 @@ const AssignTicket = () => {
                       {isAssigning ? (
                         <Loader variant="spinner" size="sm" className="text-amber-500 ml-auto" />
                       ) : selectedAssigneeId === user._id ? (
-                        <Check className="w-4 h-4 text-green-500 ml-auto" />
+                        <FaCheck className="w-4 h-4 text-success ml-auto" />
                       ) : null}
                     </button>
                   );
@@ -259,7 +258,7 @@ const AssignTicket = () => {
               </>
             ) : (
               <div className="px-3 py-3 text-center">
-                <User className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <FaUser className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-sm text-muted font-medium">No technicians found</p>
                 <p className="text-xs text-muted mt-1">Use "Add Technician" to update privileges</p>
               </div>
@@ -315,7 +314,7 @@ const AssignTicket = () => {
           className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-muted hover:text-main hover:bg-surface border border-transparent hover:border-border-subtle transition-all shadow-sm"
           title="Back to Tickets"
         >
-          <ArrowLeft size={16} />
+          <FaArrowLeft size={16} />
           <span>Back to Tickets</span>
         </button>
       </div>
@@ -323,6 +322,7 @@ const AssignTicket = () => {
       <PageContainer
         title={`Ticket #${ticket.ticketID || ticket._id?.slice(0, 6)}: ${ticket.subject || ticket.title}`}
         subtitle={`Created ${new Date(ticket.createdAt).toLocaleString()}`}
+        icon={UserPlusIcon}
         isCard={false}
         headerActions={
           <div className="flex items-center gap-2">
@@ -332,10 +332,10 @@ const AssignTicket = () => {
 
             <button
               onClick={() => setAddTechnicianModal(true)}
-              className="px-4 py-2 rounded-xl flex items-center gap-2 bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 hover:brightness-95 transition-all shadow-sm hover:shadow-md"
+              className="btn btn-secondary px-4 py-2 rounded-xl flex items-center gap-2"
               title="Add New Technician"
             >
-              <UserPlus size={16} />
+              <FaUserPlus size={16} />
               <span className="text-sm font-medium hidden sm:inline">Add Technician</span>
             </button>
 
@@ -344,7 +344,7 @@ const AssignTicket = () => {
               className="p-2 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/50 hover:bg-red-200 dark:hover:bg-red-900/50 transition-all shadow-sm"
               title="Delete Ticket"
             >
-              <Trash2 size={18} />
+              <FaTrash size={18} />
             </button>
           </div>
         }
@@ -360,17 +360,9 @@ const AssignTicket = () => {
             <span className="px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800/50">
               #{ticket.ticketID || ticket._id?.slice(0, 8)}
             </span>
-            <span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide 
-              ${ticket.status === 'Open' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50'
-              : ticket.status === 'In Progress' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50'
-              : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50'}`}>
-              {ticket.status}
-            </span>
-            <span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide 
-              ${ticket.priority === 'High Priority' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/50'
-              : ticket.priority === 'Medium Priority' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50'
-              : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50'}`}>
-              <Flag size={11} className="inline mr-1" />
+            <StatusBadge status={ticket.status} />
+            <span className="lm-success-badge">
+              <FaFlag size={11} className="inline mr-1" />
               {ticket.priority}
             </span>
           </div>
@@ -427,7 +419,7 @@ const AssignTicket = () => {
                 disabled={!newResponse.trim() || !!responseError}
                 className="btn-ghost absolute right-2 p-2 rounded-lg"
               >
-                <Send size={16} />
+                <FaPaperPlane size={16} />
               </button>
             </div>
           </div>
@@ -455,7 +447,7 @@ const AssignTicket = () => {
               {/* Priority */}
               <div className="space-y-1.5">
                 <p className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-1.5">
-                  <Flag size={12} /> Priority
+                  <FaFlag size={12} /> Priority
                 </p>
                 <ModernSelect
                   value={ticket.priority}
@@ -468,8 +460,8 @@ const AssignTicket = () => {
 
               {/* Assignee */}
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400">
-                  <User size={16} />
+                <div className="p-2 rounded-lg lm-success-badge">
+                  <FaUser size={16} />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-black text-muted uppercase tracking-widest">Assignee</p>
@@ -480,7 +472,7 @@ const AssignTicket = () => {
               {/* Requester */}
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400">
-                  <Mail size={16} />
+                  <FaEnvelope size={16} />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-black text-muted uppercase tracking-widest">Requester</p>
@@ -491,7 +483,7 @@ const AssignTicket = () => {
               {/* Created */}
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400">
-                  <Calendar size={16} />
+                  <FaCalendarDay size={16} />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-black text-muted uppercase tracking-widest">Created</p>
@@ -525,7 +517,7 @@ const AssignTicket = () => {
                       <span className="text-xs font-bold text-main truncate">{file.name}</span>
                     </div>
                     <div className="text-muted group-hover:text-amber-600 dark:text-amber-400">
-                      <Paperclip size={16} />
+                      <FaPaperPlane size={16} />
                     </div>
                   </button>
                 ))}
@@ -570,7 +562,7 @@ const AssignTicket = () => {
                 type="button"
                 onClick={handleDeleteTicket}
                 disabled={deleting}
-                className="flex-1 sm:py-4 text-[10px] sm:text-[10px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn"
+                className="flex-1 sm:py-4 text-[10px] sm:text-[10px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-danger"
               >
                 {deleting ? (
                   <span className="flex items-center justify-center gap-2">
@@ -586,11 +578,11 @@ const AssignTicket = () => {
         >
           <div className="flex items-start gap-4">
             <div className="p-3 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 shrink-0">
-              <AlertTriangle size={22} />
+              <FaExclamationTriangle size={22} />
             </div>
             <div className="space-y-2">
               <p className="text-sm font-bold text-main">
-                <ShieldAlert size={14} className="inline mr-1" />
+                <FaShieldAlt size={14} className="inline mr-1" />
                 Are you sure you want to delete this ticket?
               </p>
               <p className="text-xs text-muted leading-relaxed">

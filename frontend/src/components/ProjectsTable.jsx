@@ -3,16 +3,17 @@ import { FaPlus } from "react-icons/fa";
 import SearchBar from "./SearchBar";
 import TableWithPagination from "./TableWithPagination";
 import { useConfirm } from "../context/ConfirmContext";
+import StatusBadge from "./StatusBadge";
 
 const ProjectsTable = ({
- projects,
- loading,
- onUpdate,
- onDelete,
- openModal,
- onRowClick
+  projects,
+  loading,
+  onUpdate,
+  onDelete,
+  openModal,
+  onRowClick
 }) => {
- const confirm = useConfirm();
+  const confirm = useConfirm();
 
  const handleEdit = (project) => {
  // You can implement edit functionality here
@@ -62,23 +63,14 @@ const ProjectsTable = ({
  label: "No.Of User",
  render: (val) => <span className="whitespace-nowrap">{val?.length || 0}</span>
  },
- {
- key: "status",
- label: "Status",
- render: (val) => {
- const status = val || "Planning";
- let colorClass = "bg-app text-main";
- if (status === "Active") colorClass = "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400";
- if (status === "Completed") colorClass = "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-400";
- if (status === "On Hold") colorClass = "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400";
- 
- return (
- <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${colorClass}`}>
- {status}
- </span>
- );
- }
- },
+{
+  key: "status",
+  label: "Status",
+  render: (val) => {
+  const status = val || "Planning";
+  return <StatusBadge status={status} />;
+  }
+  },
  {
  key: "startDate",
  label: "Start Date",

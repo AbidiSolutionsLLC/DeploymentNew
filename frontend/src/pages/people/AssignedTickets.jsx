@@ -1,449 +1,474 @@
-import { useEffect, useState, useRef } from "react";
-import { createPortal } from "react-dom";
-import { 
- ClipboardDocumentCheckIcon, 
- FunnelIcon, 
- EyeIcon,
- XMarkIcon,
- PaperClipIcon,
- ArrowDownTrayIcon,
- PaperAirplaneIcon,
- MagnifyingGlassIcon,
- ChevronDownIcon
-} from "@heroicons/react/24/solid";
+import { useEffect, useState } from "react";
+import { EyeIcon } from "@heroicons/react/24/solid";
 import api from "../../axios";
-import { toast } from "react-toastify";
-import { format } from "date-fns";
 import { downloadFile } from "../../utils/downloadFile";
-import { Paperclip } from "lucide-react";
 import { validateDescription, getApiError } from "../../utils/validationUtils";
 import PageContainer from "../../components/ui/PageContainer";
-import TableWithPagination from "../../components/TableWithPagination";
-import GlassModal from "../../components/ui/GlassModal";
-import Loader from "../../components/ui/Loader";
+import PortalHero from "../../components/ui/PortalHero";
+import StatCard from "../../components/ui/StatCard";
+import FilterPanel from "../../components/ui/FilterPanel";
+import FilterRow from "../../components/ui/FilterRow";
 import GlassInput from "../../components/ui/GlassInput";
 import ModernSelect from "../../components/ui/ModernSelect";
+import GlassButton from "../../components/ui/GlassButton";
+import StyledTable from "../../components/ui/StyledTable";
+import Toast from "../../components/Toast";
+import AssignedTicketDetailsModal from "./AssignedTicketDetailsModal";
+import {
+  FaClipboardCheck,
+  FaHourglassHalf,
+  FaSpinner,
+  FaCheckCircle,
+  FaTicketAlt,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+import { ClipboardDocumentCheckIcon } from "@heroicons/react/20/solid";
+import {
+  resolvePriorityPill,
+  priorityLabel,
+  statusBadgeClass,
+} from "../../components/StatusBadge";
+import { formatDisplayDate } from "../../utils/dateUtils";
+import { getInitials } from "../../utils/tableUtils";
+
+const statusLabel = (status) => {
+  const s = String(status || "").toLowerCase();
+  if (s === "open" || s === "opened") return "Open";
+  if (s === "closed") return "Closed";
+  if (s === "in progress") return "In Progress";
+  return status || "Unknown";
+};
 
 export default function AssignedTickets() {
- const [tickets, setTickets] = useState([]);
- const [filteredTickets, setFilteredTickets] = useState([]);
- const [loading, setLoading] = useState(true);
- const [currentUser, setCurrentUser] = useState(null);
- 
- // Filters
- const [statusFilter, setStatusFilter] = useState("All");
- const [priorityFilter, setPriorityFilter] = useState("All");
- const [searchTerm, setSearchTerm] = useState("");
- 
- // Modal & Dropdown State
- const [selectedTicket, setSelectedTicket] = useState(null);
- const [commentText, setCommentText] = useState("");
- const [commentError, setCommentError] = useState(null);
- const [sendingComment, setSendingComment] = useState(false);
- const [openDropdownId, setOpenDropdownId] = useState(null);
- const [dropdownPos, setDropdownPos] = useState(null);
- const dropdownRef = useRef(null);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [toast, setToast] = useState(null);
 
- const closeStatusMenu = () => {
- setOpenDropdownId(null);
- setDropdownPos(null);
- };
+  // Filters
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
- const openStatusMenu = (e, ticketId) => {
- e.stopPropagation();
- if (openDropdownId === ticketId) {
- closeStatusMenu();
- return;
- }
- const rect = e.currentTarget.getBoundingClientRect();
- setDropdownPos({
- top: rect.bottom + 4,
- left: rect.left
- });
- setOpenDropdownId(ticketId);
- };
+  // Modal state
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
- // 1. Fetch Data
- const fetchData = async () => {
- try {
- setLoading(true);
- const userRes = await api.get("/auth/me");
- const user = userRes.data.user;
- setCurrentUser(user);
-
- const ticketRes = await api.get("/tickets");
-
- // RBAC RULE: Super Admin sees all. Technicians & Tech-Managers see assigned only 
- let myAssignments;
- if (user.role === "Super Admin") {
- myAssignments = ticketRes.data;
- } else {
- myAssignments = ticketRes.data.filter(t => {
- const assignId = t.assignedTo?._id || t.assignedTo;
- const myId = user._id || user.id;
- return assignId && String(assignId) === String(myId);
- });
- }
- 
- setTickets(myAssignments);
- setFilteredTickets(myAssignments);
- } catch {
- toast.error("Failed to load tickets");
- } finally {
- setLoading(false);
- }
- };
-
- useEffect(() => {
- fetchData();
- // Close dropdown on click outside
- function handleClickOutside(event) {
- if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
- closeStatusMenu();
- }
- }
- document.addEventListener("mousedown", handleClickOutside);
- return () => document.removeEventListener("mousedown", handleClickOutside);
- }, []);
-
- // 2. Advanced Filtering Logic
- useEffect(() => {
- let result = tickets;
-
- // Status Filter
- if (statusFilter !== "All") {
- if (statusFilter === "Open") {
- result = result.filter(t => t.status.toLowerCase() === "open" || t.status.toLowerCase() === "opened");
- } else {
- result = result.filter(t => t.status.toLowerCase() === statusFilter.toLowerCase());
- }
- }
-
- // Priority Filter
- if (priorityFilter !== "All") {
- result = result.filter(t => t.priority.toLowerCase().includes(priorityFilter.toLowerCase()));
- }
-
- // Search Filter
- if (searchTerm) {
-  result = result.filter(t => 
-  String(t.ticketID || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-  String(t.subject || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
- }
-
- setFilteredTickets(result);
- }, [statusFilter, priorityFilter, searchTerm, tickets]);
-
- // 3. Handlers
- const handleStatusChange = async (ticketId, newStatus) => {
- try {
- await api.patch(`/tickets/${ticketId}/status`, { status: newStatus });
- const updatedList = tickets.map(t => t._id === ticketId ? { ...t, status: newStatus } : t);
- setTickets(updatedList);
- if (selectedTicket && selectedTicket._id === ticketId) {
- setSelectedTicket(prev => ({ ...prev, status: newStatus }));
- }
- closeStatusMenu();
- toast.success("Status Updated");
- } catch {
- toast.error("Failed to update status");
- }
- };
-
- const handleDownload = async (blobName, originalName) => {
- if (!blobName) {
- toast.error("File details missing");
- return;
- }
- await downloadFile(blobName, originalName);
- };
-
- const handleAddComment = async () => {
- const err = validateDescription(commentText, { min: 10, max: 500, required: true });
- if (err) { setCommentError(err); return; }
- setCommentError(null);
- try {
- setSendingComment(true);
- const res = await api.post(`/tickets/${selectedTicket._id}/response`, {
- content: commentText,
- avatar: currentUser.avatar
- });
- setSelectedTicket(res.data);
- setTickets(prev => prev.map(t => t._id === res.data._id ? res.data : t));
- setCommentText("");
- toast.success("Reply sent");
- } catch (err) {
- toast.error(getApiError(err, "Failed to send reply"));
- } finally {
- setSendingComment(false);
- }
- };
-
- // UI Helpers
-  const getPriorityColor = (p) => {
-    if (p.includes("High")) return "bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800/50";
-    if (p.includes("Medium")) return "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50";
-    return "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50";
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
-  const getStatusColor = (s) => {
-    const status = s.toLowerCase();
-    if (status === "open") return "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50";
-    if (status === "in progress") return "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50";
-    return "bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50";
+  // 1. Fetch Data
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(false);
+        const userRes = await api.get("/auth/me");
+        const user = userRes.data.user;
+        if (cancelled) return;
+        setCurrentUser(user);
+
+        const ticketRes = await api.get("/tickets");
+        if (cancelled) return;
+
+        // RBAC RULE: Super Admin sees all. Technicians & Tech-Managers see assigned only
+        let myAssignments;
+        if (user.role === "Super Admin") {
+          myAssignments = ticketRes.data;
+        } else {
+          myAssignments = ticketRes.data.filter((t) => {
+            const assignId = t.assignedTo?._id || t.assignedTo;
+            const myId = user._id || user.id;
+            return assignId && String(assignId) === String(myId);
+          });
+        }
+
+        setTickets(myAssignments);
+      } catch {
+        if (!cancelled) {
+          setError(true);
+          showToast("Failed to load tickets", "error");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 2. Filtering
+  const filteredTickets = (() => {
+    let result = tickets;
+
+    if (statusFilter !== "all") {
+      if (statusFilter === "open") {
+        result = result.filter(
+          (t) =>
+            String(t.status).toLowerCase() === "open" ||
+            String(t.status).toLowerCase() === "opened"
+        );
+      } else {
+        result = result.filter(
+          (t) => String(t.status).toLowerCase() === statusFilter.toLowerCase()
+        );
+      }
+    }
+
+    if (priorityFilter !== "all") {
+      result = result.filter((t) =>
+        String(t.priority || "").toLowerCase().includes(priorityFilter.toLowerCase())
+      );
+    }
+
+    if (searchTerm) {
+      result = result.filter(
+        (t) =>
+          String(t.ticketID || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          String(t.subject || "").toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return result;
+  })();
+
+  const kpis = {
+    total: filteredTickets.length,
+    open: filteredTickets.filter((t) => {
+      const s = String(t.status || "").toLowerCase();
+      return s === "open" || s === "opened";
+    }).length,
+    inProgress: filteredTickets.filter(
+      (t) => String(t.status || "").toLowerCase() === "in progress"
+    ).length,
+    closed: filteredTickets.filter((t) => String(t.status || "").toLowerCase() === "closed")
+      .length,
   };
 
- const assignedTicketColumns = [
- {
- key: "ticketId",
- label: "Ticket ID",
- render: (_, ticket) => (
- <>
- <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-md">
- #{ticket.ticketID}
- </span>
- <div className="text-[10px] text-muted mt-1 pl-1 font-bold">
- {format(new Date(ticket.createdAt), "MMM dd, yyyy")}
- </div>
- </>
- )
- },
- {
- key: "subject",
- label: "Subject",
- render: (_, ticket) => (
- <>
- <div className="text-sm font-bold text-main">{ticket.subject}</div>
- <div className="text-xs text-muted mt-0.5 line-clamp-1 font-medium">{ticket.description}</div>
- </>
- )
- },
- {
- key: "priority",
- label: "Priority",
- render: (_, ticket) => (
- <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${getPriorityColor(ticket.priority)}`}>
- {ticket.priority.replace(' Priority', '')}
- </span>
- )
- },
- {
- key: "status",
- label: "Status",
- render: (_, ticket) => (
- <div className="relative">
- <button
- onClick={(e) => openStatusMenu(e, ticket._id)}
- className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all ${getStatusColor(ticket.status)}`}
- >
- {ticket.status}
- <ChevronDownIcon className="w-3 h-3 opacity-60" />
- </button>
+  const hasFilters = searchTerm || statusFilter !== "all" || priorityFilter !== "all";
 
- {openDropdownId === ticket._id && dropdownPos && createPortal(
- <div
- ref={dropdownRef}
- className="fixed z-[9999] w-36 bg-surface rounded-xl shadow-xl border border-border-subtle overflow-hidden py-1 animate-fadeIn"
- style={{ top: dropdownPos.top, left: dropdownPos.left }}
- >
- {["Open", "In Progress", "Closed"].map((s) => (
- <button
- key={s}
- onClick={(e) => { e.stopPropagation(); handleStatusChange(ticket._id, s); }}
- className="w-full text-left px-4 py-2 text-[10px] font-bold text-muted hover:bg-surface hover:text-amber-600 dark:text-amber-400 uppercase"
- >
- {s}
- </button>
- ))}
- </div>,
- document.body
- )}
- </div>
- )
- },
- {
- key: "action",
- label: "Action",
- align: "right",
- render: (_, ticket) => (
- <button 
- onClick={(e) => { e.stopPropagation(); setSelectedTicket(ticket); }}
- className="p-2 bg-surface border border-border-subtle text-muted rounded-xl hover:border-amber-300 hover:text-amber-600 dark:text-amber-400 transition-all shadow-sm"
- >
- <EyeIcon className="w-4 h-4" />
- </button>
- )
- }
- ];
+  const resetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setPriorityFilter("all");
+  };
 
- return (
- <PageContainer
- title="Assigned Tickets"
- subtitle="Manage your tasks efficiently"
- filters={
-        <div className="flex flex-wrap items-center gap-3 w-full">
-          {/* Search */}
-          <GlassInput
-            placeholder="Search ID or Subject..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 min-w-[160px]"
-          />
-          {/* Priority Filter */}
-          <div className="min-w-[140px]">
-            <ModernSelect
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              options={[
-                { value: "All", label: "All Priorities" },
-                { value: "High", label: "High" },
-                { value: "Medium", label: "Medium" },
-                { value: "Low", label: "Low" }
-              ]}
-              placeholder="PRIORITY"
-            />
-          </div>
+  // 3. Handlers
+  const handleStatusChange = async (ticketId, newStatus) => {
+    try {
+      await api.patch(`/tickets/${ticketId}/status`, { status: newStatus });
+      setTickets((prev) =>
+        prev.map((t) => (t._id === ticketId ? { ...t, status: newStatus } : t))
+      );
+      if (selectedTicket && selectedTicket._id === ticketId) {
+        setSelectedTicket((prev) => ({ ...prev, status: newStatus }));
+      }
+      showToast("Status Updated");
+    } catch {
+      showToast("Failed to update status", "error");
+    }
+  };
 
-          {/* Status Filter */}
-          <div className="flex bg-surface/50 dark:bg-slate-800/50 p-1 rounded-xl border border-border-subtle shrink-0">
-            {["All", "Open", "In Progress", "Closed"].map(s => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all whitespace-nowrap ${
-                  statusFilter === s ? "bg-surface shadow-sm text-main" : "text-muted hover:text-main"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+  const handleDownload = async (blobName, originalName) => {
+    if (!blobName) {
+      showToast("File details missing", "error");
+      return;
+    }
+    await downloadFile(blobName, originalName);
+  };
+
+  const handleAddComment = async (ticketId, commentText) => {
+    const err = validateDescription(commentText, { min: 10, max: 500, required: true });
+    if (err) return { error: err };
+    try {
+      const res = await api.post(`/tickets/${ticketId}/response`, {
+        content: commentText,
+        avatar: currentUser?.avatar,
+      });
+      setTickets((prev) => prev.map((t) => (t._id === res.data._id ? res.data : t)));
+      if (selectedTicket && selectedTicket._id === ticketId) {
+        setSelectedTicket(res.data);
+      }
+      showToast("Reply sent");
+      return { ticket: res.data };
+    } catch (err) {
+      return { error: getApiError(err, "Failed to send reply") };
+    }
+  };
+
+  const openTicketDetail = (ticket) => {
+    setSelectedTicket(ticket);
+    setShowDetailModal(true);
+  };
+
+  const columns = [
+    {
+      key: "__index",
+      label: "S.No.",
+      sortable: false,
+      type: "index",
+      className: "text-muted text-xs font-bold",
+    },
+    {
+      key: "ticketID",
+      label: "Ticket ID",
+      render: (_, ticket) => (
+        <span
+          className="font-mono text-xs font-bold text-amber-600 dark:text-amber-400"
+          title={ticket.ticketID}
+        >
+          #{ticket.ticketID}
+        </span>
+      ),
+    },
+    {
+      key: "subject",
+      label: "Subject",
+      render: (_, ticket) => (
+        <div className="min-w-[180px] max-w-[240px]">
+          <p className="text-sm font-bold text-heading truncate leading-tight">{ticket.subject}</p>
+          <p className="text-[10px] text-muted mt-0.5 line-clamp-1">{ticket.description}</p>
         </div>
- }
- >
-        {/* --- CONTAINER 2: DATA TABLE --- */}
-        <div className="bg-surface rounded-2xl border border-border-subtle shadow-sm overflow-hidden flex flex-col">
- <TableWithPagination
- columns={assignedTicketColumns}
- data={filteredTickets}
- loading={loading}
- emptyMessage="No tickets match your filters."
- onRowClick={(ticket) => setSelectedTicket(ticket)}
- defaultSort={{ key: "createdAt", direction: "desc" }}
- />
- </div>
-
-        {/* --- TICKET DETAIL MODAL --- */}
-        {selectedTicket && (
-          <GlassModal
-            isOpen={!!selectedTicket}
-            onClose={() => setSelectedTicket(null)}
-            maxWidth="max-w-4xl"
-            title={
-              <div>
-                <div className="flex items-center gap-3">
-                  {selectedTicket.subject}
-                  <span className={`text-[10px] px-2 py-1 rounded-md border uppercase tracking-wider ${getPriorityColor(selectedTicket.priority)}`}>
-                    {selectedTicket.priority}
-                  </span>
-                </div>
-                <p className="text-muted text-xs font-mono mt-1 font-bold">Ticket ID: {selectedTicket.ticketID}</p>
-              </div>
-            }
-          >
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
-                <div className="bg-surface p-6 rounded-[1.5rem] shadow-sm border border-border-subtle">
-                  <h3 className="text-xs font-black text-muted uppercase tracking-widest mb-3">Description</h3>
-                  <p className="text-main text-sm leading-relaxed font-medium whitespace-pre-wrap">{selectedTicket.description}</p>
-                </div>
-
-                <div className="bg-surface p-6 rounded-[1.5rem] shadow-sm border border-border-subtle">
-                  <h3 className="text-xs font-black text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <PaperClipIcon className="w-4 h-4" /> Attachments
-                  </h3>
-                  {selectedTicket.attachments && selectedTicket.attachments.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {selectedTicket.attachments.map((file, idx) => (
-                        <button 
-                          key={idx}
-                          onClick={() => handleDownload(file.blobName, file.name)}
-                          className="w-full flex items-center justify-between p-3 bg-surface rounded-xl border border-border-subtle hover:bg-amber-50 dark:bg-amber-900/30 hover:border-amber-200 dark:border-amber-800/50 transition-all group text-left"
-                        >
-                          <div className="flex items-center gap-2 overflow-hidden">
-                            <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/40 rounded-lg flex items-center justify-center text-amber-600 dark:text-amber-400 font-bold text-xs shrink-0">
-                              {file.name.split('.').pop().toUpperCase()}
-                            </div>
-                            <span className="text-xs font-bold text-main truncate">{file.name}</span>
-                          </div>
-                          <div className="text-muted group-hover:text-amber-600 dark:text-amber-400">
-                            <Paperclip size={16}/>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted italic">No files attached.</p>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black text-muted uppercase tracking-widest pl-2">Discussion</h3>
-                  {selectedTicket.responses?.map((res, idx) => (
-                    <div key={idx} className="bg-surface p-5 rounded-[1.5rem] shadow-sm border border-border-subtle flex gap-4">
-                      <img src={res.avatar || `https://ui-avatars.com/api/?name=${res.author}`} className="w-8 h-8 rounded-full border border-border-subtle" />
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-bold text-sm text-heading">{res.author}</span>
-                          <span className="text-[10px] text-muted font-bold">{format(new Date(res.time), "MMM dd, hh:mm a")}</span>
-                        </div>
-                        <p className="text-sm text-muted font-medium">{res.content}</p>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="bg-surface p-2 rounded-[1.5rem] shadow-sm border border-border-subtle flex items-center gap-2 focus-within:ring-2 focus-within:ring-amber-100 transition-all">
-                    <textarea 
-                      value={commentText}
-                      onChange={(e) => {
-                        setCommentText(e.target.value);
-                        setCommentError(validateDescription(e.target.value, { min: 10, max: 500, required: true }));
-                      }}
-                      onBlur={() => setCommentError(validateDescription(commentText, { min: 10, max: 500, required: true }))}
-                      placeholder="Type your reply (min 10 chars, at least 3 words)..."
-                      className={`flex-1 bg-transparent border-none focus:ring-0 text-sm p-3 resize-none h-12 font-medium ${commentError ? "placeholder:text-red-300" : ""}`}
-                    ></textarea>
-                    <button 
-                      onClick={() => {
-                        if (!commentError) handleAddComment();
-                      }}
-                      disabled={sendingComment || !!commentError}
-                      className="p-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors disabled:opacity-50"
-                    >
-                      {sendingComment ? <Loader variant="spinner" size="sm" className="text-white" /> : <PaperAirplaneIcon className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  {commentError && (
-                    <p className="text-xs text-red-500 mt-1 pl-2">{commentError}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-surface p-6 rounded-[1.5rem] shadow-sm border border-border-subtle">
-                  <h3 className="text-xs font-black text-muted uppercase tracking-widest mb-4">Requester</h3>
-                  <div className="flex items-center gap-3">
-                    <img src={selectedTicket.user?.avatar || `https://ui-avatars.com/api/?name=${selectedTicket.emailAddress}`} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
-                    <div>
-                      <p className="text-sm font-bold text-main">{selectedTicket.user?.name || "Unknown"}</p>
-                      <p className="text-xs text-muted font-medium">{selectedTicket.emailAddress}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      ),
+    },
+    {
+      key: "priority",
+      label: "Priority",
+      render: (_, ticket) => (
+        <span
+          className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border whitespace-nowrap ${resolvePriorityPill(
+            ticket.priority
+          )}`}
+        >
+          {priorityLabel(ticket.priority)}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (_, ticket) => (
+        <span
+          className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border whitespace-nowrap ${statusBadgeClass(
+            ticket.status
+          )}`}
+        >
+          {statusLabel(ticket.status)}
+        </span>
+      ),
+    },
+    {
+      key: "assignedTo",
+      label: "Requester",
+      render: (_, ticket) => {
+        const name = ticket.user?.name || ticket.emailAddress || "Unknown";
+        return (
+          <div className="flex items-center gap-2 min-w-[140px]">
+            <div className="w-8 h-8 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center text-[11px] font-black flex-shrink-0 overflow-hidden">
+              {ticket.user?.avatar ? (
+                <img
+                  src={ticket.user.avatar}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                getInitials(name)
+              )}
             </div>
-          </GlassModal>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-heading truncate leading-tight">
+                {ticket.user?.name || "Unknown"}
+              </p>
+              <p className="text-[10px] text-muted truncate">{ticket.emailAddress}</p>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: "createdAt",
+      label: "Raised On",
+      render: (value) => (
+        <span className="text-xs font-medium text-main whitespace-nowrap">
+          {value ? formatDisplayDate(value) : "-"}
+        </span>
+      ),
+    },
+  ];
+
+  const actions = [
+    {
+      icon: <EyeIcon className="w-4 h-4" />,
+      title: "View ticket",
+      onClick: (ticket) => openTicketDetail(ticket),
+    },
+  ];
+
+  const statusOptions = [
+    { value: "all", label: "All Status" },
+    { value: "open", label: "Open" },
+    { value: "in progress", label: "In Progress" },
+    { value: "closed", label: "Closed" },
+  ];
+
+  const priorityOptions = [
+    { value: "all", label: "All Priorities" },
+    { value: "High", label: "High" },
+    { value: "Medium", label: "Medium" },
+    { value: "Low", label: "Low" },
+    { value: "Critical", label: "Critical" },
+  ];
+
+  const heroChips = [
+    { icon: FaTicketAlt, value: kpis.total, label: " Assigned" },
+    { icon: FaHourglassHalf, value: kpis.open, label: " Open" },
+    { pulse: true, value: kpis.inProgress, label: " In progress" },
+    { icon: FaCheckCircle, value: kpis.closed, label: " Closed" },
+  ];
+
+  if (error) {
+    return (
+      <PageContainer isCard={false}>
+        {toast && (
+          <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
         )}
- </PageContainer>
- );
+        <div className="glass-card text-center py-14">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-danger-bg border border-danger-border flex items-center justify-center">
+            <FaExclamationTriangle size={22} className="text-danger" />
+          </div>
+          <p className="text-sm font-bold text-heading">Failed to load assigned tickets</p>
+          <p className="text-xs text-muted mt-1 mb-5">
+            We couldn't load your assigned tickets. Please try again.
+          </p>
+          <GlassButton variant="primary" onClick={() => window.location.reload()}>
+            RETRY
+          </GlassButton>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  return (
+    <PageContainer isCard={false} loading={loading}>
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
+
+      <div className="flex flex-col gap-4 w-full">
+<PortalHero
+             label="Technician workspace"
+           title="Assigned Tickets"
+           description="Track tickets assigned to you, update statuses and reply to requesters — all from one place."
+           emblem={ClipboardDocumentCheckIcon}
+           chips={heroChips}
+         />
+
+        <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
+          <StatCard
+            title="Assigned"
+            value={kpis.total}
+            sub="Tickets assigned to you"
+            icon={FaClipboardCheck}
+            tone="text-main"
+            iconBg="bg-app"
+          />
+          <StatCard
+            title="Open"
+            value={kpis.open}
+            sub="Awaiting action"
+            icon={FaHourglassHalf}
+            tone="text-amber-600 dark:text-amber-400"
+            iconBg="bg-amber-100 dark:bg-amber-900/40"
+          />
+          <StatCard
+            title="In Progress"
+            value={kpis.inProgress}
+            sub="Being worked on"
+            icon={FaSpinner}
+            tone="text-indigo-600 dark:text-indigo-400"
+            iconBg="bg-indigo-100 dark:bg-indigo-900/40"
+          />
+          <StatCard
+            title="Closed"
+            value={kpis.closed}
+            sub="Resolved tickets"
+            icon={FaCheckCircle}
+            tone="text-emerald-600 dark:text-emerald-400"
+            iconBg="bg-emerald-100 dark:bg-emerald-900/40"
+          />
+        </div>
+
+        <FilterPanel
+          title="Assigned ticket filters"
+          subtitle={`${filteredTickets.length} of ${tickets.length} tickets · updated just now`}
+          hint="Click View on any ticket to update its status, download attachments or reply in the discussion thread"
+        >
+          <FilterRow>
+            <GlassInput
+              placeholder="Search ticket ID or subject..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-[220px]"
+            />
+            <div className="min-w-[160px]">
+              <ModernSelect
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                options={statusOptions}
+                placeholder="All Status"
+              />
+            </div>
+            <div className="min-w-[150px]">
+              <ModernSelect
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                options={priorityOptions}
+                placeholder="All Priority"
+              />
+            </div>
+            {hasFilters && (
+              <GlassButton variant="ghost" size="sm" onClick={resetFilters}>
+                RESET
+              </GlassButton>
+            )}
+          </FilterRow>
+        </FilterPanel>
+
+        <StyledTable
+          columns={columns}
+          data={filteredTickets}
+          loading={loading}
+          emptyMessage={
+            hasFilters ? "No tickets match your filters" : "No tickets assigned to you yet."
+          }
+          onEmptyAction={hasFilters ? resetFilters : undefined}
+          emptyActionLabel="Clear all filters"
+          actions={actions}
+          rowsPerPage={10}
+          defaultSort={{ key: "createdAt", direction: "desc" }}
+          countLabel="tickets"
+        />
+      </div>
+
+      {selectedTicket && showDetailModal && (
+        <AssignedTicketDetailsModal
+          ticket={selectedTicket}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedTicket(null);
+          }}
+          onStatusChange={handleStatusChange}
+          onAddComment={handleAddComment}
+          onDownload={handleDownload}
+          showToast={showToast}
+        />
+      )}
+    </PageContainer>
+  );
 }

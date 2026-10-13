@@ -45,13 +45,9 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
  }
  };
 
- const getStatusColor = (status) => {
- switch (status) {
- case "Approved": return "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400 dark:bg-green-900/30 dark:text-green-400";
- case "Rejected": return "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-400 dark:bg-red-900/30 dark:text-red-400";
- default: return "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400 dark:bg-amber-900/30 dark:text-amber-400";
- }
- };
+const getStatusColor = (status) => {
+  return "lm-success-badge";
+};
 
  return (
  <GlassModal

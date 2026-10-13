@@ -17,7 +17,8 @@ const HistoryViewLeaveModal = ({
  setIsOpen,
  leaveData,
 }) => {
- const getStatusColor = (status) => STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
+ const statusBadge = (status) => STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
+ const statusDot = (status) => STATUS_VARIANTS[resolveStatusVariant(status)]?.dot || STATUS_VARIANTS.neutral.dot;
 
  if (!isOpen || !leaveData) return null;
 
@@ -29,7 +30,8 @@ const HistoryViewLeaveModal = ({
  <div className="flex flex-col">
  <span>LEAVE REQUEST DETAILS</span>
  <div className="mt-2">
- <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${getStatusColor(leaveData.status)}`}>
+ <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${statusBadge(leaveData.status)}`}>
+ <span className={`w-1.5 h-1.5 rounded-full ${statusDot(leaveData.status)}`} />
  {leaveData.status}
  </span>
  </div>
@@ -37,7 +39,7 @@ const HistoryViewLeaveModal = ({
  }
  maxWidth="max-w-4xl"
  footer={
- <GlassButton variant="secondary" onClick={() => setIsOpen(false)} className="w-full">
+ <GlassButton variant="primary" onClick={() => setIsOpen(false)} className="w-full">
  Close
  </GlassButton>
  }
@@ -45,7 +47,7 @@ const HistoryViewLeaveModal = ({
  <div className="space-y-6">
  {/* Employee Info */}
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaUser className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Employee</span>
@@ -56,7 +58,7 @@ const HistoryViewLeaveModal = ({
  </p>
  </div>
 
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaEnvelope className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Email</span>
@@ -67,7 +69,7 @@ const HistoryViewLeaveModal = ({
 
  {/* Dates */}
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaCalendarAlt className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Start Date</span>
@@ -77,7 +79,7 @@ const HistoryViewLeaveModal = ({
  </p>
  </div>
 
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaCalendarAlt className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">End Date</span>
@@ -90,7 +92,7 @@ const HistoryViewLeaveModal = ({
 
  {/* Duration & Type */}
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaClock className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Duration</span>
@@ -104,11 +106,11 @@ const HistoryViewLeaveModal = ({
  </p>
  </div>
 
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Leave Type</span>
  </div>
- <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-brand-primary/10 text-brand-primary uppercase">
+ <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border bg-amber-100 text-brand-text border-amber-200 uppercase tracking-wide">
  {leaveData.leaveType}
  </span>
  </div>
@@ -116,7 +118,7 @@ const HistoryViewLeaveModal = ({
 
  {/* Reason */}
  {leaveData.reason && leaveData.reason !== "-" && (
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaFileAlt className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Reason</span>
@@ -126,7 +128,7 @@ const HistoryViewLeaveModal = ({
  )}
 
  {/* Applied At */}
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <Clock size={14} className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Applied On</span>
@@ -137,8 +139,8 @@ const HistoryViewLeaveModal = ({
  </div>
 
  {/* Read Only Notice */}
- <div className="bg-amber-50 dark:bg-amber-900/30/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4">
- <p className="text-xs text-amber-700 dark:text-amber-400 font-medium text-center">
+ <div className="bg-warning-bg border border-warning-border rounded-xl p-4">
+ <p className="text-xs text-warning font-medium text-center">
  This is a read-only view of the leave request from employee history.
  </p>
  </div>

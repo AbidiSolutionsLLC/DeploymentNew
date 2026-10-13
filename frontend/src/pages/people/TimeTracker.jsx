@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
-import SubNavbar from "../../components/PeopleSubNavbar";
 import AddTimeLogModal from "./AddTimeLogModal";
+import { IoEye, IoPencil } from "react-icons/io5";
+import { FiTrash2 } from "react-icons/fi";
 import {
- IoCalendarNumberOutline,
- IoEye,
- IoPencil,
- IoTrash,
-} from "react-icons/io5";
-import { FaAngleLeft, FaAngleRight } from 'react-icons/fa';
+  FaList,
+  FaFileInvoice,
+  FaClipboardList,
+  FaHourglassHalf,
+  FaChartLine,
+  FaClock,
+  FaPlus,
+  FaRegCalendarAlt,
+  FaChevronLeft,
+  FaChevronRight,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+import { ClockIcon } from "@heroicons/react/20/solid";
 import { AnimatePresence, motion } from "framer-motion";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -18,10 +26,17 @@ import { toast } from "react-toastify";
 import Timesheet from "./Timesheet";
 import CreateTimesheetModal from "./CreateTimesheetModal";
 import timesheetApi from "../../api/timesheetApi";
-import TableWithPagination from "../../components/TableWithPagination";
-import { IoDownloadOutline } from "react-icons/io5";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
+import PortalHero from "../../components/ui/PortalHero";
+import PortalTabBar from "../../components/ui/PortalTabBar";
+import StatCard from "../../components/ui/StatCard";
+import FilterPanel from "../../components/ui/FilterPanel";
+import FilterRow from "../../components/ui/FilterRow";
+import StyledTable from "../../components/ui/StyledTable";
+import GlassButton from "../../components/ui/GlassButton";
+
+const EASE = [0.16, 1, 0.3, 1];
 
 const TimeTracker = () => {
  const [activeTab, setActiveTab] = useState(0);
@@ -39,9 +54,10 @@ const TimeTracker = () => {
  const [refreshTimesheetTrigger, setRefreshTimesheetTrigger] = useState(0);
  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ show: false, logId: null });
 
+ // Tab bar model — live counts ride along as badges (Leave Management style)
  const tabs = [
- { title: "Time Logs" },
- { title: "Timesheets" },
+ { key: 0, title: "Time Logs", icon: FaList, hint: "Daily work entries for a selected date", badge: timeLogs.length },
+ { key: 1, title: "Timesheets", icon: FaFileInvoice, hint: "Weekly timesheets submitted for approval", badge: Array.isArray(timesheets) ? timesheets.length : 0 },
  ];
 
  const calendarRef = useRef(null);
@@ -102,10 +118,17 @@ const TimeTracker = () => {
  }
  }, [activeTab]);
 
+ // Load the timesheet list once up-front so the Timesheets tab badge is live
+ // before that tab is ever opened.
+ useEffect(() => {
+ fetchTimesheets();
+ }, []);
+
  const handleTimesheetCreated = async () => {
  if (activeTab === 1) {
  setRefreshTimesheetTrigger(prev => prev + 1);
  }
+ fetchTimesheets(); // keep the tab badge in sync with the new timesheet
  setIsCreateTimesheetModalOpen(false);
  };
 
@@ -134,6 +157,11 @@ const TimeTracker = () => {
  : timeLogs;
 
  const totalHours = filteredData.reduce((sum, log) => sum + (log.totalHours || log.hours || 0), 0);
+ const totalAllHours = timeLogs.reduce((sum, log) => sum + (log.totalHours || log.hours || 0), 0);
+ const avgHours = filteredData.length ? totalHours / filteredData.length : 0;
+ const shortDateLabel = selectedDate
+ ? selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+ : "";
 
  useEffect(() => {
  // Current page is managed internally by TableWithPagination
@@ -286,61 +314,69 @@ const TimeTracker = () => {
  }
  ];
 
- // Define actions for Time Logs
- const timeLogActions = [
- {
- icon: <IoEye size={16} />,
- title: "View",
- className: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:bg-amber-900/40",
- onClick: (row) => handleViewLog(row)
- },
- {
- icon: <IoPencil size={16} />,
- title: "Edit",
- className: (row) => row.isAddedToTimesheet ? "hidden" : "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:bg-green-900/40",
- onClick: (row) => {
- setEditingLogId(row._id);
- setModalMode("edit");
- setIsAddTimeLogModalOpen(true);
- }
- },
- {
- icon: <IoTrash size={16} />,
- title: "Delete",
- className: (row) => row.isAddedToTimesheet ? "hidden" : "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:bg-red-900/40",
- onClick: (row) => handleDeleteClick(row._id)
- }
- ];
+// Define actions for Time Logs
+  const timeLogActions = [
+  {
+  icon: <IoEye size={16} />,
+  title: "View",
+  className: "lm-success-badge",
+  onClick: (row) => handleViewLog(row)
+  },
+  {
+  icon: <IoPencil size={16} />,
+  title: "Edit",
+  className: (row) => row.isAddedToTimesheet ? "hidden" : "lm-success-badge",
+  onClick: (row) => {
+  setEditingLogId(row._id);
+  setModalMode("edit");
+  setIsAddTimeLogModalOpen(true);
+  }
+  },
+  {
+  icon: <FiTrash2 size={16} />,
+  title: "Delete",
+  className: (row) => row.isAddedToTimesheet ? "hidden" : "lm-success-badge",
+  onClick: (row) => handleDeleteClick(row._id)
+  }
+  ];
 
  // Table rendering is handled below in the return
 
  return (
  <>
- <div className="flex flex-col gap-4 h-full">
- {/* Tab Bar & Action Button Container */}
- <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
- <div className="inline-flex flex-row flex-wrap items-center justify-center bg-surface p-1.5 rounded-[1.2rem] shadow-sm border border-white/50">
- {tabs.map((item, index) => (
- <div key={item.title} className="flex items-center">
- <button
- className={`px-5 py-2.5 text-sm font-medium transition-all duration-200 rounded-xl
- ${activeTab === index
- ? "text-heading bg-surface shadow-sm font-bold"
- : "text-muted hover:text-heading hover:bg-surface/50"
- }`}
- onClick={() => setActiveTab(index)}
- >
- {item.title}
- </button>
- {index !== tabs.length - 1 && (
- <span className="w-px h-5 bg-slate-200 mx-1.5"></span>
- )}
- </div>
- ))}
- </div>
+ <PageContainer isCard={false}>
+ <div className="flex flex-col gap-4 w-full">
+{/* ============ HERO (Leave Management style) ============ */}
+<PortalHero
+    label="Time tracking overview"
+  title="Time Tracker"
+  description="Log your daily work, review submitted hours and manage weekly timesheets — all from one place."
+  emblem={ClockIcon}
+  chips={[
+  { icon: FaClipboardList, value: timeLogs.length, label: " Time logs" },
+  { icon: FaHourglassHalf, value: totalAllHours.toFixed(1), label: " Hours logged" },
+  { pulse: true, value: totalHours.toFixed(1), label: ` Hours on ${shortDateLabel}` },
+  ]}
+  />
 
- {/* Dynamic Action Button */}
- <button
+ {/* ============ TAB BAR ============ */}
+ <PortalTabBar
+ tabs={tabs}
+ activeKey={activeTab}
+ onChange={setActiveTab}
+ idPrefix="tt-tab"
+ panelId="timetracker-tabpanel"
+ ariaLabel="Time tracker sections"
+ layoutId="tt-tab-pill"
+ right={
+ <>
+ <span className="hidden xl:block text-[10px] font-black uppercase tracking-widest text-muted">
+ {activeTab === 0 ? shortDateLabel : "Weekly timesheets"}
+ </span>
+ <GlassButton
+ variant="primary"
+ size="sm"
+ icon={FaPlus}
  onClick={() => {
  if (activeTab === 0) {
  setModalMode("add");
@@ -349,41 +385,100 @@ const TimeTracker = () => {
  setIsCreateTimesheetModalOpen(true);
  }
  }}
- className="w-full sm:w-auto btn btn-primary flex items-center justify-center gap-2"
  >
- <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
- </svg>
- {activeTab === 0 ? "Add Time Log" : "Create Timesheet"}
- </button>
+ {activeTab === 0 ? "Time Log" : "Timesheet"}
+ </GlassButton>
+ </>
+ }
+ />
+
+ {/* Tab content — remount on change so it fades in fresh */}
+ <motion.div
+ key={activeTab}
+ id="timetracker-tabpanel"
+ role="tabpanel"
+ aria-labelledby={`tt-tab-${activeTab}`}
+ initial={{ opacity: 0, y: 10 }}
+ animate={{ opacity: 1, y: 0 }}
+ transition={{ duration: 0.45, delay: 0.14, ease: EASE }}
+ className="flex flex-col gap-4"
+ >
+ {activeTab === 0 &&
+ (error ? (
+ /* ============ ERROR STATE ============ */
+ <div className="glass-card text-center py-14">
+ <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-danger-bg border border-danger-border flex items-center justify-center">
+ <FaExclamationTriangle size={22} className="text-danger" />
+ </div>
+ <p className="text-sm font-bold text-heading">Failed to load time logs</p>
+ <p className="text-xs text-muted mt-1 mb-5">{error}</p>
+ <GlassButton variant="primary" onClick={fetchTimeLogs}>
+ RETRY
+ </GlassButton>
+ </div>
+ ) : (
+ <>
+ {/* ============ KPI CARDS ============ */}
+ <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
+ <StatCard
+ title="Logs This Day"
+ value={filteredData.length}
+ sub={formatDate(selectedDate)}
+ icon={FaClipboardList}
+ tone="text-main"
+ iconBg="bg-app"
+ />
+ <StatCard
+ title="Submitted Hours"
+ value={totalHours.toFixed(1)}
+ sub="Logged on the selected day"
+ icon={FaHourglassHalf}
+ tone="text-amber-600 dark:text-amber-400"
+ iconBg="bg-amber-100 dark:bg-amber-900/40"
+ />
+ <StatCard
+ title="Avg Hours / Log"
+ value={avgHours.toFixed(1)}
+ sub="Average per time log"
+ icon={FaChartLine}
+ tone="text-sky-600 dark:text-sky-400"
+ iconBg="bg-sky-100 dark:bg-sky-900/40"
+ />
+ <StatCard
+ title="Total Hours"
+ value={totalAllHours.toFixed(1)}
+ sub={`${timeLogs.length} logs all time`}
+ icon={FaClock}
+ tone="text-emerald-600 dark:text-emerald-400"
+ iconBg="bg-emerald-100 dark:bg-emerald-900/40"
+ />
  </div>
 
- {activeTab === 0 && (
- <PageContainer
- title="Time Logs"
- subtitle="Track your daily work entries"
- loading={loading}
- isCard={true}
- headerActions={
- <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
- <div className="flex flex-wrap items-center gap-3">
+ {/* ============ FILTERS ============ */}
+ <FilterPanel
+ title="Daily Time Logs"
+ subtitle={`${filteredData.length} of ${timeLogs.length} entries · ${formatDate(selectedDate)}`}
+ hint="Step through days with the arrows — future dates are locked. Click any row to view its details."
+ >
+ <FilterRow>
  <button
  onClick={navigateToPreviousDay}
- className="btn-ghost p-2.5 rounded-lg text-muted"
+ className="w-[42px] h-[42px] flex items-center justify-center rounded-xl border border-border-subtle bg-surface text-muted hover:text-heading hover:border-border-accent hover:bg-card-hover transition-all shadow-sm group"
+ title="Previous day"
  >
- <FaAngleLeft size={18} />
+ <FaChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
  </button>
 
- <div className="relative" ref={calendarRef}>
- <button
- className="px-3 bg-surface rounded-lg flex items-center gap-2 hover:bg-hover btn btn-secondary"
- onClick={() => setShowCalendar(!showCalendar)}
- >
- <IoCalendarNumberOutline size={18} className="text-muted" />
- {selectedDate && (
- <span className="text-sm font-medium">{formatDate(selectedDate)}</span>
- )}
- </button>
+<div className="relative flex-1 sm:flex-none min-w-[170px]" ref={calendarRef}>
+  <button
+  onClick={() => setShowCalendar(!showCalendar)}
+  className="w-full h-[42px] px-4 flex items-center gap-2 bg-surface border border-border-subtle text-main rounded-xl font-semibold text-xs hover:border-border-accent transition-all min-w-[170px] justify-center shadow-sm"
+  >
+  <span className="cal-chip" aria-hidden="true">
+   <FaRegCalendarAlt size={14} />
+   </span>
+  <span className="truncate">{formatDate(selectedDate)}</span>
+  </button>
 
  <AnimatePresence>
  {showCalendar && (
@@ -410,59 +505,47 @@ const TimeTracker = () => {
  <button
  onClick={navigateToNextDay}
  disabled={selectedDate >= new Date().setHours(0, 0, 0, 0)} // Disable if today
- className={`p-2.5 rounded-lg border border-border-subtle transition shadow-sm ${selectedDate >= new Date().setHours(0, 0, 0, 0) ? 'bg-surface/50 text-muted/50 cursor-not-allowed' : 'bg-surface text-muted hover:bg-hover'}`}
+ className={`w-[42px] h-[42px] flex items-center justify-center rounded-xl border border-border-subtle transition-all shadow-sm group ${
+ selectedDate >= new Date().setHours(0, 0, 0, 0)
+ ? "bg-surface/50 text-muted/50 cursor-not-allowed"
+ : "bg-surface text-muted hover:text-heading hover:border-border-accent hover:bg-card-hover"
+ }`}
+ title="Next day"
  >
- <FaAngleRight size={18} />
+ <FaChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
  </button>
- </div>
- <div className="bg-brand-primary/10 border border-brand-primary/20 px-3 py-2 rounded-lg shadow-sm">
- <span className="text-xs font-medium text-brand-primary uppercase tracking-wide">
- Submitted Hours: <span className="font-bold text-brand-primary">{totalHours.toFixed(2)}</span>
- </span>
- </div>
- </div>
- }
- >
- {/* Error State */}
- {error && (
- <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 rounded-[1.2rem] p-4 text-center text-red-700 dark:text-red-400 text-sm mb-4">
- {error}
- </div>
- )}
+ </FilterRow>
+ </FilterPanel>
 
- {!loading && !error && (
- <div className="space-y-6">
- <TableWithPagination
+ {/* ============ TABLE ============ */}
+ <StyledTable
  columns={timeLogColumns}
  data={filteredData}
  loading={loading}
- error={error}
- emptyMessage={selectedDate
+ emptyMessage={
+ selectedDate
  ? `No time logs found for ${formatDate(selectedDate)}`
- : "No time logs found. Try selecting a different date or add a new time log."}
+ : "No time logs found. Try selecting a different date or add a new time log."
+ }
  onRowClick={handleViewLog}
  actions={timeLogActions}
  rowsPerPage={5}
- defaultSort={{ key: 'date', direction: 'desc' }}
+ defaultSort={{ key: "date", direction: "desc" }}
+ countLabel="time logs"
  />
- 
- <div className="flex justify-center sm:justify-end pb-8">
- <button
- onClick={() => setIsCreateTimesheetModalOpen(true)}
- className="group relative flex items-center gap-3 px-8 py-4 bg-brand-primary text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.15em] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 overflow-hidden"
- >
- <svg className="w-5 h-5 text-white transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
- </svg>
- <span>Create Timesheet for this date</span>
- </button>
+
+ <div className="flex justify-center sm:justify-end">
+ <GlassButton variant="secondary" icon={FaFileInvoice} onClick={() => setIsCreateTimesheetModalOpen(true)}>
+ Create Timesheet for this date
+ </GlassButton>
  </div>
- </div>
- )}
- </PageContainer>
- )}
+ </>
+ ))}
+
  {activeTab === 1 && <Timesheet refreshTrigger={refreshTimesheetTrigger} />}
+ </motion.div>
  </div>
+ </PageContainer>
 
  <AddTimeLogModal
  isOpen={modalMode === "add" && isAddTimeLogModalOpen}

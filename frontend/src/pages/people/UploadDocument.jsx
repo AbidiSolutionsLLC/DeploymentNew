@@ -519,14 +519,14 @@ const UploadDocument = () => {
  </div>
  ))}
 
- {/* Files */}
- {files.map((file) => (
- <div key={file._id} className="bg-surface rounded-xl p-3 shadow-sm border border-border-subtle hover:shadow-md transition-all duration-200 hover:border-border-subtle">
- <div className="flex justify-between items-center">
- <div className="flex items-center min-w-0">
- <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400 mr-3">
- <FaFile size={18} />
- </div>
+{/* Files */}
+  {files.map((file) => (
+  <div key={file._id} className="bg-surface rounded-xl p-3 shadow-sm border border-border-subtle hover:shadow-md transition-all duration-200 hover:border-border-subtle">
+  <div className="flex justify-between items-center">
+  <div className="flex items-center min-w-0">
+  <div className="p-2 rounded-lg lm-success-badge mr-3">
+  <FaFile size={18} />
+  </div>
  <div className="min-w-0">
  <p className="text-sm font-bold text-heading truncate" title={file.name}>{file.name}</p>
  <p className="text-xs text-muted">

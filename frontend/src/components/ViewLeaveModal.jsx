@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from "react";
 import {
- FaCalendarAlt,
- FaUser,
- FaEnvelope,
- FaClock,
- FaFileAlt,
- FaComment,
- FaTimes
+  FaCalendarAlt,
+  FaUser,
+  FaEnvelope,
+  FaClock,
+  FaFileAlt,
+  FaComment,
+  FaTimes
 } from "react-icons/fa";
 import {
- Send,
- Clock,
- Paperclip,
- Trash2,
- Edit2
+  Send,
+  Clock,
+  Paperclip,
+  Edit2
 } from "lucide-react";
+import { FiTrash2 } from "react-icons/fi";
 import ModernSelect from "./ui/ModernSelect";
 import api from "../axios";
 import Toast from "../components/Toast";
-import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { validateDescription, getApiError } from "../utils/validationUtils";
 import { parseISOToLocalDate, formatDisplayDate } from "../utils/dateUtils";
@@ -26,6 +25,7 @@ import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
 import { useConfirm } from "../context/ConfirmContext";
 import Loader from "./ui/Loader";
+import { STATUS_VARIANTS, resolveStatusVariant } from "./StatusBadge";
  
 const ViewLeaveModal = ({
  isOpen,
@@ -218,13 +218,11 @@ const ViewLeaveModal = ({
  }
  };
  
- const getStatusColor = (status) => {
- switch(status) {
- case "Approved": return "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400 dark:bg-green-900/30 dark:text-green-400";
- case "Rejected": return "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-400 dark:bg-red-900/30 dark:text-red-400";
- default: return "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400 dark:bg-amber-900/30 dark:text-amber-400";
- }
- };
+ const statusBadge = (status) =>
+ STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
+ 
+ const statusDot = (status) =>
+ STATUS_VARIANTS[resolveStatusVariant(status)]?.dot || STATUS_VARIANTS.neutral.dot;
  
  const getAvatarContent = (response) => {
  if (response.author?.avatar) {
@@ -264,17 +262,18 @@ const ViewLeaveModal = ({
  <GlassModal
  isOpen={isOpen}
  onClose={() => !isSubmitting && (setIsOpen(false), resetState())}
- title={
- <div className="flex flex-col">
- <span>LEAVE REQUEST DETAILS</span>
- <div className="mt-2">
- <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${getStatusColor(leaveData.status)}`}>
- {leaveData.status}
- </span>
- </div>
- </div>
- }
- maxWidth="max-w-6xl"
+  title={
+  <div className="flex flex-col">
+  <span>LEAVE REQUEST DETAILS</span>
+  <div className="mt-2">
+  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border ${statusBadge(leaveData.status)}`}>
+  <span className={`w-1.5 h-1.5 rounded-full ${statusDot(leaveData.status)}`} />
+  {leaveData.status}
+  </span>
+  </div>
+  </div>
+  }
+  maxWidth="max-w-6xl"
  >
  <div className="flex flex-col lg:flex-row h-full">
  {/* LEFT COLUMN - LEAVE DETAILS */}
@@ -282,7 +281,7 @@ const ViewLeaveModal = ({
  <div className="space-y-6">
  {/* Employee Info */}
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaUser className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Employee</span>
@@ -293,7 +292,7 @@ const ViewLeaveModal = ({
  </p>
  </div>
  
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaEnvelope className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Email</span>
@@ -304,7 +303,7 @@ const ViewLeaveModal = ({
 
  {/* Dates */}
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaCalendarAlt className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Start Date</span>
@@ -314,7 +313,7 @@ const ViewLeaveModal = ({
  </p>
  </div>
  
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaCalendarAlt className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">End Date</span>
@@ -327,7 +326,7 @@ const ViewLeaveModal = ({
 
  {/* Duration & Type */}
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaClock className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Duration</span>
@@ -341,19 +340,19 @@ const ViewLeaveModal = ({
  </p>
  </div>
  
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Leave Type</span>
  </div>
- <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-brand-primary/10 text-brand-primary uppercase">
- {leaveData.leaveType}
- </span>
+  <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border bg-amber-100 text-brand-text border-amber-200 uppercase tracking-wide">
+  {leaveData.leaveType}
+  </span>
  </div>
  </div>
 
  {/* Reason */}
  {leaveData.reason && leaveData.reason !== "-" && (
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <FaFileAlt className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Reason</span>
@@ -363,7 +362,7 @@ const ViewLeaveModal = ({
  )}
 
  {/* Applied At */}
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl">
+ <div className="bg-app border border-border-subtle p-4 rounded-xl">
  <div className="flex items-center gap-3 mb-2">
  <Clock size={14} className="text-muted dark:text-muted" />
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Applied On</span>
@@ -432,21 +431,25 @@ const ViewLeaveModal = ({
  {/* Responses List */}
   <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 space-y-3 pr-2">
   {loadingResponses && responses.length === 0 ? (
-  <div className="text-center py-8">
-    <Loader size="md" className="mb-3" />
-    <p className="text-sm text-muted font-medium">Loading discussion...</p>
+  <div className="py-4">
+    <Loader size="md" text="Loading discussion..." />
   </div>
   ) : responsesError ? (
   <div className="text-center py-8">
-    <p className="text-sm text-red-500 font-medium">Failed to load discussion</p>
-    <button onClick={fetchResponses} className="text-xs text-brand-primary mt-2">Try Again</button>
+    <p className="text-sm text-danger font-medium">Failed to load discussion</p>
+    <button
+      onClick={() => fetchResponses(false)}
+      className="mt-2 text-xs font-black uppercase tracking-wider text-brand-text hover:underline underline-offset-4"
+    >
+      Try Again
+    </button>
   </div>
   ) : responses.length > 0 ? (
  responses.map((response) => (
- <div key={response._id} className="bg-surface/50 dark:bg-slate-800/50 rounded-xl p-3 border border-border-subtle dark:border-slate-700">
+ <div key={response._id} className="bg-app rounded-xl p-3 border border-border-subtle">
  <div className="flex items-start gap-3">
  {/* Avatar */}
- <div className="w-8 h-8 flex items-center justify-center bg-brand-primary/10 text-brand-primary rounded-full text-sm font-bold shrink-0">
+  <div className="w-8 h-8 flex items-center justify-center bg-amber-100 text-brand-text border border-amber-200 rounded-full text-sm font-bold shrink-0 uppercase">
  {getAvatarContent(response)}
  </div>
  
@@ -481,13 +484,13 @@ const ViewLeaveModal = ({
  >
  <Edit2 size={12} />
  </button>
- <button
- onClick={() => handleDeleteResponse(response._id)}
- className="p-1 text-muted dark:text-muted hover:text-red-600 dark:text-red-400 transition"
- title="Delete"
- >
- <Trash2 size={12} />
- </button>
+<button
+  onClick={() => handleDeleteResponse(response._id)}
+  className="p-1 text-muted dark:text-muted hover:text-red-600 dark:text-red-400 transition"
+  title="Delete"
+  >
+  <FiTrash2 size={12} />
+  </button>
  </div>
  )}
  </div>
@@ -538,13 +541,15 @@ const ViewLeaveModal = ({
  </div>
  </div>
  ))
- ) : (
- <div className="text-center py-8">
- <FaComment className="w-12 h-12 text-muted dark:text-muted mx-auto mb-3 opacity-50" />
- <p className="text-sm text-muted dark:text-muted font-medium">No discussion yet</p>
- <p className="text-xs text-muted dark:text-muted mt-1">Start a conversation about this leave request</p>
- </div>
- )}
+  ) : (
+  <div className="text-center py-10">
+  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-app border border-dashed border-border-accent flex items-center justify-center">
+  <FaComment size={22} className="text-brand-text opacity-70" />
+  </div>
+  <p className="text-sm font-bold text-heading tracking-tight">No discussion yet</p>
+  <p className="text-xs text-muted mt-1">Start a conversation about this leave request</p>
+  </div>
+  )}
  </div>
 
  {/* New Response Input */}
@@ -567,7 +572,7 @@ const ViewLeaveModal = ({
  
   {/* Attachment Button / Preview */}
   {!attachment ? (
-  <label className="absolute left-3 bottom-8 p-2 bg-surface/80 dark:bg-slate-800 text-muted dark:text-muted rounded-lg hover:bg-surface dark:hover:bg-slate-700 transition cursor-pointer">
+   <label className="absolute left-3 bottom-8 p-2 bg-surface border border-border-subtle text-muted rounded-lg hover:bg-card-hover hover:text-brand-text transition cursor-pointer">
   <input
   type="file"
   className="hidden"
@@ -578,33 +583,37 @@ const ViewLeaveModal = ({
   <Paperclip size={16} />
   </label>
   ) : (
-  <div className="absolute left-3 bottom-8 flex items-center gap-2 bg-brand-primary/10 text-brand-primary px-3 py-1.5 rounded-lg text-xs">
+  <div className="absolute left-3 bottom-8 flex items-center gap-2 bg-amber-100 text-brand-text border border-amber-200 px-3 py-1.5 rounded-lg text-xs">
   <Paperclip size={14} />
   <span className="truncate max-w-[150px] font-medium">{attachment.name}</span>
   <button
   onClick={() => {
   setAttachment(null);
   }}
-  className="text-brand-primary hover:text-red-600 dark:text-red-400"
+  className="text-brand-text hover:text-red-600 dark:hover:text-red-400"
   >
   <FaTimes size={10} />
   </button>
   </div>
   )}
  
- {/* Send Button */}
- <button
- onClick={handleSubmitResponse}
- disabled={!newResponse.trim() || isSubmitting}
- className="btn-ghost absolute right-3 p-2 rounded-lg"
- title="Send response"
- >
- <Send size={16} />
- </button>
+  {/* Send Button */}
+  <button
+  onClick={handleSubmitResponse}
+  disabled={!newResponse.trim() || isSubmitting}
+  className={`absolute right-3 bottom-8 p-2 rounded-lg transition-all ${
+    !newResponse.trim() || isSubmitting
+      ? "text-muted opacity-50 cursor-not-allowed"
+      : "bg-brand text-on-brand shadow-sm hover:bg-brand-accent active:scale-95"
+  }`}
+  title="Send response"
+  >
+  <Send size={16} />
+  </button>
  </div>
  
  <p className="text-xs text-muted dark:text-muted mt-2 px-1">
- Press <kbd className="px-1.5 py-0.5 bg-surface/80 dark:bg-slate-800 rounded text-xs">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-surface/80 dark:bg-slate-800 rounded text-xs">Shift+Enter</kbd> for new line
+ Press <kbd className="px-1.5 py-0.5 bg-app border border-border-subtle rounded text-xs">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-app border border-border-subtle rounded text-xs">Shift+Enter</kbd> for new line
  </p>
  </div>
  </div>

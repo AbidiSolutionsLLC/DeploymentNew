@@ -217,11 +217,11 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
  <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.leaveType}</p>
  )}
  </div>
- {availableBalance !== null && (
- <p className="mt-2 text-[10px] font-bold text-emerald-500 uppercase tracking-tight">
- AVAILABLE BALANCE: {availableBalance} DAYS
- </p>
- )}
+{availableBalance !== null && (
+  <p className="mt-2 lm-success-text uppercase tracking-tight">
+  AVAILABLE BALANCE: {availableBalance} DAYS
+  </p>
+  )}
  </div>
 
  <div className="grid grid-cols-2 gap-4">

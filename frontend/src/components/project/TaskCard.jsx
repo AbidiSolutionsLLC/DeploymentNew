@@ -5,18 +5,9 @@ import { useTheme } from "../../context/ThemeContext"; // Keep this import
 const TaskCard = ({ task, isDragging }) => {
  const { selectedTheme } = useTheme(); // Keep this import, though colors are now via CSS vars
 
- const getPriorityColor = (priority) => {
- switch (priority) {
- case 'high':
- return 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800/50';
- case 'medium':
- return 'bg-yellow-100 text-yellow-800 border-yellow-200';
- case 'low':
- return 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800/50';
- default:
- return 'bg-app text-main border-border-subtle';
- }
- };
+const getPriorityColor = (priority) => {
+  return 'lm-success-badge';
+};
 
  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
  const isDueSoon = task.dueDate && new Date(task.dueDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);

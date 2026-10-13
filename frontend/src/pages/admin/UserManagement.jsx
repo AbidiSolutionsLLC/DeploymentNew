@@ -1,327 +1,685 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { motion as Motion } from "framer-motion";
+import api from "../../axios";
+import {
+  FaPlus,
+  FaUsers,
+  FaUserCheck,
+  FaUserSlash,
+  FaClock,
+  FaBuilding,
+  FaFileCsv,
+  FaSyncAlt,
+  FaPen,
+} from "react-icons/fa";
+import { UsersIcon } from "@heroicons/react/20/solid";
 import CreateUserModal from "../../components/CreateUserModal";
 import CreateDepartmentModal from "../../components/CreateDepartmentModal";
-import { FaPlus } from "react-icons/fa";
-import { X } from "lucide-react";
 import UserDetailModal from "../../components/UserDetailModal";
-import api from "../../axios";
-import { toast } from "react-toastify";
 import PageContainer from "../../components/ui/PageContainer";
-import GlassInput from "../../components/ui/GlassInput";
-import ModernSelect from "../../components/ui/ModernSelect";
+import PortalHero from "../../components/ui/PortalHero";
+import PortalTabBar from "../../components/ui/PortalTabBar";
+import StatCard from "../../components/ui/StatCard";
+import FilterPanel from "../../components/ui/FilterPanel";
 import FilterRow from "../../components/ui/FilterRow";
-import TableWithPagination from "../../components/TableWithPagination";
+import GlassInput from "../../components/ui/GlassInput";
+import GlassButton from "../../components/ui/GlassButton";
+import ModernSelect from "../../components/ui/ModernSelect";
+import StyledTable from "../../components/ui/StyledTable";
+import Toast from "../../components/Toast";
+import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
+import { getInitials, downloadCsv } from "../../utils/tableUtils";
+import { getApiError } from "../../utils/validationUtils";
+
+const EASE = [0.16, 1, 0.3, 1];
+
+/* Tab definitions (Leave Management style tab bar) */
+const TABS = [
+  { key: "all", title: "All Users", icon: FaUsers, hint: "Everyone in the employee directory" },
+  { key: "Active", title: "Active", icon: FaUserCheck, hint: "Employees currently active" },
+  { key: "Pending", title: "Pending", icon: FaClock, hint: "Invited but not activated yet" },
+  { key: "Inactive", title: "Inactive", icon: FaUserSlash, hint: "Deactivated employees" },
+  { key: "departments", title: "Departments", icon: FaBuilding, hint: "Organizational units and their members" },
+];
+
+const ROLE_ORDER = ["Super Admin", "Admin", "HR", "Manager", "Employee"];
+
+/* Semantic status pill (same tokens as the Leave Management badges) */
+const statusBadge = (status) =>
+  STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
+
+const pill = "text-xs font-semibold bg-surface dark:bg-app px-2.5 py-1 rounded-md border border-border-subtle text-main";
 
 const UserManagement = () => {
- const [users, setUsers] = useState([]);
- const [currentUser, setCurrentUser] = useState(null);
- const [departments, setDepartments] = useState([]);
- const [filteredUsers, setFilteredUsers] = useState([]);
- const [searchTerm, setSearchTerm] = useState("");
- const [roleFilter, setRoleFilter] = useState("all");
- const [deptFilter, setDeptFilter] = useState("all");
- const [statusFilter, setStatusFilter] = useState("all");
- const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
- const [isModalOpen, setIsModalOpen] = useState(false);
- const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
- const [selectedUser, setSelectedUser] = useState(null);
- const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
- const [loading, setLoading] = useState(true);
+  /* ==================== DATA ==================== */
+  const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
- const fetchData = async () => {
- setLoading(true);
- try {
- const [usersRes, deptsRes, meRes] = await Promise.all([
- api.get("/users"),
- api.get("/departments"),
- api.get("/auth/me"),
- ]);
+  /* ==================== UI STATE ==================== */
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [deptFilter, setDeptFilter] = useState("all");
+  const [deptSearch, setDeptSearch] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
+  const [toast, setToast] = useState(null);
 
- const usersArray = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data.data || [];
- const deptsArray = Array.isArray(deptsRes.data) ? deptsRes.data : deptsRes.data.data || [];
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
 
- setUsers(usersArray);
- setDepartments(deptsArray);
- setCurrentUser(meRes.data.user || meRes.data.data?.user || meRes.data.data);
- setFilteredUsers(usersArray);
- } catch (error) {
- console.error("Failed to fetch data:", error);
- toast.error("Failed to load data");
- } finally {
- setLoading(false);
- }
- };
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [usersRes, deptsRes, meRes] = await Promise.all([
+        api.get("/users"),
+        api.get("/departments"),
+        api.get("/auth/me"),
+      ]);
 
- useEffect(() => {
- fetchData();
- }, []);
+      const usersArray = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data.data || [];
+      const deptsArray = Array.isArray(deptsRes.data) ? deptsRes.data : deptsRes.data.data || [];
 
- useEffect(() => {
- let result = users.filter(
- (user) =>
- (String(user.name || "")).toLowerCase().includes(searchTerm.toLowerCase()) ||
- (String(user.email || "")).toLowerCase().includes(searchTerm.toLowerCase()) ||
- String(user.empID || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
- (String(user.department?.name || "")).toLowerCase().includes(searchTerm.toLowerCase())
- );
+      setUsers(usersArray);
+      setDepartments(deptsArray);
+      setCurrentUser(meRes.data.user || meRes.data.data?.user || meRes.data.data);
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+      showToast(getApiError(error, "Failed to load data"), "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
 
- // Role filter
- if (roleFilter !== "all") {
- result = result.filter((u) => u.role === roleFilter);
- }
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
- // Department filter
- if (deptFilter !== "all") {
- result = result.filter((u) => (u.department?._id || u.department) === deptFilter);
- }
+  /* Manual refresh (shows the button spinner + table loading state) */
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchData();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchData]);
 
- // Status filter
- if (statusFilter !== "all") {
- result = result.filter((u) => u.empStatus === statusFilter);
- }
+  /* ==================== DERIVED COUNTS ==================== */
+  const counts = useMemo(
+    () => ({
+      total: users.length,
+      active: users.filter((u) => u.empStatus === "Active").length,
+      inactive: users.filter((u) => u.empStatus === "Inactive").length,
+      pending: users.filter((u) => u.empStatus === "Pending").length,
+      departments: departments.length,
+    }),
+    [users, departments]
+  );
 
- if (sortConfig.key) {
- result.sort((a, b) => {
- let aValue = a[sortConfig.key];
- let bValue = b[sortConfig.key];
+  const isDeptTab = activeTab === "departments";
+  const canAddUser = Boolean(currentUser && ["Super Admin", "Admin", "HR"].includes(currentUser.role));
+  const canAddDept = Boolean(currentUser && ["Super Admin", "Global Reader"].includes(currentUser.role));
 
- if (sortConfig.key === "department") {
- aValue = a.department?.name || "";
- bValue = b.department?.name || "";
- }
+  /* ==================== FILTER OPTIONS ==================== */
+  const roleOptions = useMemo(() => {
+    const derived = [...new Set(users.map((u) => u.role).filter(Boolean))];
+    const roles = [...new Set([...ROLE_ORDER, ...derived])].sort(
+      (a, b) => (ROLE_ORDER.indexOf(a) === -1 ? 99 : ROLE_ORDER.indexOf(a)) -
+        (ROLE_ORDER.indexOf(b) === -1 ? 99 : ROLE_ORDER.indexOf(b))
+    );
+    return [{ value: "all", label: "All Roles" }, ...roles.map((r) => ({ value: r, label: r }))];
+  }, [users]);
 
- if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
- if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
- return 0;
- });
- }
+  const deptOptions = useMemo(
+    () => [
+      { value: "all", label: "All Departments" },
+      ...departments.map((d) => ({ value: d._id, label: d.name })),
+    ],
+    [departments]
+  );
 
- setFilteredUsers(result);
- }, [searchTerm, roleFilter, deptFilter, statusFilter, users, sortConfig]);
+  /* ==================== FILTERED EMPLOYEES ==================== */
+  const basePool = useMemo(
+    () => (activeTab === "all" ? users : users.filter((u) => u.empStatus === activeTab)),
+    [users, activeTab]
+  );
 
- const handleSort = (key) => {
- setSortConfig((prev) => ({
- key,
- direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
- }));
- };
+  const filteredUsers = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return basePool
+      .filter((user) => {
+        const matchesSearch =
+          !q ||
+          String(user.name || "").toLowerCase().includes(q) ||
+          String(user.email || "").toLowerCase().includes(q) ||
+          String(user.empID || "").toLowerCase().includes(q) ||
+          String(user.department?.name || "").toLowerCase().includes(q);
+        const matchesRole = roleFilter === "all" || user.role === roleFilter;
+        const matchesDept = deptFilter === "all" || (user.department?._id || user.department) === deptFilter;
+        return matchesSearch && matchesRole && matchesDept;
+      })
+      .map((u) => ({ ...u, departmentName: u.department?.name || "" }));
+  }, [basePool, searchTerm, roleFilter, deptFilter]);
 
- const handleUserClick = (user) => {
- setSelectedUser(user);
- setIsUserDetailOpen(true);
- };
+  const hasFilters = Boolean(searchTerm) || roleFilter !== "all" || deptFilter !== "all";
 
- const handleUserCreated = () => {
- fetchData();
- toast.success("User created successfully");
- };
+  const resetFilters = () => {
+    setSearchTerm("");
+    setRoleFilter("all");
+    setDeptFilter("all");
+  };
 
- const handleDepartmentCreated = () => {
- fetchData();
- toast.success("Department created successfully");
- };
+  /* ==================== FILTERED DEPARTMENTS ==================== */
+  const filteredDepartments = useMemo(() => {
+    const q = deptSearch.trim().toLowerCase();
+    return departments
+      .filter((d) => {
+        if (!q) return true;
+        return (
+          String(d.name || "").toLowerCase().includes(q) ||
+          String(d.description || "").toLowerCase().includes(q) ||
+          String(d.manager?.name || "").toLowerCase().includes(q)
+        );
+      })
+      .map((d) => ({
+        ...d,
+        managerName: d.manager?.name || "",
+        memberCount: users.filter((u) => (u.department?._id || u.department) === d._id).length,
+      }));
+  }, [departments, users, deptSearch]);
 
- const handleUserUpdated = (type = "update") => {
- fetchData();
- toast.success(type === "delete" ? "User deleted successfully" : "User updated successfully");
- };
+  const hasDeptFilters = Boolean(deptSearch);
 
- const activeUsers = users.filter((u) => u.empStatus === "Active").length;
- const inactiveUsers = users.filter((u) => u.empStatus === "Inactive").length;
+  const resetDeptFilters = () => setDeptSearch("");
 
- const canAddUser = currentUser && ["Super Admin", "Admin", "HR"].includes(currentUser.role);
+  /* ==================== HANDLERS ==================== */
+  const handleUserClick = (user) => {
+    setSelectedUser(user);
+    setIsUserDetailOpen(true);
+  };
 
- // Derive unique roles from users list + common defaults
- const roleOptions = [
- { value: "all", label: "All Roles" },
- { value: "Super Admin", label: "Super Admin" },
- { value: "Admin", label: "Admin" },
- { value: "HR", label: "HR" },
- { value: "Manager", label: "Manager" },
- { value: "Employee", label: "Employee" },
- ];
+  const handleUserCreated = () => {
+    fetchData();
+  };
 
- const deptOptions = [
- { value: "all", label: "All Departments" },
- ...departments.map((d) => ({ value: d._id, label: d.name })),
- ];
+  const handleDepartmentCreated = () => {
+    fetchData();
+    showToast("Department created successfully");
+  };
 
- const statusOptions = [
- { value: "all", label: "All Status" },
- { value: "Active", label: "Active" },
- { value: "Inactive", label: "Inactive" },
- { value: "Pending", label: "Pending" },
- ];
+  const handleUserUpdated = (type = "update") => {
+    fetchData();
+    // The modal already reports deletes itself — avoid stacking two toasts
+    if (type !== "delete") showToast("User updated successfully");
+  };
 
- const userColumns = [
- { key: "empID", label: "ID", render: (val) => `#${val}` },
- { key: "name", label: "Name", sortable: true },
- { key: "email", label: "Email", sortable: true },
- {
- key: "department",
- label: "Department",
- sortable: true,
- render: (val) => (
- <span className="text-xs font-semibold bg-surface dark:bg-app px-2.5 py-1 rounded-md border border-border-subtle text-main">
- {val?.name || "-"}
- </span>
- )
- },
- {
- key: "role",
- label: "Role",
- sortable: true,
- render: (val) => (
- <span className="bg-brand/10 text-brand border border-brand/20 px-2.5 py-1 rounded-full text-xs font-bold">
- {val}
- </span>
- )
- },
- {
- key: "hourlyWage",
- label: "Wage",
- sortable: true,
- render: (val) => val ? `$${val}` : "-"
- },
- {
- key: "empStatus",
- label: "Status",
- sortable: true,
- render: (val) => (
- <span
- className={`px-2.5 py-1 rounded-full text-xs font-bold border ${val === "Active"
- ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
- : val === "Pending"
- ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
- : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
- }`}
- >
- {val}
- </span>
- )
- }
- ];
+  /* ==================== CSV EXPORT ==================== */
+  const exportUsersCsv = () => {
+    if (filteredUsers.length === 0) {
+      showToast("No data to download", "error");
+      return;
+    }
+    downloadCsv(
+      `employees_${activeTab === "all" ? "directory" : activeTab.toLowerCase()}.csv`,
+      ["Employee ID", "Name", "Email", "Department", "Role", "Wage", "Status"],
+      filteredUsers.map((u) => [
+        u.empID || "",
+        u.name || "",
+        u.email || "",
+        u.departmentName || "",
+        u.role || "",
+        u.hourlyWage ? `$${u.hourlyWage}` : "",
+        u.empStatus || "",
+      ])
+    );
+    showToast("Employee list exported");
+  };
 
- return (
- <>
- <PageContainer
- title="User Management"
- subtitle="Manage employees, roles, and departments"
- loading={loading}
- headerActions={
- <>
- {currentUser && ["Super Admin", "Global Reader"].includes(currentUser.role) && (
- <button
- onClick={() => setIsDeptModalOpen(true)}
- className="btn btn-secondary flex items-center gap-2"
- >
- <FaPlus className="text-xs" /> Add Department
- </button>
- )}
- {canAddUser && (
- <button
- onClick={() => setIsModalOpen(true)}
- className="btn btn-primary flex items-center gap-2"
- >
- <FaPlus className="text-xs" /> Add User
- </button>
- )}
- </>
- }
- filters={
- <FilterRow>
- <GlassInput
- placeholder="Search by name, email, ID or department..."
- value={searchTerm}
- onChange={(e) => setSearchTerm(e.target.value)}
- className="flex-1 min-w-[200px]"
- />
- <div className="min-w-[130px]">
- <ModernSelect
- value={roleFilter}
- onChange={(e) => setRoleFilter(e.target.value)}
- options={roleOptions}
- placeholder="All Roles"
- />
- </div>
- <div className="min-w-[150px]">
- <ModernSelect
- value={deptFilter}
- onChange={(e) => setDeptFilter(e.target.value)}
- options={deptOptions}
- placeholder="All Departments"
- />
- </div>
- <div className="min-w-[130px]">
- <ModernSelect
- value={statusFilter}
- onChange={(e) => setStatusFilter(e.target.value)}
- options={statusOptions}
- placeholder="All Status"
- />
- </div>
- {/* Clear Filters */}
- {(searchTerm || roleFilter !== "all" || deptFilter !== "all" || statusFilter !== "all") && (
-   <button
-     onClick={() => {
-       setSearchTerm("");
-       setRoleFilter("all");
-       setDeptFilter("all");
-       setStatusFilter("all");
-     }}
-     className="btn btn-secondary h-[42px] px-3 flex items-center gap-1 text-xs"
-   >
-     <X size={14} /> Clear
-   </button>
- )}
- </FilterRow>
- }
- bottomWidgets={
- <div className="flex justify-between text-xs font-bold uppercase tracking-wide px-2">
- <span className="text-muted">Active: <span className="text-main">{activeUsers}</span></span>
- <span className="text-muted">Inactive: <span className="text-main">{inactiveUsers}</span></span>
- <span className="text-muted">Total Users: <span className="text-main">{users.length}</span></span>
- </div>
- }
- >
- <TableWithPagination
- columns={userColumns}
- data={filteredUsers}
- loading={loading}
- emptyMessage="No users found"
- onRowClick={handleUserClick}
- defaultSort={{ key: "createdAt", direction: "desc" }}
- />
- </PageContainer>
+  const exportDepartmentsCsv = () => {
+    if (filteredDepartments.length === 0) {
+      showToast("No data to download", "error");
+      return;
+    }
+    downloadCsv(
+      "departments.csv",
+      ["Department", "Description", "Head", "Members"],
+      filteredDepartments.map((d) => [d.name || "", d.description || "", d.managerName || "", d.memberCount])
+    );
+    showToast("Departments exported");
+  };
 
- <CreateUserModal
- isOpen={isModalOpen}
- setIsOpen={setIsModalOpen}
- onUserCreated={handleUserCreated}
- allDepartments={departments}
- allManagers={users}
- />
+  /* ==================== TABLE COLUMNS ==================== */
+  const userColumns = useMemo(
+    () => [
+      {
+        key: "__index",
+        label: "S.No.",
+        sortable: false,
+        type: "index",
+        className: "text-muted text-xs font-bold",
+      },
+      {
+        key: "name",
+        label: "Employee",
+        render: (value, row) => (
+          <div className="flex items-center gap-2.5 min-w-[180px]">
+            <div className="w-8 h-8 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center text-[11px] font-black flex-shrink-0">
+              {getInitials(value)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-heading truncate leading-tight">{value || "—"}</p>
+              <p className="text-[10px] text-muted truncate">{row.designation || row.email || "Employee"}</p>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: "empID",
+        label: "Employee ID",
+        render: (value) =>
+          value ? (
+            <span className={pill}>#{value}</span>
+          ) : (
+            <span className="text-muted text-xs">—</span>
+          ),
+      },
+      {
+        key: "departmentName",
+        label: "Department",
+        render: (value) =>
+          value ? <span className={pill}>{value}</span> : <span className="text-muted text-xs">—</span>,
+      },
+      {
+        key: "role",
+        label: "Role",
+        render: (value) =>
+          value ? (
+            <span className="bg-brand/10 text-brand border border-brand/20 px-2.5 py-1 rounded-full text-xs font-bold">
+              {value}
+            </span>
+          ) : (
+            <span className="text-muted text-xs">—</span>
+          ),
+      },
+      {
+        key: "hourlyWage",
+        label: "Wage",
+        render: (value) =>
+          value ? (
+            <span className="text-sm font-semibold text-main">${value}</span>
+          ) : (
+            <span className="text-muted text-xs">—</span>
+          ),
+      },
+      {
+        key: "empStatus",
+        label: "Status",
+        render: (value) => (
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${statusBadge(
+              value
+            )}`}
+          >
+            {value || "Unknown"}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
 
- <UserDetailModal
- user={selectedUser}
- currentUser={currentUser}
- isOpen={isUserDetailOpen}
- onClose={() => {
- setIsUserDetailOpen(false);
- setSelectedUser(null);
- }}
- onUserUpdated={handleUserUpdated}
- allManagers={users}
- allDepartments={departments}
- />
- <CreateDepartmentModal
- isOpen={isDeptModalOpen}
- onClose={() => setIsDeptModalOpen(false)}
- onDepartmentCreated={handleDepartmentCreated}
- potentialManagers={users}
- />
- </>
- );
+  const departmentColumns = useMemo(
+    () => [
+      {
+        key: "__index",
+        label: "S.No.",
+        sortable: false,
+        type: "index",
+        className: "text-muted text-xs font-bold",
+      },
+      {
+        key: "name",
+        label: "Department",
+        render: (value, row) => (
+          <div className="flex items-center gap-2.5 min-w-[180px]">
+            <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400 border border-sky-200 dark:border-sky-800 flex items-center justify-center flex-shrink-0">
+              <FaBuilding size={13} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-heading truncate leading-tight">{value || "—"}</p>
+              <p className="text-[10px] text-muted truncate">{row.description || "No description"}</p>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: "managerName",
+        label: "Head",
+        render: (value) =>
+          value ? (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center text-[9px] font-black flex-shrink-0">
+                {getInitials(value)}
+              </div>
+              <span className="text-xs font-semibold text-main truncate">{value}</span>
+            </div>
+          ) : (
+            <span className="text-muted text-xs italic">Unassigned</span>
+          ),
+      },
+      {
+        key: "memberCount",
+        label: "Members",
+        render: (value) => (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border bg-info-bg text-info border-info-border">
+            <FaUsers size={10} />
+            {value}
+          </span>
+        ),
+      },
+      {
+        key: "createdAt",
+        label: "Created",
+        render: (value) =>
+          value ? (
+            <span className="text-xs font-medium text-main whitespace-nowrap">
+              {new Date(value).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+          ) : (
+            <span className="text-muted text-xs">—</span>
+          ),
+      },
+    ],
+    []
+  );
+
+  const tableActions = [
+    {
+      icon: <FaPen size={12} />,
+      title: "View / edit employee",
+      onClick: (row) => handleUserClick(row),
+      className:
+        "p-2 rounded-lg text-muted bg-surface border border-border-subtle hover:text-brand-text hover:border-border-accent hover:shadow-sm",
+    },
+  ];
+
+  /* ==================== TAB BAR MODEL ==================== */
+  const tabItems = TABS.map((t) => {
+    if (t.key === "Active") return { ...t, badge: counts.active };
+    if (t.key === "Pending") return { ...t, badge: counts.pending };
+    if (t.key === "Inactive") return { ...t, badge: counts.inactive };
+    if (t.key === "departments") return { ...t, badge: counts.departments };
+    return t;
+  });
+
+
+  /* ==================== RENDER ==================== */
+  return (
+    <>
+      <PageContainer isCard={false}>
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+        <div className="flex flex-col gap-4 w-full">
+          {/* ============ HERO (Leave Management style) ============ */}
+          <PortalHero
+                label="User management overview"
+              title="User Management"
+            description="Manage employees, roles and departments — invite users, track statuses and keep your org structure in sync from one place."
+            emblem={UsersIcon}
+            chips={[
+              { icon: FaUsers, value: counts.total, label: " Employees" },
+              { pulse: true, value: counts.pending, label: " Pending invites" },
+            ]}
+          />
+
+          {/* ============ TAB BAR (Leave Management style) ============ */}
+          <PortalTabBar
+            tabs={tabItems}
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            idPrefix="users-tab"
+            panelId="users-tabpanel"
+            ariaLabel="User management sections"
+            layoutId="um-tab-pill"
+            right={
+              <>
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="btn btn-primary w-full lg:w-auto flex items-center justify-center gap-2 disabled:opacity-60 active:scale-95 transition-transform"
+                  title="Refresh user data"
+                >
+                  <FaSyncAlt size={13} className={refreshing ? "animate-spin" : ""} />
+                  Refresh
+                </button>
+                {canAddDept && (
+                  <GlassButton variant="secondary" size="sm" icon={FaPlus} onClick={() => setIsDeptModalOpen(true)}>
+                    Department
+                  </GlassButton>
+                )}
+                {canAddUser && (
+                  <GlassButton variant="primary" size="sm" icon={FaPlus} onClick={() => setIsModalOpen(true)}>
+                    Add User
+                  </GlassButton>
+                )}
+              </>
+            }
+          />
+
+          {/* Tab content — remount on change so it fades in fresh */}
+          <Motion.div
+            key={activeTab}
+            id="users-tabpanel"
+            role="tabpanel"
+            aria-labelledby={`users-tab-${TABS.findIndex((t) => t.key === activeTab)}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.14, ease: EASE }}
+            className="flex flex-col gap-4"
+          >
+            {/* ============ KPI CARDS ============ */}
+            <div className="lm-stagger grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              <StatCard
+                title="Total Users"
+                value={counts.total}
+                sub="In directory"
+                icon={FaUsers}
+                tone="text-main"
+                iconBg="bg-app"
+              />
+              <StatCard
+                title="Active"
+                value={counts.active}
+                sub="Currently active"
+                icon={FaUserCheck}
+                tone="text-emerald-600 dark:text-emerald-400"
+                iconBg="bg-emerald-100 dark:bg-emerald-900/40"
+              />
+              <StatCard
+                title="Pending"
+                value={counts.pending}
+                sub="Awaiting activation"
+                icon={FaClock}
+                tone="text-amber-600 dark:text-amber-400"
+                iconBg="bg-amber-100 dark:bg-amber-900/40"
+              />
+              <StatCard
+                title="Inactive"
+                value={counts.inactive}
+                sub="Deactivated"
+                icon={FaUserSlash}
+                tone="text-rose-600 dark:text-rose-400"
+                iconBg="bg-rose-100 dark:bg-rose-900/40"
+              />
+              <StatCard
+                title="Departments"
+                value={counts.departments}
+                sub="Org units"
+                icon={FaBuilding}
+                tone="text-sky-600 dark:text-sky-400"
+                iconBg="bg-sky-100 dark:bg-sky-900/40"
+              />
+            </div>
+
+            {!isDeptTab ? (
+              <>
+                {/* ============ EMPLOYEE FILTERS ============ */}
+                <FilterPanel
+                  title="Employee Directory"
+                  subtitle={`${filteredUsers.length} of ${basePool.length} ${
+                    activeTab === "all" ? "employees" : activeTab.toLowerCase()
+                  } shown`}
+                  hint="Switch status from the tabs above, then narrow by role or department. Click any row to view or edit an employee."
+                  actions={
+                    <>
+                      {hasFilters && (
+                        <GlassButton variant="ghost" size="sm" onClick={resetFilters}>
+                          RESET
+                        </GlassButton>
+                      )}
+                      <GlassButton variant="secondary" size="sm" icon={FaFileCsv} onClick={exportUsersCsv}>
+                        EXPORT CSV
+                      </GlassButton>
+                    </>
+                  }
+                >
+                  <FilterRow>
+                    <GlassInput
+                      placeholder="Search by name, email, ID or department..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="flex-1 min-w-[220px]"
+                    />
+                    <div className="min-w-[140px]">
+                      <ModernSelect
+                        value={roleFilter}
+                        onChange={(e) => setRoleFilter(e.target.value)}
+                        options={roleOptions}
+                        placeholder="All Roles"
+                      />
+                    </div>
+                    <div className="min-w-[160px]">
+                      <ModernSelect
+                        value={deptFilter}
+                        onChange={(e) => setDeptFilter(e.target.value)}
+                        options={deptOptions}
+                        placeholder="All Departments"
+                      />
+                    </div>
+                  </FilterRow>
+                </FilterPanel>
+
+                {/* ============ EMPLOYEE TABLE ============ */}
+                <StyledTable
+                  columns={userColumns}
+                  data={filteredUsers}
+                  loading={loading}
+                  emptyMessage={hasFilters ? "No employees match these filters" : "No users found"}
+                  onEmptyAction={hasFilters ? resetFilters : undefined}
+                  emptyActionLabel="Clear all filters"
+                  onRowClick={handleUserClick}
+                  actions={tableActions}
+                  rowsPerPage={10}
+                  defaultSort={{ key: "createdAt", direction: "desc" }}
+                  countLabel="employees"
+                />
+              </>
+            ) : (
+              <>
+                {/* ============ DEPARTMENT FILTERS ============ */}
+                <FilterPanel
+                  title="Departments"
+                  subtitle={`${filteredDepartments.length} of ${counts.departments} departments shown`}
+                  hint="Review the org structure — member counts come straight from the employee directory."
+                  actions={
+                    <>
+                      {hasDeptFilters && (
+                        <GlassButton variant="ghost" size="sm" onClick={resetDeptFilters}>
+                          RESET
+                        </GlassButton>
+                      )}
+                      <GlassButton variant="secondary" size="sm" icon={FaFileCsv} onClick={exportDepartmentsCsv}>
+                        EXPORT CSV
+                      </GlassButton>
+                    </>
+                  }
+                >
+                  <FilterRow>
+                    <GlassInput
+                      placeholder="Search by department, head or description..."
+                      value={deptSearch}
+                      onChange={(e) => setDeptSearch(e.target.value)}
+                      className="flex-1 min-w-[220px]"
+                    />
+                  </FilterRow>
+                </FilterPanel>
+
+                {/* ============ DEPARTMENT TABLE ============ */}
+                <StyledTable
+                  columns={departmentColumns}
+                  data={filteredDepartments}
+                  loading={loading}
+                  emptyMessage={hasDeptFilters ? "No departments match this search" : "No departments found"}
+                  onEmptyAction={
+                    hasDeptFilters
+                      ? resetDeptFilters
+                      : canAddDept
+                      ? () => setIsDeptModalOpen(true)
+                      : undefined
+                  }
+                  emptyActionLabel={hasDeptFilters ? "Clear search" : "Add department"}
+                  rowsPerPage={10}
+                  defaultSort={{ key: "name", direction: "asc" }}
+                  countLabel="departments"
+                />
+              </>
+            )}
+          </Motion.div>
+        </div>
+      </PageContainer>
+
+      {/* ============ MODALS ============ */}
+      <CreateUserModal
+        isOpen={isModalOpen}
+        setIsOpen={setIsModalOpen}
+        onUserCreated={handleUserCreated}
+        allDepartments={departments}
+        allManagers={users}
+      />
+
+      <UserDetailModal
+        user={selectedUser}
+        currentUser={currentUser}
+        isOpen={isUserDetailOpen}
+        onClose={() => {
+          setIsUserDetailOpen(false);
+          setSelectedUser(null);
+        }}
+        onUserUpdated={handleUserUpdated}
+        allManagers={users}
+        allDepartments={departments}
+      />
+
+      <CreateDepartmentModal
+        isOpen={isDeptModalOpen}
+        onClose={() => setIsDeptModalOpen(false)}
+        onDepartmentCreated={handleDepartmentCreated}
+        potentialManagers={users}
+      />
+    </>
+  );
 };
 
 export default UserManagement;

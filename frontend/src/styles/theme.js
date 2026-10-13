@@ -3,11 +3,11 @@ export const predefinedThemes = [
     name: "Bright Golden",
     isDark: false,
     colors: {
-      text: "#1e293b",
-      background: "#FDFDF9",
-      "brand-primary": "#D4AF37",
-      "brand-secondary": "#F3E5AB",
-      "brand-accent": "#B8860B",
+      text: "#0F172A",
+      background: "#FAF9F5",
+      "brand-primary": "#B8860B",
+      "brand-secondary": "#E8D5A0",
+      "brand-accent": "#92590C",
     },
   },
   {
@@ -25,11 +25,11 @@ export const predefinedThemes = [
     name: "Violet Glass",
     isDark: false,
     colors: {
-      text: "#1e293b",
-      background: "#faf5ff",
-      "brand-primary": "#8b5cf6",
-      "brand-secondary": "#ddd6fe",
-      "brand-accent": "#6d28d9",
+      text: "#0F172A",
+      background: "#FAF9F5",
+      "brand-primary": "#7C3AED",
+      "brand-secondary": "#DDD6FE",
+      "brand-accent": "#5B21B6",
     },
   },
   {

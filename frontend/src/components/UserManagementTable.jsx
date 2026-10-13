@@ -1,70 +1,54 @@
 import React from "react";
 import GlassTable from "./ui/GlassTable";
 import GlassCard from "./ui/GlassCard";
+import StatusBadge from "./StatusBadge";
 
 const UserManagementTable = ({ users }) => {
- const headers = ["ID", "Name", "Email", "Department", "Role", "Status"];
+  const headers = ["ID", "Name", "Email", "Department", "Role", "Status"];
 
- return (
- <>
- <GlassCard noPadding className="w-full mb-4 overflow-hidden">
- <div className="overflow-x-auto">
- <GlassTable headers={headers}>
- {users.length > 0 ? (
- users.map((user, index) => (
- <tr
- key={index}
- className="group hover:bg-surface/50 dark:hover:bg-slate-800/50 transition-colors duration-200"
- >
- <td className="p-4 text-sm font-medium text-muted dark:text-muted">
- #{user.empID || user.id}
- </td>
- <td className="p-4">
- <span className="text-sm font-bold text-heading dark:text-white group-hover:text-brand-primary transition-colors">
- {user.name}
- </span>
- </td>
- <td className="p-4 text-sm font-medium text-muted dark:text-muted">
- {user.email}
- </td>
- <td className="p-4">
- <span className="text-xs font-semibold text-muted bg-surface/50 dark:bg-slate-800/50 px-2.5 py-1 rounded-md border border-border-subtle dark:border-slate-700">
- {user.department?.name || user.department || "-"}
- </span>
- </td>
- <td className="p-4">
- <span
- className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
- user.role === "Admin"
- ? "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800"
- : "bg-brand-primary/10 text-brand-primary border-brand-primary/20"
- }`}
- >
- {user.role}
- </span>
- </td>
- <td className="p-4">
- <span
- className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
- user.empStatus === "Active"
- ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
- : user.empStatus === "Pending" 
- ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800" 
- : "bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-100 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800"
- }`}
- >
- <span
- className={`w-1.5 h-1.5 rounded-full ${
- user.empStatus === "Active"
- ? "bg-emerald-500"
- : user.empStatus === "Pending" ? "bg-amber-500" : "bg-rose-500"
- }`}
- ></span>
- {user.empStatus}
- </span>
- </td>
- </tr>
- ))
+  return (
+  <>
+  <GlassCard noPadding className="w-full mb-4 overflow-hidden">
+  <div className="overflow-x-auto">
+  <GlassTable headers={headers}>
+  {users.length > 0 ? (
+  users.map((user, index) => (
+  <tr
+  key={index}
+  className="group hover:bg-surface/50 dark:hover:bg-slate-800/50 transition-colors duration-200"
+  >
+  <td className="p-4 text-sm font-medium text-muted dark:text-muted">
+  #{user.empID || user.id}
+  </td>
+  <td className="p-4">
+  <span className="text-sm font-bold text-heading dark:text-white group-hover:text-brand-primary transition-colors">
+  {user.name}
+  </span>
+  </td>
+  <td className="p-4 text-sm font-medium text-muted dark:text-muted">
+  {user.email}
+  </td>
+  <td className="p-4">
+  <span className="text-xs font-semibold text-muted bg-surface/50 dark:bg-slate-800/50 px-2.5 py-1 rounded-md border border-border-subtle dark:border-slate-700">
+  {user.department?.name || user.department || "-"}
+  </span>
+  </td>
+  <td className="p-4">
+  <span
+  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
+  user.role === "Admin"
+  ? "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800"
+  : "bg-brand-primary/10 text-brand-primary border-brand-primary/20"
+  }`}
+  >
+  {user.role}
+  </span>
+  </td>
+  <td className="p-4">
+  <StatusBadge status={user.empStatus} />
+  </td>
+  </tr>
+  ))
  ) : (
  [...Array(5)].map((_, index) => (
  <tr key={index}>

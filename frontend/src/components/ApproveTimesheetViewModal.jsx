@@ -116,7 +116,7 @@ const ApproveTimesheetViewModal = ({
  )}
  </>
  ) : (
- <GlassButton variant="secondary" onClick={onClose} className="w-full">
+ <GlassButton variant="primary" onClick={onClose} className="w-full">
  CLOSE
  </GlassButton>
  )}

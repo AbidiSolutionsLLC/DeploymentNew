@@ -77,8 +77,10 @@ export const ConfirmProvider = ({ children }) => {
             <button
               onClick={handleConfirm}
               disabled={isLoading}
-              className={`px-5 py-2.5 text-sm font-bold text-white shadow-sm rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 min-w-[100px] ${
-                confirmState.isDanger ? "bg-red-500 hover:bg-red-600 shadow-red-500/20" : "bg-blue-500 hover:bg-blue-600 shadow-blue-500/20"
+              className={`px-5 py-2.5 text-sm font-bold shadow-sm rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 min-w-[100px] ${
+                confirmState.isDanger
+                  ? "bg-red-500 hover:bg-red-600 shadow-red-500/20 text-white"
+                  : "btn-primary"
               }`}
             >
               {isLoading && (

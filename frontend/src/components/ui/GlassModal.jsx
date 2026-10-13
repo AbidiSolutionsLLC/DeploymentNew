@@ -52,11 +52,11 @@ export default function GlassModal({
 
       {/* Modal Card */}
       <div
-        className={`relative z-[10000] w-full ${maxWidth} bg-white rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] mx-4 animate-in fade-in zoom-in-95 duration-200 overflow-hidden`}
+        className={`relative z-[10000] w-full ${maxWidth} bg-white rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] mx-2 sm:mx-4 animate-in fade-in zoom-in-95 duration-200 overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex flex-col space-y-1.5 px-6 pt-6 pb-4 border-b border-slate-100 flex-shrink-0">
+        <div className="flex flex-col space-y-1.5 px-4 pt-4 pb-3 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div>
               {typeof title === "string" ? (
@@ -77,22 +77,22 @@ export default function GlassModal({
             </div>
             <button
               onClick={onClose}
-              className="btn-ghost ml-4 flex-shrink-0 rounded-sm"
+              className="btn-ghost ml-2 flex-shrink-0 rounded-sm"
               aria-label="Close modal"
             >
-              <X className="h-5 w-5 text-slate-500" />
+              <X className="h-4 w-4 text-slate-500" />
             </button>
           </div>
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 custom-scrollbar-visible text-slate-700 dark:text-slate-300">
+        <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar-visible text-slate-700 dark:text-slate-300">
           {children}
         </div>
 
         {/* Footer (Optional) */}
         {footer && (
-          <div className="flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 px-6 py-4 border-t border-slate-100 bg-slate-50 dark:bg-slate-800/50/50">
+          <div className="flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 px-4 py-3 border-t border-slate-100 bg-slate-50 dark:bg-slate-800/50/50">
             {footer}
           </div>
         )}

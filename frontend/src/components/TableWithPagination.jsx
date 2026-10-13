@@ -2,28 +2,95 @@ import React, { useState } from "react";
 import { FaAngleLeft, FaAngleRight, FaAnglesLeft, FaAnglesRight } from "react-icons/fa6";
 import Loader from "./ui/Loader";
 
+/* Sticky column styles - two columns: index (left: 0) and name (left: auto/calculated) */
+const STICKY_HEADER_STYLE = {
+  position: 'sticky',
+  left: 0,
+  zIndex: 20,
+  background: 'var(--color-bg-card)',
+  boxShadow: '4px 0 8px -4px rgba(0,0,0,0.1)',
+};
+const STICKY_CELL_STYLE = {
+  position: 'sticky',
+  left: 0,
+  zIndex: 10,
+  background: 'var(--color-bg-surface)',
+};
+const STICKY_CELL_ALT_STYLE = {
+  position: 'sticky',
+  left: 0,
+  zIndex: 10,
+  background: 'var(--color-bg-app)',
+};
+
+/* Second sticky column styles (for name/employee column) */
+const STICKY_HEADER_STYLE_2 = {
+  position: 'sticky',
+  left: 'var(--sticky-col-1-width, 60px)',
+  zIndex: 20,
+  background: 'var(--color-bg-card)',
+  boxShadow: '4px 0 8px -4px rgba(0,0,0,0.1)',
+};
+const STICKY_CELL_STYLE_2 = {
+  position: 'sticky',
+  left: 'var(--sticky-col-1-width, 60px)',
+  zIndex: 10,
+  background: 'var(--color-bg-surface)',
+};
+const STICKY_CELL_ALT_STYLE_2 = {
+  position: 'sticky',
+  left: 'var(--sticky-col-1-width, 60px)',
+  zIndex: 10,
+  background: 'var(--color-bg-app)',
+};
+
  const TableWithPagination = ({
-  columns,
-  data = [],
-  loading,
- error,
- emptyMessage = "No data found",
- rowsPerPage = 5,
- onRowsPerPageChange,
- onRowClick,
- actions = [],
- defaultSort = { key: null, direction: 'asc' }
+   columns,
+   data = [],
+   loading,
+  error,
+  emptyMessage = "No data found",
+  rowsPerPage = 5,
+  onRowsPerPageChange,
+  onRowClick,
+  actions = [],
+  defaultSort = { key: null, direction: 'asc' },
+  stickyColumnKey,
 }) => {
- const [currentPage, setCurrentPage] = useState(1);
- const [localRowsPerPage, setLocalRowsPerPage] = useState(rowsPerPage);
- 
- React.useEffect(() => {
- setLocalRowsPerPage(rowsPerPage);
- }, [rowsPerPage]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [localRowsPerPage, setLocalRowsPerPage] = useState(rowsPerPage);
+  
+  React.useEffect(() => {
+  setLocalRowsPerPage(rowsPerPage);
+  }, [rowsPerPage]);
 
- const [sortConfig, setSortConfig] = useState(defaultSort);
+  const [sortConfig, setSortConfig] = useState(defaultSort);
 
- const effectiveRowsPerPage = localRowsPerPage;
+  /* Determine sticky columns: first index/select column + first data column */
+  const stickyKeys = React.useMemo(() => {
+    const keys = [];
+    
+    // First: select or index column
+    const firstCol = columns.find((c) => c.key === "select" || c.key === "__index" || c.type === "index");
+    if (firstCol) keys.push(firstCol.key);
+    
+    // Second: first non-select, non-index, non-group data column
+    const dataCol = columns.find((c) => c.key !== "select" && c.key !== "__index" && c.type !== "index" && !c.group);
+    if (dataCol && dataCol.key !== keys[0]) keys.push(dataCol.key);
+    
+    // Allow explicit override
+    if (stickyColumnKey) {
+      return Array.isArray(stickyColumnKey) ? stickyColumnKey : [stickyColumnKey];
+    }
+    
+    return keys;
+  }, [columns, stickyColumnKey]);
+
+  const isSticky = (key) => stickyKeys.includes(key);
+  const isFirstSticky = (key) => stickyKeys[0] === key;
+  const isSecondSticky = (key) => stickyKeys[1] === key;
+
+  const effectiveRowsPerPage = localRowsPerPage;
 
  // Calculate pagination
  const totalPages = Math.ceil(data.length * 1.0 / effectiveRowsPerPage);
@@ -114,27 +181,28 @@ import Loader from "./ui/Loader";
   return (
     <div className="w-full bg-surface rounded-2xl border border-border-subtle shadow-sm overflow-hidden flex flex-col">
       <div className="w-full overflow-x-auto custom-scrollbar">
-        <table className="min-w-full text-sm border-collapse">
-          <thead>
+        <table className="min-w-full text-sm border-collapse" style={{ '--sticky-col-1-width': '60px' }}>
+<thead>
             <tr className="bg-card border-b border-border-subtle">
 {columns.map((column) => (
- <th
- key={column.key}
- className={`px-6 py-4 font-semibold text-xs text-muted uppercase tracking-wider whitespace-nowrap ${
- column.align === 'right' ? 'text-center' : 'text-left'
- } ${column.sortable !== false ? 'cursor-pointer hover:text-heading transition-colors group' : ''}`}
- onClick={() => column.sortable !== false && handleSort(column.key)}
- >
- <div className={`flex items-center gap-2 ${column.align === 'right' ? 'justify-center' : ''}`}>
- {column.label}
- {column.sortable !== false && (
- <span className={`inline-flex flex-col items-center justify-center text-[10px] leading-[0.5] ${sortConfig.key === column.key ? 'text-brand' : 'text-muted/30 group-hover:text-muted/70 transition-colors'}`}>
- <span className={sortConfig.key === column.key && sortConfig.direction === 'asc' ? 'text-brand' : 'text-inherit'}>▲</span>
- <span className={sortConfig.key === column.key && sortConfig.direction === 'desc' ? 'text-brand mt-[2px]' : 'text-inherit mt-[2px]'}>▼</span>
- </span>
- )}
- </div>
- </th>
+  <th
+  key={column.key}
+  className={`px-6 py-4 font-semibold text-xs text-muted uppercase tracking-wider whitespace-nowrap ${
+  column.align === 'right' ? 'text-center' : 'text-left'
+  } ${column.sortable !== false ? 'cursor-pointer hover:text-heading transition-colors group' : ''}`}
+  onClick={() => column.sortable !== false && handleSort(column.key)}
+  style={isFirstSticky(column.key) ? STICKY_HEADER_STYLE : isSecondSticky(column.key) ? STICKY_HEADER_STYLE_2 : {zIndex: 1}}
+  >
+  <div className={`flex items-center gap-2 ${column.align === 'right' ? 'justify-center' : ''}`}>
+  {column.label}
+  {column.sortable !== false && (
+  <span className={`inline-flex flex-col items-center justify-center text-[10px] leading-[0.5] ${sortConfig.key === column.key ? 'text-brand' : 'text-muted/30 group-hover:text-muted/70 transition-colors'}`}>
+  <span className={sortConfig.key === column.key && sortConfig.direction === 'asc' ? 'text-brand' : 'text-inherit'}>▲</span>
+  <span className={sortConfig.key === column.key && sortConfig.direction === 'desc' ? 'text-brand mt-[2px]' : 'text-inherit mt-[2px]'}>▼</span>
+  </span>
+  )}
+  </div>
+  </th>
 ))}
               {actions.length > 0 && (
                 <th className="px-6 py-4 font-semibold text-xs text-muted uppercase tracking-wider text-right whitespace-nowrap">
@@ -148,11 +216,26 @@ import Loader from "./ui/Loader";
               currentData.map((row, rowIndex) => (
                 <tr
                   key={row.id || row._id || (startIndex + rowIndex)}
-                  className={`group hover:bg-card-hover transition-colors duration-200 ${onRowClick ? 'cursor-pointer' : ''}`}
+                  className={`group hover:bg-card-hover transition-colors duration-200 ${onRowClick ? 'cursor-pointer' : ''} hover:z-20`}
+                  style={{ zIndex: 1 }}
                   onClick={() => onRowClick && onRowClick(row)}
                 >
                   {columns.map((column) => (
-                    <td key={column.key} className="px-6 py-4 text-main font-medium whitespace-nowrap">
+                    <td
+                      key={column.key}
+                      className="px-6 py-4 text-main font-medium whitespace-nowrap"
+style={
+                        isFirstSticky(column.key)
+                            ? rowIndex % 2 !== 0
+                              ? STICKY_CELL_ALT_STYLE
+                              : STICKY_CELL_STYLE
+                            : isSecondSticky(column.key)
+                            ? rowIndex % 2 !== 0
+                              ? STICKY_CELL_ALT_STYLE_2
+                              : STICKY_CELL_STYLE_2
+                            : {zIndex: 1}
+                      }
+                    >
                       {column.render ? column.render(row[column.key], row) : row[column.key]}
                     </td>
                   ))}

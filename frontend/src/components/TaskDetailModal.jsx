@@ -1,6 +1,7 @@
 import React from 'react';
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import StatusBadge from "./StatusBadge";
 
 const TaskDetailModal = ({ task, onClose }) => {
  if (!task) return null;
@@ -74,12 +75,10 @@ const TaskDetailModal = ({ task, onClose }) => {
  {task.priority}
  </span>
  </div>
- <div className="flex-1 flex flex-col items-center p-3 bg-surface/50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-border-subtle dark:border-slate-700">
- <span className="text-[9px] font-black text-muted dark:text-muted uppercase tracking-widest mb-1">STATUS</span>
- <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-3 py-1 rounded-full shadow-sm uppercase">
- {task.status}
- </span>
- </div>
+<div className="flex-1 flex flex-col items-center p-3 bg-surface/50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-border-subtle dark:border-slate-700">
+  <span className="text-[9px] font-black text-muted dark:text-muted uppercase tracking-widest mb-1">STATUS</span>
+  <StatusBadge status={task.status} />
+</div>
  </div>
  </div>
  </GlassModal>

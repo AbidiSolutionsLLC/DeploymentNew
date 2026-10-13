@@ -1,20 +1,22 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import api from "../../axios";
-import { toast } from "react-toastify";
-import { validateText, validateDescription, validateDescriptionAllErrors, sanitizeText, getApiError } from "../../utils/validationUtils";
+import { validateText, validateDescription, sanitizeText, getApiError } from "../../utils/validationUtils";
 import GlassModal from "../../components/ui/GlassModal";
 
-const RaiseTicketModal = ({ onClose, onSubmit }) => {
+const RaiseTicketModal = ({ onClose, onSubmit, showToast }) => {
  const [form, setForm] = useState({ subject: "", description: "", attachments: [] });
  const [errors, setErrors] = useState({});
  const [submitting, setSubmitting] = useState(false);
  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
- const modalRef = useRef(null);
- const fileInputRef = useRef(null);
+ const fileInputRef = React.useRef(null);
  const user = useSelector((state) => state.auth.user);
  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB limit
  const MAX_FILES = 5;
+
+ const notify = (message, type = "success") => {
+  if (typeof showToast === "function") showToast(message, type);
+ };
 
  // Check if form has unsaved changes
  const hasUnsavedChanges = () => {
@@ -38,13 +40,6 @@ const RaiseTicketModal = ({ onClose, onSubmit }) => {
 
  const handleConfirmStay = () => {
  setShowConfirmDialog(false);
- };
-
- const handleBackdropClick = (e) => {
- if (showConfirmDialog) return;
- if (modalRef.current && !modalRef.current.contains(e.target)) {
- handleCancelClick();
- }
  };
 
  const handleChange = (e) => {
@@ -150,11 +145,11 @@ const handleSubmit = async (e) => {
  const descError = validateDescription(form.description, { required: true });
 
  if (subjectError || descError) {
- setErrors({ 
- subject: subjectError, 
- description: descError 
+ setErrors({
+ subject: subjectError,
+ description: descError
  });
- toast.error("PLEASE FIX VALIDATION ERRORS");
+ notify("PLEASE FIX VALIDATION ERRORS", "error");
  return;
  }
 
@@ -174,9 +169,9 @@ const handleSubmit = async (e) => {
 
  onSubmit(response.data);
  onClose();
- toast.success("TICKET SUBMITTED SUCCESSFULLY");
+ notify("TICKET SUBMITTED SUCCESSFULLY");
  } catch (error) {
- toast.error(getApiError(error, "FAILED TO SUBMIT"));
+ notify(getApiError(error, "FAILED TO SUBMIT"), "error");
  } finally {
  setSubmitting(false);
  }
@@ -199,7 +194,7 @@ const handleSubmit = async (e) => {
             <button
               type="button"
               onClick={handleCancelClick}
-              className="btn-ghost flex-1 text-muted"
+              className="btn btn-ghost flex-1"
             >
               CANCEL
             </button>

@@ -3,73 +3,76 @@
 @tailwind utilities;
 
 :root {
-  /* ===== COLOR PALETTE (Golden White Glassmorphism) ===== */
+  /* ===== COLOR PALETTE (Golden White Glassmorphism - High Contrast) ===== */
   
   /* Primary Colors */
   --color-white: #ffffff;
   --color-black: #000000;
   
-  /* Brand Colors */
-  --color-brand-primary: #D4AF37;         /* Golden Accent */
-  --color-brand-secondary: #F3E5AB;       /* Light Gold */
-  --color-brand-accent: #B8860B;          /* Dark Goldenrod */
-  --color-brand-text: #92590c;            /* Dark, readable gold for body text/icons/tags (light mode) */
+  /* Brand Colors - Optimized for light mode contrast */
+  --color-brand-primary: #B8860B;         /* Dark Goldenrod - WCAG AA on white */
+  --color-brand-secondary: #E8D5A0;       /* Soft Gold - subtle backgrounds */
+  --color-brand-accent: #92590C;          /* Deep Gold - hover/active states */
+  --color-brand-text: #7D4A0A;            /* Very dark gold - readable body text on light */
   
-  /* Background Colors */
-  --color-bg-app: #F5F3E9;                
-  --bg-app-gradient: radial-gradient(circle at 10% 20%, rgba(218, 165, 32, 0.25) 0%, transparent 45%),
-                     radial-gradient(circle at 90% 80%, rgba(212, 175, 55, 0.25) 0%, transparent 45%),
-                     radial-gradient(circle at 50% 50%, rgba(255, 235, 180, 0.4) 0%, transparent 60%),
+  /* Background Colors - Solid, high-contrast surfaces */
+  --color-bg-app: #FAF9F5;                /* Warm off-white app background */
+  --bg-app-gradient: radial-gradient(circle at 10% 20%, rgba(184, 134, 11, 0.08) 0%, transparent 45%),
+                     radial-gradient(circle at 90% 80%, rgba(184, 134, 11, 0.06) 0%, transparent 45%),
+                     radial-gradient(circle at 50% 50%, rgba(232, 213, 160, 0.25) 0%, transparent 60%),
                      var(--color-bg-app);
-  --color-bg-primary: #FFFFFF;            
-  --color-bg-secondary: rgba(255, 255, 255, 0.75); /* Increased opacity for distinct glass */
-  --color-bg-tertiary: rgba(255, 255, 255, 0.35);  
-  --color-bg-navbar: rgba(255, 255, 255, 0.85);   /* Navbar background */
-  --color-bg-sidebar: rgba(255, 255, 255, 0.85);  /* Sidebar background */
-  --color-bg-card: rgba(255, 255, 255, 0.6);      
-  --color-bg-hover: rgba(212, 175, 55, 0.1);      /* Gold hover state */
-  --color-bg-active: rgba(212, 175, 55, 0.2);     /* Gold active state */
+  --color-bg-primary: #FFFFFF;            /* Pure white - primary surfaces */
+  --color-bg-secondary: #FFFFFF;          /* Solid white - cards/glass (replaces transparent) */
+  --color-bg-tertiary: #F8F7F3;           /* Warm gray-50 - tertiary surfaces */
+  --color-bg-navbar: rgba(255, 255, 255, 0.95);  /* Near-opaque navbar */
+  --color-bg-sidebar: rgba(255, 255, 255, 0.95); /* Near-opaque sidebar */
+  --color-bg-card: #FFFFFF;               /* Solid white cards */
+  --color-bg-hover: rgba(184, 134, 11, 0.08);    /* Subtle gold hover */
+  --color-bg-active: rgba(184, 134, 11, 0.12);   /* Subtle gold active */
+  --color-bg-hover-solid: #FEF9EB;        /* Pale warm gold - solid hover surfaces */
   
-  /* Text Colors */
-  --color-text-primary: #1e293b;          /* Primary text */
-  --color-text-secondary: #475569;        /* Secondary text */
-  --color-text-tertiary: #64748b;         /* Tertiary text */
-  --color-text-heading: #0f172a;          /* Headings */
-  --color-text-muted: #94a3b8;            /* Muted text */
-  --color-text-light: #cbd5e1;            /* Light text */
-  --color-text-on-brand: #ffffff;         /* Text on brand color */
+  /* Text Colors - WCAG AAA contrast on light backgrounds */
+  --color-text-primary: #0F172A;          /* Slate-900 - primary body text */
+  --color-text-secondary: #334155;        /* Slate-700 - secondary text */
+  --color-text-tertiary: #475569;         /* Slate-600 - tertiary text */
+  --color-text-heading: #020617;          /* Slate-950 - headings */
+  --color-text-muted: #64748B;            /* Slate-500 - muted/disabled text */
+  --color-text-light: #94A3B8;            /* Slate-400 - placeholder/light text */
+  --color-text-on-brand: #1A1205;         /* Near-black - text on gold buttons */
   
-  /* Border Colors */
-  --color-border-primary: rgba(0, 0, 0, 0.08);   /* Visible subtle border */
-  --color-border-secondary: rgba(0, 0, 0, 0.04); /* Fainter border */
-  --color-border-accent: rgba(212, 175, 55, 0.3);   /* Gold borders */
+  /* Border Colors - Visible but refined */
+  --color-border-primary: rgba(15, 23, 42, 0.12);    /* Primary borders */
+  --color-border-secondary: rgba(15, 23, 42, 0.06);  /* Subtle borders */
+  --color-border-accent: rgba(184, 134, 11, 0.4);    /* Gold accent borders */
 
-  /* Modal / overlay scrim — single source of truth for backdrop opacity+blur */
-  --color-overlay: rgba(15, 23, 42, 0.45);
+  /* Gradients */
+  --gradient-gold-foil: linear-gradient(135deg, #F7E7B4 0%, #EDBB3E 38%, #D9A21F 62%, #F5D77A 100%);
+
+  /* Modal / overlay scrim */
+  --color-overlay: rgba(15, 23, 42, 0.5);
   
-  /* Status Colors */
-  --color-success: #10b981;               /* Green */
-  --color-warning: #f59e0b;               /* Amber */
-  --color-error: #ef4444;                 /* Red */
-  --color-info: #3b82f6;                  /* Blue */
+  /* Status Colors - Base hues */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
 
-  /* Semantic status token sets — readable in both themes.
-     Light mode uses deep text on pale backgrounds. */
-  --status-fg: #15803d;                    /* green-700 */
-  --status-bg: rgba(16, 185, 129, 0.12);   /* green tint */
-  --status-border: rgba(16, 185, 129, 0.30);
+  /* Semantic status tokens — WCAG AA+ contrast in light mode */
+  --status-fg: #065F46;                    /* Green-800 */
+  --status-bg: rgba(16, 185, 129, 0.10);   /* Subtle green tint */
+  --status-border: rgba(16, 185, 129, 0.25);
 
-  --status-warning-fg: #b45309;            /* amber-700 */
-  --status-warning-bg: rgba(245, 158, 11, 0.12);
-  --status-warning-border: rgba(245, 158, 11, 0.30);
+  --status-warning-fg: #7D4A0A;            /* Amber-800 */
+  --status-warning-bg: rgba(245, 158, 11, 0.10);
+  --status-warning-border: rgba(245, 158, 11, 0.25);
 
-  --status-danger-fg: #b91c1c;             /* red-700 */
-  --status-danger-bg: rgba(239, 68, 68, 0.12);
-  --status-danger-border: rgba(239, 68, 68, 0.30);
+  --status-danger-fg: #991B1B;             /* Red-800 */
+  --status-danger-bg: rgba(239, 68, 68, 0.10);
+  --status-danger-border: rgba(239, 68, 68, 0.25);
 
-  --status-info-fg: #1d4ed8;               /* blue-700 */
-  --status-info-bg: rgba(59, 130, 246, 0.12);
-  --status-info-border: rgba(59, 130, 246, 0.30);
+  --status-info-fg: #1E40AF;               /* Blue-800 */
+  --status-info-bg: rgba(59, 130, 246, 0.10);
+  --status-info-border: rgba(59, 130, 246, 0.25);
   
   /* ===== TYPOGRAPHY ===== */
   
@@ -352,7 +355,7 @@ body {
   background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border-primary);
   border-radius: var(--radius-2xl);
-  box-shadow: 0 8px 32px 0 rgba(218, 165, 32, 0.1);
+  box-shadow: 0 4px 20px 0 rgba(15, 23, 42, 0.06);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   padding: var(--spacing-4);
@@ -360,18 +363,18 @@ body {
 }
 
 .glass-card:hover {
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.1);
   border-color: var(--color-border-accent);
 }
 
 /* Glass Input — standardized for modal forms: clean white card, slate border, gold focus */
 .glass-input {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;           /* slate-200 */
-  border-radius: 0.5rem;               /* rounded-lg */
-  color: #1e293b;                      /* slate-800 */
-  padding: 0.625rem 1rem;             /* py-2.5 px-4 */
-  font-size: 0.875rem;                 /* text-sm */
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 0.5rem;
+  color: var(--color-text-primary);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
   font-weight: 500;
   width: 100%;
   transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
@@ -382,18 +385,18 @@ body {
 }
 
 .glass-input::placeholder {
-  color: #94a3b8;                      /* slate-400 */
+  color: var(--color-text-light);
   font-weight: 400;
 }
 
 .glass-input:hover {
-  border-color: #cbd5e1;               /* slate-300 */
+  border-color: var(--color-border-secondary);
 }
 
 .glass-input:focus {
-  border-color: var(--color-brand-primary);   /* gold #D4AF37 */
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
-  background-color: #ffffff;
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.2);
+  background-color: var(--color-bg-primary);
 }
 
 /* Dark mode overrides for glass-input */
@@ -467,40 +470,110 @@ body {
   outline: none;
 }
 
+/* Gold foil gradient */
 .btn-primary {
-  background-color: var(--color-brand-primary);
-  color: var(--color-text-on-brand);
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+  background: var(--gradient-gold-foil);
+  color: #000000;
+  box-shadow: 
+    0 4px 14px rgba(217, 162, 31, 0.45),
+    0 0 0 1px rgba(217, 162, 31, 0.3);
+  border: none;
+}
+.dark .btn-primary, [data-theme="dark"] .btn-primary {
+  color: #0F172A;
+  box-shadow: 
+    0 4px 14px rgba(245, 215, 122, 0.4),
+    0 0 0 1px rgba(217, 162, 31, 0.3);
 }
 .btn-primary:hover {
-  background-color: var(--color-brand-accent);
-  transform: translateY(-1px);
+  box-shadow: 
+    0 10px 28px rgba(217, 162, 31, 0.55),
+    0 0 0 1px rgba(217, 162, 31, 0.35);
+  transform: translateY(-2px);
 }
+.dark .btn-primary:hover, [data-theme="dark"] .btn-primary:hover {
+  box-shadow: 
+    0 10px 28px rgba(245, 215, 122, 0.5),
+    0 0 0 1px rgba(217, 162, 31, 0.35);
+}
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 3px 10px rgba(217, 162, 31, 0.4),
+    0 0 0 1px rgba(217, 162, 31, 0.25);
+}
+.dark .btn-primary:active, [data-theme="dark"] .btn-primary:active {
+  box-shadow: 
+    0 3px 10px rgba(245, 215, 122, 0.35),
+    0 0 0 1px rgba(217, 162, 31, 0.25);
+}
+
+/* Gold foil gradient */
 .btn-secondary {
-  background-color: rgba(255, 255, 255, 0.8);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-brand-primary);
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.1);
-  backdrop-filter: blur(8px);
+  background: var(--gradient-gold-foil);
+  color: #000000;
+  box-shadow: 
+    0 4px 14px rgba(217, 162, 31, 0.45),
+    0 0 0 1px rgba(217, 162, 31, 0.3);
+  border: none;
 }
 .dark .btn-secondary, [data-theme="dark"] .btn-secondary {
-  background-color: rgba(251, 191, 36, 0.08);
-  color: var(--color-brand-text);
-  border: 1px solid var(--color-border-accent);
-  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.05);
+  color: #0F172A;
+  box-shadow: 
+    0 4px 14px rgba(245, 215, 122, 0.4),
+    0 0 0 1px rgba(217, 162, 31, 0.3);
 }
 .btn-secondary:hover {
-  background-color: var(--color-bg-hover);
-  transform: translateY(-1px);
+  box-shadow: 
+    0 10px 28px rgba(217, 162, 31, 0.55),
+    0 0 0 1px rgba(217, 162, 31, 0.35);
+  transform: translateY(-2px);
 }
 .dark .btn-secondary:hover, [data-theme="dark"] .btn-secondary:hover {
-  background-color: rgba(251, 191, 36, 0.18);
+  box-shadow: 
+    0 10px 28px rgba(245, 215, 122, 0.5),
+    0 0 0 1px rgba(217, 162, 31, 0.35);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #DC2626, #B91C1C, #991B1B);
   color: #ffffff;
-  border-color: var(--color-brand-primary);
+  border: none;
+}
+.dark .btn-danger, [data-theme="dark"] .btn-danger {
+  background: linear-gradient(135deg, #FB7185, #F43F5E, #E11D48);
+  color: #ffffff;
+}
+.btn-danger:hover {
+  background: linear-gradient(135deg, #B91C1C, #991B1B, #7F1D1D);
+  transform: translateY(-2px);
+}
+.dark .btn-danger:hover, [data-theme="dark"] .btn-danger:hover {
+  background: linear-gradient(135deg, #FDA2B8, #FB7185, #F43F5E);
+}
+.btn-danger:active {
+  transform: translateY(0);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #A16207;
+  border: none;
+}
+.dark .btn-ghost, [data-theme="dark"] .btn-ghost {
+  color: #FDE68A;
+}
+.btn-ghost:hover {
+  background: #FEF9C3;
+  color: #A16207;
+}
+.dark .btn-ghost:hover, [data-theme="dark"] .btn-ghost:hover {
+  background: rgba(217, 119, 6, 0.2);
+  color: #FEF3C7;
 }
 
 .btn:active {
-  transform: scale(0.96);
+  transform: scale(0.98);
 }
 
 /* ===== ANIMATIONS ===== */
@@ -601,6 +674,8 @@ body {
   --color-bg-card: rgba(30, 41, 59, 0.7);
   --color-bg-hover: rgba(251, 191, 36, 0.14);
   --color-bg-active: rgba(251, 191, 36, 0.22);
+  /* Opaque gold-tinted dark surface — frozen/sticky table columns. */
+  --color-bg-hover-solid: #3d3e38;
 
   /* Text Colors */
   --color-text-primary: #f8fafc;
@@ -615,6 +690,9 @@ body {
   --color-border-primary: rgba(255, 255, 255, 0.14);
   --color-border-secondary: rgba(255, 255, 255, 0.08);
   --color-border-accent: rgba(251, 191, 36, 0.4);
+
+  /* Gradients */
+  --gradient-gold-foil: linear-gradient(135deg, #F7E7B4 0%, #EDBB3E 38%, #D9A21F 62%, #F5D77A 100%);
 
   /* Semantic status tokens — bright text on translucent backgrounds (dark mode) */
   --status-fg: #4ade80;                    /* green-400 */
@@ -644,22 +722,23 @@ body {
   --card-border: var(--color-border-primary);
   --rightsidebar-bg: rgba(30, 41, 59, 0.95);
 }
+
 /* index.css */
 
 /* The actual toast card */
 .Toastify__toast {
-  border-radius: 1.5rem !important; /* Matches your sidebar/outlet radius */
+  border-radius: 1.5rem !important;
   padding: 12px !important;
-  background: rgba(255, 255, 255, 0.9) !important;
+  background: var(--color-bg-secondary) !important;
   backdrop-filter: blur(8px);
-  border: 1px solid white;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-border-primary);
+  box-shadow: var(--shadow-xl);
 }
 
 .Toastify__toast--error {
-  background: #ef4444 !important;
+  background: var(--color-error) !important;
   color: white !important;
-  border-color: #ef4444 !important;
+  border-color: var(--color-error) !important;
 }
 
 .Toastify__toast--error .Toastify__toast-icon svg {
@@ -675,7 +754,7 @@ body {
 .Toastify__progress-bar {
   height: 3px !important;
   border-radius: 0 0 1.5rem 1.5rem;
-  background: #1e293b !important; /* Slate-800 to match your logo */
+  background: var(--color-text-heading) !important;
 }
 
 /* Center the toast text */
@@ -690,13 +769,13 @@ body {
   border: 1px solid var(--color-border-primary) !important;
   border-radius: var(--radius-xl) !important;
   box-shadow: var(--shadow-xl) !important;
-  background-color: rgba(255, 255, 255, 0.9) !important;
+  background-color: var(--color-bg-primary) !important;
   backdrop-filter: blur(16px) !important;
   padding: 10px !important;
 }
 
 .react-datepicker__header {
-  background-color: rgba(245, 158, 11, 0.1) !important; /* amber-500/10 */
+  background-color: var(--color-bg-hover) !important;
   border-bottom: 1px solid var(--color-border-primary) !important;
   padding-top: 10px !important;
   border-top-left-radius: var(--radius-xl) !important;
@@ -704,7 +783,7 @@ body {
 }
 
 .react-datepicker__current-month {
-  color: #78350f !important; /* amber-900 */
+  color: var(--color-brand-accent) !important;
   font-weight: 800 !important;
   font-size: 0.9rem !important;
   margin-bottom: 10px !important;
@@ -713,7 +792,7 @@ body {
 }
 
 .react-datepicker__day-name {
-  color: #92400e !important; /* amber-800 */
+  color: var(--color-brand-text) !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
   font-size: 0.7rem !important;
@@ -721,7 +800,7 @@ body {
 }
 
 .react-datepicker__day {
-  color: #78350f !important; /* amber-900 */
+  color: var(--color-text-primary) !important;
   width: 2rem !important;
   line-height: 2rem !important;
   margin: 0.1rem !important;
@@ -731,24 +810,24 @@ body {
 }
 
 .react-datepicker__day:hover {
-  background-color: rgba(255, 255, 255, 1) !important;
-  color: #d97706 !important; /* amber-600 */
+  background-color: var(--color-bg-hover-solid) !important;
+  color: var(--color-brand-accent) !important;
   font-weight: 800 !important;
 }
 
 .react-datepicker__day--selected,
 .react-datepicker__day--keyboard-selected {
-  background-color: #f59e0b !important; /* amber-500 */
-  color: white !important;
+  background-color: var(--color-brand-primary) !important;
+  color: var(--color-text-on-brand) !important;
   font-weight: 800 !important;
-  box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3) !important;
+  box-shadow: 0 4px 6px -1px rgba(184, 134, 11, 0.3) !important;
 }
 
 .react-datepicker__day--today {
-  color: #d97706 !important; /* amber-600 */
+  color: var(--color-brand-accent) !important;
   font-weight: 800 !important;
   background-color: transparent !important;
-  border: 1px solid #fde68a !important; /* amber-200 */
+  border: 1px solid var(--color-brand-secondary) !important;
 }
 
 .react-datepicker__navigation {
@@ -756,7 +835,7 @@ body {
 }
 
 .react-datepicker__navigation-icon::before {
-  border-color: #d97706 !important; /* amber-600 */
+  border-color: var(--color-brand-accent) !important;
 }
 
 .react-datepicker__triangle {
@@ -858,20 +937,20 @@ body {
   input[type="date"],
   textarea {
     transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;          /* slate-200 */
-    border-radius: 0.5rem;              /* rounded-lg */
-    color: #1e293b;                     /* slate-800 */
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: 0.5rem;
+    color: var(--color-text-primary);
     padding-left: 1rem;
     padding-right: 1rem;
-    padding-top: 0.625rem;              /* py-2.5 */
+    padding-top: 0.625rem;
     padding-bottom: 0.625rem;
     font-weight: 500;
     font-size: 0.875rem;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
   }
 
   input[type="text"]::placeholder,
@@ -881,7 +960,7 @@ body {
   input[type="tel"]::placeholder,
   input[type="date"]::placeholder,
   textarea::placeholder {
-    color: #94a3b8;                     /* slate-400 */
+    color: var(--color-text-light);
     font-weight: 400;
   }
 
@@ -892,7 +971,7 @@ body {
   input[type="tel"]:hover,
   input[type="date"]:hover,
   textarea:hover {
-    border-color: #cbd5e1;              /* slate-300 */
+    border-color: var(--color-border-secondary);
   }
 
   input[type="text"]:focus,
@@ -903,9 +982,9 @@ body {
   input[type="date"]:focus,
   textarea:focus {
     outline: none;
-    border-color: #D4AF37;              /* brand gold */
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
-    background-color: #ffffff;
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.2);
+    background-color: var(--color-bg-primary);
   }
 
   /* ── Dark mode overrides for all native inputs ── */
@@ -916,9 +995,9 @@ body {
   .dark input[type="tel"],
   .dark input[type="date"],
   .dark textarea {
-    background-color: #1e293b;          /* slate-800 */
-    border-color: #334155;              /* slate-700 */
-    color: #f1f5f9;                     /* slate-100 */
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
     box-shadow: none;
   }
 
@@ -929,7 +1008,7 @@ body {
   .dark input[type="tel"]::placeholder,
   .dark input[type="date"]::placeholder,
   .dark textarea::placeholder {
-    color: #475569;                     /* slate-600 */
+    color: #475569;
   }
 
   .dark input[type="text"]:hover,
@@ -939,7 +1018,7 @@ body {
   .dark input[type="tel"]:hover,
   .dark input[type="date"]:hover,
   .dark textarea:hover {
-    border-color: #475569;              /* slate-600 */
+    border-color: #475569;
   }
 
   .dark input[type="text"]:focus,
@@ -950,7 +1029,7 @@ body {
   .dark input[type="date"]:focus,
   .dark textarea:focus {
     outline: none;
-    border-color: #FBBF24;              /* bright gold */
+    border-color: #FBBF24;
     box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
     background-color: #1e293b;
   }
@@ -958,10 +1037,10 @@ body {
   /* Native <select> — used only as fallback; ModernSelect replaces most selects */
   select {
     appearance: none;
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border-primary);
     border-radius: 0.5rem;
-    color: #1e293b;
+    color: var(--color-text-primary);
     padding-left: 1rem;
     padding-right: 2.5rem;
     padding-top: 0.625rem;
@@ -972,18 +1051,18 @@ body {
     background-repeat: no-repeat;
     background-position: right 1rem top 50%;
     background-size: 0.65rem auto;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
     transition: border-color 150ms ease, box-shadow 150ms ease;
   }
 
   select:hover {
-    border-color: #cbd5e1;
+    border-color: var(--color-border-secondary);
   }
 
   select:focus {
     outline: none;
-    border-color: #D4AF37;
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.2);
   }
 
  /* Dark mode native select */
@@ -1072,14 +1151,33 @@ body {
   transition: background-color var(--transition-fast) var(--transition-timing),
               color var(--transition-fast) var(--transition-timing);
 }
-.theme-sidebar-item:hover {
-  background-color: var(--color-bg-hover);
-  color: var(--color-brand-primary);
-}
 .theme-sidebar-item.theme-active {
   background-color: var(--color-bg-active);
   color: var(--color-brand-primary);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Active sidebar page — gold highlight with NO background block or
+   boundary. Applied to the icon (.nav-shine-icon) and the page-name
+   label (.nav-shine-text) of the currently selected page. */
+.nav-shine-text {
+  background: linear-gradient(
+    100deg,
+    var(--color-brand-accent) 0%,
+    var(--color-brand-primary) 30%,
+    #fff6d5 50%,
+    var(--color-brand-primary) 70%,
+    var(--color-brand-accent) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.nav-shine-icon {
+  color: var(--color-brand-primary);
 }
 
 /* Sidebar container panel */
@@ -1418,4 +1516,317 @@ body {
 
 /* --- #E0E5EA / arbitrary light-gray chips used in some home cards (dark) --- */
 .dark .bg-\[\#E0E5EA\]\/30 { background-color: rgba(148, 163, 184, 0.12) !important; }
+
+/* ============================================================
+   GREEN TEXT THEME FOR TABLES
+   Only changes TEXT colors to green in tables.
+   Preserves golden (brand) and white text colors.
+   Apply .green-text-table to any table wrapper or table element.
+   ============================================================ */
+
+.green-text-table {
+  --table-text-green-primary: #14532d;   /* green-900 */
+  --table-text-green-secondary: #166534; /* green-800 */
+  --table-text-green-tertiary: #15803d;  /* green-700 */
+  --table-text-green-muted: #16a34a;     /* green-600 */
+  --table-text-green-heading: #14532d;   /* green-900 */
+  --table-brand-gold: #D4AF37;
+  --table-brand-gold-light: #F3E5AB;
+  --table-white: #ffffff;
+}
+
+.dark .green-text-table {
+  --table-text-green-primary: #dcfce7;   /* green-100 */
+  --table-text-green-secondary: #bbf7d0; /* green-200 */
+  --table-text-green-tertiary: #86efac;  /* green-300 */
+  --table-text-green-muted: #4ade80;     /* green-400 */
+  --table-text-green-heading: #f0fdf4;   /* green-50 */
+  --table-brand-gold: #FBBF24;
+  --table-brand-gold-light: #FDE68A;
+  --table-white: #ffffff;
+}
+
+/* Main text colors in table cells */
+.green-text-table td,
+.green-text-table th,
+.green-text-table tbody tr,
+.green-text-table thead th {
+  color: var(--table-text-green-primary) !important;
+}
+
+/* Heading text in tables */
+.green-text-table .text-heading,
+.green-text-table th.text-heading,
+.green-text-table thead th {
+  color: var(--table-text-green-heading) !important;
+}
+
+/* Muted/secondary text in tables */
+.green-text-table .text-muted,
+.green-text-table .text-secondary,
+.green-text-table .text-tertiary,
+.green-text-table .text-slate-400,
+.green-text-table .text-slate-500,
+.green-text-table .text-gray-400,
+.green-text-table .text-gray-500 {
+  color: var(--table-text-green-muted) !important;
+}
+
+/* Darker slate/gray text in tables */
+.green-text-table .text-slate-600,
+.green-text-table .text-slate-700,
+.green-text-table .text-gray-600,
+.green-text-table .text-gray-700 {
+  color: var(--table-text-green-secondary) !important;
+}
+
+/* Near-black slate/gray headings in tables */
+.green-text-table .text-slate-800,
+.green-text-table .text-slate-900,
+.green-text-table .text-gray-800,
+.green-text-table .text-gray-900 {
+  color: var(--table-text-green-heading) !important;
+}
+
+/* PRESERVE: Gold/brand text colors - DO NOT CHANGE */
+.green-text-table .text-brand,
+.green-text-table .text-brand-text,
+.green-text-table .text-amber-600,
+.green-text-table .text-amber-700,
+.green-text-table .text-amber-800,
+.green-text-table .text-amber-900,
+.green-text-table .text-yellow-600,
+.green-text-table .text-yellow-700,
+.green-text-table .text-yellow-800,
+.green-text-table .text-yellow-900 {
+  color: var(--table-brand-gold) !important;
+}
+
+/* PRESERVE: White text colors - DO NOT CHANGE */
+.green-text-table .text-white,
+.green-text-table .text-on-brand,
+.green-text-table .text-on-primary {
+  color: var(--table-white) !important;
+}
+
+/* PRESERVE: Gold/amber backgrounds - DO NOT CHANGE */
+.green-text-table .bg-brand,
+.green-text-table .bg-amber-500,
+.green-text-table .bg-yellow-500,
+.green-text-table .bg-amber-600,
+.green-text-table .bg-yellow-600 {
+  background-color: var(--table-brand-gold) !important;
+}
+
+.green-text-table .bg-amber-100,
+.green-text-table .bg-yellow-100,
+.green-text-table .bg-amber-50,
+.green-text-table .bg-yellow-50 {
+  background-color: var(--table-brand-gold-light) !important;
+}
+
+/* PRESERVE: White backgrounds - DO NOT CHANGE */
+.green-text-table .bg-white,
+.green-text-table .bg-white\/50,
+.green-text-table .bg-white\/60,
+.green-text-table .bg-white\/80,
+.green-text-table .bg-white\/90 {
+  background-color: var(--table-white) !important;
+}
+
+/* Links in tables */
+.green-text-table a:not(.text-brand):not(.text-white) {
+  color: var(--table-text-green-tertiary) !important;
+}
+
+.green-text-table a:hover:not(.text-brand):not(.text-white) {
+  color: var(--table-text-green-primary) !important;
+}
+
+/* Inputs and selects in tables */
+.green-text-table input,
+.green-text-table select,
+.green-text-table textarea {
+  color: var(--table-text-green-primary) !important;
+}
+
+.green-text-table input::placeholder,
+.green-text-table textarea::placeholder {
+  color: var(--table-text-green-muted) !important;
+}
+
+/* Buttons in tables (non-brand buttons) */
+.green-text-table button:not([class*="bg-brand"]):not([class*="bg-amber"]):not([class*="bg-yellow"]):not([class*="bg-white"]):not(.btn-primary):not(.btn-danger) {
+  color: var(--table-text-green-primary) !important;
+}
+
+.green-text-table button:not([class*="bg-brand"]):not([class*="bg-amber"]):not([class*="bg-yellow"]):not([class*="bg-white"]):not(.btn-primary):not(.btn-danger):hover {
+  color: var(--table-brand-gold) !important;
+}
+
+/* Status badge text in tables - keep semantic colors but make them green variants */
+.green-text-table .lm-success-badge,
+.green-text-table .lm-success-text,
+.green-text-table .text-success,
+.green-text-table .text-green-600,
+.green-text-table .text-green-700,
+.green-text-table .text-green-800,
+.green-text-table .text-emerald-600,
+.green-text-table .text-emerald-700,
+.green-text-table .text-emerald-800 {
+  color: var(--table-text-green-tertiary) !important;
+}
+
+/* Warning/amber text in tables - convert to gold */
+.green-text-table .text-amber-500,
+.green-text-table .text-orange-500,
+.green-text-table .text-yellow-500 {
+  color: var(--table-brand-gold) !important;
+}
+
+/* Error/red text in tables - convert to gold */
+.green-text-table .text-red-600,
+.green-text-table .text-red-700,
+.green-text-table .text-rose-600,
+.green-text-table .text-rose-700 {
+  color: var(--table-brand-gold) !important;
+}
+
+/* Info/blue text in tables - convert to green */
+.green-text-table .text-blue-600,
+.green-text-table .text-blue-700,
+.green-text-table .text-sky-600,
+.green-text-table .text-indigo-600 {
+  color: var(--table-text-green-tertiary) !important;
+}
+
+/* Purple/violet text in tables - convert to green */
+.green-text-table .text-purple-600,
+.green-text-table .text-purple-700,
+.green-text-table .text-violet-600 {
+  color: var(--table-text-green-tertiary) !important;
+}
+
+/* ============================================================
+   PROTECT: Background colors - DO NOT CHANGE
+   Ensure table cells, rows, headers, and pagination keep original backgrounds
+   ============================================================ */
+
+.green-text-table td,
+.green-text-table th,
+.green-text-table tbody tr,
+.green-text-table thead tr,
+.green-text-table tbody,
+.green-text-table thead,
+.green-text-table table {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Preserve original surface/card/app backgrounds in table wrapper */
+.green-text-table .bg-surface,
+.green-text-table .bg-card,
+.green-text-table .bg-app,
+.green-text-table .bg-app\/50,
+.green-text-table .bg-app\/30,
+.green-text-table .bg-app\/80,
+.green-text-table .bg-primary,
+.green-text-table .bg-secondary,
+.green-text-table .bg-tertiary {
+  background-color: var(--color-bg-surface) !important;
+  background: var(--color-bg-surface) !important;
+}
+
+.dark .green-text-table .bg-surface,
+.dark .green-text-table .bg-card,
+.dark .green-text-table .bg-app,
+.dark .green-text-table .bg-app\/50,
+.dark .green-text-table .bg-app\/30,
+.dark .green-text-table .bg-app\/80,
+.dark .green-text-table .bg-primary,
+.dark .green-text-table .bg-secondary,
+.dark .green-text-table .bg-tertiary {
+  background-color: var(--color-bg-surface) !important;
+  background: var(--color-bg-surface) !important;
+}
+
+/* Preserve hover backgrounds */
+.green-text-table .hover\:bg-card-hover:hover,
+.green-text-table .hover\:bg-surface-hover:hover,
+.green-text-table .hover\:bg-app:hover,
+.green-text-table .hover\:bg-app\/50:hover,
+.green-text-table .group-hover\:bg-card-hover:hover,
+.green-text-table .group-hover\:bg-surface-hover:hover {
+  background-color: var(--color-bg-hover) !important;
+}
+
+/* Preserve alternate row backgrounds */
+.green-text-table tbody tr:nth-child(odd),
+.green-text-table .odd\:bg-app\/50,
+.green-text-table .odd\:bg-app\/30 {
+  background-color: var(--color-bg-app) !important;
+}
+
+.dark .green-text-table tbody tr:nth-child(odd),
+.dark .green-text-table .odd\:bg-app\/50,
+.dark .green-text-table .odd\:bg-app\/30 {
+  background-color: var(--color-bg-app) !important;
+}
+
+/* Preserve sticky column backgrounds */
+.green-text-table [style*="sticky"],
+.green-text-table .sticky-col {
+  background-color: var(--color-bg-primary) !important;
+}
+
+/* Preserve pagination/footer backgrounds */
+.green-text-table .bg-card,
+.green-text-table .bg-surface,
+.green-text-table > div:last-child,
+.green-text-table .flex.items-center.gap-4,
+.green-text-table [class*="border-t"] {
+  background-color: var(--color-bg-card) !important;
+  background: var(--color-bg-card) !important;
+}
+
+/* PRESERVE: Table header row (thead tr) - keep original background */
+.green-text-table thead,
+.green-text-table thead tr,
+.green-text-table thead th {
+  background-color: var(--color-bg-card) !important;
+  background: var(--color-bg-card) !important;
+}
+
+.dark .green-text-table thead,
+.dark .green-text-table thead tr,
+.dark .green-text-table thead th {
+  background-color: var(--color-bg-card) !important;
+  background: var(--color-bg-card) !important;
+}
+
+/* Preserve grouped header row backgrounds */
+.green-text-table thead tr:first-child,
+.green-text-table thead tr:last-child {
+  background-color: var(--color-bg-card) !important;
+}
+
+.dark .green-text-table thead tr:first-child,
+.dark .green-text-table thead tr:last-child {
+  background-color: var(--color-bg-card) !important;
+}
+
+/* Preserve header group tint backgrounds (bg-slate-50 dark:bg-slate-800/50) */
+.green-text-table .bg-slate-50,
+.green-text-table .dark\:bg-slate-800\/50,
+.green-text-table [class*="bg-slate-50"],
+.green-text-table [class*="dark:bg-slate-800"] {
+  background-color: var(--color-bg-card) !important;
+}
+
+.dark .green-text-table .bg-slate-50,
+.dark .green-text-table .dark\:bg-slate-800\/50,
+.dark .green-text-table [class*="bg-slate-50"],
+.dark .green-text-table [class*="dark:bg-slate-800"] {
+  background-color: var(--color-bg-slate-800) !important;
+}
 

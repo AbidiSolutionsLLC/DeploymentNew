@@ -3,7 +3,6 @@ import {
  FiTrash2,
  FiPlus,
  FiEdit2,
- FiMoreVertical,
  FiCheckSquare,
 } from "react-icons/fi";
 import { useSelector } from "react-redux";
@@ -12,7 +11,9 @@ import { toast } from "react-toastify";
 import EmptyCardState from "./EmptyCardState";
 import ModernDatePicker from "../ui/ModernDatePicker";
 import GlassModal from "../ui/GlassModal";
+import GlassButton from "../ui/GlassButton";
 import { formatDateForAPI } from "../../utils/dateUtils";
+import HomeCardShell from "./HomeCardShell";
 
 const EMPTY_FORM = {
  title: "",
@@ -408,69 +409,43 @@ todos[index] = { ...todos[index], ...payload };
  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
  background: #94a3b8;
  }
- `}</style>
+  `}</style>
 
- <div className="relative bg-surface rounded-[1.2rem] shadow-md border border-amber-100 p-3 w-full h-full flex flex-col">
- {/* Header - Marked as shrink-0 so it stays fixed at top */}
- <div className="flex justify-between items-start mb-2 shrink-0">
- <div>
- <div className="flex items-center gap-2 mb-1">
- <FiCheckSquare className="w-4 h-4 text-amber-600 dark:text-amber-400" />
- <h3 className="text-xs font-bold text-main uppercase tracking-tight">To-Do</h3>
- </div>
- <p className="text-[10px] font-medium text-muted">
- Enter your to-do list here
- </p>
- </div>
+  <HomeCardShell
+    title="To-Do"
+    sub="Enter your to-do list here"
+    icon={FiCheckSquare}
+    accent="#6366F1"
+    onDelete={onDelete}
+    menuRef={menuRef}
+    menuOpen={menuOpen}
+    onToggleMenu={() => setMenuOpen(!menuOpen)}
+  >
+  {/* Add Task Button */}
+  <div className="shrink-0 mb-2">
+  <GlassButton
+    variant="primary"
+    size="sm"
+    onClick={openAddModal}
+    className="flex items-center gap-1.5"
+  >
+    <FiPlus className="h-3.5 w-3.5" />
+    Add Task
+  </GlassButton>
+  </div>
 
- <div className="relative" ref={menuRef}>
- <button
- onClick={() => setMenuOpen(!menuOpen)}
- className="p-1.5 rounded-lg hover:bg-app transition"
- >
- <FiMoreVertical className="h-4 w-4 text-muted" />
- </button>
-
- {menuOpen && (
- <div className="absolute right-0 mt-1 w-32 bg-surface shadow-lg border border-subtle rounded-xl z-50">
- <button
- onClick={() => {
- onDelete();
- setMenuOpen(false);
- }}
- className="flex items-center w-full px-3 py-2 text-[10px] text-red-500 hover:bg-red-50 dark:bg-red-900/30 font-medium"
- >
- <FiTrash2 className="w-3 h-3 mr-2" />
- Delete Card
- </button>
- </div>
- )}
- </div>
- </div>
-
- {/* Add Task Button */}
- <div className="shrink-0 mb-2">
- <button
- onClick={openAddModal}
- className="btn-ghost flex items-center gap-1.5"
- >
- <FiPlus className="h-3.5 w-3.5" />
- Add Task
- </button>
- </div>
-
- {/* Scrollable Task List Section */}
- <div className="overflow-y-auto flex-1 pr-1 max-h-[150px] custom-scrollbar min-h-0">
- {loading ? (
- <div className="text-[10px] text-muted py-6 text-center">Loading todos...</div>
- ) : sortedTasks.length > 0 ? (
- <ul className="space-y-1.5 text-[10px]">
- {sortedTasks.map((task) => (
- <li
- key={task._id}
- className={`rounded-lg p-2 flex justify-between items-start gap-2 transition-all ${task.completed ? "bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100" : "bg-[#E0E5EA]/30 border border-transparent"
- }`}
- >
+  {/* Scrollable Task List Section */}
+  <div className="overflow-y-auto flex-1 pr-1 max-h-[150px] custom-scrollbar min-h-0">
+  {loading ? (
+  <div className="text-[10px] text-muted py-6 text-center">Loading todos...</div>
+  ) : sortedTasks.length > 0 ? (
+  <ul className="space-y-1.5 text-[10px]">
+  {sortedTasks.map((task) => (
+  <li
+  key={task._id}
+  className={`rounded-lg p-2 flex justify-between items-start gap-2 transition-all ${task.completed ? "bg-success-bg border border-success-border" : "bg-app border border-transparent"
+  }`}
+  >
  <div className="flex items-start gap-2.5 flex-1 min-w-0">
  <input
  type="checkbox"
@@ -504,30 +479,30 @@ todos[index] = { ...todos[index], ...payload };
  </div>
  </div>
 
- <div className="flex flex-col gap-1.5 items-end shrink-0">
- <button
- type="button"
- onClick={() => openDetailModal(task)}
- className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 p-1.5 rounded-md hover:bg-green-200 dark:bg-green-900/50"
- title="View / edit"
- >
- <FiEdit2 className="h-3 w-3" />
- </button>
- <button
- onClick={() => confirmDeleteTask(task)}
- className="bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 p-1.5 rounded-md hover:bg-red-200 dark:bg-red-900/50"
- >
- <FiTrash2 className="h-3 w-3" />
- </button>
- </div>
- </li>
- ))}
- </ul>
- ) : (
- <EmptyCardState message="You haven't added anything yet" />
- )}
- </div>
- </div>
+  <div className="flex flex-col gap-1.5 items-end shrink-0">
+  <button
+  type="button"
+  onClick={() => openDetailModal(task)}
+  className="bg-success-bg text-success p-1.5 rounded-md hover:brightness-95"
+  title="View / edit"
+  >
+  <FiEdit2 className="h-3 w-3" />
+  </button>
+  <button
+  onClick={() => confirmDeleteTask(task)}
+  className="bg-danger-bg text-danger p-1.5 rounded-md hover:brightness-95"
+  >
+  <FiTrash2 className="h-3 w-3" />
+  </button>
+  </div>
+  </li>
+  ))}
+  </ul>
+  ) : (
+  <EmptyCardState message="You haven't added anything yet" />
+  )}
+  </div>
+  </HomeCardShell>
   {detailModal.open && detailModal.task && (
     <GlassModal
       isOpen={true}
@@ -545,21 +520,23 @@ todos[index] = { ...todos[index], ...payload };
       }
       footer={
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 w-full">
-          <button
+          <GlassButton
             type="button"
+            variant="primary"
             onClick={closeDetailModal}
-            className="btn btn-secondary w-full"
+            className="w-full sm:w-auto"
           >
             Cancel
-          </button>
-          <button
+          </GlassButton>
+          <GlassButton
             type="button"
+            variant="primary"
             onClick={handleModalSave}
             disabled={modalSaveDisabled}
-            className="w-full sm:w-auto px-8 text-[10px] shadow-slate-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
+            className="w-full sm:w-auto"
           >
             {updatingTaskId === detailModal.task._id ? "Saving..." : "Save changes"}
-          </button>
+          </GlassButton>
         </div>
       }
     >
@@ -646,21 +623,23 @@ todos[index] = { ...todos[index], ...payload };
       }
       footer={
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 w-full">
-          <button
+          <GlassButton
             type="button"
+            variant="primary"
             onClick={closeAddModal}
-            className="btn btn-secondary w-full"
+            className="w-full sm:w-auto"
           >
             Cancel
-          </button>
-          <button
+          </GlassButton>
+          <GlassButton
             type="button"
+            variant="primary"
             onClick={addTask}
             disabled={addDisabled}
-            className="w-full sm:w-auto px-8 text-[10px] shadow-slate-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
+            className="w-full sm:w-auto"
           >
             {saving ? "Saving..." : "Save task"}
-          </button>
+          </GlassButton>
         </div>
       }
     >
