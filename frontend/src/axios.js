@@ -110,7 +110,24 @@ api.interceptors.response.use(
       console.warn("[AXIOS] 401 Unauthorized — logging out");
 
       try {
-        localStorage.clear();
+        localStorage.removeItem("accessToken");
+        // Clear MSAL / auth keys from localStorage without wiping user settings & seen release notes
+        try {
+          const keysToRemove = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (
+              key &&
+              (key.startsWith("msal.") ||
+                key.includes("login.microsoftonline.com") ||
+                key === "accessToken")
+            ) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach((k) => localStorage.removeItem(k));
+        } catch (_) {}
+
         sessionStorage.clear();
         clearAllCookies();
 
