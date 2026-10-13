@@ -33,7 +33,7 @@ export const injectStore = (_store) => {
 };
 
 const api = axios.create({
- baseURL: "http://localhost:4000/api/v1",
+ baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000/api/v1",
  timeout: 15000,
  withCredentials: true
 });
@@ -41,6 +41,15 @@ const api = axios.create({
 api.interceptors.request.use(
  async (config) => {
  config.headers['X-Timezone'] = TIMEZONE;
+ if (
+   import.meta.env.MODE === "test" &&
+   import.meta.env.VITE_TEST_AUTH_SECRET &&
+   import.meta.env.VITE_TEST_USER_EMAIL &&
+   localStorage.getItem("portalTestAuth") === "true"
+ ) {
+   config.headers['x-test-auth-secret'] = import.meta.env.VITE_TEST_AUTH_SECRET;
+   config.headers['x-test-user-email'] = import.meta.env.VITE_TEST_USER_EMAIL;
+ }
  try {
  const accounts = msalInstance.getAllAccounts();
  const activeAccount = msalInstance.getActiveAccount() || accounts[0];

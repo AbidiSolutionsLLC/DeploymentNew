@@ -8,6 +8,8 @@ import {
   Squares2X2Icon,
   ArrowRightIcon,
   CalendarDaysIcon,
+  PlusIcon,
+  ClipboardDocumentListIcon,
 } from "@heroicons/react/24/outline";
 import { fetchProjectDashboard } from "../../store/projectSlice";
 import Loader from "../../components/ui/Loader";
@@ -68,45 +70,64 @@ const ProjectDashBoard = () => {
   return (
     <div className="flex flex-col gap-4">
       {/* Command header */}
-      <div className="glass-card flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="glass-card flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
+          <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.25em] text-brand-text">
+            Project workspace
+          </p>
           <h1 className="text-base font-bold text-heading uppercase tracking-tight">Project Command Center</h1>
           <p className="text-muted text-[10px] sm:text-xs font-medium uppercase tracking-wide mt-1">
             Live status of your projects, tasks and team
           </p>
         </div>
-        <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-brand-text shrink-0">
-          <CalendarDaysIcon className="w-4 h-4" />
-          {new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => navigate("/project/myTasks")}
+            className="btn btn-secondary py-2.5 px-3"
+          >
+            <ClipboardDocumentListIcon className="w-4 h-4 mr-2" />
+            My tasks
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/project/projects")}
+            className="btn btn-primary py-2.5 px-3"
+          >
+            <PlusIcon className="w-4 h-4 mr-2" />
+            Projects
+          </button>
+          <div className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-brand-text px-2">
+            <CalendarDaysIcon className="w-4 h-4" />
+            {new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+          </div>
         </div>
       </div>
 
-      {/* KPI ribbon — one card, hairline grid inside */}
-      <div className="glass-card overflow-hidden !p-0">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border-subtle">
-          {KPIS.map((kpi) => {
-            const KpiIcon = kpi.Icon;
-            return (
-              <div key={kpi.key} className="bg-surface px-4 py-4 sm:px-5 sm:py-5 flex items-center gap-3 min-w-0">
-                <span className="w-9 h-9 shrink-0 rounded-lg bg-amber-50 border border-border-accent text-brand-text flex items-center justify-center">
-                  <KpiIcon className="w-5 h-5" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-xl sm:text-2xl font-black text-heading leading-none tabular-nums">
-                    {d[kpi.key] ?? 0}
-                  </p>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted truncate">{kpi.label}</p>
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {KPIS.map((kpi) => {
+          const KpiIcon = kpi.Icon;
+          return (
+            <div key={kpi.key} className="glass-card !p-4 sm:!p-5 flex items-center gap-3 min-w-0 bg-surface">
+              <span className="w-10 h-10 shrink-0 rounded-xl bg-amber-50 border border-border-accent text-brand-text flex items-center justify-center">
+                <KpiIcon className="w-5 h-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xl sm:text-2xl font-black text-heading leading-none tabular-nums">
+                  {d[kpi.key] ?? 0}
+                </p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted truncate">{kpi.label}</p>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Bento grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Active projects — wide panel */}
-        <section className="glass-card sm:col-span-2 lg:col-span-2 flex flex-col min-w-0">
+        <section className="glass-card sm:col-span-2 lg:col-span-2 flex flex-col min-w-0 bg-surface">
           <PanelHead
             title="Active Projects"
             subtitle="Ongoing work & status"
@@ -147,7 +168,7 @@ const ProjectDashBoard = () => {
         </section>
 
         {/* Time tracking */}
-        <section className="glass-card flex flex-col min-w-0">
+        <section className="glass-card flex flex-col min-w-0 bg-surface">
           <PanelHead
             title="Time This Week"
             subtitle={`${tracking.totalHours || 0}h of ${tracking.targetHours || 40}h target`}
@@ -178,7 +199,7 @@ const ProjectDashBoard = () => {
         </section>
 
         {/* Recent tasks */}
-        <section className="glass-card flex flex-col min-w-0">
+        <section className="glass-card flex flex-col min-w-0 bg-surface">
           <PanelHead
             title="Open Tasks"
             subtitle="Assigned to you"
@@ -214,7 +235,7 @@ const ProjectDashBoard = () => {
         </section>
 
         {/* Deadlines */}
-        <section className="glass-card flex flex-col min-w-0">
+        <section className="glass-card flex flex-col min-w-0 bg-surface">
           <PanelHead title="Upcoming Deadlines" subtitle="Next tasks due" />
           {deadlines.length === 0 ? (
             <EmptyState title="No deadlines soon" hint="Tasks with due dates appear here." />
@@ -253,7 +274,7 @@ const ProjectDashBoard = () => {
         </section>
 
         {/* Team */}
-        <section className="glass-card flex flex-col min-w-0">
+        <section className="glass-card flex flex-col min-w-0 bg-surface">
           <PanelHead title="Team Members" subtitle={`${team.length} people across your projects`} />
           {team.length === 0 ? (
             <EmptyState title="No team members yet" hint="People on your projects appear here." />

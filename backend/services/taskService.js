@@ -1,14 +1,34 @@
 const Task = require("../models/taskSchema");
 const Project = require("../models/projectSchema");
+const User = require("../models/userSchema");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { createNotification } = require('../utils/notificationService');
 
 class TaskService {
-  async createTask(companyId, data) {
-    const { title, description, project, team, priority, status, dueDate, duration } = data;
+  async validateCompanyTeam(companyId, team) {
+    if (!team || !team.length) return;
+    const count = await User.countDocuments({ _id: { $in: team }, company: companyId });
+    if (count !== new Set(team.map(String)).size) {
+      throw new BadRequestError("All task team members must belong to the task company");
+    }
+  }
+
+  mapAttachments(files) {
+    return (files || []).map((file) => ({
+      public_id: file.blobName || file.filename,
+      url: file.url || file.path,
+      originalname: file.originalname,
+      format: file.mimetype,
+      size: file.size
+    }));
+  }
+
+  async createTask(companyId, data, files) {
+    const { title, description, project, team, priority, status, dueDate, duration, completionPercent, workedHours } = data;
 
     const projectExists = await Project.findOne({ _id: project, company: companyId });
     if (!projectExists) throw new NotFoundError("Project");
+    await this.validateCompanyTeam(companyId, team);
 
     const task = new Task({
       title,
@@ -19,6 +39,9 @@ class TaskService {
       status,
       dueDate,
       duration,
+      completionPercent,
+      workedHours,
+      attachments: this.mapAttachments(files),
       company: companyId,
     });
 
@@ -93,7 +116,7 @@ class TaskService {
     return task;
   }
 
-  async updateTask(user, companyId, taskId, data) {
+  async updateTask(user, companyId, taskId, data, files) {
     const {
       title, description, team, priority, dueDate, duration,
       completionPercent, workedHours, status
@@ -101,6 +124,7 @@ class TaskService {
 
     const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
+    await this.validateCompanyTeam(companyId, team);
 
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
@@ -112,7 +136,7 @@ class TaskService {
     
     if (!isSuperAdmin && !isAdmin && !isManagerTech && !isAssignee) {
       const Project = require('../models/projectSchema');
-      const projectDoc = await Project.findById(task.project).lean();
+      const projectDoc = await Project.findOne({ _id: task.project, company: companyId }).lean();
       const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === (user.id || user._id).toString();
       if (!isProjectOwner) {
          throw new ForbiddenError("You do not have permission to access or modify this task.");
@@ -130,6 +154,9 @@ class TaskService {
     task.completionPercent = completionPercent !== undefined ? completionPercent : task.completionPercent;
     task.workedHours = workedHours !== undefined ? workedHours : task.workedHours;
     task.status = status || task.status;
+    if (files?.length) {
+      task.attachments = [...(task.attachments || []), ...this.mapAttachments(files)];
+    }
 
     const updatedTask = await task.save();
 
@@ -171,7 +198,7 @@ class TaskService {
     
     if (!isSuperAdmin && !isAdmin && !isManagerTech && !isAssignee) {
       const Project = require('../models/projectSchema');
-      const projectDoc = await Project.findById(task.project).lean();
+      const projectDoc = await Project.findOne({ _id: task.project, company: companyId }).lean();
       const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === (user.id || user._id).toString();
       if (!isProjectOwner) {
          throw new ForbiddenError("You do not have permission to access or modify this task.");
@@ -204,7 +231,7 @@ class TaskService {
     
     if (!isSuperAdmin && !isAdmin && !isManagerTech) {
       const Project = require('../models/projectSchema');
-      const projectDoc = await Project.findById(task.project).lean();
+      const projectDoc = await Project.findOne({ _id: task.project, company: companyId }).lean();
       const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === (user.id || user._id).toString();
       if (!isProjectOwner) {
          throw new ForbiddenError("You do not have permission to delete this task.");

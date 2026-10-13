@@ -3,22 +3,26 @@ const { BadRequestError, NotFoundError } = require("../utils/ExpressError");
 
 class DepartmentService {
   async createDepartment(data) {
-    const { name, description, manager } = data;
-    const existing = await Department.findOne({ name });
+    const { name, description, manager, company } = data;
+    const filter = company ? { name, company } : { name };
+    const existing = await Department.findOne(filter);
     if (existing) throw new BadRequestError("Department already exists");
 
     return Department.create({
       name,
       description,
       manager: manager || null,
-      company: data.company
+      company: company || null,
     });
   }
 
-  async getAllDepartments() {
-    return Department.find()
+  async getAllDepartments(companyId) {
+    const filter = companyId
+      ? { $or: [{ company: companyId }, { company: null }, { company: { $exists: false } }] }
+      : {};
+    return Department.find(filter)
       .populate("manager", "name email")
-      .select("name manager members");
+      .select("name manager members company");
   }
 
   async getDepartmentById(id) {

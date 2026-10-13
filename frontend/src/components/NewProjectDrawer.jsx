@@ -20,6 +20,7 @@ const EMPTY_FORM = {
   description: "",
   owner: "",
   department: "",
+  projectGroup: "",
   status: "Planning",
   team: [],
   startDate: "",
@@ -35,12 +36,13 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
   const [errors, setErrors] = useState({});
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [projectGroups, setProjectGroups] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [optionsError, setOptionsError] = useState("");
   const [saving, setSaving] = useState(false);
   const fetchedRef = useRef(false);
 
-  // Load dropdown data once per session (users + departments)
+  // Load dropdown data once per session (users + departments + project groups)
   useEffect(() => {
     if (!isOpen || fetchedRef.current) return;
     let mounted = true;
@@ -48,15 +50,21 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
       setLoadingOptions(true);
       setOptionsError("");
       try {
-        const [usersRes, deptsRes] = await Promise.all([api.get("/users"), api.get("/departments")]);
+        const [usersRes, deptsRes, groupsRes] = await Promise.all([
+          api.get("/users"),
+          api.get("/departments"),
+          api.get("/project-groups")
+        ]);
         if (!mounted) return;
         const userList = usersRes.data?.data || usersRes.data || [];
         const deptList = deptsRes.data?.data || deptsRes.data || [];
+        const groupList = groupsRes.data?.data || groupsRes.data || [];
         setUsers(Array.isArray(userList) ? userList : []);
         setDepartments(Array.isArray(deptList) ? deptList : []);
+        setProjectGroups(Array.isArray(groupList) ? groupList : []);
         fetchedRef.current = true;
       } catch {
-        if (mounted) setOptionsError("Could not load people & departments. Close and try again.");
+        if (mounted) setOptionsError("Could not load form options. Close and try again.");
       } finally {
         if (mounted) setLoadingOptions(false);
       }
@@ -77,6 +85,7 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
         description: project.description || "",
         owner: toId(project.owner),
         department: toId(project.department),
+        projectGroup: toId(project.projectGroup),
         status: PROJECT_STATUSES.includes(project.status) ? project.status : "Planning",
         team: (project.team || []).map((m) => toId(m)),
         startDate: toDateInput(project.startDate),
@@ -116,6 +125,7 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
         description: form.description.trim(),
         owner: form.owner,
         department: form.department,
+        projectGroup: form.projectGroup || null,
         status: form.status,
         team: form.team,
         startDate: form.startDate || null,
@@ -131,6 +141,10 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
     label: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email,
   }));
   const departmentOptions = departments.map((d) => ({ value: d._id || d.id, label: d.name }));
+  const groupOptions = [
+    { value: "", label: "None (No Group)" },
+    ...projectGroups.map((g) => ({ value: g._id || g.id, label: g.name }))
+  ];
 
   const footer = (
     <div className="flex justify-end gap-2 w-full">
@@ -208,7 +222,7 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
           </div>
         </div>
 
-        {/* Status / Team */}
+        {/* Status / Project Group */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <ModernSelect
             label="Status"
@@ -217,30 +231,40 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
             onChange={handleChange}
             options={PROJECT_STATUSES.map((s) => ({ value: s, label: s }))}
           />
-          <div>
-            <label htmlFor="project-team" className={labelCls}>
-              Team Members
-            </label>
-            <select
-              id="project-team"
-              multiple
-              value={form.team}
-              onChange={(e) =>
-                set(
-                  "team",
-                  Array.from(e.target.selectedOptions, (o) => o.value)
-                )
-              }
-              className="glass-input h-24 custom-scrollbar-visible"
-            >
-              {users.map((u) => (
-                <option key={u._id || u.id} value={u._id || u.id}>
-                  {u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email}
-                </option>
-              ))}
-            </select>
-            <p className="text-[10px] text-muted mt-1">Hold Ctrl/Cmd to select multiple</p>
-          </div>
+          <ModernSelect
+            label="Project Group (Optional)"
+            name="projectGroup"
+            value={form.projectGroup}
+            onChange={handleChange}
+            options={groupOptions}
+            placeholder={loadingOptions ? "Loading groups..." : "Select project group"}
+          />
+        </div>
+
+        {/* Team Members */}
+        <div>
+          <label htmlFor="project-team" className={labelCls}>
+            Team Members
+          </label>
+          <select
+            id="project-team"
+            multiple
+            value={form.team}
+            onChange={(e) =>
+              set(
+                "team",
+                Array.from(e.target.selectedOptions, (o) => o.value)
+              )
+            }
+            className="glass-input h-24 custom-scrollbar-visible"
+          >
+            {users.map((u) => (
+              <option key={u._id || u.id} value={u._id || u.id}>
+                {u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email}
+              </option>
+            ))}
+          </select>
+          <p className="text-[10px] text-muted mt-1">Hold Ctrl/Cmd to select multiple</p>
         </div>
 
         {/* Dates */}

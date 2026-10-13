@@ -17,6 +17,19 @@ class ActivityLogService {
       const saved = await log.save();
       return saved;
     } catch (err) {
+      if (err && (err.code === 11000 || String(err.message).includes("batchId_1_startTime_1"))) {
+        try {
+          await ActivityLog.collection.dropIndex("batchId_1_startTime_1");
+          return await new ActivityLog({
+            user: actorId,
+            action,
+            entityType,
+            entityId,
+            level,
+            company: companyId,
+          }).save();
+        } catch {}
+      }
       console.error("[ActivityLog] Failed to record activity:", err.message);
       return null;
     }

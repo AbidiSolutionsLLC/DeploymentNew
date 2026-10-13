@@ -20,7 +20,12 @@ const projectSchema = Joi.object({
   startDate: Joi.date().allow(null, "").optional(),
   dueDate: Joi.date().allow(null, "").optional(),
   owner: Joi.string().optional(),
-  department: Joi.string().optional()
+  department: Joi.string().required().messages({
+    "any.required": "Department is required."
+  }),
+  projectGroup: Joi.string().allow(null, "").optional()
 });
 
-module.exports = { projectSchema };
+const projectUpdateSchema = projectSchema.fork(["department"], schema => schema.optional());
+
+module.exports = { projectSchema, projectUpdateSchema };

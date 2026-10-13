@@ -13,6 +13,7 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
     description: project?.description || "",
     owner: project?.owner?._id || project?.owner || "",
     department: project?.department?._id || project?.department || "",
+    projectGroup: project?.projectGroup?._id || project?.projectGroup || "",
     status: PROJECT_STATUSES.includes(project?.status) ? project.status : "Planning",
     team: (project?.team || []).map((m) => m._id || m),
     startDate: project?.startDate ? String(project.startDate).slice(0, 10) : "",
@@ -21,6 +22,7 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
   const [errors, setErrors] = useState({});
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [projectGroups, setProjectGroups] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [optionsError, setOptionsError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -33,12 +35,18 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
         setLoadingOptions(true);
         setOptionsError("");
         try {
-          const [usersRes, deptsRes] = await Promise.all([api.get("/users"), api.get("/departments")]);
+          const [usersRes, deptsRes, groupsRes] = await Promise.all([
+            api.get("/users"),
+            api.get("/departments"),
+            api.get("/project-groups")
+          ]);
           if (!mounted) return;
           const userList = usersRes.data?.data || usersRes.data || [];
           const deptList = deptsRes.data?.data || deptsRes.data || [];
+          const groupList = groupsRes.data?.data || groupsRes.data || [];
           setUsers(Array.isArray(userList) ? userList : []);
           setDepartments(Array.isArray(deptList) ? deptList : []);
+          setProjectGroups(Array.isArray(groupList) ? groupList : []);
           fetchedRef.current = true;
         } catch {
           if (mounted) setOptionsError("Could not load people & departments. Close and try again.");
@@ -75,6 +83,7 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
         description: form.description.trim(),
         owner: form.owner,
         department: form.department,
+        projectGroup: form.projectGroup || null,
         status: form.status,
         team: form.team,
         startDate: form.startDate || null,
@@ -90,6 +99,10 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
     label: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email,
   }));
   const departmentOptions = departments.map((d) => ({ value: d._id || d.id, label: d.name }));
+  const groupOptions = [
+    { value: "", label: "None (No Group)" },
+    ...projectGroups.map((g) => ({ value: g._id || g.id, label: g.name }))
+  ];
 
   const labelCls = "block text-[10px] font-black text-muted mb-1.5 uppercase tracking-widest";
 
@@ -112,13 +125,15 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <ModernSelect label="Status" name="status" value={form.status} onChange={(e) => set("status", e.target.value)} options={PROJECT_STATUSES.map((s) => ({ value: s, label: s }))} />
-        <div>
-          <label htmlFor="project-team" className={labelCls}>Team Members</label>
-          <select id="project-team" multiple value={form.team} onChange={(e) => set("team", Array.from(e.target.selectedOptions, (o) => o.value))} className="glass-input h-24 custom-scrollbar-visible">
-            {users.map((u) => (<option key={u._id || u.id} value={u._id || u.id}>{u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email}</option>))}
-          </select>
-          <p className="text-[10px] text-muted mt-1">Hold Ctrl/Cmd to select multiple</p>
-        </div>
+        <ModernSelect label="Project Group (Optional)" name="projectGroup" value={form.projectGroup} onChange={(e) => set("projectGroup", e.target.value)} options={groupOptions} placeholder={loadingOptions ? "Loading groups..." : "Select project group"} />
+      </div>
+
+      <div>
+        <label htmlFor="project-team" className={labelCls}>Team Members</label>
+        <select id="project-team" multiple value={form.team} onChange={(e) => set("team", Array.from(e.target.selectedOptions, (o) => o.value))} className="glass-input h-24 custom-scrollbar-visible">
+          {users.map((u) => (<option key={u._id || u.id} value={u._id || u.id}>{u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email}</option>))}
+        </select>
+        <p className="text-[10px] text-muted mt-1">Hold Ctrl/Cmd to select multiple</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

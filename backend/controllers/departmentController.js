@@ -8,7 +8,7 @@ exports.createDepartment = catchAsync(async (req, res) => {
 });
 
 exports.getAllDepartments = catchAsync(async (req, res) => {
-  const departments = await departmentService.getAllDepartments();
+  const departments = await departmentService.getAllDepartments(req.companyId);
   res.status(200).json(ApiResponse.success(departments));
 });
 

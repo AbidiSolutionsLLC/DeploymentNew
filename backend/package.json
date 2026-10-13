@@ -4,8 +4,10 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --runInBand --detectOpenHandles --forceExit",
+    "test:portal-contracts": "jest --config jest.portal.config.js --runInBand",
     "start": "nodemon index.js",
-    "start:worker": "node cronWorker.js"
+    "start:worker": "node cronWorker.js",
+    "seed:portal-test": "node tests/portal/seedPortalTestData.js"
   },
   "keywords": [],
   "author": "",

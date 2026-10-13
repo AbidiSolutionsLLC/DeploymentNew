@@ -1,6 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../api/projectApi';
 
+const errorMessage = (err, fallback) =>
+  err?.response?.data?.message ||
+  err?.response?.data?.error ||
+  (typeof err?.response?.data === 'string' ? err.response.data : null) ||
+  err?.message ||
+  fallback;
+
 export const fetchProjects = createAsyncThunk(
  'projects/fetchProjects',
  async (_, { rejectWithValue }) => {
@@ -8,7 +15,7 @@ export const fetchProjects = createAsyncThunk(
  const response = await api.getProjects();
  return response;
  } catch (err) {
- return rejectWithValue(err.response.data);
+ return rejectWithValue(errorMessage(err, 'Project request failed'));
  }
  }
 );
@@ -20,7 +27,7 @@ export const fetchProjectById = createAsyncThunk(
  const response = await api.getProjectById(id);
  return response;
  } catch (err) {
- return rejectWithValue(err.response.data);
+ return rejectWithValue(errorMessage(err, 'Project request failed'));
  }
  }
 );
@@ -32,7 +39,7 @@ export const fetchProjectTasks = createAsyncThunk(
  const response = await api.getProjectTasks(projectId);
  return response;
  } catch (err) {
- return rejectWithValue(err.response.data);
+ return rejectWithValue(errorMessage(err, 'Project request failed'));
  }
  }
 );
@@ -44,7 +51,7 @@ export const createProject = createAsyncThunk(
  const response = await api.createProject(projectData);
  return response;
  } catch (err) {
- return rejectWithValue(err.response.data);
+ return rejectWithValue(errorMessage(err, 'Project request failed'));
  }
  }
 );
@@ -56,7 +63,7 @@ export const updateProject = createAsyncThunk(
  const response = await api.updateProject(id, updates);
  return response;
  } catch (err) {
- return rejectWithValue(err.response.data);
+ return rejectWithValue(errorMessage(err, 'Project request failed'));
  }
  }
 );
@@ -68,7 +75,7 @@ export const deleteProject = createAsyncThunk(
  await api.deleteProject(id);
  return id;
  } catch (err) {
- return rejectWithValue(err.response.data);
+ return rejectWithValue(errorMessage(err, 'Project request failed'));
  }
  }
 );
@@ -80,7 +87,7 @@ export const fetchProjectDashboard = createAsyncThunk(
  const response = await api.getProjectDashboard();
  return response;
  } catch (err) {
- return rejectWithValue(err.response.data);
+ return rejectWithValue(errorMessage(err, 'Project request failed'));
  }
  }
 );

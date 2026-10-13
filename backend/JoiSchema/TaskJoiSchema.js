@@ -15,7 +15,7 @@ const taskSchema = Joi.object({
   priority: Joi.string().valid("Low", "Medium", "High").optional(),
   status: Joi.string().valid("Todo", "In Progress", "In Review", "Done", "Blocked").optional(),
   dueDate: Joi.date().allow(null, "").optional(),
-  duration: Joi.string().allow("", null).optional(),
+  duration: Joi.number().min(0).allow(null).optional(),
   completionPercent: Joi.number().min(0).max(100).optional(),
   workedHours: Joi.number().min(0).optional()
 });
@@ -27,7 +27,7 @@ const taskUpdateSchema = Joi.object({
   priority: Joi.string().valid("Low", "Medium", "High").optional(),
   status: Joi.string().valid("Todo", "In Progress", "In Review", "Done", "Blocked").optional(),
   dueDate: Joi.date().allow(null, "").optional(),
-  duration: Joi.string().allow("", null).optional(),
+  duration: Joi.number().min(0).allow(null).optional(),
   completionPercent: Joi.number().min(0).max(100).optional(),
   workedHours: Joi.number().min(0).optional()
 });

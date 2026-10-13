@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { createElement } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { PlusIcon, ArrowsUpDownIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, ArrowsUpDownIcon, EyeIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon } from "@heroicons/react/24/outline";
 import AddTaskDrawer from "../../components/addTaskModal";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
 import { fetchMyTasks, createTask, updateTask } from "../../store/taskSlice";
@@ -51,6 +52,9 @@ const MyTask = () => {
   }, [tasks, query, status]);
 
   const countFor = (s) => (s === "All" ? tasks.length : tasks.filter((t) => t.status === s).length);
+  const completedCount = tasks.filter((task) => task.status === "Done").length;
+  const activeCount = tasks.filter((task) => ["In Progress", "In Review"].includes(task.status)).length;
+  const overdueCount = tasks.filter((task) => isOverdue(task.dueDate, task.status)).length;
 
   const handleCreateTask = async (taskData) => {
     try {
@@ -149,8 +153,9 @@ const MyTask = () => {
   return (
     <div className="flex flex-col gap-4">
       <PortalHeader
+        eyebrow="Personal workspace"
         title="My Tasks"
-        subtitle={`${rows.length} of ${tasks.length} tasks in view`}
+        subtitle="Prioritize your assigned work and keep delivery moving."
         actions={
           <>
             <ToolbarSearch
@@ -184,6 +189,25 @@ const MyTask = () => {
         />
       </PortalHeader>
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Assigned", value: tasks.length, Icon: ClockIcon, tone: "text-brand-text" },
+          { label: "In progress", value: activeCount, Icon: ClockIcon, tone: "text-info" },
+          { label: "Completed", value: completedCount, Icon: CheckCircleIcon, tone: "text-success" },
+          { label: "Overdue", value: overdueCount, Icon: ExclamationCircleIcon, tone: "text-danger" },
+        ].map(({ label, value, Icon, tone }) => (
+          <div key={label} className="glass-card !p-4 sm:!p-5 flex items-center gap-3 bg-surface">
+            <div className={`w-10 h-10 rounded-xl bg-card border border-border-subtle flex items-center justify-center ${tone}`}>
+              {createElement(Icon, { className: "w-5 h-5" })}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xl sm:text-2xl font-black text-heading tabular-nums leading-none">{value}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted mt-1 truncate">{label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <PortalTable
         columns={columns}
         data={rows}
@@ -203,7 +227,11 @@ const MyTask = () => {
       />
 
       <AddTaskDrawer isOpen={showModal} onClose={() => setShowModal(false)} onSubmit={handleCreateTask} />
-      <TaskDetailDrawer task={detailTask} onClose={() => setDetailTask(null)} onStatusChange={(id, status) => handleUpdateTask(id, status)} />
+      <TaskDetailDrawer
+        task={detailTask}
+        onClose={() => setDetailTask(null)}
+        onStatusChange={(status) => handleUpdateTask(detailTask?._id, { status })}
+      />
     </div>
   );
 };

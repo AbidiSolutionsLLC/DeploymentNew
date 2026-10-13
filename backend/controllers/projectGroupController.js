@@ -17,7 +17,13 @@ exports.updateGroup = catchAsync(async (req, res) => {
   return res.status(200).json(ApiResponse.success(group, 'Project group updated successfully'));
 });
 
+exports.getGroupById = catchAsync(async (req, res) => {
+  const group = await projectGroupService.getGroupById(req.user, req.companyId, req.params.id);
+  return res.status(200).json(ApiResponse.success(group, 'Project group retrieved successfully'));
+});
+
 exports.deleteGroup = catchAsync(async (req, res) => {
   await projectGroupService.deleteGroup(req.user, req.companyId, req.params.id);
   return res.status(200).json(ApiResponse.success(null, 'Project group deleted successfully'));
 });
+

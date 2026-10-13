@@ -7,7 +7,7 @@ const upload = multer({ storage: projectsStorage });
 const projectController = require("../../controllers/projectController");
 const { isLoggedIn } = require("../../middlewares/authMiddleware");
 const validate = require("../../middlewares/validationMiddleware");
-const { projectSchema } = require("../../JoiSchema/ProjectJoiSchema");
+const { projectSchema, projectUpdateSchema } = require("../../JoiSchema/ProjectJoiSchema");
 
 router
   .route("/")
@@ -20,7 +20,7 @@ router.get("/user", isLoggedIn, projectController.getUserProjects);
 router
   .route("/:id")
   .get(isLoggedIn, projectController.getProjectById)
-  .put(isLoggedIn, upload.array("attachments", 5), validate(projectSchema), projectController.updateProject)
+  .put(isLoggedIn, upload.array("attachments", 5), validate(projectUpdateSchema), projectController.updateProject)
   .delete(isLoggedIn, projectController.deleteProject);
 
 module.exports = router;

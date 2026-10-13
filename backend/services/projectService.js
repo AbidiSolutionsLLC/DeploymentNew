@@ -1,13 +1,59 @@
 const Project = require("../models/projectSchema");
 const Task = require("../models/taskSchema");
 const ProjectGroup = require("../models/projectGroupSchema");
+const User = require("../models/userSchema");
+const Department = require("../models/department");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { createNotification } = require('../utils/notificationService');
 
 class ProjectService {
-  async createProject(user, companyId, data) {
-    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status } = data;
+  async validateCompanyReferences(companyId, { owner, team, department, projectGroup } = {}) {
+    const userIds = [owner, ...(team || [])].filter(Boolean);
+    if (userIds.length) {
+      const count = await User.countDocuments({ _id: { $in: userIds }, company: companyId });
+      if (count !== new Set(userIds.map(String)).size) {
+        throw new BadRequestError("Owner and team members must belong to the project company");
+      }
+    }
+    if (
+      department &&
+      !(await Department.exists({
+        _id: department,
+        $or: [{ company: companyId }, { company: null }, { company: { $exists: false } }],
+      }))
+    ) {
+      throw new BadRequestError("Department must belong to the project company");
+    }
+    if (projectGroup) {
+      const groupExists = await ProjectGroup.exists({ _id: projectGroup, company: companyId });
+      if (!groupExists) {
+        throw new BadRequestError("Project group must belong to the project company");
+      }
+    }
+  }
+
+  async withProgress(project, companyId) {
+    const progressMap = await this.getProjectProgressMap([project._id], companyId);
+    const result = project.toObject ? project.toObject() : { ...project };
+    const progress = progressMap.get(project._id.toString());
+    if (progress !== undefined) result.progress = progress;
+    return result;
+  }
+
+  mapAttachments(files) {
+    return (files || []).map((file) => ({
+      public_id: file.blobName || file.filename,
+      url: file.url || file.path,
+      originalname: file.originalname,
+      format: file.mimetype,
+      size: file.size
+    }));
+  }
+
+  async createProject(user, companyId, data, files) {
+    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status, projectGroup } = data;
     const owner = dataOwner || user.id || user._id;
+    await this.validateCompanyReferences(companyId, { owner, team, department, projectGroup });
 
     const project = new Project({
       title,
@@ -15,15 +61,23 @@ class ProjectService {
       team,
       owner,
       department,
+      projectGroup: projectGroup || null,
       status,
       strict,
       isPublic,
       startDate,
       dueDate,
+      attachments: this.mapAttachments(files),
       company: companyId,
     });
 
     const savedProject = await project.save();
+
+    if (savedProject.projectGroup) {
+      await ProjectGroup.findByIdAndUpdate(savedProject.projectGroup, {
+        $addToSet: { projects: savedProject._id }
+      });
+    }
 
     if (savedProject.team && savedProject.team.length > 0) {
       savedProject.team.forEach(memberId => {
@@ -37,7 +91,7 @@ class ProjectService {
       });
     }
 
-    return savedProject;
+    return this.withProgress(savedProject, companyId);
   }
 
   // Progress rule (single definition, used everywhere):
@@ -63,7 +117,7 @@ class ProjectService {
   }
 
   async getAllProjects(user, companyId, query) {
-    const { page = 1, limit = 20, search = '', status, myProjects } = query;
+    const { page = 1, limit = 20, search = '', status, myProjects, projectGroup } = query;
     const skip = (page - 1) * limit;
 
     const userId = user.id || user._id;
@@ -71,6 +125,7 @@ class ProjectService {
     const filter = {
       company: companyId,
       ...(status && { status }),
+      ...(projectGroup && { projectGroup }),
       ...(search && {
         $or: [
           { title: { $regex: search, $options: 'i' } },
@@ -86,6 +141,7 @@ class ProjectService {
       Project.find(filter)
         .populate("team", "name email avatar")
         .populate("owner", "name email avatar")
+        .populate("projectGroup", "name")
         .skip(skip)
         .limit(Number(limit))
         .sort({ createdAt: -1 }),
@@ -116,7 +172,8 @@ class ProjectService {
   async getProjectById(user, companyId, projectId) {
     const project = await Project.findOne({ _id: projectId, company: companyId })
       .populate("team", "name email avatar")
-      .populate("owner", "name email avatar");
+      .populate("owner", "name email avatar")
+      .populate("projectGroup", "name description");
 
     if (!project) throw new NotFoundError("Project");
 
@@ -133,14 +190,20 @@ class ProjectService {
       throw new ForbiddenError("You do not have permission to access or modify this project.");
     }
 
-    return project;
+    return this.withProgress(project, companyId);
   }
 
-  async updateProject(user, companyId, projectId, data) {
-    const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department } = data;
+  async updateProject(user, companyId, projectId, data, files) {
+    const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department, projectGroup } = data;
 
     const project = await Project.findOne({ _id: projectId, company: companyId });
     if (!project) throw new NotFoundError("Project");
+    await this.validateCompanyReferences(companyId, {
+      ...(owner !== undefined && { owner }),
+      ...(team !== undefined && { team }),
+      ...(department !== undefined && { department }),
+      ...(projectGroup ? { projectGroup } : {})
+    });
 
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
@@ -161,16 +224,35 @@ class ProjectService {
     project.title = title || project.title;
     // Allow clearing optional fields (undefined = leave untouched, null/"" = clear)
     project.description = description !== undefined ? description : project.description;
-    project.team = team || project.team;
+    project.team = team !== undefined ? team : project.team;
     project.status = status || project.status;
     project.strict = strict !== undefined ? strict : project.strict;
     project.isPublic = isPublic !== undefined ? isPublic : project.isPublic;
     project.startDate = startDate !== undefined ? startDate : project.startDate;
     project.dueDate = dueDate !== undefined ? dueDate : project.dueDate;
-    project.owner = owner || project.owner;
-    project.department = department || project.department;
+    project.owner = owner !== undefined ? owner : project.owner;
+    project.department = department !== undefined ? department : project.department;
+
+    if (projectGroup !== undefined) {
+      const oldGroupId = project.projectGroup ? project.projectGroup.toString() : null;
+      const newGroupId = projectGroup ? projectGroup.toString() : null;
+      if (oldGroupId !== newGroupId) {
+        if (oldGroupId) {
+          await ProjectGroup.findByIdAndUpdate(oldGroupId, { $pull: { projects: project._id } });
+        }
+        if (newGroupId) {
+          await ProjectGroup.findByIdAndUpdate(newGroupId, { $addToSet: { projects: project._id } });
+        }
+        project.projectGroup = newGroupId || null;
+      }
+    }
+
+    if (files?.length) {
+      project.attachments = [...(project.attachments || []), ...this.mapAttachments(files)];
+    }
 
     const updatedProject = await project.save();
+    await updatedProject.populate("projectGroup", "name description");
 
     if (team && team.length > 0) {
       const newMembers = team.filter(id => !previousTeam.includes(id.toString()));
@@ -198,7 +280,7 @@ class ProjectService {
       });
     }
 
-    return updatedProject;
+    return this.withProgress(updatedProject, companyId);
   }
 
   async deleteProject(user, companyId, projectId) {
@@ -234,39 +316,61 @@ class ProjectService {
       }).catch(err => console.error('Notification failed:', err));
     });
 
+    if (project.projectGroup) {
+      await ProjectGroup.findByIdAndUpdate(project.projectGroup, { $pull: { projects: project._id } });
+    }
+    await ProjectGroup.updateMany({ projects: project._id, company: companyId }, { $pull: { projects: project._id } });
+
     await project.deleteOne();
   }
 
   async getUserProjects(user, companyId) {
     const userId = user.id || user._id;
 
-    return Project.find({
+    const projects = await Project.find({
       company: companyId,
       $or: [{ owner: userId }, { team: userId }],
     })
       .populate("team", "name email avatar")
       .populate("owner", "name email avatar");
+    const progressMap = await this.getProjectProgressMap(projects.map(p => p._id), companyId);
+    return projects.map(p => {
+      const result = p.toObject();
+      const progress = progressMap.get(p._id.toString());
+      if (progress !== undefined) result.progress = progress;
+      return result;
+    });
   }
 
   async getProjectDashboard(user, companyId) {
     const userId = user.id || user._id;
 
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isPrivileged = isSuperAdmin || isAdmin || isManagerTech;
+
+    const projectScope = isPrivileged
+      ? { company: companyId }
+      : { company: companyId, $or: [{ owner: userId }, { team: userId }] };
+
+    const activeStatusQuery = { $in: ["Active", "Planning", "In Progress", "Open"] };
+
     const activeProjects = await Project.countDocuments({
-      company: companyId,
-      status: "Active",
-      $or: [{ owner: userId }, { team: userId }],
+      ...projectScope,
+      status: activeStatusQuery,
     });
 
     const completedProjects = await Project.countDocuments({
-      company: companyId,
+      ...projectScope,
       status: "Completed",
-      $or: [{ owner: userId }, { team: userId }],
     });
 
     const openTasks = await Task.countDocuments({
       company: companyId,
       status: { $ne: "Done" },
-      team: userId,
+      ...(isPrivileged ? {} : { team: userId }),
     });
 
     // "Project Groups" must count ProjectGroup documents (was: count of projects)
@@ -274,9 +378,8 @@ class ProjectService {
 
     // Fetch lists for dynamic dashboard mapping
     const recentProjects = await Project.find({
-      company: companyId,
-      status: { $in: ["Active", "Planning"] },
-      $or: [{ owner: userId }, { team: userId }],
+      ...projectScope,
+      status: activeStatusQuery,
     }).sort({ updatedAt: -1 }).limit(5);
 
     const recentProgress = await this.getProjectProgressMap(
@@ -293,7 +396,7 @@ class ProjectService {
     const recentTasks = await Task.find({
       company: companyId,
       status: { $ne: "Done" },
-      team: userId,
+      ...(isPrivileged ? {} : { team: userId }),
     }).sort({ dueDate: 1 }).limit(5).populate('project', 'title');
 
     // Fetch upcoming deadlines (tasks and projects)
@@ -301,7 +404,7 @@ class ProjectService {
     const upcomingTasks = await Task.find({
       company: companyId,
       status: { $ne: "Done" },
-      team: userId,
+      ...(isPrivileged ? {} : { team: userId }),
       dueDate: { $gte: new Date() }
     }).sort({ dueDate: 1 }).limit(3).populate('project', 'title');
     
@@ -317,8 +420,7 @@ class ProjectService {
 
     // Fetch team members
     const allProjects = await Project.find({
-      company: companyId,
-      $or: [{ owner: userId }, { team: userId }],
+      ...projectScope,
     }).populate('team', 'name email avatar role').populate('owner', 'name email avatar role');
     
     const teamMembersMap = new Map();

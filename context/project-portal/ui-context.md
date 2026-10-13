@@ -49,8 +49,27 @@ These map to semantic background/border classes (`success-bg`, `warning-bg`, etc
 
 ## Component Library
 
-Assemble pages purely from `frontend/src/components/projectPortal/` kit:
+Assemble pages from the shared `frontend/src/components/projectPortal/` kit plus the app-wide UI primitives:
 - `PortalHeader`, `ToolbarSearch`, `FilterChips`
 - `Pill`, `Progress`, `PanelHead`, `EmptyState`
 - `PortalTable` (with `hideBelow` logic for responsive columns)
 - Dialogs: `GlassModal`, `ModernSelect`, `ModernDatePicker`, `GlassButton`
+
+Page-specific compositions such as the ProjectDetail hero, Kanban shell, and task list are allowed when they preserve the same tokens, spacing, focus treatment, and responsive rules.
+
+## Page Composition
+
+- `ProjectDashBoard` uses a workspace hero, separate KPI cards, and a bento grid of active projects, time tracking, tasks, deadlines, and team with aligned counts.
+- `Projects` presents the projects directory with a dedicated **Group** column, a Project Group filter dropdown in the toolbar, and `NewProjectDrawer` supporting optional group portfolio selection.
+- `ProjectDetail` uses a structured project hero: title/actions, Project Group affiliation badge (`FolderIcon`), project facts, a dedicated overall-progress area, health label, and task summary counters.
+- Project detail task work is intentionally separated into a second `Task workspace` panel containing search, view tabs, and the primary `New Task` action.
+- `AddTaskForm` and `addTaskModal` in Project Detail: project field is omitted/hidden, and assignee selection is strictly constrained to project members (`owner` + `team`).
+- `ProjectGroups` features a 4-metric portfolio summary strip (Total Portfolios, Projects Covered, Active Projects, Avg Portfolio Progress), a dense table with active/total project chips and roll-up progress bars, an interactive detail modal with child project breakdown and progress bars, and full project assignment management.
+- `Progress` accepts `className` and `trackClassName` so larger summary progress bars can be composed without duplicating progress markup.
+- `GlassModal` uses an opaque `bg-surface` dialog surface, matching the time tracker modal form treatment while retaining token-based theme support.
+
+## Verified usage
+
+The active pages are assembled from the portal kit plus existing form/drawer components. `PortalTable` owns table overflow and responsive column hiding; no global table or mobile-block logic was changed during the audit. Browser-level contrast and viewport checks remain pending.
+
+The current project detail hero keeps progress visually distinct from metadata and actions. Do not place the primary progress bar inline with date, priority, or team facts.

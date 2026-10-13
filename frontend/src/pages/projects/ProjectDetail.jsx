@@ -10,15 +10,12 @@ import {
   UsersIcon,
   FlagIcon,
   ClockIcon,
+  FolderIcon,
 } from "@heroicons/react/24/outline";
-import { fetchProjectById } from "../../store/projectSlice";
+import { fetchProjectById, updateProject, deleteProject } from "../../store/projectSlice";
 import { fetchProjectTasks, createTask, updateTaskStatus, addTaskComment, fetchTaskComments } from "../../store/taskSlice";
-import projectApi from "../../api/projectApi";
 import Loader from "../../components/ui/Loader";
 import GlassModal from "../../components/ui/GlassModal";
-import GlassButton from "../../components/ui/GlassButton";
-import ModernSelect from "../../components/ui/ModernSelect";
-import ModernDatePicker from "../../components/ui/ModernDatePicker";
 import Pill, { PROJECT_STATUS_TONE, TASK_STATUS_TONE, PRIORITY_TONE } from "../../components/projectPortal/Pill";
 import Progress from "../../components/projectPortal/Progress";
 import PanelHead from "../../components/projectPortal/PanelHead";
@@ -170,7 +167,7 @@ const ProjectDetail = () => {
   const handleDeleteProject = () => {
     if (!project) return;
     if (window.confirm(`Delete "${project.title}"? This cannot be undone.`)) {
-      dispatch(projectApi.deleteProject(project._id))
+      dispatch(deleteProject(project._id))
         .unwrap()
         .then(() => {
           toast.success("Project deleted");
@@ -182,8 +179,9 @@ const ProjectDetail = () => {
 
   const handleEditProject = async (updates) => {
     try {
-      await dispatch(projectApi.updateProject(project._id, updates)).unwrap();
+      await dispatch(updateProject({ id: project._id, updates })).unwrap();
       toast.success("Project updated");
+      await dispatch(fetchProjectById(id)).unwrap();
       setShowEditProject(false);
     } catch (err) {
       toast.error(err?.message || "Failed to update project");
@@ -203,65 +201,108 @@ const ProjectDetail = () => {
 
   const pct = projectProgress(project);
   const team = project.team || [];
+  const taskCounts = {
+    total: tasks.length,
+    done: tasks.filter((task) => task.status === "Done").length,
+    active: tasks.filter((task) => ["In Progress", "In Review"].includes(task.status)).length,
+    blocked: tasks.filter((task) => task.status === "Blocked").length,
+  };
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header card */}
-      <div className="glass-card flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-3 flex-wrap mb-3">
-            <button
-              onClick={() => navigate("/project/projects")}
-              className="p-2 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors"
-              aria-label="Back to projects"
-            >
-              <ArrowLeftIcon className="w-5 h-5" />
-            </button>
-            <h1 className="text-lg sm:text-xl font-black text-heading uppercase tracking-tight truncate">{project.title}</h1>
-            <Pill tone={PROJECT_STATUS_TONE[project.status] || "neutral"}>{project.status || "Planning"}</Pill>
+      {/* Project hero */}
+      <section className="glass-card !p-0 overflow-hidden bg-surface">
+        <div className="p-5 sm:p-6 lg:p-7">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => navigate("/project/projects")}
+                  className="p-2 -ml-2 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors"
+                  aria-label="Back to projects"
+                >
+                  <ArrowLeftIcon className="w-5 h-5" />
+                </button>
+                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Project overview</span>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-black text-heading tracking-tight break-words">{project.title}</h1>
+                <Pill tone={PROJECT_STATUS_TONE[project.status] || "neutral"}>{project.status || "Planning"}</Pill>
+                {project.projectGroup && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-brand-text border border-border-accent">
+                    <FolderIcon className="w-3.5 h-3.5" />
+                    {project.projectGroup.name || (typeof project.projectGroup === "string" ? project.projectGroup : "Group")}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-main mt-3 max-w-3xl leading-relaxed">
+                {project.description || "No description provided for this project."}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+              <button
+                onClick={() => setShowEditProject(true)}
+                className="btn btn-secondary py-2.5 px-4 whitespace-nowrap"
+              >
+                <PencilIcon className="w-4 h-4 mr-2" /> Edit project
+              </button>
+              <button
+                onClick={handleDeleteProject}
+                className="btn btn-secondary py-2.5 px-4 whitespace-nowrap text-danger hover:bg-danger-bg"
+              >
+                <TrashIcon className="w-4 h-4 mr-2" /> Delete
+              </button>
+            </div>
           </div>
-          <p className="text-sm text-main mb-4 line-clamp-2">{project.description || "No description provided."}</p>
-          <div className="flex flex-wrap items-center gap-4 text-[10px] font-medium uppercase tracking-widest text-muted">
+
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-5 mt-7 pt-5 border-t border-border-subtle">
+            <div>
+              <div className="flex items-end justify-between gap-3 mb-2">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted">Overall progress</p>
+                  <p className="text-3xl font-black text-heading tabular-nums mt-1">{pct}%</p>
+                </div>
+                <p className="text-xs text-muted text-right">{taskCounts.done} of {taskCounts.total} tasks complete</p>
+              </div>
+              <Progress value={pct} trackClassName="h-3 rounded-lg" />
+              <div className="flex items-center justify-between mt-2 text-[10px] font-black uppercase tracking-widest text-muted">
+                <span>Project health</span>
+                <span className="text-brand-text">{pct >= 75 ? "On track" : pct >= 40 ? "In progress" : "Getting started"}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 lg:grid-cols-1 gap-2">
+              <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted">Active</p>
+                <p className="text-lg font-black text-heading tabular-nums mt-1">{taskCounts.active}</p>
+              </div>
+              <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted">Blocked</p>
+                <p className={`text-lg font-black tabular-nums mt-1 ${taskCounts.blocked ? "text-danger" : "text-heading"}`}>{taskCounts.blocked}</p>
+              </div>
+              <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted">Team</p>
+                <p className="text-lg font-black text-heading tabular-nums mt-1">{team.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-6 text-[10px] font-black uppercase tracking-widest text-muted">
             <span className="flex items-center gap-1.5"><CalendarDaysIcon className="w-3.5 h-3.5" /> Due {shortDate(project.dueDate)}</span>
             <span className="flex items-center gap-1.5"><FlagIcon className="w-3.5 h-3.5" /> Priority: {project.priority || "Medium"}</span>
             <span className="flex items-center gap-1.5"><UsersIcon className="w-3.5 h-3.5" /> {team.length} member{team.length !== 1 ? "s" : ""}</span>
-            <span className="flex items-center gap-1.5"><ClockIcon className="w-3.5 h-3.5" /> {pct}% complete</span>
+            <span className="flex items-center gap-1.5"><ClockIcon className="w-3.5 h-3.5" /> Started {shortDate(project.startDate)}</span>
           </div>
-          <Progress value={pct} className="mt-2 max-w-xs" />
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-          <button
-            onClick={() => setShowEditProject(true)}
-            className="btn btn-secondary py-2 px-4 whitespace-nowrap"
-          >
-            <PencilIcon className="w-4 h-4 mr-2" /> Edit
-          </button>
-          <button
-            onClick={handleDeleteProject}
-            className="btn btn-secondary py-2 px-4 whitespace-nowrap text-danger hover:bg-danger-bg"
-          >
-            <TrashIcon className="w-4 h-4 mr-2" /> Delete
-          </button>
-        </div>
-      </div>
+      </section>
 
-      {/* Tabs toolbar */}
-      <div className="glass-card">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex space-x-1 rounded-lg p-1 bg-card w-full lg:w-auto overflow-x-auto">
-            {["board", "list", "comments"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-2 rounded-md text-[10px] font-black uppercase tracking-widest whitespace-nowrap flex-shrink-0 transition-colors ${
-                  activeTab === tab
-                    ? "bg-brand text-on-brand shadow-[0_4px_15px_rgba(212,175,55,0.3)]"
-                    : "text-muted hover:text-brand-text hover:bg-card-hover"
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
+      {/* Task workspace toolbar */}
+      <div className="glass-card bg-surface">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Task workspace</p>
+            <h2 className="text-base font-black text-heading uppercase tracking-tight mt-1">
+              {taskCounts.total} task{taskCounts.total !== 1 ? "s" : ""} in this project
+            </h2>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
             <div className="relative flex-1 sm:w-64">
@@ -284,6 +325,21 @@ const ProjectDetail = () => {
               New Task
             </button>
           </div>
+        </div>
+        <div className="flex space-x-1 rounded-lg p-1 bg-card w-full lg:w-fit overflow-x-auto mt-4">
+          {["board", "list", "comments"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 rounded-md text-[10px] font-black uppercase tracking-widest whitespace-nowrap flex-shrink-0 transition-colors ${
+                activeTab === tab
+                  ? "bg-brand text-on-brand shadow-[0_4px_15px_rgba(212,175,55,0.3)]"
+                  : "text-muted hover:text-brand-text hover:bg-card-hover"
+              }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -430,7 +486,7 @@ const ProjectDetail = () => {
           </div>
         )}
 
-        {activeTab === "comments" && filteredTasks.length > 0 && (
+        {showComments && (
           <TaskCommentsDrawer
             task={showComments}
             comments={taskComments[showComments?._id] || []}
@@ -460,7 +516,7 @@ const ProjectDetail = () => {
         description="Create a task in this project"
         maxWidth="max-w-2xl"
       >
-        <AddTaskForm projectId={id} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} />
+        <AddTaskForm projectId={id} project={project} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} />
       </GlassModal>
 
       <GlassModal
@@ -469,12 +525,6 @@ const ProjectDetail = () => {
         title="Edit Project"
         description="Update project details"
         maxWidth="max-w-2xl"
-        footer={
-          <div className="flex justify-end gap-2 w-full">
-            <GlassButton variant="secondary" onClick={() => setShowEditProject(false)}>Cancel</GlassButton>
-            <GlassButton variant="primary" onClick={() => {}}>Save Changes</GlassButton>
-          </div>
-        }
       >
         <EditProjectForm project={project} onSubmit={handleEditProject} onClose={() => setShowEditProject(false)} />
       </GlassModal>

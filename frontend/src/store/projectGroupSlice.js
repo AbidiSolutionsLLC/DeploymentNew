@@ -25,6 +25,18 @@ export const createProjectGroup = createAsyncThunk(
   }
 );
 
+export const updateProjectGroup = createAsyncThunk(
+  'projectGroups/updateProjectGroup',
+  async ({ id, groupData }, { rejectWithValue }) => {
+    try {
+      const response = await api.put(`/project-groups/${id}`, groupData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update project group');
+    }
+  }
+);
+
 export const deleteProjectGroup = createAsyncThunk(
   'projectGroups/deleteProjectGroup',
   async (id, { rejectWithValue }) => {
@@ -61,6 +73,12 @@ const projectGroupSlice = createSlice({
       })
       .addCase(createProjectGroup.fulfilled, (state, action) => {
         state.groups.unshift(action.payload);
+      })
+      .addCase(updateProjectGroup.fulfilled, (state, action) => {
+        const index = state.groups.findIndex(g => g._id === action.payload._id);
+        if (index !== -1) {
+          state.groups[index] = { ...state.groups[index], ...action.payload };
+        }
       })
       .addCase(deleteProjectGroup.fulfilled, (state, action) => {
         state.groups = state.groups.filter(g => g._id !== action.payload);

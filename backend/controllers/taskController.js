@@ -3,7 +3,7 @@ const ApiResponse = require("../utils/ApiResponse");
 const catchAsync = require("../utils/catchAsync");
 
 exports.createTask = catchAsync(async (req, res) => {
-  const task = await taskService.createTask(req.companyId, req.body);
+  const task = await taskService.createTask(req.companyId, req.body, req.files);
   res.status(201).json(ApiResponse.success(task, 'Task created successfully'));
 });
 
@@ -18,7 +18,7 @@ exports.getTaskById = catchAsync(async (req, res) => {
 });
 
 exports.updateTask = catchAsync(async (req, res) => {
-  const updatedTask = await taskService.updateTask(req.user, req.companyId, req.params.id, req.body);
+  const updatedTask = await taskService.updateTask(req.user, req.companyId, req.params.id, req.body, req.files);
   res.status(200).json(ApiResponse.success(updatedTask, 'Task updated successfully'));
 });
 
