@@ -33,7 +33,7 @@ export const injectStore = (_store) => {
 };
 
 const api = axios.create({
-  baseURL: "http://localhost:4000/api/v1",
+  baseURL: "/api/v1",
   timeout: 15000,
   withCredentials: true
 });
@@ -117,7 +117,7 @@ api.interceptors.response.use(
             }
           }
           keysToRemove.forEach((k) => localStorage.removeItem(k));
-        } catch (_) {}
+        } catch (_) { }
 
         sessionStorage.clear();
         clearAllCookies();
