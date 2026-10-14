@@ -126,7 +126,7 @@ api.interceptors.response.use(
             }
           }
           keysToRemove.forEach((k) => localStorage.removeItem(k));
-        } catch (_) {}
+        } catch (_) { }
 
         sessionStorage.clear();
         clearAllCookies();
