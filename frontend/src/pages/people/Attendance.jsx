@@ -29,9 +29,10 @@ const STATUS_ACCENT = {
   Leave: { color: "#8B5CF6" },
   Upcoming: { color: "#0EA5E9" },
   Holiday: { color: "#06B6D4" },
+  Weekend: { color: "#64748B" },
 };
 
-const LEGEND = ["Present", "Half Day", "Absent", "Leave", "Upcoming", "Holiday"];
+const LEGEND = ["Present", "Half Day", "Absent", "Leave", "Upcoming", "Holiday", "Weekend"];
 
 const formatTime = (dateString) => {
   if (!dateString) return null;
@@ -154,19 +155,36 @@ const Attendance = () => {
         );
       });
 
-      if (dayData) {
+      const isWeekendDay = day.getDay() === 0 || day.getDay() === 6;
+
+      if (dayData && (!isWeekendDay || (dayData.status && dayData.status !== "Absent"))) {
         days.push({
           date: day.getDate(),
           dayName: day.toLocaleDateString("en-US", { weekday: "short" }),
           fullDate: day.toDateString(),
           isoDate: day.toISOString().split("T")[0],
-          status: dayData.status,
+          status: isWeekendDay && dayData.status === "Absent" ? "Weekend" : dayData.status,
           checkIn: formatTime(dayData.checkInTime),
           checkOut: formatTime(dayData.checkOutTime),
           checkInRaw: dayData.checkInTime,
           checkOutRaw: dayData.checkOutTime,
           totalHours: dayData.totalHours || 0,
           notes: dayData.notes,
+          isToday: day.toDateString() === today.toDateString(),
+        });
+      } else if (isWeekendDay) {
+        days.push({
+          date: day.getDate(),
+          dayName: day.toLocaleDateString("en-US", { weekday: "short" }),
+          fullDate: day.toDateString(),
+          isoDate: day.toISOString().split("T")[0],
+          status: "Weekend",
+          checkIn: null,
+          checkOut: null,
+          checkInRaw: null,
+          checkOutRaw: null,
+          totalHours: 0,
+          notes: "Weekend",
           isToday: day.toDateString() === today.toDateString(),
         });
       } else if (day > now) {
@@ -383,7 +401,7 @@ const Attendance = () => {
                   style={kpiTileStyle(cell.color)}
                 >
                   <div className="att-cell__row">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="att-cell__label">{cell.label}</p>
                       <p className="att-cell__value">{cell.value}</p>
                     </div>
@@ -396,7 +414,7 @@ const Attendance = () => {
               ))}
               <div className="att-cell att-cell--pct" style={kpiTileStyle("#14B8A6")}>
                 <div className="att-cell__row">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="att-cell__label">Attendance</p>
                     <p className="att-cell__value">{attendancePct}%</p>
                   </div>
@@ -497,6 +515,8 @@ const Attendance = () => {
                               <span className="att-row__flag">
                                 {day.status === "Upcoming"
                                   ? "Scheduled"
+                                  : day.status === "Weekend"
+                                  ? "Weekend"
                                   : "No check-in"}
                               </span>
                             )}
@@ -509,6 +529,9 @@ const Attendance = () => {
                           )}
                           {expandedView && day.status === "Upcoming" && (
                             <span className="att-row__note">Day not yet reached</span>
+                          )}
+                          {expandedView && day.status === "Weekend" && (
+                            <span className="att-row__note">Non-working weekend</span>
                           )}
                         </span>
 
@@ -557,6 +580,8 @@ const Attendance = () => {
                       <p className="att-console__sub">
                         {activeDay.status === "Upcoming"
                           ? "This day is in the future"
+                          : activeDay.status === "Weekend"
+                          ? "Weekend — non-working day"
                           : activeDay.checkIn
                           ? "Attendance recorded"
                           : "No attendance record for this day"}
@@ -642,8 +667,41 @@ const Attendance = () => {
                     </div>
                   )}
 
+                  {activeDay.status === "Weekend" && (
+                    <div className="att-state">
+                      <div className="att-state__hero">
+                        <span className="att-state__icon">
+                          <FaCalendarDay size={26} />
+                        </span>
+                        <div className="att-state__text">
+                          <h4 className="att-state__title">Weekend</h4>
+                          <p className="att-state__sub">
+                            This is a scheduled weekend day. No work or check-in
+                            is required.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="att-state__stats">
+                        <span className="att-state__stat">
+                          <em>Status</em>
+                          <b>Weekend</b>
+                        </span>
+                        <span className="att-state__stat">
+                          <em>Check in</em>
+                          <b>Non-working day</b>
+                        </span>
+                        <span className="att-state__stat">
+                          <em>Hours logged</em>
+                          <b>0h 0m</b>
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {activeDay.status !== "Absent" &&
-                    activeDay.status !== "Upcoming" && (
+                    activeDay.status !== "Upcoming" &&
+                    activeDay.status !== "Weekend" && (
                       <>
                         <div className="att-console__grid">
                           <div className="att-readout-box">

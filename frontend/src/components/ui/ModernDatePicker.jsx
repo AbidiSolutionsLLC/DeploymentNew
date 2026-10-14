@@ -17,8 +17,10 @@ const ModernDatePicker = ({
   className = "",
   error = null,
   maxDate = null,
+  disabled = false,
 }) => {
   const handleDateChange = (date) => {
+    if (disabled) return;
     const formattedDate = date ? date.toLocaleDateString("en-CA") : "";
 
     onChange({
@@ -46,6 +48,7 @@ const ModernDatePicker = ({
           dateFormat="yyyy-MM-dd"
           placeholderText={placeholder}
           required={required}
+          disabled={disabled}
           className={`w-full
             bg-surface
             border ${error ? "border-red-400 dark:border-red-500" : "border-border-subtle hover:border-border-accent"}
@@ -53,6 +56,7 @@ const ModernDatePicker = ({
             text-sm text-main font-medium
             outline-none focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-500/20 focus:border-amber-400
             placeholder:text-slate-300 dark:placeholder:text-muted
+            disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-muted/10
             transition-all shadow-sm`}
           popperClassName="z-[99999]"
           showMonthDropdown

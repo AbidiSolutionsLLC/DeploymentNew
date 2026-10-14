@@ -121,8 +121,10 @@ const AppLayout = () => {
 
   {/* --- MAIN CONTENT AREA --- */}
   <main className="flex-1 m-1.5 md:m-3 lg:m-4 rounded-[1.25rem] lg:rounded-[1.5rem] xl:rounded-[2rem] bg-surface dark:bg-app shadow-[0_8px_32px_rgba(0,0,0,0.05)] border border-white/60 dark:border-white/10 text-main relative transition-all duration-500 ease-in-out overflow-hidden flex flex-col min-w-0">
-  <div ref={scrollAreaRef} className="flex-1 p-2.5 md:p-3 lg:p-4 xl:p-5 overflow-y-auto overflow-x-hidden scrollbar-on-hover min-w-0">
-  <Outlet />
+  <div ref={scrollAreaRef} className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-on-hover min-w-0">
+    <div className="p-2.5 md:p-3 lg:p-4 xl:p-5 pb-6 md:pb-8 lg:pb-6 xl:pb-8 min-h-full flex flex-col min-w-0">
+      <Outlet />
+    </div>
   </div>
   </main>
 

@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FaPlus, FaTicketAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaEye, FaFileCsv, FaExclamationTriangle, FaSpinner } from "react-icons/fa";
+import { FaPlus, FaTicketAlt, FaHourglassHalf, FaCheckCircle, FaTrash, FaEye, FaFileCsv, FaExclamationTriangle, FaSpinner } from "react-icons/fa";
 import { TicketIcon } from "@heroicons/react/20/solid";
 import { useSelector } from "react-redux";
 import api from "../../axios";
+import { useConfirm } from "../../context/ConfirmContext";
 import RaiseTicketModal from "../../pages/tickets/RaiseTicketModal";
 import ViewTicketDetailsModal from "../../pages/tickets/ViewTicketDetailsModal";
 import PageContainer from "../../components/ui/PageContainer";
@@ -44,6 +45,7 @@ const Ticket = () => {
   const [toast, setToast] = useState(null);
 
   const user = useSelector((state) => state.auth.user);
+  const confirm = useConfirm();
 
   const showToast = useCallback((message, type = "success") => {
     setToast({ message, type });
@@ -79,16 +81,24 @@ const Ticket = () => {
     fetchTickets();
   }, [fetchTickets]);
 
-  const handleDelete = async (id) => {
-    try {
-      await api.delete(`/tickets/${id}`);
-      setTickets((prev) => prev.filter((ticket) => ticket._id !== id));
-      showToast("Ticket deleted successfully");
-    } catch (err) {
-      console.error("Failed to delete ticket:", err);
-      showToast(getApiError(err, "Failed to delete ticket"), "error");
-    }
-  };
+  const handleDelete = useCallback((id, ticketID) => {
+    confirm({
+      title: "Delete Ticket?",
+      message: `Are you sure you want to delete ticket #${ticketID || id?.slice(0, 8)}? This action cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      onConfirmAction: async () => {
+        try {
+          await api.delete(`/tickets/${id}`);
+          setTickets((prev) => prev.filter((ticket) => ticket._id !== id));
+          showToast("Ticket deleted successfully");
+        } catch (err) {
+          console.error("Failed to delete ticket:", err);
+          showToast(getApiError(err, "Failed to delete ticket"), "error");
+        }
+      },
+    });
+  }, [confirm, showToast]);
 
   const filteredTickets = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -225,13 +235,14 @@ const Ticket = () => {
         onClick: (row) => setSelectedTicket(row),
       },
       {
-        icon: <FaTimesCircle size={12} />,
+        icon: <FaTrash size={12} />,
         title: "Delete ticket",
-        onClick: (row) => handleDelete(row._id),
+        onClick: (row) => handleDelete(row._id, row.ticketID),
+        className:
+          "text-muted bg-surface border border-border-subtle hover:text-danger hover:border-danger hover:shadow-sm",
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [handleDelete]
   );
 
   const heroChips = [

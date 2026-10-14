@@ -11,20 +11,22 @@ const ModernSelect = ({
   name,
   value,
   onChange,
-  options,
+  options = [],
   placeholder = "Select Option",
   required = false,
   className = "",
   error = null,
+  disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
   const dropdownRef = useRef(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
-  const selectedOption = options.find((opt) => opt.value === value);
+  const selectedOption = (options || []).find((opt) => opt.value === value);
 
   const updatePosition = useCallback(() => {
+    if (disabled) return;
     if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
@@ -46,10 +48,10 @@ const ModernSelect = ({
         });
       }
     }
-  }, [isOpen]);
+  }, [isOpen, disabled]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || disabled) return;
     updatePosition();
     window.addEventListener("scroll", updatePosition, true);
     window.addEventListener("resize", updatePosition);
@@ -57,10 +59,11 @@ const ModernSelect = ({
       window.removeEventListener("scroll", updatePosition, true);
       window.removeEventListener("resize", updatePosition);
     };
-  }, [isOpen, updatePosition]);
+  }, [isOpen, disabled, updatePosition]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (disabled) return;
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
           setIsOpen(false);
@@ -69,9 +72,10 @@ const ModernSelect = ({
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [disabled]);
 
   const handleSelect = (optionValue) => {
+    if (disabled) return;
     onChange({
       target: {
         name,
@@ -82,7 +86,7 @@ const ModernSelect = ({
   };
 
   const renderDropdown = () => {
-    if (!isOpen) return null;
+    if (!isOpen || disabled) return null;
 
     return (
       <div
@@ -144,23 +148,28 @@ const ModernSelect = ({
         <div className="relative">
           <button
             type="button"
-            onClick={() => setIsOpen(!isOpen)}
+            disabled={disabled}
+            onClick={() => !disabled && setIsOpen(!isOpen)}
             className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium outline-none flex justify-between items-center transition-all shadow-sm text-left
               bg-surface
-              ${isOpen
-                ? "border-amber-400 ring-2 ring-amber-100 dark:ring-amber-500/20"
+              ${disabled
+                ? "border-border-subtle opacity-60 cursor-not-allowed bg-muted/10 text-muted"
+                : isOpen
+                ? "border-amber-400 ring-2 ring-amber-100 dark:ring-amber-500/20 text-heading cursor-pointer"
                 : error
-                ? "border-red-400 dark:border-red-500"
-                : "border-border-subtle hover:border-border-accent"
+                ? "border-red-400 dark:border-red-500 text-heading cursor-pointer"
+                : "border-border-subtle hover:border-border-accent text-heading cursor-pointer"
               }
               border
-              ${!selectedOption ? "text-muted" : "text-heading"}
+              ${!selectedOption && !disabled ? "text-muted" : ""}
             `}
           >
             <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
             <FiChevronDown
               className={`w-4 h-4 transition-transform duration-200 flex-shrink-0 ml-2
-                ${isOpen
+                ${disabled
+                  ? "text-muted/50"
+                  : isOpen
                   ? "rotate-180 text-amber-500"
                   : "text-muted"
                 }`}

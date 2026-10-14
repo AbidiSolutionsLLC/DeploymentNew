@@ -293,6 +293,9 @@ class UserService {
     let allowedFields = [];
 
     if (permission === "SELF_EDIT") {
+        if (updates.empType && user && updates.empType !== user.empType) {
+            throw new ForbiddenError("You cannot update your own employment type.");
+        }
         const sensitiveFields = [
             "role", "salary", "hourlyWage", "department", "reportsTo", 
             "designation", "email", "empID", "empStatus", 
@@ -560,6 +563,12 @@ class UserService {
   }
 
   async updateMyProfile(userId, updates) {
+    if (updates.empType) {
+      const existingUser = await User.findById(userId).select('empType');
+      if (existingUser && updates.empType !== existingUser.empType) {
+        throw new ForbiddenError("You cannot update your own employment type.");
+      }
+    }
     const restrictedFields = [
       "role", "salary", "hourlyWage", "department", "reportsTo", 
       "designation", "email", "empID", "empStatus", 

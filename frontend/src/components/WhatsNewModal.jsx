@@ -124,7 +124,6 @@ export default function WhatsNewModal() {
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">Themes & Responsiveness</h3>
             <ul className="list-disc pl-5 space-y-2">
               <li>Better dark, light and system theme switching that follows your device setting</li>
-              <li>Improved mobile responsiveness — menus and sidebars work better on smaller screens</li>
             </ul>
           </section>
         </div>
