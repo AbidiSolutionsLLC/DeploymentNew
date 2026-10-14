@@ -55,11 +55,11 @@ export default function GlassModal({
 
       {/* Modal Card */}
       <div
-        className={`relative z-[10000] w-full ${maxWidth} bg-surface border border-border-subtle rounded-xl shadow-2xl flex flex-col max-h-[90vh] mx-2 sm:mx-4 overflow-hidden animate-slideInUp`}
+        className={`relative z-[10000] w-full ${maxWidth} bg-white dark:bg-[#1e293b] border border-border-subtle dark:border-slate-700 rounded-xl shadow-2xl flex flex-col max-h-[90vh] mx-2 sm:mx-4 overflow-hidden animate-slideInUp`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex flex-col space-y-1.5 px-6 pt-6 pb-4 border-b border-slate-100 flex-shrink-0">
+        <div className="flex flex-col space-y-1.5 px-6 pt-6 pb-4 border-b border-border-subtle dark:border-slate-800 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div>
               {typeof title === "string" ? (
@@ -92,7 +92,7 @@ export default function GlassModal({
 
         {/* Footer (Optional) */}
         {footer && (
-          <div className="flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 px-4 py-3 border-t border-slate-100 bg-slate-50 dark:bg-slate-800/50/50">
+          <div className="flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 px-4 py-3 border-t border-border-subtle dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
             {footer}
           </div>
         )}
