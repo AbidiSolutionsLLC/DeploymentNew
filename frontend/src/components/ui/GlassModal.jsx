@@ -55,11 +55,11 @@ export default function GlassModal({
 
       {/* Modal Card */}
       <div
-        className={`relative z-[10000] w-full ${maxWidth} bg-white dark:bg-[#1e293b] border border-border-subtle dark:border-slate-700 rounded-xl shadow-2xl flex flex-col max-h-[90vh] mx-2 sm:mx-4 overflow-hidden animate-slideInUp`}
+        className={`relative z-[10000] w-full ${maxWidth} bg-surface border border-border-subtle rounded-xl shadow-2xl flex flex-col max-h-[90vh] mx-2 sm:mx-4 overflow-hidden animate-slideInUp`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex flex-col space-y-1.5 px-6 pt-6 pb-4 border-b border-border-subtle dark:border-slate-800 flex-shrink-0">
+        <div className="flex flex-col space-y-1.5 px-6 pt-6 pb-4 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div>
               {typeof title === "string" ? (

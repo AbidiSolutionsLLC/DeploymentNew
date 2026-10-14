@@ -159,15 +159,13 @@
 }
 
 .att-cell {
-  /* Each card is its own query container so the internal tile/value/label
-     can shrink when the card itself gets narrow (see @container below). */
-  container-type: inline-size;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  padding: 0.95rem 1rem 1rem;
   padding: 0.95rem 1rem 1rem;
   min-width: 0;
   background: var(--color-bg-secondary);
@@ -182,6 +180,19 @@
     transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
     border-color 0.3s ease,
     box-shadow 0.3s ease;
+}
+
+/* On 6-column wide screens, give compact card padding so nothing gets squeezed */
+@media (min-width: 1240px) {
+  .att-cell {
+    padding: 0.85rem 0.85rem 0.95rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .att-cell {
+    padding: 1rem 1.1rem 1.1rem;
+  }
 }
 
 /* Gold hairline along the top edge (mirrors .lm-card::before) */
@@ -212,13 +223,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 1rem;
   min-width: 0;
 }
 
 .att-cell__label {
   font-size: 0.625rem;
   font-weight: 900;
+  letter-spacing: 0.12em;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -227,11 +239,18 @@
 
 .att-cell__value {
   font-size: 1.85rem;
+  font-size: 1.85rem;
   line-height: 1;
   font-weight: var(--font-black);
   font-variant-numeric: tabular-nums;
   letter-spacing: var(--tracking-tight);
   color: var(--color-text-heading);
+}
+
+@media (min-width: 1240px) and (max-width: 1440px) {
+  .att-cell__value {
+    font-size: 1.6rem;
+  }
 }
 
 .att-cell--pct .att-cell__value {
@@ -252,7 +271,7 @@
 }
 
 .att-cell .lm-kpi-icon .lm-glow {
-  inset: -8px;
+  inset: -6px;
 }
 
 /* Narrow cards (small phones, or any width where auto-fit squeezes a cell
@@ -295,11 +314,14 @@
   display: flex;
   gap: 3px;
   height: 6px;
+  gap: 3px;
+  height: 6px;
   margin-top: 0.45rem;
 }
 
 .att-seg {
   flex: 1;
+  min-width: 4px;
   min-width: 4px;
   border-radius: var(--radius-full);
   background: var(--color-border-primary);

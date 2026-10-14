@@ -92,8 +92,8 @@ const ModernSelect = ({
       <div
         ref={dropdownRef}
         data-modern-select-dropdown="true"
-        className="fixed z-[99999] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar animate-fadeIn text-left
-          bg-white dark:bg-slate-900 border border-border-subtle dark:border-slate-700"
+        className="fixed z-[99999] rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar animate-fadeIn text-left
+          bg-card border border-border-subtle"
         style={{
           ...(dropdownPosition.top !== undefined ? { top: `${dropdownPosition.top}px` } : {}),
           ...(dropdownPosition.bottom !== undefined ? { bottom: `${dropdownPosition.bottom}px` } : {}),
@@ -114,8 +114,8 @@ const ModernSelect = ({
               className={`px-4 py-2.5 text-sm cursor-pointer transition-colors text-left
                 ${
                   opt.value === value
-                    ? "bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 font-semibold"
-                    : "text-main hover:bg-amber-50/70 dark:hover:bg-slate-800"
+                    ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-semibold"
+                    : "text-main hover:bg-amber-50 dark:hover:bg-amber-900/20"
                 }
               `}
             >
@@ -151,7 +151,7 @@ const ModernSelect = ({
             disabled={disabled}
             onClick={() => !disabled && setIsOpen(!isOpen)}
             className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium outline-none flex justify-between items-center transition-all shadow-sm text-left
-              bg-white dark:bg-slate-800
+              bg-surface
               ${disabled
                 ? "border-border-subtle opacity-60 cursor-not-allowed bg-muted/10 text-muted"
                 : isOpen
