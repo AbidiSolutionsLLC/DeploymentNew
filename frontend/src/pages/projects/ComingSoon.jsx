@@ -5,34 +5,9 @@ import PageContainer from "../../components/ui/PageContainer";
 import GlassButton from "../../components/ui/GlassButton";
 import {
   SquaresPlusIcon,
-  ClipboardDocumentListIcon,
-  PresentationChartLineIcon,
-  UserGroupIcon,
   ArrowLeftIcon,
   HomeIcon,
-  SparklesIcon,
 } from "@heroicons/react/24/outline";
-
-const upcomingFeatures = [
-  {
-    icon: ClipboardDocumentListIcon,
-    title: "Tasks & Sprint Boards",
-    description: "Interactive Kanban views, sprint planning, task assignments, and custom workflow tracking.",
-    status: "In Progress",
-  },
-  {
-    icon: PresentationChartLineIcon,
-    title: "Milestones & Roadmaps",
-    description: "Visual project timelines, delivery deadlines, and milestone dependencies in real time.",
-    status: "Designing",
-  },
-  {
-    icon: UserGroupIcon,
-    title: "Team Collaboration",
-    description: "Workload balancing, instant activity logs, task discussions, and project progress metrics.",
-    status: "Planned",
-  },
-];
 
 const ComingSoon = () => {
   const navigate = useNavigate();
@@ -95,57 +70,6 @@ const ComingSoon = () => {
           <p className="text-sm sm:text-base text-muted max-w-2xl mx-auto leading-relaxed mb-8">
             We are crafting a comprehensive workspace for tracking projects, milestones, sprints, and team deliverables. This module will bring unified project planning and real-time execution directly to your Karbexa workspace.
           </p>
-
-          {/* Preview Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-8 text-left">
-            {upcomingFeatures.map((feature, idx) => {
-              const Icon = feature.icon;
-              return (
-                <Motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.08 + idx * 0.08 }}
-                  className="p-5 rounded-2xl bg-surface/80 dark:bg-slate-800/40 border border-border-subtle dark:border-white/10 hover:border-amber-400/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-3.5">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <h3 className="text-sm font-bold text-heading mb-1.5">
-                      {feature.title}
-                    </h3>
-                    <p className="text-xs text-muted leading-relaxed mb-4">
-                      {feature.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between pt-2.5 border-t border-border-subtle/50 text-[11px]">
-                    <span className="font-semibold text-muted">Status</span>
-                    <span className="px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
-                      {feature.status}
-                    </span>
-                  </div>
-                </Motion.div>
-              );
-            })}
-          </div>
-
-          {/* Progress / Status Bar */}
-          <div className="w-full max-w-md mx-auto mb-8 p-4 rounded-2xl bg-surface/60 dark:bg-slate-800/30 border border-border-subtle dark:border-white/10">
-            <div className="flex justify-between items-center text-xs font-semibold mb-2">
-              <span className="text-heading flex items-center gap-1.5">
-                <SparklesIcon className="w-4 h-4 text-amber-500" />
-                Feature Rollout
-              </span>
-              <span className="text-amber-600 dark:text-amber-400 font-bold">Phase 1 in progress</span>
-            </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-700/60 h-2 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 shadow-[0_0_12px_rgba(217,162,31,0.5)]"
-                style={{ width: "68%" }}
-              />
-            </div>
-          </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-3">
