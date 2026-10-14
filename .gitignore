@@ -1,0 +1,4 @@
+.agents/skills/
+.env.test
+context/
+scripts/

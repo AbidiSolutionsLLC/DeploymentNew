@@ -3,7 +3,7 @@ const ApiResponse = require("../utils/ApiResponse");
 const catchAsync = require("../utils/catchAsync");
 
 exports.createProject = catchAsync(async (req, res) => {
-  const project = await projectService.createProject(req.user, req.companyId, req.body);
+  const project = await projectService.createProject(req.user, req.companyId, req.body, req.files);
   res.status(201).json(ApiResponse.success(project, 'Project created successfully'));
 });
 
@@ -18,7 +18,7 @@ exports.getProjectById = catchAsync(async (req, res) => {
 });
 
 exports.updateProject = catchAsync(async (req, res) => {
-  const updatedProject = await projectService.updateProject(req.user, req.companyId, req.params.id, req.body);
+  const updatedProject = await projectService.updateProject(req.user, req.companyId, req.params.id, req.body, req.files);
   res.status(200).json(ApiResponse.success(updatedProject, 'Project updated successfully'));
 });
 

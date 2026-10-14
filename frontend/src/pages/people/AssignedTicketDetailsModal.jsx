@@ -217,14 +217,24 @@ export default function AssignedTicketDetailsModal({
               <img
                 src={
                   ticket.user?.avatar ||
-                  `https://ui-avatars.com/api/?name=${ticket.emailAddress}`
+                  ticket.closedBy?.avatar ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    ticket.user?.name || ticket.closedBy?.name || ticket.emailAddress || "User"
+                  )}`
                 }
                 alt=""
                 className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
               />
               <div className="min-w-0">
                 <p className="text-sm font-bold text-main truncate">
-                  {ticket.user?.name || "Unknown"}
+                  {(() => {
+                    const rawName = ticket.user?.name || ticket.closedBy?.name;
+                    return (rawName && !/unknown/i.test(rawName))
+                      ? rawName
+                      : ticket.emailAddress
+                      ? ticket.emailAddress.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+                      : "—";
+                  })()}
                 </p>
                 <p className="text-xs text-muted font-medium truncate">{ticket.emailAddress}</p>
               </div>

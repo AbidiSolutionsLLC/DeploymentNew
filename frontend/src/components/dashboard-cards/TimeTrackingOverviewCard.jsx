@@ -4,19 +4,7 @@ import { FiMoreVertical, FiClock } from "react-icons/fi";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 
-const timeData = {
- totalHours: 32,
- targetHours: 40,
- dailyBreakdown: [
- { day: "Mon", hours: 8 },
- { day: "Tue", hours: 6 },
- { day: "Wed", hours: 7 },
- { day: "Thu", hours: 5 },
- { day: "Fri", hours: 6 },
- ],
-};
-
-export default function TimeTrackingOverviewCard() {
+export default function TimeTrackingOverviewCard({ timeTracking }) {
  const [menuOpen, setMenuOpen] = useState(false);
  const menuRef = useRef();
 
@@ -30,7 +18,19 @@ export default function TimeTrackingOverviewCard() {
  return () => document.removeEventListener("mousedown", handleClickOutside);
  }, []);
 
- const percentage = Math.round((timeData.totalHours / timeData.targetHours) * 100);
+ const timeData = timeTracking || {
+ totalHours: 0,
+ targetHours: 40,
+ dailyBreakdown: [
+ { day: "Mon", hours: 0 },
+ { day: "Tue", hours: 0 },
+ { day: "Wed", hours: 0 },
+ { day: "Thu", hours: 0 },
+ { day: "Fri", hours: 0 },
+ ],
+ };
+
+ const percentage = Math.round((timeData.totalHours / timeData.targetHours) * 100) || 0;
 
  return (
  <div className="bg-surface border border-border-subtle rounded-xl shadow-sm p-5 flex flex-col h-full w-full">

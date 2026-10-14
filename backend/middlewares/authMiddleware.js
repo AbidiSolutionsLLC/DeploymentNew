@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const jwksClient = require('jwks-rsa');
 const User = require('../models/userSchema');
 const { UnauthorizedError, ForbiddenError } = require('../utils/ExpressError');
@@ -6,6 +7,21 @@ const { UnauthorizedError, ForbiddenError } = require('../utils/ExpressError');
 const Company = require('../models/companySchema');
 
 const clients = {};
+
+function attachUserToRequest(req, user) {
+  req.user = {
+    id: user.id, _id: user._id, azureId: user.azureId, name: user.name,
+    email: user.email, role: user.role, company: user.company,
+    department: user.department, isTechnician: user.isTechnician, avatar: user.avatar
+  };
+}
+
+function matchesTestSecret(providedSecret, expectedSecret) {
+  if (!providedSecret || !expectedSecret) return false;
+  const provided = Buffer.from(providedSecret);
+  const expected = Buffer.from(expectedSecret);
+  return provided.length === expected.length && crypto.timingSafeEqual(provided, expected);
+}
 
 function getJwksClient(tenantId) {
   if (!clients[tenantId]) {
@@ -51,6 +67,32 @@ function getKey(tenantId) {
 }
 
 const isLoggedIn = async (req, res, next) => {
+  if (process.env.NODE_ENV === 'test' && req.headers['x-test-auth-secret']) {
+    if (!matchesTestSecret(req.headers['x-test-auth-secret'], process.env.TEST_AUTH_SECRET)) {
+      return next(new UnauthorizedError("Invalid test authentication secret"));
+    }
+
+    const testUserId = req.headers['x-test-user-id'];
+    const testUserEmail = req.headers['x-test-user-email'];
+    if (!testUserId && !testUserEmail) {
+      return next(new UnauthorizedError("Test user ID or email is required"));
+    }
+
+    try {
+      const user = testUserId
+        ? await User.findById(testUserId)
+        : await User.findOne({ email: testUserEmail });
+      if (!user || !user.email.startsWith('portal-test-')) {
+        return next(new UnauthorizedError("Unknown test user"));
+      }
+      attachUserToRequest(req, user);
+      req.token = 'test-auth';
+      return next();
+    } catch (error) {
+      return next(new UnauthorizedError("Test authentication failed"));
+    }
+  }
+
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(" ")[1] || req.query.token;
 
@@ -75,11 +117,7 @@ const isLoggedIn = async (req, res, next) => {
          const user = await User.findById(decoded.id || decoded._id);
          if (!user) return next(new UnauthorizedError("User not found"));
          
-         req.user = {
-            id: user.id, _id: user._id, azureId: user.azureId, name: user.name,
-            email: user.email, role: user.role, company: user.company,
-            department: user.department, isTechnician: user.isTechnician, avatar: user.avatar
-         };
+         attachUserToRequest(req, user);
          if (req.user.role === 'Global Reader' && req.method !== 'GET') {
             return next(new ForbiddenError("Global Readers have read-only access."));
          }
@@ -170,7 +208,7 @@ const isLoggedIn = async (req, res, next) => {
         } else {
           // --- SECURITY: REJECT UNINVITED USERS ---
           console.warn(`Blocked login attempt from uninvited email: ${email}`);
-          return next(new UnauthorizedError("Access Denied: You must be invited to the portal by an Admin."));
+          return next(new UnauthorizedError(`Access Denied: You must be invited to the portal by an Admin. (Attempted email: ${email})`));
         }
       }
 
@@ -188,18 +226,7 @@ const isLoggedIn = async (req, res, next) => {
       // --------------------------------
 
       // 3. Attach user to request
-      req.user = {
-        id: user.id,
-        _id: user._id,
-        azureId: user.azureId,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        company: user.company,
-        department: user.department,
-        isTechnician: user.isTechnician,
-        avatar: user.avatar
-      };
+      attachUserToRequest(req, user);
 
       // --- GLOBAL READER WRITE PROTECTION ---
       if (req.user.role === 'Global Reader' && req.method !== 'GET') {

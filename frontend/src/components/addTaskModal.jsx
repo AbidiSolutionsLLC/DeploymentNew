@@ -1,196 +1,385 @@
-import React, { useState } from "react";
-import ModernSelect from "./ui/ModernSelect"; 
-import ModernDatePicker from "./ui/ModernDatePicker";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useSelector } from "react-redux";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
+import ModernSelect from "./ui/ModernSelect";
+import ModernDatePicker from "./ui/ModernDatePicker";
+import api from "../axios";
+import projectApi from "../api/projectApi";
 
-const users = [
- "Ahsan Khan", "Murtaza Mehmood", "Hammad Shaikh", "Adil Abbas Khuhro", "Syed Munawar Ali Tirmizi",
-];
+/**
+ * New Task dialog — real submit (PROJECT_PORTAL_DESIGN.md §7).
+ * - Payload matches TaskJoiSchema exactly: title, project (required), team,
+ *   priority (Low/Medium/High), status (Todo/…/Blocked), dueDate, description.
+ * - When in project context (projectId provided):
+ *   * Project is auto-selected, no dropdown shown
+ *   * Assignees filtered to ONLY people included in that project
+ *   * Assignee automatically pre-selected
+ * - Validation always visible; state resets on open.
+ */
+const PRIORITIES = ["Low", "Medium", "High"];
+const STATUSES = ["Todo", "In Progress", "In Review", "Done", "Blocked"];
 
-const AddTaskModal = ({ isOpen, onClose }) => {
- const [assignTo, setAssignTo] = useState(null);
- const [assignBy, setAssignBy] = useState(null);
- const [queryTo, setQueryTo] = useState("");
- const [queryBy, setQueryBy] = useState("");
- const [showDropdownTo, setShowDropdownTo] = useState(false);
- const [showDropdownBy, setShowDropdownBy] = useState(false);
- 
- // State for Modern Components
- const [taskData, setTaskData] = useState({
- priority: "Medium",
- status: "Pending",
- startDate: "",
- endDate: ""
- });
- const [errors, setErrors] = useState({});
+const EMPTY_FORM = {
+  taskName: "",
+  project: "",
+  assignTo: "",
+  priority: "Medium",
+  status: "Todo",
+  dueDate: "",
+  description: "",
+};
 
- if (!isOpen) return null;
+const AddTaskModal = ({ isOpen, onClose, onSubmit, projectId, project: propProject }) => {
+  const { userInfo } = useSelector((state) => state.user || {});
+  const currentUserId = userInfo?.user?._id || userInfo?._id || userInfo?.id;
 
- const handleModernChange = (e) => {
- const { name, value } = e.target;
- setTaskData(prev => ({ ...prev, [name]: value }));
- setErrors(prev => ({ ...prev, [name]: value ? null : `${name} is required.` }));
- };
+  const reduxProject = useSelector((state) =>
+    projectId
+      ? state.projects.currentProject?._id === projectId
+        ? state.projects.currentProject
+        : state.projects.projects?.find((p) => p._id === projectId)
+      : null
+  );
 
- const handleSubmit = (e) => {
- if (e) e.preventDefault();
- const form = document.getElementById("taskForm");
- const newErrors = {};
- 
- if (!form.taskName.value) newErrors.taskName = "Task name is required.";
- if (!taskData.startDate) newErrors.startDate = "Start date is required.";
- if (!taskData.endDate) newErrors.endDate = "End date is required.";
- if (!taskData.priority) newErrors.priority = "Priority is required.";
- if (!taskData.status) newErrors.status = "Status is required.";
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
+  const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [fetchedProject, setFetchedProject] = useState(null);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+  const [optionsError, setOptionsError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const fetchedRef = useRef(false);
 
- setErrors(newErrors);
- if (Object.keys(newErrors).length > 0) {
- return;
- }
- 
- console.log("Submitting task:", { 
- taskName: form.taskName.value,
- ...taskData,
- assignTo,
- assignBy,
- description: form.description.value
- });
- // Add API call here
- onClose();
- };
+  // Reset each time the dialog opens
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm({
+      ...EMPTY_FORM,
+      project: projectId || "",
+    });
+    setErrors({});
+    setSaving(false);
+  }, [isOpen, projectId]);
 
- const filteredUsersTo = users.filter((user) => user.toLowerCase().includes(queryTo.toLowerCase()));
- const filteredUsersBy = users.filter((user) => user.toLowerCase().includes(queryBy.toLowerCase()));
+  // Load users + projects once per session
+  useEffect(() => {
+    if (!isOpen || fetchedRef.current) return;
+    let mounted = true;
+    (async () => {
+      setLoadingOptions(true);
+      setOptionsError("");
+      try {
+        const promises = [api.get("/users"), projectApi.getProjects()];
+        if (projectId && !propProject && !reduxProject) {
+          promises.push(projectApi.getProjectById(projectId));
+        }
+        const results = await Promise.all(promises);
+        if (!mounted) return;
+        const userList = results[0].data?.data || results[0].data || [];
+        const projectList = results[1] || [];
+        setUsers(Array.isArray(userList) ? userList : []);
+        setProjects(Array.isArray(projectList) ? projectList : []);
+        if (results[2]) {
+          setFetchedProject(results[2]);
+        }
+        fetchedRef.current = true;
+      } catch {
+        if (mounted) setOptionsError("Could not load users & projects. Close and try again.");
+      } finally {
+        if (mounted) setLoadingOptions(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen, projectId, propProject, reduxProject]);
 
- return (
- <GlassModal
- isOpen={isOpen}
- onClose={onClose}
- title="ADD NEW TASK"
- maxWidth="max-w-2xl"
- footer={
- <>
- <GlassButton variant="ghost" onClick={onClose}>
- CANCEL
- </GlassButton>
- <GlassButton variant="primary" onClick={handleSubmit}>
- SAVE TASK
- </GlassButton>
- </>
- }
- >
- <form id="taskForm" onSubmit={handleSubmit} className="space-y-6">
- {/* Task Name */}
- <div>
- <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">
- TASK NAME*
- </label>
- <input 
- type="text" 
- name="taskName"
- placeholder="Task name" 
- className={`glass-input w-full ${errors.taskName ? 'border-red-400 ring-1 ring-red-400' : ''}`} 
- required 
- onChange={(e) => setErrors(prev => ({ ...prev, taskName: e.target.value ? null : "Task name is required." }))}
- />
- {errors.taskName && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.taskName}</p>}
- </div>
+  const selectedFromList = useMemo(() => {
+    const targetId = form.project || projectId;
+    if (targetId) {
+      return projects.find((p) => p._id === targetId) || null;
+    }
+    return null;
+  }, [form.project, projectId, projects]);
 
- {/* Dates Row */}
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <ModernDatePicker label="Start Date" name="startDate" value={taskData.startDate} onChange={handleModernChange} placeholder="Select Start Date" error={errors.startDate} />
- <ModernDatePicker label="End Date" name="endDate" value={taskData.endDate} onChange={handleModernChange} placeholder="Select End Date" error={errors.endDate} />
- </div>
+  const activeProject = propProject || reduxProject || fetchedProject || selectedFromList;
 
- {/* Description */}
- <div>
- <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">
- DESCRIPTION
- </label>
- <textarea 
- name="description"
- placeholder="Brief description" 
- rows="3" 
- className="glass-input w-full resize-none min-h-[100px]"
- ></textarea>
- </div>
+  // Compute assignees strictly restricted to this project's members (owner + team)
+  const projectMembers = useMemo(() => {
+    if (!activeProject && !projectId) {
+      return users;
+    }
+    if (!activeProject) {
+      return [];
+    }
 
- {/* Assignment Row (Custom Searchable Dropdowns - Kept as is, but updated to use glass-input styling) */}
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="relative">
- <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">ASSIGN TO</label>
- {!assignTo ? (
- <input 
- type="text" 
- value={queryTo} 
- onChange={(e) => { setQueryTo(e.target.value); setShowDropdownTo(true); }} 
- placeholder="Find user" 
- className="glass-input w-full" 
- />
- ) : (
- <div className="flex items-center justify-between border border-brand-primary/20 rounded-xl px-4 py-3 bg-brand-primary/5">
- <span className="text-sm font-bold text-heading dark:text-white">{assignTo}</span>
- <button type="button" onClick={() => {setAssignTo(null); setQueryTo("");}} className="text-[10px] font-black text-brand-primary uppercase">Change</button>
- </div>
- )}
- {showDropdownTo && filteredUsersTo.length > 0 && !assignTo && (
- <ul className="absolute left-0 right-0 mt-2 bg-surface dark:bg-slate-800 border border-border-subtle dark:border-slate-700 rounded-xl shadow-xl z-20 max-h-40 overflow-y-auto custom-scrollbar-visible">
- {filteredUsersTo.map((user, i) => (
- <li key={i} onClick={() => {setAssignTo(user); setShowDropdownTo(false);}} className="px-4 py-3 text-sm hover:bg-brand-primary/5 cursor-pointer text-heading dark:text-slate-300 font-medium border-b border-border-subtle dark:border-slate-700 last:border-0">{user}</li>
- ))}
- </ul>
- )}
- </div>
+    const members = [];
+    const seen = new Set();
 
- <div className="relative">
- <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">ASSIGN BY</label>
- {!assignBy ? (
- <input 
- type="text" 
- value={queryBy} 
- onChange={(e) => { setQueryBy(e.target.value); setShowDropdownBy(true); }} 
- placeholder="Find user" 
- className="glass-input w-full" 
- />
- ) : (
- <div className="flex items-center justify-between border border-brand-primary/20 rounded-xl px-4 py-3 bg-brand-primary/5">
- <span className="text-sm font-bold text-heading dark:text-white">{assignBy}</span>
- <button type="button" onClick={() => {setAssignBy(null); setQueryBy("");}} className="text-[10px] font-black text-brand-primary uppercase">Change</button>
- </div>
- )}
- {showDropdownBy && filteredUsersBy.length > 0 && !assignBy && (
- <ul className="absolute left-0 right-0 mt-2 bg-surface dark:bg-slate-800 border border-border-subtle dark:border-slate-700 rounded-xl shadow-xl z-20 max-h-40 overflow-y-auto custom-scrollbar-visible">
- {filteredUsersBy.map((user, i) => (
- <li key={i} onClick={() => {setAssignBy(user); setShowDropdownBy(false);}} className="px-4 py-3 text-sm hover:bg-brand-primary/5 cursor-pointer text-heading dark:text-slate-300 font-medium border-b border-border-subtle dark:border-slate-700 last:border-0">{user}</li>
- ))}
- </ul>
- )}
- </div>
- </div>
+    const add = (m) => {
+      if (!m) return;
+      const id = typeof m === "object" ? m._id || m.id : m;
+      if (!id || seen.has(String(id))) return;
+      seen.add(String(id));
 
- {/* Priority & Status - UPDATED */}
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <ModernSelect 
- label="Priority" 
- name="priority" 
- value={taskData.priority} 
- onChange={handleModernChange}
- options={[{value: "Low", label: "LOW"}, {value: "Medium", label: "MEDIUM"}, {value: "High", label: "HIGH"}]} 
- error={errors.priority}
- />
- <ModernSelect 
- label="Status" 
- name="status" 
- value={taskData.status} 
- onChange={handleModernChange}
- options={[{value: "Pending", label: "PENDING"}, {value: "In Progress", label: "IN PROGRESS"}, {value: "Completed", label: "COMPLETED"}]} 
- error={errors.status}
- />
- </div>
- </form>
- </GlassModal>
- );
+      if (typeof m === "object" && (m.name || m.email)) {
+        members.push(m);
+      } else {
+        const found = users.find((u) => String(u._id || u.id) === String(id));
+        if (found) {
+          members.push(found);
+        } else {
+          members.push({ _id: id, name: `Member (${String(id).slice(-4)})` });
+        }
+      }
+    };
+
+    if (activeProject.owner) add(activeProject.owner);
+    if (Array.isArray(activeProject.team)) activeProject.team.forEach(add);
+
+    return members;
+  }, [activeProject, projectId, users]);
+
+  // Automatically select assignee from project members
+  useEffect(() => {
+    if (!projectMembers.length) return;
+
+    const isCurrentValid = form.assignTo && projectMembers.some((m) => String(m._id || m.id) === String(form.assignTo));
+
+    if (!isCurrentValid) {
+      // Prefer current user if in project, otherwise first project member
+      const currentUserMember = projectMembers.find((m) => String(m._id || m.id) === String(currentUserId));
+      const defaultMember = currentUserMember || projectMembers[0];
+      if (defaultMember) {
+        const defaultId = defaultMember._id || defaultMember.id;
+        setForm((prev) => ({ ...prev, assignTo: defaultId }));
+        setErrors((prev) => ({ ...prev, assignTo: null }));
+      }
+    }
+  }, [projectMembers, currentUserId, form.assignTo]);
+
+  const set = (name, value) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: null }));
+  };
+
+  const handleChange = (e) => set(e.target.name, e.target.value);
+
+  const validate = () => {
+    const next = {};
+    if (!form.taskName.trim()) next.taskName = "Task name is required.";
+    const targetProject = form.project || projectId;
+    if (!targetProject) next.project = "Project is required.";
+    if (!form.assignTo) next.assignTo = "Assignee is required.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      await onSubmit({
+        title: form.taskName.trim(),
+        project: form.project || projectId,
+        team: [form.assignTo],
+        priority: form.priority,
+        status: form.status,
+        dueDate: form.dueDate || null,
+        description: form.description.trim(),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const userOptions = projectMembers.map((u) => ({
+    value: u._id || u.id,
+    label: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email,
+  }));
+  const projectOptions = projects.map((p) => ({ value: p._id, label: p.title }));
+
+  const isProjectFixed = Boolean(projectId);
+
+  const footer = (
+    <div className="flex justify-end gap-2 w-full">
+      <GlassButton variant="secondary" onClick={onClose} disabled={saving}>
+        Cancel
+      </GlassButton>
+      <GlassButton variant="primary" type="submit" form="taskForm" isLoading={saving}>
+        Create Task
+      </GlassButton>
+    </div>
+  );
+
+  const labelCls = "block text-[10px] font-black text-muted mb-1.5 uppercase tracking-widest";
+
+  return (
+    <GlassModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="New Task"
+      description="Create a task in this project"
+      maxWidth="max-w-2xl"
+      footer={footer}
+    >
+      <form id="taskForm" onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {optionsError && (
+          <p className="text-danger text-xs bg-danger-bg border border-danger-border rounded-lg px-3 py-2">
+            {optionsError}
+          </p>
+        )}
+
+        {/* Task name */}
+        <div>
+          <label htmlFor="task-name" className={labelCls}>
+            Task Name*
+          </label>
+          <input
+            id="task-name"
+            type="text"
+            placeholder="e.g. Draft launch announcement"
+            value={form.taskName}
+            onChange={(e) => set("taskName", e.target.value)}
+            className={`glass-input ${errors.taskName ? "is-error" : ""}`}
+            required
+          />
+          {errors.taskName && <p className="text-danger text-xs mt-1">{errors.taskName}</p>}
+        </div>
+
+        {isProjectFixed ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <ModernSelect
+                  label="Assign To*"
+                  name="assignTo"
+                  value={form.assignTo}
+                  onChange={handleChange}
+                  options={userOptions}
+                  placeholder={
+                    loadingOptions
+                      ? "Loading project members..."
+                      : projectMembers.length === 0
+                      ? "No members in this project"
+                      : "Select assignee"
+                  }
+                  required
+                  error={errors.assignTo}
+                />
+                {errors.assignTo && <p className="text-danger text-xs mt-1">{errors.assignTo}</p>}
+                {projectMembers.length > 0 && (
+                  <p className="text-[11px] text-muted mt-1">
+                    Showing only {projectMembers.length} member{projectMembers.length === 1 ? "" : "s"} included in this project
+                  </p>
+                )}
+              </div>
+
+              <ModernSelect
+                label="Priority"
+                name="priority"
+                value={form.priority}
+                onChange={handleChange}
+                options={PRIORITIES.map((p) => ({ value: p, label: p }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ModernSelect
+                label="Status"
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                options={STATUSES.map((s) => ({ value: s, label: s }))}
+              />
+
+              <ModernDatePicker
+                label="Due Date"
+                name="dueDate"
+                value={form.dueDate}
+                onChange={(e) => set("dueDate", e.target.value)}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <ModernSelect
+                  label="Project*"
+                  name="project"
+                  value={form.project}
+                  onChange={handleChange}
+                  options={projectOptions}
+                  placeholder={loadingOptions ? "Loading projects..." : "Select project"}
+                  required
+                  error={errors.project}
+                />
+                {errors.project && <p className="text-danger text-xs mt-1">{errors.project}</p>}
+              </div>
+
+              <div>
+                <ModernSelect
+                  label="Assign To*"
+                  name="assignTo"
+                  value={form.assignTo}
+                  onChange={handleChange}
+                  options={userOptions}
+                  placeholder={loadingOptions ? "Loading people..." : "Select assignee"}
+                  required
+                  error={errors.assignTo}
+                />
+                {errors.assignTo && <p className="text-danger text-xs mt-1">{errors.assignTo}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ModernSelect
+                label="Priority"
+                name="priority"
+                value={form.priority}
+                onChange={handleChange}
+                options={PRIORITIES.map((p) => ({ value: p, label: p }))}
+              />
+              <ModernSelect
+                label="Status"
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                options={STATUSES.map((s) => ({ value: s, label: s }))}
+              />
+            </div>
+
+            <ModernDatePicker
+              label="Due Date"
+              name="dueDate"
+              value={form.dueDate}
+              onChange={(e) => set("dueDate", e.target.value)}
+            />
+          </>
+        )}
+
+        {/* Description */}
+        <div>
+          <label htmlFor="task-description" className={labelCls}>
+            Description
+          </label>
+          <textarea
+            id="task-description"
+            name="description"
+            rows={3}
+            placeholder="Brief description of what needs to be done..."
+            value={form.description}
+            onChange={handleChange}
+            className="glass-input min-h-[90px] resize-y"
+          />
+        </div>
+      </form>
+    </GlassModal>
+  );
 };
 
 export default AddTaskModal;

@@ -11,10 +11,14 @@ import {
   FaFileCsv,
   FaSyncAlt,
   FaPen,
+  FaTrash,
+  FaEye,
 } from "react-icons/fa";
 import { UsersIcon } from "@heroicons/react/20/solid";
 import CreateUserModal from "../../components/CreateUserModal";
 import CreateDepartmentModal from "../../components/CreateDepartmentModal";
+import EditDepartmentModal from "../../components/EditDepartmentModal";
+import ViewDepartmentModal from "../../components/ViewDepartmentModal";
 import UserDetailModal from "../../components/UserDetailModal";
 import PageContainer from "../../components/ui/PageContainer";
 import PortalHero from "../../components/ui/PortalHero";
@@ -66,7 +70,11 @@ const UserManagement = () => {
   const [deptSearch, setDeptSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
+  const [isEditDeptModalOpen, setIsEditDeptModalOpen] = useState(false);
+  const [isViewDeptModalOpen, setIsViewDeptModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [viewDepartment, setViewDepartment] = useState(null);
   const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -214,6 +222,32 @@ const UserManagement = () => {
     fetchData();
     showToast("Department created successfully");
   };
+
+  const handleDepartmentUpdated = () => {
+    fetchData();
+    showToast("Department updated successfully");
+  };
+
+  const handleEditDepartment = useCallback((dept) => {
+    setSelectedDepartment(dept);
+    setIsEditDeptModalOpen(true);
+  }, []);
+
+  const handleViewDepartment = useCallback((dept) => {
+    setViewDepartment(dept);
+    setIsViewDeptModalOpen(true);
+  }, []);
+
+  const handleDeleteDepartment = useCallback(async (dept) => {
+    if (!window.confirm(`Delete "${dept.name}" department? This will also remove sub-departments and unassign members.`)) return;
+    try {
+      await api.delete(`/departments/${dept._id}`);
+      fetchData();
+      showToast("Department deleted successfully");
+    } catch (error) {
+      showToast(getApiError(error, "Failed to delete department"), "error");
+    }
+  }, [fetchData, showToast]);
 
   const handleUserUpdated = (type = "update") => {
     fetchData();
@@ -404,6 +438,30 @@ const UserManagement = () => {
     ],
     []
   );
+
+  const deptTableActions = useMemo(() => [
+    {
+      icon: <FaPen size={12} />,
+      title: "Edit department",
+      onClick: (row) => handleEditDepartment(row),
+      className:
+        "p-2 rounded-lg text-muted bg-surface border border-border-subtle hover:text-brand-text hover:border-border-accent hover:shadow-sm",
+    },
+    {
+      icon: <FaEye size={12} />,
+      title: "View department",
+      onClick: (row) => handleViewDepartment(row),
+      className:
+        "p-2 rounded-lg text-muted bg-surface border border-border-subtle hover:text-brand-text hover:border-border-accent hover:shadow-sm",
+    },
+    {
+      icon: <FaTrash size={12} />,
+      title: "Delete department",
+      onClick: (row) => handleDeleteDepartment(row),
+      className:
+        "p-2 rounded-lg text-muted bg-surface border border-border-subtle hover:text-rose-500 hover:border-rose-400 hover:shadow-sm",
+    },
+  ], [handleEditDepartment, handleViewDepartment, handleDeleteDepartment]);
 
   const tableActions = [
     {
@@ -643,6 +701,7 @@ const UserManagement = () => {
                   rowsPerPage={10}
                   defaultSort={{ key: "name", direction: "asc" }}
                   countLabel="departments"
+                  actions={deptTableActions}
                 />
               </>
             )}
@@ -677,6 +736,27 @@ const UserManagement = () => {
         onClose={() => setIsDeptModalOpen(false)}
         onDepartmentCreated={handleDepartmentCreated}
         potentialManagers={users}
+      />
+
+      <EditDepartmentModal
+        isOpen={isEditDeptModalOpen}
+        onClose={() => {
+          setIsEditDeptModalOpen(false);
+          setSelectedDepartment(null);
+        }}
+        onDepartmentUpdated={handleDepartmentUpdated}
+        department={selectedDepartment}
+        potentialManagers={users}
+      />
+
+      <ViewDepartmentModal
+        isOpen={isViewDeptModalOpen}
+        onClose={() => {
+          setIsViewDeptModalOpen(false);
+          setViewDepartment(null);
+        }}
+        department={viewDepartment}
+        users={users}
       />
     </>
   );

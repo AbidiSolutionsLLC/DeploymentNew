@@ -4,7 +4,6 @@ const departmentSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, "Department name is required"],
-    unique: true,
     trim: true
   },
   manager: {
@@ -36,5 +35,7 @@ departmentSchema.virtual('subDepartments', {
   localField: '_id',
   foreignField: 'parentDepartment'
 });
+
+departmentSchema.index({ name: 1, company: 1 });
 
 module.exports = mongoose.model("Department", departmentSchema);

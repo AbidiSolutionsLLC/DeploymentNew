@@ -83,13 +83,14 @@ const AttendanceCard = ({ onDelete }) => {
         );
       });
 
+      const isWeekendDay = currentDay.getDay() === 0 || currentDay.getDay() === 6;
       let hours = 0;
-      let status = currentDay > today ? "Upcoming" : "Absent";
+      let status = isWeekendDay ? "Weekend" : currentDay > today ? "Upcoming" : "Absent";
       let checkInTime = null;
       let checkOutTime = null;
 
       if (dayData) {
-        status = dayData.status || status;
+        status = isWeekendDay && dayData.status === "Absent" ? "Weekend" : (dayData.status || status);
         checkInTime = dayData.checkInTime;
         checkOutTime = dayData.checkOutTime;
 
@@ -156,12 +157,13 @@ const AttendanceCard = ({ onDelete }) => {
         {totalHours > 0 || loading ? (
           <div className="flex items-end justify-between h-28 gap-1.5 pt-2">
             {weeklyData.map(({ day, hours, status, checkInTime, checkOutTime }, i) => {
-              let color = "bg-slate-300";
+              let color = "bg-slate-300 dark:bg-slate-700";
               if (status === "Absent") color = "bg-rose-500";
+              else if (status === "Weekend") color = "bg-slate-400 dark:bg-slate-600";
               else if (status === "Present" && hours >= 7) color = "bg-emerald-500";
               else if (status === "Half Day") color = "bg-amber-500";
               else if (status === "Present") color = "bg-amber-400";
-              else if (status === "Upcoming") color = "bg-slate-300";
+              else if (status === "Upcoming") color = "bg-slate-300 dark:bg-slate-700";
 
               const barHeight = Math.min((hours / 10) * maxBarHeight, maxBarHeight);
 
@@ -176,7 +178,7 @@ const AttendanceCard = ({ onDelete }) => {
                       {day}
                     </span>
                     <span className="block text-[8px] text-muted whitespace-nowrap">
-                      {status === "Upcoming"
+                      {status === "Upcoming" || status === "Weekend"
                         ? "-"
                         : checkInTime && !checkOutTime
                         ? <LiveTimer startTime={checkInTime} />

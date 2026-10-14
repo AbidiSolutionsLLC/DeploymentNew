@@ -143,6 +143,11 @@ export default function EditProfile() {
  return;
  }
 
+ if (formData.empType && user?.empType && formData.empType !== user.empType) {
+ toast.error("Employees are not allowed to update their own employment type.");
+ return;
+ }
+
  try {
  setSaving(true);
  
@@ -424,7 +429,7 @@ export default function EditProfile() {
  <label className="block text-sm font-medium text-main mb-1">Full Name *</label>
  <input
  type="text"
- className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-muted/10"
  value={formData.name}
  onChange={(e) => handleInputChange('name', e.target.value)}
  required
@@ -435,7 +440,7 @@ export default function EditProfile() {
  <label className="block text-sm font-medium text-main mb-1">Email *</label>
  <input
  type="email"
- className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-muted/10"
  value={formData.email}
  onChange={(e) => handleInputChange('email', e.target.value)}
  required
@@ -471,7 +476,7 @@ export default function EditProfile() {
  <label className="block text-sm font-medium text-main mb-1">Designation *</label>
  <input
  type="text"
- className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-muted/10"
  value={formData.designation}
  onChange={(e) => handleInputChange('designation', e.target.value)}
  required
@@ -482,7 +487,7 @@ export default function EditProfile() {
  <label className="block text-sm font-medium text-main mb-1">Branch *</label>
  <input
  type="text"
- className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+ className="w-full p-3 border border-border-subtle rounded-lg text-sm bg-surface text-main focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-muted/10"
  value={formData.branch}
  onChange={(e) => handleInputChange('branch', e.target.value)}
  required

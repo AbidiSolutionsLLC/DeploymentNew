@@ -42,6 +42,7 @@ const AssignTicket = () => {
 
   const [technician, setTechnician] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [companyUsers, setCompanyUsers] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [addTechnicianModal, setAddTechnicianModal] = useState(false);
@@ -62,8 +63,9 @@ const AssignTicket = () => {
     const fetchTicket = async () => {
       try {
         const res = await api.get(`/tickets/${ticketId}`);
-        setTicket(res.data);
-        setSelectedAssigneeId(res.data.assignedTo?._id || null);
+        const ticketData = res.data?.data || res.data;
+        setTicket(ticketData);
+        setSelectedAssigneeId(ticketData?.assignedTo?._id || ticketData?.assignedTo || null);
       } catch (error) {
         showToast(getApiError(error, "Failed to fetch ticket"), "error");
       } finally {
@@ -75,7 +77,8 @@ const AssignTicket = () => {
       try {
         const res = await api.get("/users?status=Active");
 
-        const usersArray = Array.isArray(res.data) ? res.data : res.data.data || [];
+        const usersArray = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        setCompanyUsers(usersArray);
         const safeUsers = usersArray.filter(u => u.role !== "SuperAdmin");
 
         const techList = safeUsers.filter(user =>
@@ -109,7 +112,8 @@ const AssignTicket = () => {
     setAssigningUserId(userId);
     try {
       const res = await api.patch(`/tickets/${ticketId}/assign`, { assignedTo: userId });
-      setTicket(res.data);
+      const updatedTicket = res.data?.data || res.data;
+      setTicket(updatedTicket);
       setSelectedAssigneeId(userId);
       showToast("Ticket assigned successfully");
     } catch (error) {
@@ -123,7 +127,8 @@ const AssignTicket = () => {
   const handleStatusChange = async (newStatus) => {
     try {
       const res = await api.patch(`/tickets/${ticketId}/status`, { status: newStatus });
-      setTicket(prev => ({ ...prev, status: res.data.status }));
+      const updatedStatus = res.data?.data?.status || res.data?.status || newStatus;
+      setTicket(prev => ({ ...prev, status: updatedStatus }));
       showToast("Status updated");
     } catch (error) {
       showToast(getApiError(error, "Failed to update status"), "error");
@@ -133,7 +138,8 @@ const AssignTicket = () => {
   const handlePriorityChange = async (newPriority) => {
     try {
       const res = await api.patch(`/tickets/${ticketId}/priority`, { priority: newPriority });
-      setTicket(prev => ({ ...prev, priority: res.data.priority }));
+      const updatedPriority = res.data?.data?.priority || res.data?.priority || newPriority;
+      setTicket(prev => ({ ...prev, priority: updatedPriority }));
       showToast("Priority updated");
     } catch (error) {
       showToast(getApiError(error, "Failed to update priority"), "error");
@@ -152,7 +158,8 @@ const AssignTicket = () => {
         content: newResponse,
         avatar: "👤"
       });
-      setTicket(res.data);
+      const updatedTicket = res.data?.data || res.data;
+      setTicket(updatedTicket);
       setNewResponse("");
       showToast("Response submitted");
     } catch (error) {
@@ -296,6 +303,32 @@ const AssignTicket = () => {
   }
 
   const currentAssignee = ticket.assignedTo?.name || selectedAssignee?.name || "Unassigned";
+
+  const requesterUser =
+    (ticket?.user && typeof ticket.user === "object" && ticket.user.name)
+      ? ticket.user
+      : (ticket?.closedBy && typeof ticket.closedBy === "object" && ticket.closedBy.name)
+      ? ticket.closedBy
+      : companyUsers.find(
+          (u) =>
+            (ticket?.emailAddress && u.email?.toLowerCase() === ticket.emailAddress?.toLowerCase()) ||
+            (ticket?.user && (u._id === ticket.user || u.id === ticket.user)) ||
+            (ticket?.closedBy && (u._id === ticket.closedBy || u.id === ticket.closedBy))
+        ) ||
+        allUsers.find(
+          (u) =>
+            (ticket?.emailAddress && u.email?.toLowerCase() === ticket.emailAddress?.toLowerCase()) ||
+            (ticket?.user && (u._id === ticket.user || u.id === ticket.user)) ||
+            (ticket?.closedBy && (u._id === ticket.closedBy || u.id === ticket.closedBy))
+        );
+
+  const rawRequesterName = requesterUser?.name || (typeof ticket?.user === "object" ? ticket?.user?.name : null) || (typeof ticket?.closedBy === "object" ? ticket?.closedBy?.name : null);
+  const isInvalidRequesterName = !rawRequesterName || /unknown/i.test(rawRequesterName);
+  const requesterName = !isInvalidRequesterName
+    ? rawRequesterName
+    : ticket?.emailAddress
+    ? ticket.emailAddress.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    : "—";
 
   return (
     <>
@@ -476,7 +509,12 @@ const AssignTicket = () => {
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-black text-muted uppercase tracking-widest">Requester</p>
-                  <p className="text-sm font-bold text-heading truncate">{ticket.emailAddress || "—"}</p>
+                  <p className="text-sm font-bold text-heading truncate" title={ticket.emailAddress || ""}>
+                    {requesterName}
+                  </p>
+                  {ticket.emailAddress && requesterName !== ticket.emailAddress && (
+                    <p className="text-[10px] text-muted truncate">{ticket.emailAddress}</p>
+                  )}
                 </div>
               </div>
 

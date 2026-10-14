@@ -84,18 +84,23 @@ const ProjectsTable = ({
  {
  key: "completion",
  label: "Progress",
- render: (val, project) => { const statusProgressMap = { 'Completed': 100, 'Active': 50, 'In Progress': 50, 'On Hold': 30, 'Planning': 15 }; const progress = val || statusProgressMap[project?.status] || 0; return ( <div className="whitespace-nowrap w-24">
- <div className="w-full bg-app rounded-full h-2.5 overflow-hidden border border-border-subtle">
- <div
- className="h-full transition-all duration-300"
- style={{
- width: `${progress}%`,
- background: getProgressColor(progress),
- }}
- ></div>
- </div>
- </div>
- );
+ render: (val, project) => { 
+    const statusProgressMap = { 'Completed': 100, 'Active': 50, 'In Progress': 50, 'On Hold': 30, 'Planning': 15 }; 
+    const progress = val || statusProgressMap[project?.status] || 0; 
+    return ( 
+      <div className="whitespace-nowrap flex items-center gap-2 w-32">
+        <div className="w-full bg-app rounded-full h-2.5 overflow-hidden border border-border-subtle">
+          <div
+            className="h-full transition-all duration-300"
+            style={{
+              width: `${progress}%`,
+              background: getProgressColor(progress),
+            }}
+          ></div>
+        </div>
+        <span className="text-xs text-muted w-8 font-medium">{progress}%</span>
+      </div>
+    );
  }
  }
  ];
@@ -115,5 +120,3 @@ const ProjectsTable = ({
 };
 
 export default ProjectsTable;
-
-

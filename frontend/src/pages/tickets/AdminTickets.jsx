@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion as Motion } from "framer-motion";
-import { Plus, Search, UserPlus, Eye, Clock, Check } from "lucide-react";
+import { Search, UserPlus, Clock, Check } from "lucide-react";
 import { UserPlusIcon } from "@heroicons/react/20/solid";
 import { useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
@@ -30,18 +30,28 @@ import {
   FaUserCircle,
   FaExclamationTriangle,
 } from "react-icons/fa";
-import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
+import { STATUS_VARIANTS, resolveStatusVariant, resolvePriorityPill } from "../../components/StatusBadge";
 import { downloadCsv } from "../../utils/tableUtils";
 import { getApiError } from "../../utils/validationUtils";
 
 const EASE = [0.16, 1, 0.3, 1];
 
-// Priority pills mirroring the inline select values in the original
-// (uniform green text for every priority)
-const PRIORITY_PILL = {
-  "High Priority": "lm-success-badge",
-  "Medium Priority": "lm-success-badge",
-  "Low Priority": "lm-success-badge",
+const normalizeStatus = (status) => {
+  if (!status) return "Open";
+  const s = status.toLowerCase();
+  if (s === "open" || s === "opened") return "Open";
+  if (s === "in progress") return "In Progress";
+  if (s === "closed") return "Closed";
+  return status;
+};
+
+const normalizePriority = (priority) => {
+  if (!priority) return "Medium Priority";
+  const p = priority.toLowerCase();
+  if (p === "high" || p === "high priority") return "High Priority";
+  if (p === "medium" || p === "medium priority") return "Medium Priority";
+  if (p === "low" || p === "low priority") return "Low Priority";
+  return priority;
 };
 
 function AdminTickets() {
@@ -51,17 +61,21 @@ function AdminTickets() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [technicians, setTechnicians] = useState([]);
+  const [loadingTechnicians, setLoadingTechnicians] = useState(false);
   const [assignTicket, setAssignTicket] = useState(null);
   const [assignSearch, setAssignSearch] = useState("");
   const [assigningUserId, setAssigningUserId] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [error, setError] = useState(false);
-  const [showToast, setShowToast] = useState(null);
-
-  const loadingTechnicians = false;
+  const [toast, setToast] = useState(null);
 
   const navigate = useNavigate();
+
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ message, type });
+  }, []);
 
   // ==================== FETCH FUNCTIONS ====================
   const fetchTickets = useCallback(async () => {
@@ -77,24 +91,50 @@ function AdminTickets() {
     } finally {
       setLoading(false);
     }
-}, []);
+  }, []);
 
-  const handleStatusChange = async (ticketId, newStatus) => {
+  const fetchTechnicians = useCallback(async () => {
+    setLoadingTechnicians(true);
+    try {
+      const res = await api.get("/users?status=Active");
+      const usersArray = Array.isArray(res.data) ? res.data : res.data?.data || [];
+      const safeUsers = usersArray.filter((u) => u.role !== "SuperAdmin");
+      const techList = safeUsers.filter(
+        (user) =>
+          user.role === "Technician" ||
+          user.isTechnician === true ||
+          (user.designation && user.designation.toLowerCase() === "technician")
+      );
+      setTechnicians(techList);
+    } catch (err) {
+      console.error("Failed to fetch technicians:", err);
+    } finally {
+      setLoadingTechnicians(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTickets();
+    fetchTechnicians();
+  }, [fetchTickets, fetchTechnicians]);
+
+  const handleStatusChange = useCallback(async (ticketId, newStatus) => {
     try {
       const res = await api.patch(`/tickets/${ticketId}/status`, { status: newStatus });
+      const updatedStatus = res.data?.data?.status || res.data?.status || newStatus;
       setTickets((prev) =>
         prev.map((ticket) =>
-          ticket._id === ticketId ? { ...ticket, status: res.data.status } : ticket
+          ticket._id === ticketId ? { ...ticket, status: updatedStatus } : ticket
         )
       );
-      showToast?.(`Ticket ${newStatus} status updated`);
+      showToast(`Ticket ${newStatus} status updated`);
     } catch (err) {
       console.error("Failed to update status:", err);
-      showToast?.(getApiError(err, "Failed to update status"), "error");
+      showToast(getApiError(err, "Failed to update status"), "error");
     }
-  };
+  }, [showToast]);
 
-  const handlePriorityChange = async (ticketId, newPriority) => {
+  const handlePriorityChange = useCallback(async (ticketId, newPriority) => {
     try {
       await api.patch(`/tickets/${ticketId}/priority`, { priority: newPriority });
       setTickets((prev) =>
@@ -102,57 +142,64 @@ function AdminTickets() {
           ticket._id === ticketId ? { ...ticket, priority: newPriority } : ticket
         )
       );
-      showToast?.(`Ticket priority updated to ${newPriority}`);
+      showToast(`Ticket priority updated to ${newPriority}`);
     } catch (err) {
       console.error("Failed to update priority:", err);
-      showToast?.(getApiError(err, "Failed to update priority"), "error");
+      showToast(getApiError(err, "Failed to update priority"), "error");
     }
-  };
+  }, [showToast]);
 
-  const openTicketDetail = (ticket) => {
+  const openTicketDetail = useCallback((ticket) => {
     navigate(`/admin/assign-ticket/${ticket._id}`, { state: { ticket } });
-  };
+  }, [navigate]);
 
   const handleAssignTicket = async (ticketId, userId) => {
     setAssigningUserId(userId);
     try {
       const res = await api.patch(`/tickets/${ticketId}/assign`, { assignedTo: userId });
-      const updatedTicket = res.data;
+      const updatedTicket = res.data?.data || res.data;
+      const assignedObj =
+        updatedTicket?.assignedTo && typeof updatedTicket.assignedTo === "object"
+          ? updatedTicket.assignedTo
+          : technicians.find((u) => u._id === userId) || updatedTicket?.assignedTo;
+
       setTickets((prev) =>
-        prev.map((t) => (t._id === ticketId ? { ...t, assignedTo: updatedTicket.assignedTo } : t))
+        prev.map((t) => (t._id === ticketId ? { ...t, assignedTo: assignedObj } : t))
       );
       setAssignTicket((prev) =>
-        prev && prev._id === ticketId ? { ...prev, assignedTo: updatedTicket.assignedTo } : prev
+        prev && prev._id === ticketId ? { ...prev, assignedTo: assignedObj } : prev
       );
-      showToast?.("Ticket assigned successfully");
+      showToast("Ticket assigned successfully");
     } catch (err) {
-      showToast?.(getApiError(err, "Failed to assign ticket"), "error");
+      showToast(getApiError(err, "Failed to assign ticket"), "error");
     } finally {
       setAssigningUserId(null);
     }
   };
 
-  const filteredTechnicians = tickets.filter((user) => {
+  const filteredTechnicians = useMemo(() => {
     const query = assignSearch.trim().toLowerCase();
-    if (!query) return true;
-    return (
-      String(user.name || "").toLowerCase().includes(query) ||
-      String(user.designation || user.role || "").toLowerCase().includes(query) ||
-      String(user.email || "").toLowerCase().includes(query)
+    if (!query) return technicians;
+    return technicians.filter(
+      (user) =>
+        String(user.name || "").toLowerCase().includes(query) ||
+        String(user.designation || user.role || "").toLowerCase().includes(query) ||
+        String(user.email || "").toLowerCase().includes(query)
     );
-  });
+  }, [technicians, assignSearch]);
 
   // ------------ Tab scope + combined client-side filter ------------
   const getStatusInTab = useCallback((t) => {
+    const st = (t.status || "").toLowerCase();
     switch (activeTab) {
       case 1: // Unassigned
         return !t.assignedTo;
       case 2: // Open
-        return t.status === "Open";
+        return st === "open" || st === "opened";
       case 3: // In Progress
-        return t.status === "In Progress";
+        return st === "in progress";
       case 4: // Closed
-        return t.status === "Closed";
+        return st === "closed";
       default:
         return true;
     }
@@ -165,23 +212,40 @@ function AdminTickets() {
       const matchesSearch =
         !q ||
         String(t.subject || "").toLowerCase().includes(q) ||
-        String(t.ticketID?.toLowerCase()).includes(q) ||
+        String(t.ticketID || "").toLowerCase().includes(q) ||
         String(t.closedBy?.name || "").toLowerCase().includes(q) ||
+        String(t.assignedTo?.name || "").toLowerCase().includes(q) ||
         (t.emailAddress && String(t.emailAddress).toLowerCase().includes(q));
+
+      const tPriority = normalizePriority(t.priority);
       const matchesPriority =
-        priorityFilter === "all" || t.priority === priorityFilter;
+        priorityFilter === "all" || tPriority === priorityFilter;
+
       const ticketDate = t.createdAt ? new Date(t.createdAt) : null;
       const startOk = !startDate || (ticketDate && ticketDate >= startDate);
       const endOk = !endDate || (ticketDate && ticketDate <= new Date(endDate.getTime() + 86399999));
       return inTab && matchesSearch && matchesPriority && startOk && endOk;
     });
-  }, [tickets, searchTerm, priorityFilter, startDate, endDate, activeTab, getStatusInTab]);
+  }, [tickets, searchTerm, priorityFilter, startDate, endDate, getStatusInTab]);
 
   // ------------ helpers & counts ------------
   const unassignedCount = useMemo(() => tickets.filter((t) => !t.assignedTo).length, [tickets]);
-  const inProgressCount = useMemo(() => tickets.filter((t) => t.status === "In Progress").length, [tickets]);
-  const openCount = useMemo(() => tickets.filter((t) => t.status === "Open").length, [tickets]);
-  const closedCount = useMemo(() => tickets.filter((t) => t.status === "Closed").length, [tickets]);
+  const inProgressCount = useMemo(
+    () => tickets.filter((t) => (t.status || "").toLowerCase() === "in progress").length,
+    [tickets]
+  );
+  const openCount = useMemo(
+    () =>
+      tickets.filter((t) => {
+        const st = (t.status || "").toLowerCase();
+        return st === "open" || st === "opened";
+      }).length,
+    [tickets]
+  );
+  const closedCount = useMemo(
+    () => tickets.filter((t) => (t.status || "").toLowerCase() === "closed").length,
+    [tickets]
+  );
   const totalTickets = tickets.length;
 
   // ------------ priority options with live counts ------------
@@ -196,13 +260,20 @@ function AdminTickets() {
 
   // ------------ KPIs from filtered set ------------
   const filteredKpis = useMemo(() => {
-    const count = (s) => filteredTickets.filter((r) => r.status === s).length;
+    const isStatus = (t, s) => {
+      const st = (t.status || "").toLowerCase();
+      if (s === "Open") return st === "open" || st === "opened";
+      if (s === "In Progress") return st === "in progress";
+      if (s === "Closed") return st === "closed";
+      return st === s.toLowerCase();
+    };
+    const count = (s) => filteredTickets.filter((r) => isStatus(r, s)).length;
     const days = (s) =>
-      filteredTickets.filter((r) => r.status === s).reduce((sum, r) => sum + (r.daysCount || 0), 0);
+      filteredTickets.filter((r) => isStatus(r, s)).reduce((sum, r) => sum + (r.daysCount || 0), 0);
     // Priority breakdown
     const priCounts = {};
     filteredTickets.forEach((t) => {
-      const p = t.priority || "Medium Priority";
+      const p = normalizePriority(t.priority);
       priCounts[p] = (priCounts[p] || 0) + 1;
     });
     return {
@@ -211,7 +282,7 @@ function AdminTickets() {
       inProgress: inProgressCount,
       open: openCount,
       closed: closedCount,
-      pending: count("Open"), // Open for KPI consistency
+      pending: count("Open"),
       approved: count("Closed"),
       pendingDays: days("Open"),
       approvedDays: days("Closed"),
@@ -219,7 +290,174 @@ function AdminTickets() {
       inProgressPriority: priCounts["Medium Priority"] || 0,
       lowPriority: priCounts["Low Priority"] || 0,
     };
-  }, [filteredTickets]);
+  }, [filteredTickets, unassignedCount, inProgressCount, openCount, closedCount]);
+
+  // ------------ Table columns (declared before any early returns) ------------
+  const columns = useMemo(
+    () => [
+      {
+        key: "__index",
+        label: "S.No.",
+        sortable: false,
+        type: "index",
+        className: "text-muted text-xs font-bold",
+      },
+      {
+        key: "subject",
+        label: "Ticket",
+        sortable: false,
+        render: (_, t) => (
+          <div className="min-w-[230px] group/cell" title="Click to view ticket details">
+            <p className="text-sm font-bold text-heading truncate max-w-[260px] leading-tight">
+              {t.subject || "-"}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-1.5">
+              <span className="text-[11px] text-muted font-mono">
+                #{t.ticketID || t._id?.slice(0, 6) || "-"}
+              </span>
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide
+                ${STATUS_VARIANTS[resolveStatusVariant(t.status)]?.badge || STATUS_VARIANTS.neutral.badge}`}>
+                {normalizeStatus(t.status)}
+              </span>
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide
+                ${resolvePriorityPill(t.priority)}`}>
+                {normalizePriority(t.priority)}
+              </span>
+              <span className="flex items-center gap-1 text-xs text-muted">
+                <Clock className="w-3 h-3" />
+                {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "-"}
+              </span>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: "raisedBy",
+        label: "Requester",
+        render: (_, t) => {
+          const rawName = t.user?.name || t.closedBy?.name;
+          const name = (rawName && !/unknown/i.test(rawName))
+            ? rawName
+            : t.emailAddress
+            ? t.emailAddress.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+            : "—";
+          const avatarUrl = t.user?.avatar || t.closedBy?.avatar;
+          return (
+            <div className="flex items-center gap-2">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="avatar"
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+              ) : (
+                <FaUserCircle className="text-muted w-6 h-6" />
+              )}
+              <div className="flex flex-col">
+                <span className="text-xs text-main font-medium whitespace-nowrap">
+                  {name}
+                </span>
+                {(t.emailAddress || t.closedBy?.email || t.user?.email) && (
+                  <span
+                    className="text-[10px] text-muted truncate max-w-[120px]"
+                    title={t.emailAddress || t.closedBy?.email || t.user?.email}
+                  >
+                    {t.emailAddress || t.closedBy?.email || t.user?.email}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: "assignedTo",
+        label: "Assignee",
+        render: (_, t) => {
+          if (t.assignedTo) {
+            return (
+              <div className="flex items-center gap-2">
+                {t.assignedTo.avatar ? (
+                  <img
+                    src={t.assignedTo.avatar}
+                    alt="avatar"
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <FaUserCircle className="text-muted w-6 h-6" />
+                )}
+                <div className="flex flex-col">
+                  <span className="text-xs text-main font-medium whitespace-nowrap">
+                    {t.assignedTo.name || "Unknown Name"}
+                  </span>
+                  {t.assignedTo.email && (
+                    <span
+                      className="text-[10px] text-muted truncate max-w-[120px]"
+                      title={t.assignedTo.email}
+                    >
+                      {t.assignedTo.email}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-surface flex items-center justify-center border border-border-subtle">
+                <FaUserCircle className="text-slate-300 w-4 h-4" />
+              </div>
+              <span className="text-xs text-muted italic">Unassigned</span>
+            </div>
+          );
+        },
+      },
+      {
+        key: "actions",
+        label: "Actions",
+        align: "right",
+        render: (_, t) => (
+          <div className="flex justify-end items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <div className="w-28">
+              <ModernSelect
+                value={normalizeStatus(t.status)}
+                onChange={(e) => handleStatusChange(t._id, e.target.value)}
+                options={[
+                  { value: "Open", label: "Open" },
+                  { value: "In Progress", label: "In Progress" },
+                  { value: "Closed", label: "Closed" },
+                ]}
+                placeholder="All Status"
+              />
+            </div>
+            <div className="w-28">
+              <ModernSelect
+                value={normalizePriority(t.priority)}
+                onChange={(e) => handlePriorityChange(t._id, e.target.value)}
+                options={[
+                  { value: "High Priority", label: "High" },
+                  { value: "Medium Priority", label: "Medium" },
+                  { value: "Low Priority", label: "Low" },
+                ]}
+                placeholder="All Priority"
+              />
+            </div>
+            <button
+              onClick={() => setAssignTicket(t)}
+              className="inline-flex items-center gap-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 px-3 py-2 rounded-lg text-xs font-bold hover:brightness-95 transition-all shadow-sm hover:shadow-md cursor-pointer"
+              title="Assign this ticket to a technician"
+            >
+              <UserPlus size={14} />
+              Assign
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [handlePriorityChange, handleStatusChange]
+  );
 
   // ------------ CSV export ------------
   const exportCsv = () => {
@@ -227,57 +465,52 @@ function AdminTickets() {
       "S.No.",
       "Ticket ID",
       "Subject",
-      "Raised By",
+      "Requester",
       "Email",
       "Assignee",
       "Priority",
       "Status",
       "Created On",
     ];
-    const rows = filteredTickets.map((t, i) => [
-      i + 1,
-      t.ticketID || t._id?.slice(0, 6) || "-",
-      t.subject || "-",
-      t.closedBy?.name || "Unknown",
-      t.emailAddress || "-",
-      t.assignedTo?.name || "Unassigned",
-      t.priority || "Medium Priority",
-      t.status || "-",
-      t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "-",
-    ]);
+    const rows = filteredTickets.map((t, i) => {
+      const rawName = t.user?.name || t.closedBy?.name;
+      const name = (rawName && !/unknown/i.test(rawName))
+        ? rawName
+        : t.emailAddress
+        ? t.emailAddress.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+        : "—";
+      return [
+        i + 1,
+        t.ticketID || t._id?.slice(0, 6) || "-",
+        t.subject || "-",
+        name,
+        t.emailAddress || t.closedBy?.email || t.user?.email || "-",
+        t.assignedTo?.name || "Unassigned",
+        normalizePriority(t.priority),
+        normalizeStatus(t.status),
+        t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "-",
+      ];
+    });
     downloadCsv(`tickets-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
-    showToast?.("Ticket queue exported");
+    showToast("Ticket queue exported");
   };
-
-  // ------------ error render ------------
-  if (error) {
-    return (
-      <div className="glass-card text-center py-14">
-        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-danger-bg border border-danger-border flex items-center justify-center">
-          <FaExclamationTriangle size={22} className="text-danger" />
-        </div>
-        <p className="text-sm font-bold text-heading">Failed to load tickets</p>
-        <p className="text-xs text-muted mt-1 mb-5">
-          We couldn't load the ticket queue. Please try again.
-        </p>
-        <GlassButton variant="primary" onClick={fetchTickets}>
-          RETRY
-        </GlassButton>
-      </div>
-    );
-  }
 
   // ------------ Tabs ------------
   const tabs = [
     { key: 0, title: "All Tickets", icon: FaClipboardList, hint: "Every ticket in the queue" },
-    { key: 1, title: "Unassigned", icon: FaUserSlash, hint: "Tickets waiting for an assignee", badge: unassignedCount },
+    {
+      key: 1,
+      title: "Unassigned",
+      icon: FaUserSlash,
+      hint: "Tickets waiting for an assignee",
+      badge: unassignedCount,
+    },
     { key: 2, title: "Open", icon: FaHourglassHalf, hint: "Newly raised, not yet started" },
     { key: 3, title: "In Progress", icon: FaSpinner, hint: "Actively being worked on" },
     { key: 4, title: "Closed", icon: FaCheckCircle, hint: "Resolved and closed tickets" },
   ];
 
   // ------------ Portal Hero ------------
-
   const heroChips = [
     { icon: FaTicketAlt, value: totalTickets, label: " Tickets" },
     { pulse: true, value: unassignedCount, label: " Awaiting assignment" },
@@ -293,25 +526,44 @@ function AdminTickets() {
     </>
   );
 
+  // ------------ error render ------------
+  if (error) {
+    return (
+      <PageContainer isCard={false}>
+        <div className="glass-card text-center py-14">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-danger-bg border border-danger-border flex items-center justify-center">
+            <FaExclamationTriangle size={22} className="text-danger" />
+          </div>
+          <p className="text-sm font-bold text-heading">Failed to load tickets</p>
+          <p className="text-xs text-muted mt-1 mb-5">
+            We couldn't load the ticket queue. Please try again.
+          </p>
+          <GlassButton variant="primary" onClick={fetchTickets}>
+            RETRY
+          </GlassButton>
+        </div>
+      </PageContainer>
+    );
+  }
+
   // ------------ Render ------------
   return (
     <>
       {/* Toast (page-level messages) */}
-      {showToast && (
+      {toast && (
         <Toast
-          message={showToast.message}
-          type={showToast.type}
-          onClose={() => setShowToast(null)}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
 
       <PageContainer isCard={false}>
         <div className="flex flex-col gap-4 w-full">
-
           {/* ==================== HERO ==================== */}
           <PortalHero
-                label="Ticket assignment overview"
-              title="Ticket Assignment"
+            label="Ticket assignment overview"
+            title="Ticket Assignment"
             description="Triage, assign and track every support ticket — from the moment it's raised to closure."
             emblem={UserPlusIcon}
             chips={heroChips}
@@ -383,14 +635,22 @@ function AdminTickets() {
               hint="Click a row to open a ticket, or use Assign to send it to a technician."
               actions={
                 <>
-                  {searchTerm || priorityFilter !== "all" || startDate || endDate || activeTab !== 0 && (
-                    <GlassButton variant="ghost" size="sm" onClick={() => {
-                      setSearchTerm("");
-                      setPriorityFilter("all");
-                      setStartDate(null);
-                      setEndDate(null);
-                      setActiveTab(0);
-                    }}>
+                  {(searchTerm ||
+                    priorityFilter !== "all" ||
+                    startDate ||
+                    endDate ||
+                    activeTab !== 0) && (
+                    <GlassButton
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setPriorityFilter("all");
+                        setStartDate(null);
+                        setEndDate(null);
+                        setActiveTab(0);
+                      }}
+                    >
                       RESET
                     </GlassButton>
                   )}
@@ -446,166 +706,21 @@ function AdminTickets() {
 
             {/* ==================== TABLE ==================== */}
             <StyledTable
-              columns={useMemo(
-                () => [
-                  {
-                    key: "__index",
-                    label: "S.No.",
-                    sortable: false,
-                    type: "index",
-                    className: "text-muted text-xs font-bold",
-                  },
-                  {
-                    key: "subject",
-                    label: "Ticket",
-                    sortable: false,
-                    render: (_, t) => (
-                      <div className="min-w-[230px] group/cell" title="Click to view ticket details">
-                        <p className="text-sm font-bold text-heading truncate max-w-[260px] leading-tight">
-                          {t.subject || "-"}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                          <span className="text-[11px] text-muted font-mono">
-                            #{t.ticketID || t._id?.slice(0, 6) || "-"}
-                          </span>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide
-                            ${STATUS_VARIANTS[resolveStatusVariant(t.status)]?.badge || STATUS_VARIANTS.neutral.badge}`}>
-                            {t.status}
-                          </span>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide
-                            ${t.priority && PRIORITY_PILL[t.priority]
-                              ? PRIORITY_PILL[t.priority]
-                              : ""}`}>
-                            {t.priority || "-"}
-                          </span>
-                          <span className="flex items-center gap-1 text-xs text-muted">
-                            <Clock className="w-3 h-3" />
-                            {new Date(t.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "raisedBy",
-                    label: "Raised By",
-                    render: (_, t) => (
-                      <div className="flex items-center gap-2">
-                        {t.closedBy?.avatar ? (
-                          <img
-                            src={t.closedBy.avatar}
-                            alt="avatar"
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                        ) : (
-                          <FaUserCircle className="text-muted w-6 h-6" />
-                        )}
-                        <div className="flex flex-col">
-                          <span className="text-xs text-main font-medium whitespace-nowrap">
-                            {t.closedBy?.name || "Unknown User"}
-                          </span>
-                          {t.emailAddress && (
-                            <span className="text-[10px] text-muted truncate max-w-[120px]" title={t.emailAddress}>
-                              {t.emailAddress}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "assignedTo",
-                    label: "Assignee",
-                    render: (_, t) => {
-                      if (t.assignedTo) {
-                        return (
-                          <div className="flex items-center gap-2">
-                            {t.assignedTo.avatar ? (
-                              <img
-                                src={t.assignedTo.avatar}
-                                alt="avatar"
-                                className="w-6 h-6 rounded-full object-cover"
-                              />
-                            ) : (
-                              <FaUserCircle className="text-muted w-6 h-6" />
-                            )}
-                            <div className="flex flex-col">
-                              <span className="text-xs text-main font-medium whitespace-nowrap">
-                                {t.assignedTo.name || "Unknown Name"}
-                              </span>
-                              {t.assignedTo.email && (
-                                <span className="text-[10px] text-muted truncate max-w-[120px]" title={t.assignedTo.email}>
-                                  {t.assignedTo.email}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-6 h-6 rounded-full bg-surface flex items-center justify-center border border-border-subtle">
-                            <FaUserCircle className="text-slate-300 w-4 h-4" />
-                          </div>
-                          <span className="text-xs text-muted italic">Unassigned</span>
-                        </div>
-                      );
-                    },
-                  },
-                  {
-                    key: "actions",
-                    label: "Actions",
-                    align: "right",
-                    render: (_, t) => (
-                      <div className="flex justify-end items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <div className="w-28">
-                          <ModernSelect
-                            value={t.status}
-                            onChange={(e) => handleStatusChange(t._id, e.target.value)}
-                            options={[
-                              { value: "Open", label: "Opened" },
-                              { value: "In Progress", label: "In Progress" },
-                              { value: "Closed", label: "Closed" }
-                            ]}
-                            placeholder="All Status"
-                          />
-                        </div>
-                        <div className="w-28">
-                          <ModernSelect
-                            value={t.priority || "Medium Priority"}
-                            onChange={(e) => handlePriorityChange(t._id, e.target.value)}
-                            options={[
-                              { value: "High Priority", label: "High" },
-                              { value: "Medium Priority", label: "Medium" },
-                              { value: "Low Priority", label: "Low" }
-                            ]}
-                            placeholder="All Priority"
-                          />
-                        </div>
-                        <button
-                          onClick={() => setAssignTicket(t)}
-                          className="inline-flex items-center gap-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 px-3 py-2 rounded-lg text-xs font-bold hover:brightness-95 transition-all shadow-sm hover:shadow-md"
-                          title="Assign this ticket to a technician"
-                        >
-                          <UserPlus size={14} />
-                          Assign
-                        </button>
-                      </div>
-                    ),
-                  },
-                ],
-                []
-              )}
+              columns={columns}
               data={filteredTickets}
               loading={loading}
-              emptyMessage={searchTerm || priorityFilter !== "all" || startDate || endDate
-                ? "No tickets match these filters"
-                : "No tickets found"
+              emptyMessage={
+                searchTerm || priorityFilter !== "all" || startDate || endDate || activeTab !== 0
+                  ? "No tickets match these filters"
+                  : "No tickets found"
               }
-              onEmptyAction={() => setSearchTerm("")}
+              onEmptyAction={() => {
+                setSearchTerm("");
+                setPriorityFilter("all");
+                setStartDate(null);
+                setEndDate(null);
+                setActiveTab(0);
+              }}
               emptyActionLabel="Clear all filters"
               actions={[]}
               rowsPerPage={entriesPerPage}
@@ -645,7 +760,9 @@ function AdminTickets() {
                 <FaUserCircle className="w-6 h-6" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] font-black text-muted uppercase tracking-widest">Current Assignee</p>
+                <p className="text-[10px] font-black text-muted uppercase tracking-widest">
+                  Current Assignee
+                </p>
                 <p className="text-sm font-bold text-heading truncate">
                   {assignTicket.assignedTo?.name || "Unassigned"}
                 </p>
@@ -672,7 +789,8 @@ function AdminTickets() {
                 </div>
               ) : filteredTechnicians.length > 0 ? (
                 filteredTechnicians.map((user) => {
-                  const isAssigned = assignTicket.assignedTo?._id === user._id;
+                  const isAssigned =
+                    (assignTicket.assignedTo?._id || assignTicket.assignedTo) === user._id;
                   const isAssigning = assigningUserId === user._id;
                   return (
                     <button
@@ -683,7 +801,7 @@ function AdminTickets() {
                         isAssigned
                           ? "bg-amber-50 dark:bg-amber-900/30"
                           : "hover:bg-surface/70"
-                        } ${assigningUserId ? "opacity-60 cursor-not-allowed" : ""}`}
+                      } ${assigningUserId ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
                     >
                       <div className="flex items-center justify-center w-9 h-9 rounded-full bg-surface border border-border-subtle text-muted shrink-0 overflow-hidden">
                         {user.avatar ? (
@@ -717,12 +835,12 @@ function AdminTickets() {
                   <div className="flex flex-col items-center gap-2">
                     <UserPlus className="w-8 h-8 text-slate-300" />
                     <p className="text-sm font-semibold text-muted uppercase tracking-wider">
-                      {filteredTechnicians.length === 0
+                      {technicians.length === 0
                         ? "No technicians available"
                         : "No matching technicians"}
                     </p>
                     <p className="text-xs text-muted">
-                      {filteredTechnicians.length === 0
+                      {technicians.length === 0
                         ? "Add a technician from the ticket details page to enable assignment."
                         : "Try a different search term."}
                     </p>

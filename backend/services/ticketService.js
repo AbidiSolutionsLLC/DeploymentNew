@@ -103,6 +103,7 @@ class TicketService {
 
     return Ticket.find(query)
       .populate('closedBy', 'name email avatar')
+      .populate('user', 'name email avatar')
       .populate('assignedTo', 'name email avatar')
       .sort({ createdAt: -1 });
   }
@@ -113,8 +114,9 @@ class TicketService {
     const skip = (page - 1) * limit;
 
     const tickets = await Ticket.find({ closedBy: userId, company: companyId })
-      .populate('closedBy')
-      .populate('assignedTo')
+      .populate('closedBy', 'name email avatar')
+      .populate('user', 'name email avatar')
+      .populate('assignedTo', 'name email avatar')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -127,6 +129,7 @@ class TicketService {
   async getTicketById(user, companyId, ticketId) {
     const ticket = await Ticket.findOne({ _id: ticketId, company: companyId })
       .populate('closedBy', 'name email avatar')
+      .populate('user', 'name email avatar')
       .populate('assignedTo', 'name email avatar');
       
     if (!ticket) throw new NotFoundError("Ticket");
@@ -135,7 +138,8 @@ class TicketService {
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
     const isManagerTech = userRole === 'manager' && user.isTechnician;
-    const isOwner = ticket.closedBy && ticket.closedBy._id ? ticket.closedBy._id.toString() === (user.id || user._id).toString() : ticket.closedBy?.toString() === (user.id || user._id).toString();
+    const isOwner = (ticket.closedBy && (ticket.closedBy._id || ticket.closedBy).toString() === (user.id || user._id).toString()) ||
+                    (ticket.user && (ticket.user._id || ticket.user).toString() === (user.id || user._id).toString());
     const isAssignee = ticket.assignedTo && ticket.assignedTo._id ? ticket.assignedTo._id.toString() === (user.id || user._id).toString() : ticket.assignedTo?.toString() === (user.id || user._id).toString();
     
     if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isAssignee) {
@@ -153,7 +157,8 @@ class TicketService {
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
     const isManagerTech = userRole === 'manager' && user.isTechnician;
-    const isOwner = ticket.closedBy && ticket.closedBy._id ? ticket.closedBy._id.toString() === (user.id || user._id).toString() : ticket.closedBy?.toString() === (user.id || user._id).toString();
+    const isOwner = (ticket.closedBy && (ticket.closedBy._id || ticket.closedBy).toString() === (user.id || user._id).toString()) ||
+                    (ticket.user && (ticket.user._id || ticket.user).toString() === (user.id || user._id).toString());
     const isAssignee = ticket.assignedTo && ticket.assignedTo._id ? ticket.assignedTo._id.toString() === (user.id || user._id).toString() : ticket.assignedTo?.toString() === (user.id || user._id).toString();
     
     if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isAssignee) {
@@ -213,7 +218,8 @@ class TicketService {
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
     const isManagerTech = userRole === 'manager' && user.isTechnician;
-    const isOwner = ticket.closedBy && ticket.closedBy._id ? ticket.closedBy._id.toString() === (user.id || user._id).toString() : ticket.closedBy?.toString() === (user.id || user._id).toString();
+    const isOwner = (ticket.closedBy && (ticket.closedBy._id || ticket.closedBy).toString() === (user.id || user._id).toString()) ||
+                    (ticket.user && (ticket.user._id || ticket.user).toString() === (user.id || user._id).toString());
     const isAssignee = ticket.assignedTo && ticket.assignedTo._id ? ticket.assignedTo._id.toString() === (user.id || user._id).toString() : ticket.assignedTo?.toString() === (user.id || user._id).toString();
     
     if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isAssignee) {
@@ -262,7 +268,8 @@ class TicketService {
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
     const isManagerTech = userRole === 'manager' && user.isTechnician;
-    const isOwner = ticket.closedBy && ticket.closedBy._id ? ticket.closedBy._id.toString() === (user.id || user._id).toString() : ticket.closedBy?.toString() === (user.id || user._id).toString();
+    const isOwner = (ticket.closedBy && (ticket.closedBy._id || ticket.closedBy).toString() === (user.id || user._id).toString()) ||
+                    (ticket.user && (ticket.user._id || ticket.user).toString() === (user.id || user._id).toString());
     const isAssignee = ticket.assignedTo && ticket.assignedTo._id ? ticket.assignedTo._id.toString() === (user.id || user._id).toString() : ticket.assignedTo?.toString() === (user.id || user._id).toString();
     
     if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isAssignee) {
@@ -308,7 +315,10 @@ class TicketService {
       { _id: ticketId, company: companyId },
       { assignedTo },
       { new: true }
-    ).populate('assignedTo');
+    )
+      .populate('closedBy', 'name email avatar')
+      .populate('user', 'name email avatar')
+      .populate('assignedTo', 'name email avatar');
 
     this.sendAssignmentEmail(userToAssign.email, ticketUpdated).catch(console.error);
 

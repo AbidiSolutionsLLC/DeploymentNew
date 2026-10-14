@@ -201,10 +201,10 @@ function App() {
  <Route path="upload" element={<UploadDocument />} />
  </Route>
 
-<Route path="/project/*">
-  <Route index element={<PrivateRoute requiredPermission="projects:read:all"><Projects /></PrivateRoute>} />
-  <Route path="*" element={<PrivateRoute requiredPermission="projects:read:all"><Projects /></PrivateRoute>} />
-</Route>
+ <Route path="/project/*">
+ <Route index element={<ComingSoon />} />
+ <Route path="*" element={<ComingSoon />} />
+ </Route>
 
  <Route path="/faq/*">
  <Route index element={<FAQs />} />

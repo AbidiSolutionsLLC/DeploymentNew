@@ -99,9 +99,10 @@ const Login = () => {
           <>
             <form onSubmit={handleLocalLogin} className="space-y-4 text-left">
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-muted uppercase tracking-widest ml-1">Email Address</label>
+                <label htmlFor="login-email" className="text-[10px] font-black text-muted uppercase tracking-widest ml-1">Email Address</label>
                 <div className="relative">
-                  <input 
+                  <input
+                    id="login-email"
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -114,9 +115,10 @@ const Login = () => {
               </div>
               
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-muted uppercase tracking-widest ml-1">Password</label>
+                <label htmlFor="login-password" className="text-[10px] font-black text-muted uppercase tracking-widest ml-1">Password</label>
                 <div className="relative">
-                  <input 
+                  <input
+                    id="login-password"
                     type="password" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

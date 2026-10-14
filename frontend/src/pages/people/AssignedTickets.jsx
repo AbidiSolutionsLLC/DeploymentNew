@@ -267,13 +267,19 @@ export default function AssignedTickets() {
       key: "assignedTo",
       label: "Requester",
       render: (_, ticket) => {
-        const name = ticket.user?.name || ticket.emailAddress || "Unknown";
+        const rawName = ticket.user?.name || ticket.closedBy?.name;
+        const name = (rawName && !/unknown/i.test(rawName))
+          ? rawName
+          : ticket.emailAddress
+          ? ticket.emailAddress.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+          : "—";
+        const avatarUrl = ticket.user?.avatar || ticket.closedBy?.avatar;
         return (
           <div className="flex items-center gap-2 min-w-[140px]">
             <div className="w-8 h-8 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center text-[11px] font-black flex-shrink-0 overflow-hidden">
-              {ticket.user?.avatar ? (
+              {avatarUrl ? (
                 <img
-                  src={ticket.user.avatar}
+                  src={avatarUrl}
                   alt=""
                   className="w-full h-full object-cover"
                 />
@@ -283,7 +289,7 @@ export default function AssignedTickets() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-heading truncate leading-tight">
-                {ticket.user?.name || "Unknown"}
+                {name}
               </p>
               <p className="text-[10px] text-muted truncate">{ticket.emailAddress}</p>
             </div>

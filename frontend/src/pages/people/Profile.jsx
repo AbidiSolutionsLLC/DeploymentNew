@@ -34,6 +34,7 @@ const item = {
   hidden: { opacity: 0, y: 20, scale: 0.98 },
   show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: EASE } },
 };
+import { Image } from "antd";
 
 export default function Profile({ userId: propUserId }) {
   const navigate = useNavigate();

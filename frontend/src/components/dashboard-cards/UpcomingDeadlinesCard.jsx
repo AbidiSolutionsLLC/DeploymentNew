@@ -3,20 +3,14 @@ import React, { useRef, useState, useEffect } from "react";
 import { ArrowRightIcon } from "@heroicons/react/24/solid";
 import { FiCalendar, FiMoreVertical, FiTrash2 } from "react-icons/fi";
 
-const deadlines = [
- { task: "Submit Project Proposal", project: "Website Redesign", dueDate: "2025-08-11", status: "High Priority", completion: 30 },
- { task: "Client Review Meeting", project: "Mobile App Launch", dueDate: "2025-08-15", status: "Scheduled", completion: 55 },
- { task: "UI/UX Final Design", project: "Marketing Campaign", dueDate: "2025-08-20", status: "In Progress", completion: 45 },
-];
-
 function daysLeftFrom(dateString) {
  const today = new Date();
- const due = new Date(dateString + "T23:59:59");
+ const due = new Date(dateString);
  const diffMs = due - today;
  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 }
 
-export default function UpcomingDeadlinesCard() {
+export default function UpcomingDeadlinesCard({ deadlines = [] }) {
  const [menuOpen, setMenuOpen] = useState(false);
  const menuRef = useRef();
 

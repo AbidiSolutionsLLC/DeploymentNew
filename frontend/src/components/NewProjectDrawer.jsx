@@ -1,86 +1,307 @@
-import React from 'react';
-import { FaCalendarAlt } from 'react-icons/fa';
+import React, { useState, useEffect, useRef } from "react";
+import GlassModal from "./ui/GlassModal";
+import GlassButton from "./ui/GlassButton";
+import ModernSelect from "./ui/ModernSelect";
+import ModernDatePicker from "./ui/ModernDatePicker";
+import api from "../axios";
 
-const NewProjectDrawer = ({ isOpen, onClose }) => {
- if (!isOpen) return null;
+/**
+ * Project dialog — create AND edit (PROJECT_PORTAL_DESIGN.md §7).
+ * - `project` prop present → edit mode (prefills + submits the same payload for PUT).
+ * - Validation is always visible (never a silent no-op).
+ * - Responsive: fields stack on phones (grid-cols-1 sm:grid-cols-2).
+ * - State fully resets each time the dialog opens.
+ * Contract: onSubmit(payload) → parent closes the dialog on success, toasts on failure.
+ */
+const PROJECT_STATUSES = ["Planning", "Active", "On Hold", "Completed", "Cancelled"];
 
- return (
- <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
- <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
- 
- <div className="relative w-full max-w-lg rounded-xl shadow-2xl bg-surface dark:bg-app border border-white/20 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col p-6 max-h-[90vh]">
- {/* Header */}
- <div className="flex justify-between items-center mb-6">
- <h2 className="text-lg font-semibold text-heading">New Project</h2>
- <button onClick={onClose} className="text-muted hover:text-heading transition-colors">
- <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
- </button>
- </div>
+const EMPTY_FORM = {
+  title: "",
+  description: "",
+  owner: "",
+  department: "",
+  projectGroup: "",
+  status: "Planning",
+  team: [],
+  startDate: "",
+  dueDate: "",
+};
 
- {/* Form */}
- <form className="space-y-4 overflow-y-auto flex-1">
- <div className="grid grid-cols-2 gap-4">
- <input
- type="text"
- placeholder="Project Name"
- className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-amber-200"
- />
- <select className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-amber-200">
- <option value="">Project Owner</option>
- <option value="Alice">Alice</option>
- <option value="Bob">Bob</option>
- <option value="Charlie">Charlie</option>
- </select>
- </div>
+const toId = (v) => (v && typeof v === "object" ? v._id || "" : v || "");
+const toDateInput = (v) => (v ? String(v).slice(0, 10) : "");
 
- <div className="grid grid-cols-2 gap-4">
- <div className="relative">
- <input
- type="date"
- placeholder="Start Date"
- className="w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring focus:ring-amber-200"
- />
- <FaCalendarAlt className="absolute top-3 right-3 text-muted" />
- </div>
- <div className="relative">
- <input
- type="date"
- placeholder="End Date"
- className="w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring focus:ring-amber-200"
- />
- <FaCalendarAlt className="absolute top-3 right-3 text-muted" />
- </div>
- </div>
+const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
+  const isEdit = Boolean(project);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
+  const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [projectGroups, setProjectGroups] = useState([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+  const [optionsError, setOptionsError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const fetchedRef = useRef(false);
 
- <textarea
- placeholder="Description"
- rows="3"
- className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-amber-200"
- ></textarea>
+  // Load dropdown data once per session (users + departments + project groups)
+  useEffect(() => {
+    if (!isOpen || fetchedRef.current) return;
+    let mounted = true;
+    (async () => {
+      setLoadingOptions(true);
+      setOptionsError("");
+      try {
+        const [usersRes, deptsRes, groupsRes] = await Promise.all([
+          api.get("/users"),
+          api.get("/departments"),
+          api.get("/project-groups")
+        ]);
+        if (!mounted) return;
+        const userList = usersRes.data?.data || usersRes.data || [];
+        const deptList = deptsRes.data?.data || deptsRes.data || [];
+        const groupList = groupsRes.data?.data || groupsRes.data || [];
+        setUsers(Array.isArray(userList) ? userList : []);
+        setDepartments(Array.isArray(deptList) ? deptList : []);
+        setProjectGroups(Array.isArray(groupList) ? groupList : []);
+        fetchedRef.current = true;
+      } catch {
+        if (mounted) setOptionsError("Could not load form options. Close and try again.");
+      } finally {
+        if (mounted) setLoadingOptions(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen]);
 
- <select className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-amber-200">
- <option value="">Department</option>
- <option value="IT">IT</option>
- <option value="Marketing">Marketing</option>
- <option value="HR">HR</option>
- </select>
+  // (Re)populate the form each time the dialog opens: edit prefills, create resets
+  useEffect(() => {
+    if (!isOpen) return;
+    setErrors({});
+    setSaving(false);
+    if (project) {
+      setForm({
+        title: project.title || "",
+        description: project.description || "",
+        owner: toId(project.owner),
+        department: toId(project.department),
+        projectGroup: toId(project.projectGroup),
+        status: PROJECT_STATUSES.includes(project.status) ? project.status : "Planning",
+        team: (project.team || []).map((m) => toId(m)),
+        startDate: toDateInput(project.startDate),
+        dueDate: toDateInput(project.dueDate),
+      });
+    } else {
+      setForm(EMPTY_FORM);
+    }
+  }, [isOpen, project]);
 
- <select className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-amber-200">
- <option value="">Users</option>
- <option value="User A">User A</option>
- <option value="User B">User B</option>
- <option value="User C">User C</option>
- </select>
+  const set = (name, value) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: null }));
+  };
 
- <div className="flex justify-end mt-4">
- <button type="submit" className="btn btn-primary">
- Save Project
- </button>
- </div>
- </form>
- </div>
- </div>
- );
+  const handleChange = (e) => set(e.target.name, e.target.value);
+
+  const validate = () => {
+    const next = {};
+    if (!form.title.trim()) next.title = "Project name is required.";
+    if (!form.owner) next.owner = "Project owner is required.";
+    if (!form.department) next.department = "Department is required.";
+    if (form.startDate && form.dueDate && form.dueDate < form.startDate) {
+      next.dueDate = "End date can't be before start date.";
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      await onSubmit({
+        title: form.title.trim(),
+        description: form.description.trim(),
+        owner: form.owner,
+        department: form.department,
+        projectGroup: form.projectGroup || null,
+        status: form.status,
+        team: form.team,
+        startDate: form.startDate || null,
+        dueDate: form.dueDate || null,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const userOptions = users.map((u) => ({
+    value: u._id || u.id,
+    label: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email,
+  }));
+  const departmentOptions = departments.map((d) => ({ value: d._id || d.id, label: d.name }));
+  const groupOptions = [
+    { value: "", label: "None (No Group)" },
+    ...projectGroups.map((g) => ({ value: g._id || g.id, label: g.name }))
+  ];
+
+  const footer = (
+    <div className="flex justify-end gap-2 w-full">
+      <GlassButton variant="secondary" onClick={onClose} disabled={saving}>
+        Cancel
+      </GlassButton>
+      <GlassButton variant="primary" type="submit" form="projectForm" isLoading={saving}>
+        {isEdit ? "Save Changes" : "Create Project"}
+      </GlassButton>
+    </div>
+  );
+
+  const labelCls = "block text-[10px] font-black text-muted mb-1.5 uppercase tracking-widest";
+
+  return (
+    <GlassModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEdit ? "Edit Project" : "New Project"}
+      description={isEdit ? "Update the project details below." : "Create a project and assign its owner and team."}
+      maxWidth="max-w-2xl"
+      footer={footer}
+    >
+      <form id="projectForm" onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {optionsError && (
+          <p className="text-danger text-xs bg-danger-bg border border-danger-border rounded-lg px-3 py-2">
+            {optionsError}
+          </p>
+        )}
+
+        {/* Title */}
+        <div>
+          <label htmlFor="project-title" className={labelCls}>
+            Project Name*
+          </label>
+          <input
+            id="project-title"
+            type="text"
+            placeholder="e.g. Website Redesign"
+            value={form.title}
+            onChange={(e) => set("title", e.target.value)}
+            className={`glass-input ${errors.title ? "is-error" : ""}`}
+            required
+          />
+          {errors.title && <p className="text-danger text-xs mt-1">{errors.title}</p>}
+        </div>
+
+        {/* Owner / Department */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <ModernSelect
+              label="Project Owner*"
+              name="owner"
+              value={form.owner}
+              onChange={handleChange}
+              options={userOptions}
+              placeholder={loadingOptions ? "Loading people..." : "Select owner"}
+              required
+              error={errors.owner}
+            />
+            {errors.owner && <p className="text-danger text-xs mt-1">{errors.owner}</p>}
+          </div>
+          <div>
+            <ModernSelect
+              label="Department*"
+              name="department"
+              value={form.department}
+              onChange={handleChange}
+              options={departmentOptions}
+              placeholder={loadingOptions ? "Loading departments..." : "Select department"}
+              required
+              error={errors.department}
+            />
+            {errors.department && <p className="text-danger text-xs mt-1">{errors.department}</p>}
+          </div>
+        </div>
+
+        {/* Status / Project Group */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ModernSelect
+            label="Status"
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            options={PROJECT_STATUSES.map((s) => ({ value: s, label: s }))}
+          />
+          <ModernSelect
+            label="Project Group (Optional)"
+            name="projectGroup"
+            value={form.projectGroup}
+            onChange={handleChange}
+            options={groupOptions}
+            placeholder={loadingOptions ? "Loading groups..." : "Select project group"}
+          />
+        </div>
+
+        {/* Team Members */}
+        <div>
+          <label htmlFor="project-team" className={labelCls}>
+            Team Members
+          </label>
+          <select
+            id="project-team"
+            multiple
+            value={form.team}
+            onChange={(e) =>
+              set(
+                "team",
+                Array.from(e.target.selectedOptions, (o) => o.value)
+              )
+            }
+            className="glass-input h-24 custom-scrollbar-visible"
+          >
+            {users.map((u) => (
+              <option key={u._id || u.id} value={u._id || u.id}>
+                {u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email}
+              </option>
+            ))}
+          </select>
+          <p className="text-[10px] text-muted mt-1">Hold Ctrl/Cmd to select multiple</p>
+        </div>
+
+        {/* Dates */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ModernDatePicker
+            label="Start Date"
+            name="startDate"
+            value={form.startDate}
+            onChange={handleChange}
+          />
+          <ModernDatePicker
+            label="End Date"
+            name="dueDate"
+            value={form.dueDate}
+            onChange={handleChange}
+            error={errors.dueDate}
+          />
+        </div>
+        {errors.dueDate && <p className="text-danger text-xs -mt-2">{errors.dueDate}</p>}
+
+        {/* Description */}
+        <div>
+          <label htmlFor="project-description" className={labelCls}>
+            Description
+          </label>
+          <textarea
+            id="project-description"
+            placeholder="What is this project about?"
+            rows={3}
+            value={form.description}
+            onChange={(e) => set("description", e.target.value)}
+            className="glass-input min-h-[90px] resize-y"
+          />
+        </div>
+      </form>
+    </GlassModal>
+  );
 };
 
 export default NewProjectDrawer;

@@ -15,10 +15,11 @@ export default function PageContainer({
   bottomWidgets,
   isCard = true, 
   loading = false,
+  className = "",
   children 
 }) {
  return (
- <div className="flex flex-col gap-4 w-full h-full">
+ <div className={`flex flex-col gap-4 w-full flex-1 ${className}`.trim()}>
  
  {/* Header & Filters Glass Card */}
  {(title || subtitle || headerActions || filters) && (

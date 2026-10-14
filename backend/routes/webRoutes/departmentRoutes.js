@@ -8,5 +8,7 @@ const authMiddleware = require("../../middlewares/authMiddleware"); // Ensure yo
 router.post("/", validate(departmentSchema), departmentController.createDepartment); // POST /api/departments
 router.get("/", departmentController.getAllDepartments); // GET /api/departments
 router.get("/:id", departmentController.getDepartmentById); // GET /api/departments/:id
+router.put("/:id", validate(departmentSchema), departmentController.updateDepartment); // PUT /api/departments/:id
+router.delete("/:id", departmentController.deleteDepartment); // DELETE /api/departments/:id
 
 module.exports = router;

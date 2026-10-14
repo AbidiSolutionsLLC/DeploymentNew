@@ -15,7 +15,7 @@ import {
   FolderPlusIcon, CheckBadgeIcon,
   PlusIcon, UserPlusIcon, ClipboardDocumentCheckIcon,
   Cog6ToothIcon, ArrowRightOnRectangleIcon, SwatchIcon,
-  SunIcon, MoonIcon, ComputerDesktopIcon
+  SunIcon, MoonIcon, ComputerDesktopIcon, SquaresPlusIcon
 } from "@heroicons/react/20/solid";
 import { DollarSignIcon } from "lucide-react";
 import { FaSitemap } from "react-icons/fa";
@@ -108,6 +108,7 @@ const iconMap = {
       "Time Tracker": ClockIcon, "Leave Tracker": BriefcaseIcon, "Ticket": TicketIcon,
       "Raise a Ticket": TicketIcon, "Ticket List": TicketIcon, "Shared with me": UserGroupIcon,
       "Shared with Role": UserCircleIcon, "Upload Document": DocumentIcon, "Approve Timelogs": CheckBadgeIcon,
+      "Project Portal": SquaresPlusIcon,
       "Project DashBoard": ChartPieIcon, "Projects": RectangleStackIcon, "My Tasks": ClipboardDocumentListIcon,
       "Admin DashBoard": ShieldCheckIcon, "Leave Management": BriefcaseIcon, "User Management": UsersIcon,
       "File Management": FolderPlusIcon, "Approve Time Sheets": CheckBadgeIcon,

@@ -7,6 +7,7 @@ router.route('/')
   .get(projectGroupController.getAllGroups);
 
 router.route('/:id')
+  .get(projectGroupController.getGroupById)
   .put(projectGroupController.updateGroup)
   .delete(projectGroupController.deleteGroup);
 

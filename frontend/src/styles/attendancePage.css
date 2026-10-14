@@ -142,27 +142,33 @@
 /* ============ READOUT STRIP (KPI cards) ============ */
 
 .att-readout {
+  /* Container-driven grid (auto-fit) instead of viewport breakpoints: the
+     People portal sidebars squeeze the real content width well below the
+     viewport width, so viewport @media rules forced 6 cramped columns and
+     overflowed. auto-fit wraps the 6 cells to 6/5/4/3/2/1 columns based on
+     the space they actually have. */
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  gap: 0.75rem;
 }
 
-@media (min-width: 640px) {
-  .att-readout { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (min-width: 1280px) {
-  .att-readout { grid-template-columns: repeat(6, 1fr); }
+@media (min-width: 768px) {
+  .att-readout {
+    gap: 0.85rem;
+  }
 }
 
 .att-cell {
+  /* Each card is its own query container so the internal tile/value/label
+     can shrink when the card itself gets narrow (see @container below). */
+  container-type: inline-size;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  padding: 1rem 1.1rem 1.1rem;
+  padding: 0.95rem 1rem 1rem;
   min-width: 0;
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border-primary);
@@ -201,25 +207,26 @@
    the cells keep their resting state on hover. */
 
 /* KPI tile row: label/value on the left, the .lm-kpi-icon
-    tile (same size/shape/ring/glow as every other page) on
-    the right — centered vertically for consistent alignment. */
+    tile on the right — centered vertically with no text truncation. */
 .att-cell__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 .att-cell__label {
   font-size: 0.625rem;
   font-weight: 900;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .att-cell__value {
-  font-size: clamp(1.6rem, 3vw, 2.125rem);
+  font-size: 1.85rem;
   line-height: 1;
   font-weight: var(--font-black);
   font-variant-numeric: tabular-nums;
@@ -231,15 +238,69 @@
   color: var(--color-brand-text);
 }
 
+/* Scale .lm-kpi-icon inside .att-cell so it never overflows or clips adjacent text */
+.att-cell .lm-kpi-icon {
+  width: 2.65rem;
+  height: 2.65rem;
+  flex: 0 0 2.65rem;
+  border-radius: 0.8rem;
+}
+
+.att-cell .lm-kpi-icon::before {
+  inset: -4.5px;
+  border-radius: 1rem;
+}
+
+.att-cell .lm-kpi-icon .lm-glow {
+  inset: -8px;
+}
+
+/* Narrow cards (small phones, or any width where auto-fit squeezes a cell
+   below ~160px): shrink the tile, value and label so the icon and text
+   never collide or overflow the card. Queried against the card itself, so
+   it responds to real available width rather than the viewport. */
+@container (max-width: 10rem) {
+  .att-cell__row .lm-kpi-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 2.25rem;
+    border-radius: 0.7rem;
+  }
+
+  .att-cell__row .lm-kpi-icon::before {
+    inset: -3.5px;
+    border-radius: 0.85rem;
+  }
+
+  .att-cell__row .lm-kpi-icon .lm-glow {
+    inset: -6px;
+  }
+
+  .att-cell__row .lm-kpi-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .att-cell__label {
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+  }
+
+  .att-cell__value {
+    font-size: 1.6rem;
+  }
+}
+
 .att-segbar {
   display: flex;
-  gap: 4px;
-  height: 7px;
+  gap: 3px;
+  height: 6px;
   margin-top: 0.45rem;
 }
 
 .att-seg {
   flex: 1;
+  min-width: 4px;
   border-radius: var(--radius-full);
   background: var(--color-border-primary);
   transition: transform 0.2s ease;

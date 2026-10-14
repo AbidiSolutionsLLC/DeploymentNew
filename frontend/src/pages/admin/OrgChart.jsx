@@ -186,8 +186,7 @@ const FOCUS_META = {
   self: { title: "Where am I?", flag: "You", memberFlag: null },
   team: { title: "Where is my team?", flag: "Your team", memberFlag: "Team" },
   manager: { title: "My Manager", flag: "Your manager", memberFlag: null },
-  vp: { title: "My VP", flag: "Your VP", memberFlag: null },
-  ceo: { title: "Our CEO", flag: "Our CEO", memberFlag: null },
+  ceo: { title: "Our CEO (Chief Executive Officer)", flag: "Our CEO", memberFlag: null },
   node: { title: "In focus", flag: "Selected", memberFlag: null },
 };
 
@@ -232,6 +231,57 @@ const sortNodes = (nodes) =>
         (a.name || "").localeCompare(b.name || "")
     )
     .map((n) => ({ ...n, children: n.children?.length ? sortNodes(n.children) : [] }));
+
+const findCeoNode = (byId, depthOf) => {
+  if (!byId || !byId.size) return null;
+  const nodes = Array.from(byId.values());
+  const matches = [];
+
+  for (const node of nodes) {
+    const des = (node.designation || "").trim();
+    const role = (node.role || "").trim();
+
+    // Check for both abbreviation "CEO" / "C.E.O." and full form "Chief Executive Officer" / "Chief Executive"
+    const desHasCeoWord = /\b(ceo|c\.e\.o\.?)\b/i.test(des);
+    const desHasFullForm = /\bchief\s+executive(\s+officer)?\b/i.test(des);
+    const desHasCeoSub = des.toLowerCase().includes("ceo") || des.toLowerCase().includes("chief executive");
+
+    const roleHasCeo = /\b(ceo|c\.e\.o\.?)\b/i.test(role);
+    const roleHasFullForm = /\bchief\s+executive(\s+officer)?\b/i.test(role);
+
+    if (!desHasCeoWord && !desHasFullForm && !desHasCeoSub && !roleHasCeo && !roleHasFullForm) {
+      continue;
+    }
+
+    const lowerDes = des.toLowerCase();
+    const isAssistant = /assistant|assoc|intern|secretary|deputy/i.test(lowerDes);
+
+    let score = 0;
+    if (lowerDes === "ceo" || lowerDes === "chief executive officer" || lowerDes === "chief executive") {
+      score = 100;
+    } else if (/^(ceo|c\.e\.o\.?|chief\s+executive(\s+officer)?)\b/i.test(des)) {
+      score = 90;
+    } else if ((desHasCeoWord || desHasFullForm) && !isAssistant) {
+      score = 80;
+    } else if (desHasCeoWord || desHasFullForm) {
+      score = 50;
+    } else if (desHasCeoSub && !isAssistant) {
+      score = 40;
+    } else if (roleHasCeo || roleHasFullForm) {
+      score = 20;
+    } else {
+      score = 10;
+    }
+
+    const depth = depthOf?.get(node._id) ?? 999;
+    matches.push({ node, score, depth });
+  }
+
+  if (!matches.length) return null;
+
+  matches.sort((a, b) => b.score - a.score || a.depth - b.depth);
+  return matches[0].node;
+};
 
 /* ------------------------------------------------------------------ *
  * One person card + its subtree
@@ -431,10 +481,7 @@ const OrgChartPage = () => {
     };
     walk(data, null, 0);
 
-    const ceo =
-      data.find((n) => /ceo|chief executive|founder|owner/i.test(`${n.designation || ""} ${n.role || ""}`)) ||
-      data[0] ||
-      null;
+    const ceo = findCeoNode(byId, depthOf);
 
     const ancestorsOf = (id) => {
       const out = [];
@@ -531,18 +578,6 @@ const OrgChartPage = () => {
   );
 
   /* ---------------- quick-jump targets ---------------- */
-  const vpInfo = useMemo(() => {
-    if (!myId || !graph.byId.has(myId) || !graph.ceo) return null;
-    const ceoId = graph.ceo._id;
-    if (myId === ceoId) return { id: myId, self: true };
-    if (graph.parentOf.get(myId) === ceoId) return { id: myId, self: true };
-    const found = graph
-      .ancestorsOf(myId)
-      .map((a) => graph.byId.get(a))
-      .find((n) => n && graph.parentOf.get(n._id) === ceoId);
-    return found ? { id: found._id, self: false } : null;
-  }, [graph, myId]);
-
   const managerId = myId ? graph.parentOf.get(myId) : null;
 
   /* ---------------- focus helpers ---------------- */
@@ -558,16 +593,16 @@ const OrgChartPage = () => {
       let related = [];
       if (kind === "self") related = ancestors;
       else if (kind === "team") related = [];
-      else if (kind === "manager" || kind === "vp" || kind === "ceo") {
+      else if (kind === "manager" || kind === "ceo") {
         // light up the line from you to the target
-        const up = graph.ancestorsOf(myId);
+        const up = myId ? graph.ancestorsOf(myId) : [];
         const idx = up.indexOf(id);
         const path = idx >= 0 ? up.slice(0, idx) : [];
-        related = [myId, ...path];
+        related = myId ? [myId, ...path] : [];
       } else related = ancestors;
 
       const expand = new Set(ancestors);
-      if (kind === "self" || kind === "team" || kind === "node") expand.add(id);
+      if (kind === "self" || kind === "team" || kind === "node" || kind === "ceo") expand.add(id);
 
       setCollapsed((prev) => {
         const next = new Set(prev);
@@ -600,6 +635,19 @@ const OrgChartPage = () => {
   const jump = useCallback(
     (kind) => {
       if (loading) return;
+
+      if (kind === "ceo") {
+        const ceoNode = graph.ceo || findCeoNode(graph.byId, graph.depthOf);
+        if (!ceoNode) {
+          toast.info("No profile with CEO or Chief Executive Officer designation found in the org chart.");
+          return;
+        }
+        applyFocus(ceoNode._id, "ceo", {
+          note: myId && ceoNode._id === myId ? "That's you — top of the chart." : "Top of the organization.",
+        });
+        return;
+      }
+
       if (!myId || !myNode) {
         toast.info("Your profile isn't listed in the org chart yet.");
         return;
@@ -633,32 +681,8 @@ const OrgChartPage = () => {
         });
         return;
       }
-
-      if (kind === "vp") {
-        if (!vpInfo) {
-          toast.info("No VP level sits above you in the chart.");
-          return;
-        }
-        if (vpInfo.self) {
-          applyFocus(vpInfo.id, "vp", { note: "You report straight to the CEO — you are the VP of your branch." });
-        } else {
-          const vpNode = graph.byId.get(vpInfo.id);
-          applyFocus(vpInfo.id, "vp", { note: `${vpNode?.name} leads your branch directly under the CEO.` });
-        }
-        return;
-      }
-
-      if (kind === "ceo") {
-        if (!graph.ceo) {
-          toast.info("No CEO found in the org chart.");
-          return;
-        }
-        applyFocus(graph.ceo._id, "ceo", {
-          note: graph.ceo._id === myId ? "That's you — top of the chart." : "Top of the organization.",
-        });
-      }
     },
-    [loading, myId, myNode, graph, managerId, vpInfo, applyFocus]
+    [loading, myId, myNode, graph, managerId, applyFocus]
   );
 
   /* ---------------- center on a card ---------------- */
@@ -821,10 +845,14 @@ const OrgChartPage = () => {
                 <GlassButton variant={jumpVariant("manager")} size="sm" icon={FaUserCheck} onClick={() => jump("manager")} disabled={loading || !myNode || !managerId}>
                   My manager
                 </GlassButton>
-                <GlassButton variant={jumpVariant("vp")} size="sm" icon={FaCrown} onClick={() => jump("vp")} disabled={loading || !vpInfo}>
-                  My VP
-                </GlassButton>
-                <GlassButton variant={jumpVariant("ceo")} size="sm" icon={FaCrown} onClick={() => jump("ceo")} disabled={loading || !graph.ceo}>
+                <GlassButton
+                  variant={jumpVariant("ceo")}
+                  size="sm"
+                  icon={FaCrown}
+                  onClick={() => jump("ceo")}
+                  title="Our CEO (Chief Executive Officer)"
+                  disabled={loading || !data?.length}
+                >
                   Our CEO
                 </GlassButton>
                 {activeFocus && (

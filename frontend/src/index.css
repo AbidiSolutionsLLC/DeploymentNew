@@ -576,6 +576,46 @@ body {
   transform: scale(0.98);
 }
 
+/* Ghost button — quiet text action (close buttons, cancel in footers).
+   Referenced by GlassModal/NewProjectDrawer and other dialogs. */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--text-xs);
+  font-weight: var(--font-black);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  color: var(--color-text-secondary);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-xl);
+  transition: all var(--transition-fast) var(--transition-timing);
+  cursor: pointer;
+}
+.btn-ghost:hover {
+  color: var(--color-text-heading);
+  background-color: var(--color-bg-hover);
+}
+
+/* Invalid form state — add `is-error` to .glass-input when validation fails */
+.glass-input.is-error,
+.glass-input.is-error:focus,
+.glass-input.is-error:hover {
+  border-color: var(--status-danger-fg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-danger-fg) 18%, transparent);
+}
+
+/* Textareas need wrapping (glass-input defaults are single-line) */
+textarea.glass-input {
+  white-space: pre-wrap;
+  overflow: hidden;
+  text-overflow: clip;
+  resize: vertical;
+}
+
 /* ===== ANIMATIONS ===== */
 
 @keyframes fadeIn {

@@ -3,7 +3,8 @@ import api from '../axios';
 const API_URL = '/projects';
 
 const getProjects = async () => {
- const response = await api.get(API_URL);
+ // Portal loads the full list once and does search/filter/sort/pagination client-side
+ const response = await api.get(`${API_URL}?limit=1000`);
  return response.data?.data || response.data;
 };
 

@@ -64,6 +64,13 @@ const projectSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Department',
       required: true
+    },
+
+    projectGroup: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ProjectGroup',
+      default: null,
+      index: true
     }
   },
   {

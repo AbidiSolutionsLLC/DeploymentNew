@@ -39,11 +39,20 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(
-  async (config) => {
-    config.headers['X-Timezone'] = TIMEZONE;
-    try {
-      const accounts = msalInstance.getAllAccounts();
-      const activeAccount = msalInstance.getActiveAccount() || accounts[0];
+ async (config) => {
+ config.headers['X-Timezone'] = TIMEZONE;
+ if (
+   import.meta.env.MODE === "test" &&
+   import.meta.env.VITE_TEST_AUTH_SECRET &&
+   import.meta.env.VITE_TEST_USER_EMAIL &&
+   localStorage.getItem("portalTestAuth") === "true"
+ ) {
+   config.headers['x-test-auth-secret'] = import.meta.env.VITE_TEST_AUTH_SECRET;
+   config.headers['x-test-user-email'] = import.meta.env.VITE_TEST_USER_EMAIL;
+ }
+ try {
+ const accounts = msalInstance.getAllAccounts();
+ const activeAccount = msalInstance.getActiveAccount() || accounts[0];
 
       if (activeAccount) {
         try {

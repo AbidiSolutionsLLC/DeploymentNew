@@ -1,26 +1,83 @@
 const Project = require("../models/projectSchema");
 const Task = require("../models/taskSchema");
-const { NotFoundError, BadRequestError } = require("../utils/ExpressError");
+const ProjectGroup = require("../models/projectGroupSchema");
+const User = require("../models/userSchema");
+const Department = require("../models/department");
+const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { createNotification } = require('../utils/notificationService');
 
 class ProjectService {
-  async createProject(user, companyId, data) {
-    const { title, description, team, strict, isPublic, startDate, dueDate } = data;
-    const owner = user.id || user._id;
+  async validateCompanyReferences(companyId, { owner, team, department, projectGroup } = {}) {
+    const userIds = [owner, ...(team || [])].filter(Boolean);
+    if (userIds.length) {
+      const count = await User.countDocuments({ _id: { $in: userIds }, company: companyId });
+      if (count !== new Set(userIds.map(String)).size) {
+        throw new BadRequestError("Owner and team members must belong to the project company");
+      }
+    }
+    if (
+      department &&
+      !(await Department.exists({
+        _id: department,
+        $or: [{ company: companyId }, { company: null }, { company: { $exists: false } }],
+      }))
+    ) {
+      throw new BadRequestError("Department must belong to the project company");
+    }
+    if (projectGroup) {
+      const groupExists = await ProjectGroup.exists({ _id: projectGroup, company: companyId });
+      if (!groupExists) {
+        throw new BadRequestError("Project group must belong to the project company");
+      }
+    }
+  }
+
+  async withProgress(project, companyId) {
+    const progressMap = await this.getProjectProgressMap([project._id], companyId);
+    const result = project.toObject ? project.toObject() : { ...project };
+    const progress = progressMap.get(project._id.toString());
+    if (progress !== undefined) result.progress = progress;
+    return result;
+  }
+
+  mapAttachments(files) {
+    return (files || []).map((file) => ({
+      public_id: file.blobName || file.filename,
+      url: file.url || file.path,
+      originalname: file.originalname,
+      format: file.mimetype,
+      size: file.size
+    }));
+  }
+
+  async createProject(user, companyId, data, files) {
+    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status, projectGroup } = data;
+    const owner = dataOwner || user.id || user._id;
+    await this.validateCompanyReferences(companyId, { owner, team, department, projectGroup });
 
     const project = new Project({
       title,
       description,
       team,
       owner,
+      department,
+      projectGroup: projectGroup || null,
+      status,
       strict,
       isPublic,
       startDate,
       dueDate,
+      attachments: this.mapAttachments(files),
       company: companyId,
     });
 
     const savedProject = await project.save();
+
+    if (savedProject.projectGroup) {
+      await ProjectGroup.findByIdAndUpdate(savedProject.projectGroup, {
+        $addToSet: { projects: savedProject._id }
+      });
+    }
 
     if (savedProject.team && savedProject.team.length > 0) {
       savedProject.team.forEach(memberId => {
@@ -34,11 +91,33 @@ class ProjectService {
       });
     }
 
-    return savedProject;
+    return this.withProgress(savedProject, companyId);
+  }
+
+  // Progress rule (single definition, used everywhere):
+  // progress = average completionPercent across the project's tasks.
+  // Projects without tasks get NO entry, so the UI can show its documented status-based estimate.
+  async getProjectProgressMap(projectIds, companyId) {
+    const map = new Map();
+    if (!projectIds || projectIds.length === 0) return map;
+
+    const tasks = await Task.find({ company: companyId, project: { $in: projectIds } })
+      .select("project completionPercent");
+
+    const sums = new Map();
+    const counts = new Map();
+    tasks.forEach((t) => {
+      if (!t.project) return;
+      const key = t.project.toString();
+      sums.set(key, (sums.get(key) || 0) + (t.completionPercent || 0));
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    sums.forEach((sum, key) => map.set(key, Math.round(sum / counts.get(key))));
+    return map;
   }
 
   async getAllProjects(user, companyId, query) {
-    const { page = 1, limit = 20, search = '', status, myProjects } = query;
+    const { page = 1, limit = 20, search = '', status, myProjects, projectGroup } = query;
     const skip = (page - 1) * limit;
 
     const userId = user.id || user._id;
@@ -46,6 +125,7 @@ class ProjectService {
     const filter = {
       company: companyId,
       ...(status && { status }),
+      ...(projectGroup && { projectGroup }),
       ...(search && {
         $or: [
           { title: { $regex: search, $options: 'i' } },
@@ -61,14 +141,25 @@ class ProjectService {
       Project.find(filter)
         .populate("team", "name email avatar")
         .populate("owner", "name email avatar")
+        .populate("projectGroup", "name")
         .skip(skip)
         .limit(Number(limit))
         .sort({ createdAt: -1 }),
       Project.countDocuments(filter)
     ]);
 
+    const progressMap = await this.getProjectProgressMap(
+      data.map((p) => p._id),
+      companyId
+    );
+
     return {
-      data,
+      data: data.map((p) => {
+        const project = p.toObject();
+        const progress = progressMap.get(project._id.toString());
+        if (progress !== undefined) project.progress = progress;
+        return project;
+      }),
       pagination: {
         total,
         page: Number(page),
@@ -81,7 +172,8 @@ class ProjectService {
   async getProjectById(user, companyId, projectId) {
     const project = await Project.findOne({ _id: projectId, company: companyId })
       .populate("team", "name email avatar")
-      .populate("owner", "name email avatar");
+      .populate("owner", "name email avatar")
+      .populate("projectGroup", "name description");
 
     if (!project) throw new NotFoundError("Project");
 
@@ -98,14 +190,20 @@ class ProjectService {
       throw new ForbiddenError("You do not have permission to access or modify this project.");
     }
 
-    return project;
+    return this.withProgress(project, companyId);
   }
 
-  async updateProject(user, companyId, projectId, data) {
-    const { title, description, team, status, strict, isPublic, startDate, dueDate } = data;
+  async updateProject(user, companyId, projectId, data, files) {
+    const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department, projectGroup } = data;
 
     const project = await Project.findOne({ _id: projectId, company: companyId });
     if (!project) throw new NotFoundError("Project");
+    await this.validateCompanyReferences(companyId, {
+      ...(owner !== undefined && { owner }),
+      ...(team !== undefined && { team }),
+      ...(department !== undefined && { department }),
+      ...(projectGroup ? { projectGroup } : {})
+    });
 
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
@@ -121,17 +219,40 @@ class ProjectService {
     }
 
     const previousTeam = project.team.map(id => id.toString());
+    const previousStatus = project.status;
 
     project.title = title || project.title;
-    project.description = description || project.description;
-    project.team = team || project.team;
+    // Allow clearing optional fields (undefined = leave untouched, null/"" = clear)
+    project.description = description !== undefined ? description : project.description;
+    project.team = team !== undefined ? team : project.team;
     project.status = status || project.status;
     project.strict = strict !== undefined ? strict : project.strict;
     project.isPublic = isPublic !== undefined ? isPublic : project.isPublic;
-    project.startDate = startDate || project.startDate;
-    project.dueDate = dueDate || project.dueDate;
+    project.startDate = startDate !== undefined ? startDate : project.startDate;
+    project.dueDate = dueDate !== undefined ? dueDate : project.dueDate;
+    project.owner = owner !== undefined ? owner : project.owner;
+    project.department = department !== undefined ? department : project.department;
+
+    if (projectGroup !== undefined) {
+      const oldGroupId = project.projectGroup ? project.projectGroup.toString() : null;
+      const newGroupId = projectGroup ? projectGroup.toString() : null;
+      if (oldGroupId !== newGroupId) {
+        if (oldGroupId) {
+          await ProjectGroup.findByIdAndUpdate(oldGroupId, { $pull: { projects: project._id } });
+        }
+        if (newGroupId) {
+          await ProjectGroup.findByIdAndUpdate(newGroupId, { $addToSet: { projects: project._id } });
+        }
+        project.projectGroup = newGroupId || null;
+      }
+    }
+
+    if (files?.length) {
+      project.attachments = [...(project.attachments || []), ...this.mapAttachments(files)];
+    }
 
     const updatedProject = await project.save();
+    await updatedProject.populate("projectGroup", "name description");
 
     if (team && team.length > 0) {
       const newMembers = team.filter(id => !previousTeam.includes(id.toString()));
@@ -146,7 +267,7 @@ class ProjectService {
       });
     }
 
-    if (status && status !== project.status) {
+    if (status && status !== previousStatus) {
       const recipients = [...new Set([...updatedProject.team.map(id => id.toString()), updatedProject.owner.toString()])];
       recipients.forEach(memberId => {
         createNotification({
@@ -159,7 +280,7 @@ class ProjectService {
       });
     }
 
-    return updatedProject;
+    return this.withProgress(updatedProject, companyId);
   }
 
   async deleteProject(user, companyId, projectId) {
@@ -195,66 +316,180 @@ class ProjectService {
       }).catch(err => console.error('Notification failed:', err));
     });
 
+    if (project.projectGroup) {
+      await ProjectGroup.findByIdAndUpdate(project.projectGroup, { $pull: { projects: project._id } });
+    }
+    await ProjectGroup.updateMany({ projects: project._id, company: companyId }, { $pull: { projects: project._id } });
+
     await project.deleteOne();
   }
 
   async getUserProjects(user, companyId) {
     const userId = user.id || user._id;
 
-    return Project.find({
+    const projects = await Project.find({
       company: companyId,
       $or: [{ owner: userId }, { team: userId }],
     })
       .populate("team", "name email avatar")
       .populate("owner", "name email avatar");
+    const progressMap = await this.getProjectProgressMap(projects.map(p => p._id), companyId);
+    return projects.map(p => {
+      const result = p.toObject();
+      const progress = progressMap.get(p._id.toString());
+      if (progress !== undefined) result.progress = progress;
+      return result;
+    });
   }
 
   async getProjectDashboard(user, companyId) {
     const userId = user.id || user._id;
 
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isPrivileged = isSuperAdmin || isAdmin || isManagerTech;
+
+    const projectScope = isPrivileged
+      ? { company: companyId }
+      : { company: companyId, $or: [{ owner: userId }, { team: userId }] };
+
+    const activeStatusQuery = { $in: ["Active", "Planning", "In Progress", "Open"] };
+
     const activeProjects = await Project.countDocuments({
-      company: companyId,
-      status: { $in: ["Active", "In Progress"] },
-      $or: [{ owner: userId }, { team: userId }],
+      ...projectScope,
+      status: activeStatusQuery,
     });
 
     const completedProjects = await Project.countDocuments({
-      company: companyId,
+      ...projectScope,
       status: "Completed",
-      $or: [{ owner: userId }, { team: userId }],
     });
 
     const openTasks = await Task.countDocuments({
       company: companyId,
       status: { $ne: "Done" },
-      team: userId,
+      ...(isPrivileged ? {} : { team: userId }),
     });
 
-    const projectGroups = await Project.countDocuments({
-      company: companyId,
-      $or: [{ owner: userId }, { team: userId }],
-    });
+    // "Project Groups" must count ProjectGroup documents (was: count of projects)
+    const projectGroups = await ProjectGroup.countDocuments({ company: companyId });
 
     // Fetch lists for dynamic dashboard mapping
     const recentProjects = await Project.find({
-      company: companyId,
-      status: { $in: ["Active", "In Progress", "Planning"] },
-      $or: [{ owner: userId }, { team: userId }],
+      ...projectScope,
+      status: activeStatusQuery,
     }).sort({ updatedAt: -1 }).limit(5);
+
+    const recentProgress = await this.getProjectProgressMap(
+      recentProjects.map((p) => p._id),
+      companyId
+    );
+    const recentProjectsWithProgress = recentProjects.map((p) => {
+      const project = p.toObject();
+      const progress = recentProgress.get(project._id.toString());
+      if (progress !== undefined) project.progress = progress;
+      return project;
+    });
 
     const recentTasks = await Task.find({
       company: companyId,
       status: { $ne: "Done" },
-      team: userId,
-    }).sort({ dueDate: 1 }).limit(5);
+      ...(isPrivileged ? {} : { team: userId }),
+    }).sort({ dueDate: 1 }).limit(5).populate('project', 'title');
+
+    // Fetch upcoming deadlines (tasks and projects)
+    const upcomingDeadlines = [];
+    const upcomingTasks = await Task.find({
+      company: companyId,
+      status: { $ne: "Done" },
+      ...(isPrivileged ? {} : { team: userId }),
+      dueDate: { $gte: new Date() }
+    }).sort({ dueDate: 1 }).limit(3).populate('project', 'title');
+    
+    upcomingTasks.forEach(t => {
+      upcomingDeadlines.push({
+        task: t.title,
+        project: t.project?.title || "N/A",
+        dueDate: t.dueDate,
+        status: t.status || "Todo",
+        completion: t.completionPercent || 0
+      });
+    });
+
+    // Fetch team members
+    const allProjects = await Project.find({
+      ...projectScope,
+    }).populate('team', 'name email avatar role').populate('owner', 'name email avatar role');
+    
+    const teamMembersMap = new Map();
+    allProjects.forEach(p => {
+      if (p.owner && p.owner._id && p.owner._id.toString() !== userId.toString()) {
+        teamMembersMap.set(p.owner._id.toString(), p.owner);
+      }
+      if (p.team && Array.isArray(p.team)) {
+        p.team.forEach(m => {
+          if (m && m._id && m._id.toString() !== userId.toString()) {
+            teamMembersMap.set(m._id.toString(), m);
+          }
+        });
+      }
+    });
+    const teamMembers = Array.from(teamMembersMap.values()).map(u => ({
+      name: u.name || u.email,
+      email: u.email,
+      role: u.role || "Member",
+      avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || u.email || "User")}`
+    }));
+
+    // Fetch weekly time tracking
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    startOfWeek.setHours(0,0,0,0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23,59,59,999);
+
+    const TimeLog = require('../models/timeLogsSchema');
+    const logs = await TimeLog.find({
+      company: companyId,
+      employee: userId,
+      date: { $gte: startOfWeek, $lte: endOfWeek }
+    });
+
+    let totalHours = 0;
+    const dailyBreakdownMap = { "Mon": 0, "Tue": 0, "Wed": 0, "Thu": 0, "Fri": 0, "Sat": 0, "Sun": 0 };
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    
+    logs.forEach(log => {
+      totalHours += log.hours;
+      const dayName = days[new Date(log.date).getDay()];
+      if(dailyBreakdownMap[dayName] !== undefined) {
+        dailyBreakdownMap[dayName] += log.hours;
+      }
+    });
+    
+    const timeTracking = {
+      totalHours,
+      targetHours: 40,
+      dailyBreakdown: ["Mon", "Tue", "Wed", "Thu", "Fri"].map(d => ({
+        day: d,
+        hours: dailyBreakdownMap[d]
+      }))
+    };
 
     return {
       activeProjects,
       completedProjects,
       openTasks,
       projectGroups,
-      recentProjects,
+      recentProjects: recentProjectsWithProgress,
       recentTasks,
+      upcomingDeadlines,
+      teamMembers,
+      timeTracking
     };
   }
 }

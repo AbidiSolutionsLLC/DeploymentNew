@@ -8,11 +8,24 @@ const projectSchema = Joi.object({
   }),
   description: Joi.string().trim().allow("", null),
   team: Joi.array().items(Joi.string()).optional(),
-  status: Joi.string().valid("Not Started", "In Progress", "Completed", "On Hold", "Cancelled").optional(),
+  // Keep in sync with models/projectSchema.js status enum
+  status: Joi.string()
+    .valid("Planning", "Active", "On Hold", "Completed", "Cancelled")
+    .optional()
+    .messages({
+      "any.only": "Status must be one of: Planning, Active, On Hold, Completed, Cancelled.",
+    }),
   strict: Joi.boolean().optional(),
   isPublic: Joi.boolean().optional(),
   startDate: Joi.date().allow(null, "").optional(),
-  dueDate: Joi.date().allow(null, "").optional()
+  dueDate: Joi.date().allow(null, "").optional(),
+  owner: Joi.string().optional(),
+  department: Joi.string().required().messages({
+    "any.required": "Department is required."
+  }),
+  projectGroup: Joi.string().allow(null, "").optional()
 });
 
-module.exports = { projectSchema };
+const projectUpdateSchema = projectSchema.fork(["department"], schema => schema.optional());
+
+module.exports = { projectSchema, projectUpdateSchema };

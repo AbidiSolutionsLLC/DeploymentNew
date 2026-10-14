@@ -1,5 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import GlassModal from '../components/ui/GlassModal';
+import GlassButton from '../components/ui/GlassButton';
 
 const ConfirmContext = createContext();
 
@@ -40,7 +42,7 @@ export const ConfirmProvider = ({ children }) => {
         await confirmState.onConfirmAction();
         if (confirmState.resolve) confirmState.resolve(true);
         setConfirmState(prev => ({ ...prev, isOpen: false }));
-      } catch (err) {
+      } catch {
         if (confirmState.resolve) confirmState.resolve(false);
         setConfirmState(prev => ({ ...prev, isOpen: false }));
       } finally {
@@ -66,15 +68,11 @@ export const ConfirmProvider = ({ children }) => {
         title={confirmState.title}
         footer={
           <div className="flex justify-end gap-3 w-full">
-            <button
-              onClick={handleCancel}
-              disabled={isLoading}
-              className="px-5 py-2.5 text-sm font-bold rounded-xl transition-colors theme-settings-item border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50"
-              style={{ backgroundColor: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}
-            >
+            <GlassButton variant="secondary" onClick={handleCancel} disabled={isLoading}>
               {confirmState.cancelText}
-            </button>
-            <button
+            </GlassButton>
+            <GlassButton
+              variant={confirmState.isDanger ? "danger" : "primary"}
               onClick={handleConfirm}
               disabled={isLoading}
               className={`px-5 py-2.5 text-sm font-bold shadow-sm rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 min-w-[100px] ${
@@ -90,7 +88,7 @@ export const ConfirmProvider = ({ children }) => {
                 </svg>
               )}
               {!isLoading && confirmState.confirmText}
-            </button>
+            </GlassButton>
           </div>
         }
         maxWidth="max-w-sm"

@@ -8,11 +8,21 @@ exports.createDepartment = catchAsync(async (req, res) => {
 });
 
 exports.getAllDepartments = catchAsync(async (req, res) => {
-  const departments = await departmentService.getAllDepartments();
+  const departments = await departmentService.getAllDepartments(req.companyId);
   res.status(200).json(ApiResponse.success(departments));
 });
 
 exports.getDepartmentById = catchAsync(async (req, res) => {
   const department = await departmentService.getDepartmentById(req.params.id);
   res.status(200).json(ApiResponse.success(department));
+});
+
+exports.updateDepartment = catchAsync(async (req, res) => {
+  const department = await departmentService.updateDepartment(req.params.id, req.body);
+  res.status(200).json(ApiResponse.success(department, "Department updated successfully"));
+});
+
+exports.deleteDepartment = catchAsync(async (req, res) => {
+  await departmentService.deleteDepartment(req.params.id);
+  res.status(200).json(ApiResponse.success(null, "Department deleted successfully"));
 });
