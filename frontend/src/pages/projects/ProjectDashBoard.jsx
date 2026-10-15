@@ -10,6 +10,7 @@ import {
   CalendarDaysIcon,
   PlusIcon,
   ClipboardDocumentListIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import { fetchProjectDashboard } from "../../store/projectSlice";
 import Loader from "../../components/ui/Loader";
@@ -61,11 +62,13 @@ const ProjectDashBoard = () => {
   const tasks = d.recentTasks || [];
   const deadlines = d.upcomingDeadlines || [];
   const team = d.teamMembers || [];
-  const tracking = d.timeTracking || { totalHours: 0, targetHours: 40, dailyBreakdown: [] };
-  const days = tracking.dailyBreakdown || [];
-  const barMaxPx = 88;
-  const maxDay = Math.max(8, ...days.map((x) => x.hours || 0));
-  const targetPct = Math.min(100, Math.round(((tracking.totalHours || 0) / (tracking.targetHours || 40)) * 100));
+  const taskPriorities = d.taskPriorities || {
+    high: tasks.filter((t) => t.priority === "High").length,
+    medium: tasks.filter((t) => t.priority === "Medium" || !t.priority).length,
+    low: tasks.filter((t) => t.priority === "Low").length,
+    overdue: deadlines.filter((dl) => isOverdue(dl.dueDate, dl.status)).length,
+    total: d.openTasks ?? tasks.length,
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -167,34 +170,127 @@ const ProjectDashBoard = () => {
           )}
         </section>
 
-        {/* Time tracking */}
-        <section className="glass-card flex flex-col min-w-0 bg-surface">
-          <PanelHead
-            title="Time This Week"
-            subtitle={`${tracking.totalHours || 0}h of ${tracking.targetHours || 40}h target`}
-          />
-          <div className="flex items-end gap-2 h-24 mb-2">
-            {days.length === 0 && (
-              <p className="text-xs text-muted self-center mx-auto">No hours logged this week.</p>
-            )}
-            {days.map((dd) => {
-              const h = dd.hours || 0;
-              const px = Math.round((h / maxDay) * barMaxPx);
-              return (
-                <div key={dd.day} className="flex-1 min-w-0 flex flex-col items-center justify-end h-full gap-1">
-                  <span className="text-[9px] font-bold text-heading tabular-nums">{h}h</span>
-                  <div
-                    className="w-full rounded-t-sm bg-gradient-to-t from-amber-600 to-amber-500"
-                    style={{ height: `${Math.max(px, 3)}px` }}
-                  />
-                  <span className="text-[9px] font-black uppercase tracking-wider text-muted">{dd.day}</span>
+        {/* Task Priorities & Urgency */}
+        <section className="glass-card flex flex-col min-w-0 bg-surface justify-between">
+          <div>
+            <PanelHead
+              title="Task Priorities"
+              subtitle={`${taskPriorities.high} urgent · ${taskPriorities.total} open`}
+              action={
+                <button
+                  type="button"
+                  onClick={() => navigate("/project/myTasks")}
+                  className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-brand-text hover:underline shrink-0"
+                >
+                  View all <ArrowRightIcon className="w-3.5 h-3.5" />
+                </button>
+              }
+            />
+
+            <div className="flex flex-col gap-3 mt-1">
+              {/* High Priority */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Pill tone="danger">High</Pill>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted">Urgent</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-heading tabular-nums">{taskPriorities.high}</span>
+                    <span className="text-[10px] font-bold text-muted tabular-nums">
+                      ({taskPriorities.total > 0 ? Math.round((taskPriorities.high / taskPriorities.total) * 100) : 0}%)
+                    </span>
+                  </div>
                 </div>
-              );
-            })}
+                <div className="w-full h-1.5 rounded-full bg-border-subtle overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-danger transition-all duration-500"
+                    style={{
+                      width: `${taskPriorities.total > 0 ? Math.round((taskPriorities.high / taskPriorities.total) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Medium Priority */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Pill tone="warning">Medium</Pill>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted">In flight</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-heading tabular-nums">{taskPriorities.medium}</span>
+                    <span className="text-[10px] font-bold text-muted tabular-nums">
+                      ({taskPriorities.total > 0 ? Math.round((taskPriorities.medium / taskPriorities.total) * 100) : 0}%)
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-border-subtle overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                    style={{
+                      width: `${taskPriorities.total > 0 ? Math.round((taskPriorities.medium / taskPriorities.total) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Low Priority */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Pill tone="neutral">Low</Pill>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted">Routine</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-heading tabular-nums">{taskPriorities.low}</span>
+                    <span className="text-[10px] font-bold text-muted tabular-nums">
+                      ({taskPriorities.total > 0 ? Math.round((taskPriorities.low / taskPriorities.total) * 100) : 0}%)
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-border-subtle overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-slate-400 transition-all duration-500"
+                    style={{
+                      width: `${taskPriorities.total > 0 ? Math.round((taskPriorities.low / taskPriorities.total) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="mt-auto">
-            <Progress value={targetPct} />
-            <p className="text-[10px] uppercase tracking-widest text-muted mt-1.5">{targetPct}% of weekly target</p>
+
+          {/* Bottom health indicator */}
+          <div className="pt-3 mt-3 border-t border-border-subtle">
+            {taskPriorities.overdue > 0 ? (
+              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-danger-bg border border-danger-border">
+                <div className="flex items-center gap-2 min-w-0">
+                  <ExclamationTriangleIcon className="w-4 h-4 text-danger shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-danger truncate">
+                    {taskPriorities.overdue} {taskPriorities.overdue === 1 ? "task is" : "tasks are"} past due
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/project/myTasks")}
+                  className="text-[10px] font-black uppercase tracking-wider text-danger hover:underline shrink-0 ml-1"
+                >
+                  Review
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-success-bg border border-success-border">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CheckCircleIcon className="w-4 h-4 text-success shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-success truncate">
+                    All deadlines on schedule
+                  </span>
+                </div>
+                <span className="text-[9px] font-black uppercase tracking-widest text-success">Healthy</span>
+              </div>
+            )}
           </div>
         </section>
 

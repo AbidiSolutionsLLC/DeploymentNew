@@ -502,7 +502,7 @@ const ViewLeaveModal = ({
  <textarea
  value={editContent}
  onChange={(e) => setEditContent(e.target.value)}
- className={`glass-input w-full resize-none ${errors.editContent ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+ className={`glass-input w-full resize-none bg-white dark:bg-slate-800 ${errors.editContent ? 'border-red-400 ring-1 ring-red-400' : ''}`}
  rows="3"
  />
  <p className="text-[10px] text-muted dark:text-muted text-right">
@@ -559,7 +559,7 @@ const ViewLeaveModal = ({
  value={newResponse}
  onChange={(e) => setNewResponse(e.target.value)}
  onKeyPress={handleKeyPress}
- className={`glass-input w-full resize-none pr-24 ${errors.newResponse ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+ className={`glass-input w-full resize-none pr-24 bg-white dark:bg-slate-800 ${errors.newResponse ? 'border-red-400 ring-1 ring-red-400' : ''}`}
  placeholder="Type your response here..."
  rows="3"
  />

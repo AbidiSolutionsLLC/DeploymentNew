@@ -3,7 +3,7 @@ const ApiResponse = require("../utils/ApiResponse");
 const catchAsync = require("../utils/catchAsync");
 
 exports.createTask = catchAsync(async (req, res) => {
-  const task = await taskService.createTask(req.companyId, req.body, req.files);
+  const task = await taskService.createTask(req.user, req.companyId, req.body, req.files);
   res.status(201).json(ApiResponse.success(task, 'Task created successfully'));
 });
 
@@ -33,8 +33,13 @@ exports.deleteTask = catchAsync(async (req, res) => {
 });
 
 exports.addComment = catchAsync(async (req, res) => {
-  const task = await taskService.addComment(req.user, req.companyId, req.params.id, req.body.text);
+  const task = await taskService.addComment(req.user, req.companyId, req.params.id, req.body.text || req.body.content);
   res.status(200).json(ApiResponse.success(task, 'Comment added successfully'));
+});
+
+exports.getTaskComments = catchAsync(async (req, res) => {
+  const comments = await taskService.getTaskComments(req.companyId, req.params.id);
+  res.status(200).json(ApiResponse.success(comments, "Task comments retrieved successfully"));
 });
 
 exports.getProjectTasks = catchAsync(async (req, res) => {

@@ -29,15 +29,41 @@ export default function TaskDetailDrawer({
   onStatusChange,
   onAddComment,
   comments = [],
+  projectTasks = [],
+  onTaskUpdate,
 }) {
   const { userInfo } = useSelector((state) => state.user || {});
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState(task?.status || "Todo");
+  const [completionPercent, setCompletionPercent] = useState(task?.completionPercent || 0);
+  const [duration, setDuration] = useState(task?.duration ?? "");
+  const [workedHours, setWorkedHours] = useState(task?.workedHours ?? "");
+  const [dependencies, setDependencies] = useState((task?.dependencies || []).map((dependency) => dependency._id || dependency));
+  const [savingDetails, setSavingDetails] = useState(false);
 
   useEffect(() => {
     setStatus(task?.status || "Todo");
+    setCompletionPercent(task?.completionPercent || 0);
+    setDuration(task?.duration ?? "");
+    setWorkedHours(task?.workedHours ?? "");
+    setDependencies((task?.dependencies || []).map((dependency) => dependency._id || dependency));
   }, [task]);
+
+  const saveDetails = async () => {
+    if (!onTaskUpdate || savingDetails) return;
+    setSavingDetails(true);
+    try {
+      await onTaskUpdate({
+        completionPercent: Number(completionPercent),
+        duration: duration === "" ? null : Number(duration),
+        workedHours: workedHours === "" ? 0 : Number(workedHours),
+        dependencies,
+      });
+    } finally {
+      setSavingDetails(false);
+    }
+  };
 
   const handleSubmitComment = async (e) => {
     e.preventDefault();
@@ -123,6 +149,49 @@ export default function TaskDetailDrawer({
           </div>
         )}
 
+        <div className="border-t border-border-subtle pt-4">
+          <h4 className="text-xs font-black uppercase tracking-widest text-muted mb-3">Delivery details</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className="text-xs text-muted">
+              Completion %
+              <input type="number" min="0" max="100" value={completionPercent} onChange={(e) => setCompletionPercent(e.target.value)} className="glass-input mt-1" />
+            </label>
+            <label className="text-xs text-muted">
+              Estimated hours
+              <input type="number" min="0" step="0.25" value={duration} onChange={(e) => setDuration(e.target.value)} className="glass-input mt-1" />
+            </label>
+            <label className="text-xs text-muted">
+              Worked hours
+              <input type="number" min="0" step="0.25" value={workedHours} onChange={(e) => setWorkedHours(e.target.value)} className="glass-input mt-1" />
+            </label>
+          </div>
+          <label className="block text-xs text-muted mt-3">
+            Dependencies
+            <select multiple value={dependencies} onChange={(e) => setDependencies(Array.from(e.target.selectedOptions, (option) => option.value))} className="glass-input mt-1 min-h-20">
+              {projectTasks.filter((candidate) => candidate._id !== task?._id).map((candidate) => (
+                <option key={candidate._id} value={candidate._id}>{candidate.title} · {candidate.status}</option>
+              ))}
+            </select>
+          </label>
+          <div className="flex justify-end mt-3">
+            <GlassButton variant="primary" onClick={saveDetails} isLoading={savingDetails}>Save details</GlassButton>
+          </div>
+        </div>
+
+        {task?.attachments?.length > 0 && (
+          <div className="border-t border-border-subtle pt-4">
+            <h4 className="text-xs font-black uppercase tracking-widest text-muted mb-3">Attachments ({task.attachments.length})</h4>
+            <div className="flex flex-col gap-2">
+              {task.attachments.map((attachment, index) => (
+                <a key={attachment.public_id || index} href={attachment.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-3 rounded-lg bg-card border border-border-subtle px-3 py-2 hover:border-border-accent">
+                  <span className="text-sm text-heading truncate">{attachment.originalname || `Attachment ${index + 1}`}</span>
+                  <span className="text-[10px] uppercase tracking-widest text-brand-text shrink-0">Open</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Comments */}
         <div className="border-t border-border-subtle pt-4">
           <div className="flex items-center justify-between mb-3">
@@ -140,7 +209,7 @@ export default function TaskDetailDrawer({
                     <span className="text-sm font-semibold text-heading">{c.user?.name || "Unknown"}</span>
                     <span className="text-[10px] text-muted">{new Date(c.createdAt || c.timestamp).toLocaleDateString()}</span>
                   </div>
-                  <p className="text-sm text-main">{c.content}</p>
+                  <p className="text-sm text-main">{c.content || c.text}</p>
                 </div>
               </div>
             ))}

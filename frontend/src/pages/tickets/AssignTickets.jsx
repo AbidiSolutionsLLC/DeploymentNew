@@ -228,11 +228,11 @@ const AssignTicket = () => {
       </button>
 
       {assignDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-surface rounded-xl shadow-lg z-[9999] border border-border-subtle overflow-hidden max-h-60 overflow-y-auto">
+        <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-xl shadow-2xl z-[9999] border border-border-subtle dark:border-slate-700 overflow-hidden max-h-60 overflow-y-auto">
           <div className="py-1">
             {technician.length > 0 ? (
               <>
-                <div className="px-3 py-2 text-xs font-bold text-muted uppercase tracking-wider border-b border-border-subtle">
+                <div className="px-3 py-2 text-xs font-bold text-muted uppercase tracking-wider border-b border-border-subtle dark:border-slate-800">
                   Available Technicians
                 </div>
                 {technician.map((user) => {
@@ -243,7 +243,7 @@ const AssignTicket = () => {
                       onClick={() => assignToUser(user._id)}
                       disabled={!!assigningUserId}
                       className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition ${
-                        assigningUserId ? "opacity-50 cursor-not-allowed" : "hover:bg-surface"
+                        assigningUserId ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-100 dark:hover:bg-slate-800"
                       } ${selectedAssigneeId === user._id ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "text-main"
                       }`}
                     >

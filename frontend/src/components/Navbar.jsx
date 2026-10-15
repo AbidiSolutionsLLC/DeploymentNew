@@ -216,10 +216,10 @@ const Navbar = () => {
   />
   </button>
   {profileDropdownOpen && (
-  <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-xl bg-surface shadow-2xl border border-border-subtle py-1">
+  <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-2xl border border-border-subtle dark:border-slate-700 py-1">
   <Link
   to="/people/profile"
-  className="block px-4 py-2 text-sm text-main hover:bg-app rounded-lg mx-1"
+  className="block px-4 py-2 text-sm text-main hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg mx-1"
   onClick={() => setProfileDropdownOpen(false)}
   >
   Your Profile

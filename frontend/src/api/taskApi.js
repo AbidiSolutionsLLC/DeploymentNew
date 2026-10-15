@@ -38,6 +38,11 @@ const addTaskComment = async (taskId, content) => {
  return response.data?.data || response.data;
 };
 
+const getProjectActivities = async (projectId) => {
+ const response = await api.get(`/activities/project/${projectId}`);
+ return response.data?.data || response.data;
+};
+
 const taskApi = {
  getMyTasks,
  getProjectTasks,
@@ -46,6 +51,7 @@ const taskApi = {
  updateTaskStatus,
  getTaskComments,
  addTaskComment,
+ getProjectActivities,
 };
 
 export default taskApi;

@@ -109,7 +109,7 @@ const iconMap = {
       "Raise a Ticket": TicketIcon, "Ticket List": TicketIcon, "Shared with me": UserGroupIcon,
       "Shared with Role": UserCircleIcon, "Upload Document": DocumentIcon, "Approve Timelogs": CheckBadgeIcon,
       "Project Portal": SquaresPlusIcon,
-      "Project DashBoard": ChartPieIcon, "Projects": RectangleStackIcon, "My Tasks": ClipboardDocumentListIcon,
+      "Project DashBoard": ChartPieIcon, "Project Dashboard": ChartPieIcon, "Projects": RectangleStackIcon, "My Tasks": ClipboardDocumentListIcon, "Project Groups": FolderPlusIcon,
       "Admin DashBoard": ShieldCheckIcon, "Leave Management": BriefcaseIcon, "User Management": UsersIcon,
       "File Management": FolderPlusIcon, "Approve Time Sheets": CheckBadgeIcon,
       "Assign Ticket": UserPlusIcon,
@@ -178,7 +178,7 @@ const iconMap = {
      {/* ── Nav Links ── */}
      <div className="flex-1 w-full px-1 overflow-y-auto no-scrollbar flex flex-col gap-2 relative z-10">
         {filteredLinks.map((link, index) => {
-          const Icon = iconMap[link.name] || iconMap["default"];
+          const Icon = link.icon || iconMap[link.name] || iconMap["default"];
           return (
             <Motion.div
               key={link.name}
@@ -188,29 +188,43 @@ const iconMap = {
             >
               <NavLink
                 to={link.path}
-                className="relative w-full py-3 flex flex-col items-center justify-center rounded-[1.2rem] overflow-visible transition-shadow duration-300 theme-sidebar-item"
+                className={({ isActive }) => {
+                  const isCurrentActive =
+                    isActive ||
+                    (link.path === "/project/projects" &&
+                      (pathname.startsWith("/project/projectDetailed") || pathname.startsWith("/project/projects/")));
+                  return `relative w-full py-3 flex flex-col items-center justify-center rounded-[1.2rem] overflow-visible transition-shadow duration-300 theme-sidebar-item ${
+                    isCurrentActive ? "theme-active" : ""
+                  }`;
+                }}
               >
-                {({ isActive }) => (
-                  <>
-                    <Motion.span className="relative z-10 mb-1.5 flex items-center justify-center">
-                      <Icon
-                        className={`w-5 h-5 ${
-                          isActive
-                            ? "nav-shine-icon"
-                            : "drop-shadow-[0_2px_6px_rgba(212,175,55,0.25)]"
-                        }`}
-                      />
-                    </Motion.span>
+                {({ isActive }) => {
+                  const isCurrentActive =
+                    isActive ||
+                    (link.path === "/project/projects" &&
+                      (pathname.startsWith("/project/projectDetailed") || pathname.startsWith("/project/projects/")));
+                  return (
+                    <>
+                      <Motion.span className="relative z-10 mb-1.5 flex items-center justify-center">
+                        <Icon
+                          className={`w-5 h-5 ${
+                            isCurrentActive
+                              ? "nav-shine-icon"
+                              : "drop-shadow-[0_2px_6px_rgba(212,175,55,0.25)]"
+                          }`}
+                        />
+                      </Motion.span>
 
-                    <span
-                      className={`relative z-10 text-[9px] font-bold uppercase tracking-tight text-center px-1 leading-tight max-w-[70px] ${
-                        isActive ? "nav-shine-text" : ""
-                      }`}
-                    >
-                      {link.name}
-                    </span>
-                  </>
-                )}
+                      <span
+                        className={`relative z-10 text-[9px] font-bold uppercase tracking-tight text-center px-1 leading-tight max-w-[70px] ${
+                          isCurrentActive ? "nav-shine-text" : ""
+                        }`}
+                      >
+                        {link.name}
+                      </span>
+                    </>
+                  );
+                }}
               </NavLink>
             </Motion.div>
           );

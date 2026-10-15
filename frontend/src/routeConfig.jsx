@@ -12,7 +12,9 @@ import {
   ChartBarIcon,
   ChartPieIcon,
   ShieldCheckIcon,
-  CheckBadgeIcon
+  CheckBadgeIcon,
+  RectangleStackIcon,
+  FolderPlusIcon
 } from "@heroicons/react/24/solid";
 // WrenchScrewdriverIcon removed — no longer used
 import { DollarSignIcon } from "lucide-react";
@@ -85,11 +87,14 @@ export const moduleConfigs = {
  faq: {
  links: peopleLinks,
  },
- project: {
- links: [
- { name: "Project Portal", path: "/project", roles: ["All"] },
- ],
- },
+  project: {
+    links: [
+      { name: "Project DashBoard", path: "/project/projectDashboard", icon: ChartPieIcon, roles: ["All"] },
+      { name: "Projects", path: "/project/projects", icon: RectangleStackIcon, roles: ["All"] },
+      { name: "My Tasks", path: "/project/myTasks", icon: ClipboardDocumentListIcon, roles: ["All"] },
+      { name: "Project Groups", path: "/project/projectGroups", icon: FolderPlusIcon, roles: ["All"] },
+    ],
+  },
 
  admin: {
  links: [

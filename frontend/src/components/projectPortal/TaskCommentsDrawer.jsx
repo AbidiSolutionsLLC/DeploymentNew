@@ -53,7 +53,7 @@ export default function TaskCommentsDrawer({
                   <span className="text-sm font-semibold text-heading">{c.user?.name || "Unknown"}</span>
                   <span className="text-[10px] text-muted">{new Date(c.createdAt || c.timestamp).toLocaleDateString()}</span>
                 </div>
-                <p className="text-sm text-main">{c.content}</p>
+                <p className="text-sm text-main">{c.content || c.text}</p>
               </div>
             </div>
           ))}

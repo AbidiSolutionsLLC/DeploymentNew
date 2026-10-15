@@ -63,6 +63,30 @@ class ActivityLogService {
       },
     };
   }
+
+  async getProjectActivityLogs({ companyId, projectId, page = 1, limit = 25, seenId = null }) {
+    const Task = require("../models/taskSchema");
+    const taskIds = await Task.find({ company: companyId, project: projectId }).distinct("_id");
+    const filter = {
+      company: companyId,
+      $or: [
+        { entityType: "project", entityId: projectId },
+        { entityType: "task", entityId: { $in: taskIds } },
+      ],
+    };
+    if (seenId) filter._id = { $lt: seenId };
+    const skip = (page - 1) * limit;
+    const data = await ActivityLog.find(filter)
+      .populate("user", "name email avatar")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+    const total = await ActivityLog.countDocuments(filter);
+    return {
+      data,
+      pagination: { total, page: Number(page), limit: Number(limit), pages: Math.ceil(total / Math.max(Number(limit), 1)) },
+    };
+  }
 }
 
 module.exports = new ActivityLogService();

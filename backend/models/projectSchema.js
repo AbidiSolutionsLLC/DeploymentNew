@@ -71,7 +71,16 @@ const projectSchema = new mongoose.Schema(
       ref: 'ProjectGroup',
       default: null,
       index: true
-    }
+    },
+    milestones: [{
+      title: { type: String, required: true, trim: true },
+      dueDate: { type: Date },
+      status: {
+        type: String,
+        enum: ["Planned", "In Progress", "Completed"],
+        default: "Planned"
+      }
+    }]
   },
   {
     timestamps: true,

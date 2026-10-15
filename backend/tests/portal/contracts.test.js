@@ -44,6 +44,14 @@ describe('Project Portal contracts', () => {
     }).error).toBeTruthy();
   });
 
+  test('task dependencies are accepted as an optional task reference list', () => {
+    expect(taskSchema.validate({
+      title: 'Dependent task',
+      project: '507f1f77bcf86cd799439011',
+      dependencies: ['507f1f77bcf86cd799439012'],
+    }).error).toBeFalsy();
+  });
+
   test('attachment mapping preserves Azure upload metadata', () => {
     const file = {
       blobName: 'portal/task.pdf',

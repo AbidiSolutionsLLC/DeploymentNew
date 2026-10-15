@@ -72,6 +72,10 @@ export function taskProgress(task) {
   return task?.status === "Done" ? 100 : 0;
 }
 
+export function projectHealthTone(status) {
+  return status === "At Risk" ? "danger" : status === "Watch" ? "warning" : "success";
+}
+
 /** Display name for a populated user/owner reference (or a bare id string). */
 export function personName(person) {
   if (!person) return "—";

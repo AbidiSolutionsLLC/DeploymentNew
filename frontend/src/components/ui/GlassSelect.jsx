@@ -17,10 +17,10 @@ export default function GlassSelect({
  {...props}
  value={value}
  onChange={onChange}
- className="appearance-none glass-input pr-8 text-sm cursor-pointer"
+ className="appearance-none glass-input pr-8 text-sm cursor-pointer bg-white dark:bg-slate-800"
  >
  {options.map((opt) => (
- <option key={opt.value || opt} value={opt.value || opt} className="text-main bg-surface dark:bg-slate-800">
+ <option key={opt.value || opt} value={opt.value || opt} className="text-main bg-white dark:bg-slate-900">
  {opt.label || opt}
  </option>
  ))}

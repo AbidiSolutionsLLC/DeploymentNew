@@ -44,7 +44,6 @@ import FAQs from "./pages/people/FAQ";
 import AssignTicket from "./pages/tickets/AssignTickets";
 import ProjectDetail from "./pages/projects/ProjectDetail";
 import ProjectGroups from "./pages/projects/ProjectGroups";
-import ComingSoon from "./pages/projects/ComingSoon";
 import OrgChartPage from "./pages/admin/OrgChart";
 import AssignedTickets from "./pages/people/AssignedTickets";
 import AdminAttendance from "./pages/admin/AdminAttendance";
@@ -202,8 +201,14 @@ function App() {
  </Route>
 
  <Route path="/project/*">
- <Route index element={<ComingSoon />} />
- <Route path="*" element={<ComingSoon />} />
+  <Route index element={<Navigate to="projectDashboard" replace />} />
+  <Route path="projectDashboard" element={<ProjectDashBoard />} />
+  <Route path="projects" element={<Projects />} />
+  <Route path="projectDetailed/:id" element={<ProjectDetail />} />
+  <Route path="projects/:id" element={<ProjectDetail />} />
+  <Route path="myTasks" element={<MyTask />} />
+  <Route path="projectGroups" element={<ProjectGroups />} />
+  <Route path="*" element={<Navigate to="projectDashboard" replace />} />
  </Route>
 
  <Route path="/faq/*">

@@ -124,14 +124,16 @@ const MyTask = () => {
       label: "Status",
       sortable: false,
       render: (v, row) => (
-        <ModernSelect
-          value={v || "Todo"}
-          onChange={(e) => handleUpdateTask(row._id, { status: e.target.value })}
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`Status for ${row.title}`}
-          options={TASK_STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
-          className="max-w-[130px]"
-        />
+        <div onClick={(e) => e.stopPropagation()} className="w-fit">
+          <ModernSelect
+            value={v || "Todo"}
+            onChange={(e) => handleUpdateTask(row._id, { status: e.target.value })}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Status for ${row.title}`}
+            options={TASK_STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
+            className="w-[130px]"
+          />
+        </div>
       ),
     },
     {

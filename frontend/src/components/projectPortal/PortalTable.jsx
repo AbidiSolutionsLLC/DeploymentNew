@@ -129,7 +129,20 @@ export default function PortalTable({
               {pageRows.map((row, i) => (
                 <tr
                   key={row._id || row.id || i}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  onClick={
+                    onRowClick
+                      ? (e) => {
+                          if (
+                            e.target.closest(
+                              'button, select, input, textarea, a, [data-interactive="true"], [data-modern-select-dropdown="true"]'
+                            )
+                          ) {
+                            return;
+                          }
+                          onRowClick(row);
+                        }
+                      : undefined
+                  }
                   className={`border-t border-border-subtle hover:bg-amber-50 transition-colors ${
                     onRowClick ? "cursor-pointer" : ""
                   }`}
