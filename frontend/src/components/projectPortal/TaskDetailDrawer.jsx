@@ -62,9 +62,7 @@ export default function TaskDetailDrawer({
       description={`Task · ${STATUS_DISPLAY[task?.status] || task?.status}`}
       maxWidth="max-w-2xl"
       footer={
-        <div className="flex justify-end gap-2 w-full">
-          <GlassButton variant="secondary" onClick={onClose}>Close</GlassButton>
-        </div>
+        <GlassButton variant="secondary" onClick={onClose}>Close</GlassButton>
       }
     >
       <div className="flex flex-col gap-5">

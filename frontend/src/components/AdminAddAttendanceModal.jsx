@@ -94,8 +94,8 @@ export default function AdminAddAttendanceModal({ open, onClose, onSuccess, allU
  maxWidth="max-w-lg"
  footer={
  <>
- <GlassButton variant="ghost" onClick={onClose} disabled={loading}>
- CANCEL
+ <GlassButton variant="secondary" onClick={onClose} disabled={loading}>
+ Cancel
  </GlassButton>
  <GlassButton 
  variant="primary" 

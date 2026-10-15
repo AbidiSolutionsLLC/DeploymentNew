@@ -6,6 +6,7 @@ import { moment, TIMEZONE } from "../../utils/dateUtils"; // Use project's momen
 import DatePicker from "react-datepicker";
 import { validateDescription, sanitizeText, getApiError } from "../../utils/validationUtils";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
 
 export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated, selectedDate: propSelectedDate }) {
  const [timesheetName, setTimesheetName] = useState("");
@@ -255,18 +256,19 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
  if (!open) return null;
 
  const footer = (
- <div className="flex w-full gap-3">
- <button onClick={onClose} className="btn-ghost flex-1 text-muted">
+ <>
+ <GlassButton variant="secondary" type="button" onClick={onClose}>
  Cancel
- </button>
- <button
+ </GlassButton>
+ <GlassButton
+ variant="primary"
  onClick={handleSubmit}
+ isLoading={loading}
  disabled={loading || fetchingLogs}
- className="btn btn-primary flex-[2]"
  >
- {loading ? "Creating..." : "Create Timesheet"}
- </button>
- </div>
+ Create Timesheet
+ </GlassButton>
+ </>
  );
 
  return (

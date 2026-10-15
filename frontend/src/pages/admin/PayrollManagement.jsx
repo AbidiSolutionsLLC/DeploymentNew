@@ -10,6 +10,7 @@ import TableWithPagination from "../../components/TableWithPagination";
 import GlassInput from "../../components/ui/GlassInput";
 import FilterRow from "../../components/ui/FilterRow";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
 import DateRangePicker from "../../components/ui/DateRangePicker";
 import api from "../../axios";
 import { payrollApi } from "../../api/payrollApi";
@@ -484,20 +485,14 @@ const PayrollManagement = () => {
           maxWidth="max-w-sm"
           title="Super Admin Override"
           footer={
-            <div className="flex gap-3 w-full">
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="flex-1 py-2 text-xs font-bold text-muted hover:text-main uppercase tracking-wider"
-              >
+            <>
+              <GlassButton variant="secondary" onClick={() => setIsEditModalOpen(false)}>
                 Cancel
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                className="btn btn-primary flex-1 flex justify-center items-center gap-2"
-              >
-                <Save size={14} /> Apply Override
-              </button>
-            </div>
+              </GlassButton>
+              <GlassButton variant="primary" icon={Save} onClick={handleSaveEdit}>
+                Apply Override
+              </GlassButton>
+            </>
           }
         >
           <div className="space-y-4">

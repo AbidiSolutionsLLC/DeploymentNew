@@ -39,7 +39,7 @@ const HistoryViewLeaveModal = ({
  }
  maxWidth="max-w-4xl"
  footer={
- <GlassButton variant="primary" onClick={() => setIsOpen(false)} className="w-full">
+ <GlassButton variant="secondary" onClick={() => setIsOpen(false)} className="w-full">
  Close
  </GlassButton>
  }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import GlassModal from './ui/GlassModal';
+import GlassButton from './ui/GlassButton';
 import api from '../axios';
 import { setUser } from '../slices/userSlice';
 import { setAuthUser } from '../slices/authSlice';
@@ -62,12 +63,9 @@ export default function WhatsNewModal() {
       description={`Version ${RELEASE_VERSION} — Released on ${RELEASE_DATE}`}
       maxWidth="max-w-3xl"
       footer={
-        <button
-          onClick={handleClose}
-          className="btn btn-primary px-6 py-2 rounded-lg font-medium"
-        >
-          Got it
-        </button>
+        <GlassButton variant="primary" onClick={handleClose}>
+          Got It
+        </GlassButton>
       }
     >
       <div className="space-y-6 text-sm text-slate-700 dark:text-slate-300">

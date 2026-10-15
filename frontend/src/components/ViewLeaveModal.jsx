@@ -520,7 +520,7 @@ const ViewLeaveModal = ({
  Save
  </GlassButton>
  <GlassButton
- variant="ghost"
+ variant="secondary"
  size="sm"
  onClick={() => {
  setEditingResponseId(null);

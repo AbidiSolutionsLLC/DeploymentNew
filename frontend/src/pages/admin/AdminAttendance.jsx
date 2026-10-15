@@ -779,14 +779,14 @@ const AdminAttendance = () => {
           maxWidth="max-w-md"
           title="Edit Attendance"
           footer={
-            <div className="flex gap-3 w-full">
-              <GlassButton variant="ghost" className="flex-1" onClick={() => setIsEditModalOpen(false)}>
-                CANCEL
+            <>
+              <GlassButton variant="secondary" onClick={() => setIsEditModalOpen(false)}>
+                Cancel
               </GlassButton>
-              <GlassButton variant="primary" icon={FaSave} className="flex-1" onClick={handleSaveChanges}>
-                SAVE CHANGES
+              <GlassButton variant="primary" icon={FaSave} onClick={handleSaveChanges}>
+                Save Changes
               </GlassButton>
-            </div>
+            </>
           }
         >
           <div className="space-y-4">

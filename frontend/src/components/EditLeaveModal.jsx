@@ -178,8 +178,8 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  maxWidth="max-w-md"
  footer={
  <>
- <GlassButton variant="ghost" onClick={handleCancel} disabled={isSubmitting}>
- CANCEL
+ <GlassButton variant="secondary" onClick={handleCancel} disabled={isSubmitting}>
+ Cancel
  </GlassButton>
  <GlassButton 
  variant="primary" 

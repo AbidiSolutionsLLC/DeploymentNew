@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { FiUpload } from "react-icons/fi";
 import { toast } from "react-toastify";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
 
 const UploadModal = ({ onCreate }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -50,22 +51,14 @@ const UploadModal = ({ onCreate }) => {
             </h2>
           }
           footer={
-            <div className="flex gap-3 sm:gap-4 w-full">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="btn-ghost flex-1 text-muted"
-              >
-                CANCEL
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="flex-1 sm:py-4 text-[10px] shadow-slate-100 active:scale-95 btn btn-primary"
-              >
-                CREATE FOLDER
-              </button>
-            </div>
+            <>
+              <GlassButton variant="secondary" type="button" onClick={handleClose}>
+                Cancel
+              </GlassButton>
+              <GlassButton variant="primary" type="button" onClick={handleSubmit}>
+                Create Folder
+              </GlassButton>
+            </>
           }
         >
           {/* Form Body */}

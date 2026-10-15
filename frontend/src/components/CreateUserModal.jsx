@@ -167,7 +167,7 @@ const CreateUserModal = ({ isOpen, setIsOpen, onUserCreated, allDepartments, all
  maxWidth="max-w-3xl"
  footer={
  <>
- <GlassButton variant="ghost" onClick={() => setIsOpen(false)}>
+ <GlassButton variant="secondary" onClick={() => setIsOpen(false)}>
  Cancel
  </GlassButton>
  <GlassButton variant="primary" onClick={handleSubmit} isLoading={isLoading}>

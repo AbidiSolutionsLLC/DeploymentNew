@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import GlassModal from './ui/GlassModal';
+import GlassButton from './ui/GlassButton';
 
 export default function ChangelogModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,12 +30,9 @@ export default function ChangelogModal() {
       description="A quick, easy summary for the whole team — June 30, 2026"
       maxWidth="max-w-3xl"
       footer={
-        <button
-          onClick={handleClose}
-          className="btn btn-primary px-6 py-2 rounded-lg font-medium"
-        >
-          Got it
-        </button>
+        <GlassButton variant="primary" onClick={handleClose}>
+          Got It
+        </GlassButton>
       }
     >
       <div className="space-y-8 text-sm text-slate-700 dark:text-slate-300">

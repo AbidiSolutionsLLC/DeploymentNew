@@ -11,6 +11,7 @@ import {
  getApiError,
 } from "../../utils/validationUtils";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
 import { formatDateForAPI } from "../../utils/dateUtils";
 
 const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
@@ -253,35 +254,24 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  };
 
  const footer = (
- <div className="flex w-full flex-col sm:flex-row gap-3">
- <button
- type="button"
- onClick={handleAddAnother}
- className="btn btn-primary flex-1"
- >
- + Add Another
- </button>
-
- <div className="flex gap-3 flex-[2]">
- <button
- onClick={onClose}
- className="btn-ghost flex-1 text-muted"
- >
+ <>
+ <GlassButton variant="secondary" type="button" onClick={handleAddAnother}>
+ Add Another
+ </GlassButton>
+ <GlassButton variant="secondary" type="button" onClick={onClose}>
  Cancel
- </button>
- <button
+ </GlassButton>
+ <GlassButton
+ variant="primary"
  onClick={handleSave}
+ isLoading={isLoading}
  disabled={isLoading}
- className="btn btn-primary flex-[2]"
  >
- {isLoading
- ? "Saving..."
- : logs.length > 0
+ {logs.length > 0
  ? `Save All (${logs.length + (isCurrentInputValid ? 1 : 0)})`
  : "Save Log"}
- </button>
- </div>
- </div>
+ </GlassButton>
+ </>
  );
 
  return (

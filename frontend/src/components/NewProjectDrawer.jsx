@@ -147,14 +147,14 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
   ];
 
   const footer = (
-    <div className="flex justify-end gap-2 w-full">
+    <>
       <GlassButton variant="secondary" onClick={onClose} disabled={saving}>
         Cancel
       </GlassButton>
       <GlassButton variant="primary" type="submit" form="projectForm" isLoading={saving}>
         {isEdit ? "Save Changes" : "Create Project"}
       </GlassButton>
-    </div>
+    </>
   );
 
   const labelCls = "block text-[10px] font-black text-muted mb-1.5 uppercase tracking-widest";

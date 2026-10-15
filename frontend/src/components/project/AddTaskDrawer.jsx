@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { FaTimes, FaPlus } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
+import GlassModal from "../ui/GlassModal";
+import GlassButton from "../ui/GlassButton";
 
 const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
  const [formData, setFormData] = useState({
@@ -31,29 +33,28 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
  }));
  };
 
- if (!isOpen) return null;
+ const labelCls = "block text-[10px] font-black text-muted mb-1.5 uppercase tracking-widest";
 
  return (
- <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
- <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
- 
- <div className="relative w-full max-w-lg rounded-xl shadow-2xl bg-surface dark:bg-app border border-white/20 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
- <div className="p-6">
- <div className="flex items-center justify-between mb-6">
- <h2 className="text-lg font-semibold text-heading">
- Add New Task
- </h2>
- <button
- onClick={onClose}
- className="btn-ghost p-2 rounded-md"
+ <GlassModal
+ isOpen={isOpen}
+ onClose={onClose}
+ title="Add New Task"
+ maxWidth="max-w-lg"
+ footer={
+ <>
+ <GlassButton variant="secondary" type="button" onClick={onClose}>
+ Cancel
+ </GlassButton>
+ <GlassButton variant="primary" type="submit" form="addTaskDrawerForm" icon={FaPlus}>
+ Add Task
+ </GlassButton>
+ </>
+ }
  >
- <FaTimes className="w-5 h-5" />
- </button>
- </div>
-
- <form onSubmit={handleSubmit} className="space-y-4">
+ <form id="addTaskDrawerForm" onSubmit={handleSubmit} className="space-y-4">
  <div>
- <label className="block text-sm font-medium mb-2 text-text">
+ <label className={labelCls}>
  Task Title *
  </label>
  <input
@@ -62,13 +63,13 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
  value={formData.title}
  onChange={handleChange}
  required
- className="w-full p-3 border border-primary/40 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent text-sm transition-all bg-background text-text"
+ className="glass-input"
  placeholder="Enter task title"
  />
  </div>
 
  <div>
- <label className="block text-sm font-medium mb-2 text-text">
+ <label className={labelCls}>
  Description
  </label>
  <textarea
@@ -76,20 +77,20 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
  value={formData.description}
  onChange={handleChange}
  rows={4}
- className="w-full p-3 border border-primary/40 rounded-lg resize-none focus:ring-2 focus:ring-primary/50 focus:border-transparent text-sm transition-all bg-background text-text"
+ className="glass-input"
  placeholder="Enter task description"
  />
  </div>
 
  <div>
- <label className="block text-sm font-medium mb-2 text-text">
+ <label className={labelCls}>
  Priority
  </label>
  <select
  name="priority"
  value={formData.priority}
  onChange={handleChange}
- className="w-full p-3 border border-primary/40 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent text-sm transition-all bg-background text-text"
+ className="glass-input cursor-pointer"
  >
  <option value="low">Low</option>
  <option value="medium">Medium</option>
@@ -98,7 +99,7 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
  </div>
 
  <div>
- <label className="block text-sm font-medium mb-2 text-text">
+ <label className={labelCls}>
  Due Date
  </label>
  <input
@@ -106,30 +107,11 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
  name="dueDate"
  value={formData.dueDate}
  onChange={handleChange}
- className="w-full p-3 border border-primary/40 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent text-sm transition-all bg-background text-text"
+ className="glass-input"
  />
  </div>
-
- <div className="flex gap-3 pt-4">
- <button
- type="button"
- onClick={onClose}
- className="btn btn-secondary flex-1"
- >
- Cancel
- </button>
- <button
- type="submit"
- className="btn btn-primary flex-1 flex items-center justify-center gap-2"
- >
- <FaPlus className="w-4 h-4" />
- Add Task
- </button>
- </div>
  </form>
- </div>
- </div>
- </div>
+ </GlassModal>
  );
 };
 

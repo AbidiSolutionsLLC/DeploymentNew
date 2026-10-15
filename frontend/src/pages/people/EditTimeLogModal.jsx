@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { moment, TIMEZONE } from "../../utils/dateUtils";
 import { getApiError } from "../../utils/validationUtils";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
 
 const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUpdated }) => {
  const [date, setDate] = useState("");
@@ -97,19 +98,20 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
  };
 
  const footer = (
- <div className="flex w-full gap-3">
- <button onClick={onClose} className="btn-ghost flex-1 text-muted">
+ <>
+ <GlassButton variant="secondary" type="button" onClick={onClose}>
  Cancel
- </button>
- <button
+ </GlassButton>
+ <GlassButton
+ variant="primary"
  type="submit"
  form="editLogForm"
+ isLoading={isLoading}
  disabled={isLoading || !isCurrentInputValid}
- className="btn btn-primary flex-1"
  >
- {isLoading ? "Saving..." : "Update Log"}
- </button>
- </div>
+ Update Log
+ </GlassButton>
+ </>
  );
 
  return (

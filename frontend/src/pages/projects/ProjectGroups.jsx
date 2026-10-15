@@ -313,14 +313,14 @@ const ProjectGroups = () => {
         description="Organize projects into strategic portfolios with dynamic progress roll-ups."
         maxWidth="max-w-lg"
         footer={
-          <div className="flex justify-end gap-2 w-full">
+          <>
             <GlassButton variant="secondary" onClick={closeModal} disabled={submitting}>
               Cancel
             </GlassButton>
             <GlassButton variant="primary" type="submit" form="groupForm" isLoading={submitting}>
               {editingGroup ? "Save Changes" : "Create Group"}
             </GlassButton>
-          </div>
+          </>
         }
       >
         <form id="groupForm" onSubmit={handleSave} className="flex flex-col gap-4">
@@ -401,13 +401,16 @@ const ProjectGroups = () => {
           description={detailGroup.description || "Portfolio overview & child projects"}
           maxWidth="max-w-2xl"
           footer={
-            <div className="flex justify-between items-center w-full">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3 w-full">
               <span className="text-xs text-muted">
                 Created: {formatDate(detailGroup.createdAt)}
               </span>
-              <div className="flex gap-2">
+              <div className="flex flex-col-reverse sm:flex-row gap-2">
+                <GlassButton variant="secondary" onClick={() => setDetailGroup(null)}>
+                  Close
+                </GlassButton>
                 <GlassButton
-                  variant="secondary"
+                  variant="primary"
                   onClick={() => {
                     const g = detailGroup;
                     setDetailGroup(null);
@@ -415,9 +418,6 @@ const ProjectGroups = () => {
                   }}
                 >
                   <PencilIcon className="w-4 h-4 mr-1.5 inline" /> Edit Group
-                </GlassButton>
-                <GlassButton variant="secondary" onClick={() => setDetailGroup(null)}>
-                  Close
                 </GlassButton>
               </div>
             </div>

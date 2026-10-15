@@ -292,7 +292,7 @@ const UserDetailModal = ({ user, currentUser, isOpen, onClose, onUserUpdated, al
  maxWidth="max-w-4xl"
  footer={isEditing ? (
  <>
- <GlassButton variant="ghost" onClick={() => setIsEditing(false)}>
+ <GlassButton variant="secondary" onClick={() => setIsEditing(false)}>
  Cancel
  </GlassButton>
  <GlassButton variant="primary" onClick={handleSubmit} isLoading={isLoading}>

@@ -3,6 +3,7 @@ import { Paperclip } from 'lucide-react';
 import { downloadFile } from "../../utils/downloadFile";
 
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
 
 const ViewTimeLogModal = ({ log, onClose }) => {
  const modalRef = useRef(null);
@@ -16,14 +17,9 @@ const ViewTimeLogModal = ({ log, onClose }) => {
  };
 
  const footer = (
- <div className="flex w-full">
- <button
- onClick={onClose}
- className="btn btn-primary w-full"
- >
- Close View
- </button>
- </div>
+ <GlassButton variant="secondary" onClick={onClose} className="w-full">
+ Close
+ </GlassButton>
  );
 
  return (

@@ -93,8 +93,8 @@ const AddHolidayModal = ({ isOpen, setIsOpen, onHolidayAdded }) => {
  maxWidth="max-w-md"
  footer={
  <>
- <GlassButton variant="ghost" onClick={handleClose} disabled={loading}>
- CANCEL
+ <GlassButton variant="secondary" onClick={handleClose} disabled={loading}>
+ Cancel
  </GlassButton>
  <GlassButton 
  variant="primary" 

@@ -526,12 +526,11 @@ todos[index] = { ...todos[index], ...payload };
         </div>
       }
       footer={
-        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 w-full">
+        <>
           <GlassButton
             type="button"
-            variant="primary"
+            variant="secondary"
             onClick={closeDetailModal}
-            className="w-full sm:w-auto"
           >
             Cancel
           </GlassButton>
@@ -539,12 +538,12 @@ todos[index] = { ...todos[index], ...payload };
             type="button"
             variant="primary"
             onClick={handleModalSave}
+            isLoading={updatingTaskId === detailModal.task._id}
             disabled={modalSaveDisabled}
-            className="w-full sm:w-auto"
           >
-            {updatingTaskId === detailModal.task._id ? "Saving..." : "Save changes"}
+            Save Changes
           </GlassButton>
-        </div>
+        </>
       }
     >
       <div className="space-y-5 text-sm">
@@ -629,12 +628,11 @@ todos[index] = { ...todos[index], ...payload };
         </div>
       }
       footer={
-        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 w-full">
+        <>
           <GlassButton
             type="button"
-            variant="primary"
+            variant="secondary"
             onClick={closeAddModal}
-            className="w-full sm:w-auto"
           >
             Cancel
           </GlassButton>
@@ -642,12 +640,12 @@ todos[index] = { ...todos[index], ...payload };
             type="button"
             variant="primary"
             onClick={addTask}
+            isLoading={saving}
             disabled={addDisabled}
-            className="w-full sm:w-auto"
           >
-            {saving ? "Saving..." : "Save task"}
+            Save Task
           </GlassButton>
-        </div>
+        </>
       }
     >
       <div className="space-y-5 text-sm">

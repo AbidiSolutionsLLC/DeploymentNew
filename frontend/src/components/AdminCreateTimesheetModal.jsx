@@ -174,8 +174,8 @@ export default function AdminCreateTimesheetModal({ open, onClose, onTimesheetCr
  maxWidth="max-w-lg"
  footer={
  <>
- <GlassButton variant="ghost" onClick={handleCancel} disabled={loading || fetchingLogs}>
- CANCEL
+ <GlassButton variant="secondary" onClick={handleCancel} disabled={loading || fetchingLogs}>
+ Cancel
  </GlassButton>
  <GlassButton 
  variant="primary" 

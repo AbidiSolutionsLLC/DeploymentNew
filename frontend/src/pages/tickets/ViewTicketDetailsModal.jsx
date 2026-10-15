@@ -6,7 +6,7 @@ import { PaperClipIcon } from "@heroicons/react/24/solid";
 import { Paperclip } from "lucide-react";
 import { validateDescription, getApiError } from "../../utils/validationUtils";
 import GlassModal from "../../components/ui/GlassModal";
-import Loader from "../../components/ui/Loader";
+import GlassButton from "../../components/ui/GlassButton";
 import {
   resolvePriorityPill,
   priorityLabel,
@@ -179,13 +179,15 @@ const ViewTicketDetailsModal = ({ ticket: initialTicket, onClose, showToast }) =
             ) : <div />}
             <p className="text-[10px] text-muted uppercase tracking-widest">{commentText.length}/500</p>
           </div>
-          <button
+          <GlassButton
             onClick={handleSendResponse}
             disabled={sending || !commentText.trim()}
-            className="absolute right-2 top-2 p-2 rounded-lg disabled:opacity-50 btn btn-primary"
-          >
-            {sending ? <Loader variant="spinner" size="sm" className="text-white" /> : <FaPaperPlane className="w-3 h-3" />}
-          </button>
+            isLoading={sending}
+            icon={FaPaperPlane}
+            size="sm"
+            aria-label="Send reply"
+            className="!absolute right-2 top-2 !px-2.5 !py-2.5 rounded-xl"
+          />
         </div>
       </div>
     </GlassModal>

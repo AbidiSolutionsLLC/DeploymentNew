@@ -15,6 +15,7 @@ import {
 import { UserPlusIcon } from "@heroicons/react/20/solid";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
 import Loader from "../../components/ui/Loader";
 import StatusBadge from "../../components/StatusBadge";
 
@@ -594,34 +595,28 @@ const AssignTicket = () => {
             </div>
           }
           footer={
-            <div className="flex gap-3 sm:gap-4 w-full">
-              <button
+            <>
+              <GlassButton
                 type="button"
+                variant="secondary"
                 onClick={() => {
                   setAddTechnicianModal(false);
                   setSelectedUserToPromote(null);
                 }}
                 disabled={promoting}
-                className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-muted uppercase tracking-widest hover:text-muted transition-colors disabled:opacity-50"
               >
-                CANCEL
-              </button>
-              <button
+                Cancel
+              </GlassButton>
+              <GlassButton
                 type="button"
+                variant="primary"
                 onClick={handlePromoteToTechnician}
+                isLoading={promoting}
                 disabled={!selectedUserToPromote || promoting}
-                className="flex-1 sm:py-4 text-[10px] sm:text-[10px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
               >
-                {promoting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader variant="spinner" size="sm" className="text-white" />
-                    UPDATING...
-                  </span>
-                ) : (
-                  "GRANT PERMISSION"
-                )}
-              </button>
-            </div>
+                Grant Permission
+              </GlassButton>
+            </>
           }
         >
           <div className="space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar min-h-[400px]">

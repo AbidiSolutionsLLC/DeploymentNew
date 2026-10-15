@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import api from "../../axios";
 import { validateText, validateDescription, sanitizeText, getApiError } from "../../utils/validationUtils";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
 
 const RaiseTicketModal = ({ onClose, onSubmit, showToast }) => {
  const [form, setForm] = useState({ subject: "", description: "", attachments: [] });
@@ -190,23 +191,20 @@ const handleSubmit = async (e) => {
           </div>
         }
         footer={
-          <div className="flex w-full gap-3 sm:gap-4">
-            <button
-              type="button"
-              onClick={handleCancelClick}
-              className="btn btn-ghost flex-1"
-            >
-              CANCEL
-            </button>
-            <button
+          <>
+            <GlassButton type="button" variant="secondary" onClick={handleCancelClick}>
+              Cancel
+            </GlassButton>
+            <GlassButton
               type="submit"
               form="ticketForm"
+              variant="primary"
+              isLoading={submitting}
               disabled={submitting}
-              className="flex-1 sm:py-4 text-[10px] sm:text-[11px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary"
             >
-              {submitting ? "SUBMITTING..." : "SUBMIT TICKET"}
-            </button>
-          </div>
+              Submit Ticket
+            </GlassButton>
+          </>
         }
         maxWidth="max-w-md"
       >
@@ -317,20 +315,14 @@ const handleSubmit = async (e) => {
           title="Unsaved Changes"
           maxWidth="max-w-sm"
           footer={
-            <div className="flex w-full gap-3">
-              <button
-                onClick={handleConfirmStay}
-                className="btn btn-secondary flex-1"
-              >
+            <>
+              <GlassButton variant="secondary" onClick={handleConfirmStay}>
                 Stay
-              </button>
-              <button
-                onClick={handleConfirmLeave}
-                className="flex-1 text-[10px] shadow-red-100 btn btn-danger"
-              >
+              </GlassButton>
+              <GlassButton variant="danger" onClick={handleConfirmLeave}>
                 Leave
-              </button>
-            </div>
+              </GlassButton>
+            </>
           }
         >
           <div className="text-center">

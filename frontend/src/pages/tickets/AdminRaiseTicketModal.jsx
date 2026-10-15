@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { validateText, validateDescription, validateEmail, sanitizeText } from "../../utils/validationUtils";
 import { toast } from "react-toastify";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
 import { formatDateForAPI } from "../../utils/dateUtils";
 
 const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
@@ -176,22 +177,14 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
   );
 
   const footerContent = (
-    <div className="flex w-full gap-3 sm:gap-4">
-      <button
-        type="button"
-        onClick={handleCancelClick}
-        className="btn-ghost flex-1 text-muted"
-      >
-        CANCEL
-      </button>
-      <button
-        type="submit"
-        form="ticketForm"
-        className="flex-1 sm:py-4 text-[10px] sm:text-[11px] shadow-slate-100 active:scale-95 btn btn-primary"
-      >
-        SUBMIT TICKET
-      </button>
-    </div>
+    <>
+      <GlassButton type="button" variant="secondary" onClick={handleCancelClick}>
+        Cancel
+      </GlassButton>
+      <GlassButton type="submit" form="ticketForm" variant="primary">
+        Submit Ticket
+      </GlassButton>
+    </>
   );
 
   return (
@@ -334,20 +327,14 @@ const AdminRaiseTicketModal = ({ onClose, onSubmit }) => {
           title="Unsaved Changes"
           maxWidth="max-w-sm"
           footer={
-            <div className="flex w-full gap-3">
-              <button
-                onClick={handleConfirmStay}
-                className="btn btn-secondary flex-1"
-              >
+            <>
+              <GlassButton variant="secondary" onClick={handleConfirmStay}>
                 Stay
-              </button>
-              <button
-                onClick={handleConfirmLeave}
-                className="flex-1 text-[10px] shadow-red-100 btn btn-danger"
-              >
+              </GlassButton>
+              <GlassButton variant="danger" onClick={handleConfirmLeave}>
                 Leave
-              </button>
-            </div>
+              </GlassButton>
+            </>
           }
         >
           <div className="text-center">

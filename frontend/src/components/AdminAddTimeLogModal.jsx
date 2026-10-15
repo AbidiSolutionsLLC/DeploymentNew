@@ -137,8 +137,8 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  maxWidth="max-w-lg"
  footer={
  <>
- <GlassButton variant="ghost" onClick={handleCancel} disabled={loading}>
- CANCEL
+ <GlassButton variant="secondary" onClick={handleCancel} disabled={loading}>
+ Cancel
  </GlassButton>
  <GlassButton 
  variant="primary" 

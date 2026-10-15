@@ -67,7 +67,7 @@ const getStatusColor = (status) => {
  maxWidth="max-w-2xl"
  footer={
  <GlassButton variant="secondary" onClick={onClose} className="w-full">
- CLOSE
+ Close
  </GlassButton>
  }
  >

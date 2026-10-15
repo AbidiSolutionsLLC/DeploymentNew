@@ -5,6 +5,7 @@ import { IoCalendarNumberOutline } from "react-icons/io5";
 import { toast } from "react-toastify";
 import { downloadFile } from "../utils/downloadFile";
 import GlassModal from "./ui/GlassModal";
+import GlassButton from "./ui/GlassButton";
 import { useConfirm } from "../context/ConfirmContext";
 import StatusBadge from "./StatusBadge";
 
@@ -81,33 +82,28 @@ const ExpenseDetail = ({
   );
 
   const footerContent = (
-    <div className="flex gap-3 w-full">
+    <>
+      <GlassButton variant="secondary" onClick={onClose}>
+        Close
+      </GlassButton>
+
       {expense.status === 'pending' && canApprove && (currentUser?.role?.toLowerCase() === 'superadmin' || !isOwner) && (
         <>
-          <button
-            onClick={() => onApprove(expense._id)}
-            className="btn btn-primary flex-1 flex justify-center items-center gap-2"
-          >
-            <CheckCircle size={14} /> Approve
-          </button>
-          <button
-            onClick={() => onReject(expense)}
-            className="btn bg-rose-600 hover:bg-rose-700 text-white flex-1 flex justify-center items-center gap-2 shadow-lg shadow-rose-600/20"
-          >
-            <XCircle size={14} /> Reject
-          </button>
+          <GlassButton variant="danger" icon={XCircle} onClick={() => onReject(expense)}>
+            Reject
+          </GlassButton>
+          <GlassButton variant="primary" icon={CheckCircle} onClick={() => onApprove(expense._id)}>
+            Approve
+          </GlassButton>
         </>
       )}
 
       {(canEdit || (isOwner && expense.status === 'pending')) && (
-        <button
-          onClick={() => onDelete(expense._id)}
-          className="btn bg-rose-600 hover:bg-rose-700 text-white flex-1 flex justify-center items-center gap-2 shadow-lg shadow-rose-600/20"
-        >
-          <FiTrash2 size={14} /> Delete
-        </button>
+        <GlassButton variant="danger" icon={FiTrash2} onClick={() => onDelete(expense._id)}>
+          Delete
+        </GlassButton>
       )}
-    </div>
+    </>
   );
 
   return (

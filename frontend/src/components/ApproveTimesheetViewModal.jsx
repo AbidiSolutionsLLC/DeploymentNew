@@ -92,8 +92,8 @@ const ApproveTimesheetViewModal = ({
  <>
  {!isApprovedTab && timesheet.status === "Pending" ? (
  <>
- <GlassButton variant="ghost" onClick={onClose} disabled={loading}>
- CANCEL
+ <GlassButton variant="secondary" onClick={onClose} disabled={loading}>
+ Close
  </GlassButton>
  {onReject && (
  <GlassButton 
@@ -116,8 +116,8 @@ const ApproveTimesheetViewModal = ({
  )}
  </>
  ) : (
- <GlassButton variant="primary" onClick={onClose} className="w-full">
- CLOSE
+ <GlassButton variant="secondary" onClick={onClose} className="w-full">
+ Close
  </GlassButton>
  )}
  </>

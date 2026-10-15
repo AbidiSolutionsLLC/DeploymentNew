@@ -1,12 +1,12 @@
 // ========== TimeoffBalanceCard.jsx ==========
 import React, { useState, useRef, useEffect } from "react";
 import { FiCalendar } from "react-icons/fi";
-import api from "../../axios";
+import leavesApi from "../../api/leavesApi";
 import EmptyCardState from "./EmptyCardState";
 import Loader from "../ui/Loader";
 import HomeCardShell from "./HomeCardShell";
 
-const TimeoffBalanceCard = ({ onDelete, userId }) => {
+const TimeoffBalanceCard = ({ onDelete }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [timeOffData, setTimeOffData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,13 +14,9 @@ const TimeoffBalanceCard = ({ onDelete, userId }) => {
 
   useEffect(() => {
     const fetchLeaves = async () => {
-      if (!userId) {
-        setLoading(false);
-        return;
-      }
       try {
-        const response = await api.get(`/users/${userId}/leaves`);
-        const leaves = response.data?.data || response.data || {};
+        const data = await leavesApi.getLeaveBalance();
+        const leaves = data?.leaves || {};
 
         const items = [
           {
@@ -33,17 +29,17 @@ const TimeoffBalanceCard = ({ onDelete, userId }) => {
           },
         ];
 
-        if (leaves.majlis != null) {
+        if (data?.bookedLeaves != null) {
           items.push({
-            type: "Majlis Leave",
-            remaining: `${leaves.majlis} days`,
+            type: "Booked Leaves",
+            remaining: `${data.bookedLeaves} days`,
           });
         }
 
-        if (leaves.avalaibleLeaves != null) {
+        if (data?.avalaibleLeaves != null) {
           items.push({
             type: "Total Available",
-            remaining: `${leaves.avalaibleLeaves} days`,
+            remaining: `${data.avalaibleLeaves} days`,
           });
         }
 
@@ -57,7 +53,7 @@ const TimeoffBalanceCard = ({ onDelete, userId }) => {
     };
 
     fetchLeaves();
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {

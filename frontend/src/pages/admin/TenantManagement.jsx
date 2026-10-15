@@ -610,8 +610,8 @@ function TenantManagement() {
         maxWidth="max-w-2xl"
         footer={
           <>
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Cancel</button>
-            <button type="submit" form="onboard-form" className="btn btn-primary">Onboard Tenant</button>
+            <GlassButton type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</GlassButton>
+            <GlassButton type="submit" form="onboard-form" variant="primary">Onboard Tenant</GlassButton>
           </>
         }
       >
@@ -698,8 +698,8 @@ function TenantManagement() {
         maxWidth="max-w-2xl"
         footer={
           <>
-            <button type="button" onClick={() => setIsEditModalOpen(false)} className="btn btn-secondary">Cancel</button>
-            <button type="submit" form="edit-form" className="btn btn-primary">Save Changes</button>
+            <GlassButton type="button" variant="secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</GlassButton>
+            <GlassButton type="submit" form="edit-form" variant="primary">Save Changes</GlassButton>
           </>
         }
       >
@@ -780,7 +780,7 @@ function TenantManagement() {
         description="Overview of company information."
         maxWidth="max-w-3xl"
         footer={
-          <button type="button" onClick={() => setIsViewModalOpen(false)} className="btn btn-secondary">Close</button>
+          <GlassButton type="button" variant="secondary" onClick={() => setIsViewModalOpen(false)}>Close</GlassButton>
         }
       >
         {selectedTenant && (

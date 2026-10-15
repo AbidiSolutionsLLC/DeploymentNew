@@ -56,8 +56,8 @@ export default function EditLeaveBalanceModal({ user, isOpen, onClose, onSaved }
       maxWidth="max-w-lg"
       footer={
         <>
-          <GlassButton variant="ghost" onClick={onClose} disabled={saving}>
-            CANCEL
+          <GlassButton variant="secondary" onClick={onClose} disabled={saving}>
+            Cancel
           </GlassButton>
           <GlassButton
             variant="primary"

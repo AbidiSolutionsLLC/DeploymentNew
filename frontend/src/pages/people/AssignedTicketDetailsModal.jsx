@@ -3,7 +3,7 @@ import { PaperClipIcon, PaperAirplaneIcon } from "@heroicons/react/24/solid";
 import { Paperclip } from "lucide-react";
 import { FaSpinner } from "react-icons/fa";
 import GlassModal from "../../components/ui/GlassModal";
-import Loader from "../../components/ui/Loader";
+import GlassButton from "../../components/ui/GlassButton";
 import { validateDescription } from "../../utils/validationUtils";
 import {
   resolvePriorityPill,
@@ -65,6 +65,11 @@ export default function AssignedTicketDetailsModal({
       isOpen={true}
       onClose={onClose}
       maxWidth="max-w-4xl"
+      footer={
+        <GlassButton variant="secondary" onClick={onClose}>
+          Close
+        </GlassButton>
+      }
       title={
         <div>
           <div className="flex flex-wrap items-center gap-3">
@@ -168,19 +173,17 @@ export default function AssignedTicketDetailsModal({
                   commentError ? "placeholder:text-red-300" : ""
                 }`}
               ></textarea>
-              <button
+              <GlassButton
+                variant="primary"
+                icon={PaperAirplaneIcon}
                 onClick={() => {
                   if (!commentError) handleSendComment();
                 }}
                 disabled={sendingComment || !!commentError}
-                className="p-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors disabled:opacity-50"
-              >
-                {sendingComment ? (
-                  <Loader variant="spinner" size="sm" className="text-white" />
-                ) : (
-                  <PaperAirplaneIcon className="w-5 h-5" />
-                )}
-              </button>
+                isLoading={sendingComment}
+                className="!p-3 shrink-0"
+                aria-label="Send reply"
+              />
             </div>
             {commentError && <p className="text-xs text-red-500 mt-1 pl-2">{commentError}</p>}
           </div>

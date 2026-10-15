@@ -68,11 +68,6 @@ export default function PortalTabBar({
                   className={isActive ? "text-brand-text" : "opacity-70 group-hover:opacity-100"}
                 />
                 {item.title}
-                {typeof item.badge === "number" && item.badge > 0 && (
-                  <span className="lm-badge" aria-label={`${item.badge} ${item.title}`}>
-                    {item.badge}
-                  </span>
-                )}
               </span>
             </button>
           );

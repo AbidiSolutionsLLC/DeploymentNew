@@ -67,29 +67,20 @@ export const ConfirmProvider = ({ children }) => {
         onClose={handleCancel}
         title={confirmState.title}
         footer={
-          <div className="flex justify-end gap-3 w-full">
+          <>
             <GlassButton variant="secondary" onClick={handleCancel} disabled={isLoading}>
               {confirmState.cancelText}
             </GlassButton>
             <GlassButton
               variant={confirmState.isDanger ? "danger" : "primary"}
               onClick={handleConfirm}
+              isLoading={isLoading}
               disabled={isLoading}
-              className={`px-5 py-2.5 text-sm font-bold shadow-sm rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 min-w-[100px] ${
-                confirmState.isDanger
-                  ? "bg-red-500 hover:bg-red-600 shadow-red-500/20 text-white"
-                  : "btn-primary"
-              }`}
+              className="min-w-[100px]"
             >
-              {isLoading && (
-                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              )}
-              {!isLoading && confirmState.confirmText}
+              {confirmState.confirmText}
             </GlassButton>
-          </div>
+          </>
         }
         maxWidth="max-w-sm"
       >

@@ -833,11 +833,9 @@ const Attendance = () => {
             </h3>
           }
           footer={
-            <div className="flex justify-end w-full">
-              <GlassButton variant="secondary" onClick={() => setIsModalOpen(false)}>
-                CLOSE
-              </GlassButton>
-            </div>
+            <GlassButton variant="secondary" onClick={() => setIsModalOpen(false)}>
+              Close
+            </GlassButton>
           }
         >
           <div className="mb-5">

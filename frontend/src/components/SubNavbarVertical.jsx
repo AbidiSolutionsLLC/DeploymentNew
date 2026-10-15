@@ -21,6 +21,7 @@ import { DollarSignIcon } from "lucide-react";
 import { FaSitemap } from "react-icons/fa";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import GlassModal from "./ui/GlassModal";
+import GlassButton from "./ui/GlassButton";
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -341,28 +342,27 @@ const iconMap = {
                </h3>
              </div>
            }
-           footer={
-             <div className="flex justify-end gap-3 w-full">
-               <button
-                 id="logout-cancel-btn"
-                 onClick={() => setIsLogoutModalOpen(false)}
-                 className="px-5 py-2.5 text-sm font-bold rounded-xl transition-colors theme-settings-item"
-                 style={{ backgroundColor: "var(--color-bg-secondary)" }}
-               >
-                 Cancel
-               </button>
-               <button
-                 id="logout-confirm-btn"
-                 onClick={() => {
-                   setIsLogoutModalOpen(false);
-                   handleLogout();
-                 }}
-                 className="px-5 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-sm shadow-red-500/20 rounded-xl transition-colors flex items-center gap-2"
-               >
-                 Sign Out
-               </button>
-             </div>
-           }
+          footer={
+            <>
+              <GlassButton
+                id="logout-cancel-btn"
+                variant="secondary"
+                onClick={() => setIsLogoutModalOpen(false)}
+              >
+                Cancel
+              </GlassButton>
+              <GlassButton
+                id="logout-confirm-btn"
+                variant="danger"
+                onClick={() => {
+                  setIsLogoutModalOpen(false);
+                  handleLogout();
+                }}
+              >
+                Sign Out
+              </GlassButton>
+            </>
+          }
            maxWidth="max-w-sm"
          >
            <p className="text-sm pl-1 leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>

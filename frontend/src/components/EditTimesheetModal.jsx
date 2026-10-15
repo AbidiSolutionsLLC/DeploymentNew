@@ -159,8 +159,8 @@ export default function EditTimesheetModal({ open, onClose, timesheet, onTimeshe
  maxWidth="max-w-lg"
  footer={
  <>
- <GlassButton variant="ghost" onClick={onClose} disabled={loading}>
- CANCEL
+ <GlassButton variant="secondary" onClick={onClose} disabled={loading}>
+ Cancel
  </GlassButton>
  <GlassButton 
  variant="primary" 

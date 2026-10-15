@@ -27,8 +27,11 @@ export default function GlassButton({
    const variantClasses = {
        primary:
          "bg-[linear-gradient(135deg,#F7E7B4_0%,#EDBB3E_38%,#D9A21F_62%,#F5D77A_100%)] text-black shadow-[0_4px_14px_rgba(217,162,31,0.45),0_0_0_1px_rgba(217,162,31,0.3)] hover:shadow-[0_10px_28px_rgba(217,162,31,0.55),0_0_0_1px_rgba(217,162,31,0.35)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_3px_10px_rgba(217,162,31,0.4)] dark:bg-[linear-gradient(135deg,#F7E7B4_0%,#EDBB3E_38%,#D9A21F_62%,#F5D77A_100%)] dark:text-slate-900 dark:shadow-[0_4px_14px_rgba(245,215,122,0.4),0_0_0_1px_rgba(217,162,31,0.3)]",
+     // Secondary = quiet, outlined surface action (Cancel/Close/secondary actions).
+     // Deliberately NOT the gold-foil fill — it must read as a distinct, lower-emphasis
+     // counterpart to `primary` in every theme.
      secondary:
-         "bg-[linear-gradient(135deg,#F7E7B4_0%,#EDBB3E_38%,#D9A21F_62%,#F5D77A_100%)] text-black shadow-[0_4px_14px_rgba(217,162,31,0.45),0_0_0_1px_rgba(217,162,31,0.3)] hover:shadow-[0_10px_28px_rgba(217,162,31,0.55),0_0_0_1px_rgba(217,162,31,0.35)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_3px_10px_rgba(217,162,31,0.4)] dark:bg-[linear-gradient(135deg,#F7E7B4_0%,#EDBB3E_38%,#D9A21F_62%,#F5D77A_100%)] dark:text-slate-900 dark:shadow-[0_4px_14px_rgba(245,215,122,0.4),0_0_0_1px_rgba(217,162,31,0.3)]",
+         "bg-white text-brand-text border border-border-accent shadow-[0_2px_8px_rgba(15,23,42,0.06)] hover:bg-card-hover hover:border-brand hover:-translate-y-1 active:translate-y-0 active:shadow-[0_2px_6px_rgba(15,23,42,0.08)] dark:bg-slate-800 dark:text-amber-200 dark:border-slate-600 dark:hover:bg-slate-700 dark:hover:border-amber-400",
    goldFoil:
          "bg-[linear-gradient(135deg,#F7E7B4_0%,#EDBB3E_38%,#D9A21F_62%,#F5D77A_100%)] text-black shadow-[0_4px_14px_rgba(217,162,31,0.45),0_0_0_1px_rgba(217,162,31,0.3)] hover:shadow-[0_10px_28px_rgba(217,162,31,0.55),0_0_0_1px_rgba(217,162,31,0.35)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_3px_10px_rgba(217,162,31,0.4)] dark:bg-[linear-gradient(135deg,#F7E7B4_0%,#EDBB3E_38%,#D9A21F_62%,#F5D77A_100%)] dark:text-slate-900 dark:shadow-[0_4px_14px_rgba(245,215,122,0.4),0_0_0_1px_rgba(217,162,31,0.3)]",
        danger:

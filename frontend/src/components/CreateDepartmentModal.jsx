@@ -77,7 +77,7 @@ const CreateDepartmentModal = ({ isOpen, onClose, onDepartmentCreated, potential
  maxWidth="max-w-md"
  footer={
  <>
- <GlassButton variant="ghost" onClick={onClose}>
+ <GlassButton variant="secondary" onClick={onClose}>
  Cancel
  </GlassButton>
  <GlassButton variant="primary" onClick={handleSubmit} isLoading={isLoading}>

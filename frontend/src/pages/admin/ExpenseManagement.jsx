@@ -21,6 +21,7 @@ import PageContainer from "../../components/ui/PageContainer";
 import TableWithPagination from "../../components/TableWithPagination";
 import expensesApi from "../../api/expensesApi";
 import GlassModal from "../../components/ui/GlassModal";
+import GlassButton from "../../components/ui/GlassButton";
 import { dispatchReadOnlyModal } from "../../utils/readOnlyEvent";
 import { useConfirm } from "../../context/ConfirmContext";
 import StatusBadge from "../../components/StatusBadge";
@@ -544,7 +545,46 @@ const getStatusBadge = (status) => {
    }}
    title={<span className="text-sm font-black text-heading uppercase tracking-widest">{editMode === "reject" ? 'Reject Expense' : 'Edit Expense'}</span>}
    maxWidth="max-w-md"
- >
+   footer={
+   editMode === "reject" ? (
+   <>
+   <GlassButton
+   variant="secondary"
+   onClick={() => {
+   setIsEditModalOpen(false);
+   setEditingExpense(null);
+   setEditMode("edit");
+   }}
+   >
+   Cancel
+   </GlassButton>
+   <GlassButton
+   variant="danger"
+   icon={XCircle}
+   onClick={() => handleReject(editingExpense._id, editFormData.rejectionReason)}
+   >
+   Reject
+   </GlassButton>
+   </>
+   ) : (
+   <>
+   <GlassButton
+   variant="secondary"
+   onClick={() => {
+   setIsEditModalOpen(false);
+   setEditingExpense(null);
+   setEditMode("edit");
+   }}
+   >
+   Cancel
+   </GlassButton>
+   <GlassButton variant="primary" icon={Save} onClick={handleSaveEdit}>
+   Save Changes
+   </GlassButton>
+   </>
+   )
+   }
+  >
  <div className="space-y-4">
  {editMode === "reject" ? (
  // Reject Form
@@ -558,27 +598,6 @@ const getStatusBadge = (status) => {
  className="w-full border border-border-subtle rounded-xl px-3 py-3 text-sm font-medium focus:ring-2 focus:ring-slate-400 outline-none bg-surface text-main min-h-[100px] resize-none"
  placeholder="Please provide a reason for rejection..."
  />
-
- <div className="flex gap-3 mt-6">
- <button
- onClick={() => {
- setIsEditModalOpen(false);
- setEditingExpense(null);
- setEditMode("edit");
- }}
- className="flex-1 py-2 text-xs font-bold text-muted hover:text-main uppercase tracking-wider transition-colors"
- >
- Cancel
- </button>
- <button
- onClick={() => {
- handleReject(editingExpense._id, editFormData.rejectionReason);
- }}
-  className="flex-1 py-2 bg-rose-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-rose-600 shadow-md shadow-rose-500/20 flex justify-center items-center gap-2 transition-all"
- >
- <XCircle size={14} /> Reject
- </button>
- </div>
  </div>
  ) : (
  // Edit Form
@@ -664,25 +683,6 @@ const getStatusBadge = (status) => {
  </button>
  </div>
  )}
-
- <div className="flex gap-3 mt-6">
- <button
- onClick={() => {
- setIsEditModalOpen(false);
- setEditingExpense(null);
- setEditMode("edit");
- }}
- className="flex-1 py-2 text-xs font-bold text-primary-color/50 hover:text-primary-color uppercase tracking-wider transition-colors"
- >
- Cancel
- </button>
- <button
- onClick={handleSaveEdit}
- className="btn btn-primary flex-1 flex justify-center items-center gap-2"
- >
- <Save size={14} /> Save Changes
- </button>
- </div>
  </>
  )}
  </div>

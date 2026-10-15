@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { applyForLeave, refreshUserData } from "../../slices/userSlice";
 import { toast } from "react-toastify";
 import GlassModal from "../../components/ui/GlassModal";
-import Loader from "../../components/ui/Loader";
+import GlassButton from "../../components/ui/GlassButton";
 
 const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
  const dispatch = useDispatch();
@@ -141,35 +141,25 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
       title="APPLY FOR LEAVE"
       maxWidth="max-w-md"
       footer={
-        <div className="flex gap-4 w-full">
-          <button
+        <>
+          <GlassButton
+            variant="secondary"
             type="button"
             onClick={() => !isSubmitting && setIsOpen(false)}
             disabled={isSubmitting}
-            className="flex-1 px-6 py-4 rounded-2xl font-black text-[11px] text-muted uppercase tracking-widest hover:bg-surface transition-all disabled:opacity-50"
           >
-            CANCEL
-          </button>
-          <button
+            Cancel
+          </GlassButton>
+          <GlassButton
+            variant="primary"
             type="submit"
             onClick={handleSubmit}
+            isLoading={isSubmitting}
             disabled={quotaError !== "" || !leaveType || !startDate || !endDate || isSubmitting}
-            className={`flex-1 px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg ${
-              quotaError !== "" || !leaveType || !startDate || !endDate || isSubmitting
-                ? "bg-slate-200 text-muted cursor-not-allowed shadow-none"
-                : "bg-brand-btnGreen text-brand-stroke-green hover:opacity-90 shadow-brand-btnGreen/20"
-            }`}
           >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader variant="spinner" size="sm" className="text-white" />
-                <span>SUBMITTING...</span>
-              </div>
-            ) : (
-              "SUBMIT REQUEST"
-            )}
-          </button>
-        </div>
+            Submit Request
+          </GlassButton>
+        </>
       }
     >
       <form className="space-y-6" onSubmit={handleSubmit}>

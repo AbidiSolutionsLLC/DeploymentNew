@@ -90,7 +90,7 @@ const EditDepartmentModal = ({ isOpen, onClose, onDepartmentUpdated, department,
       maxWidth="max-w-md"
       footer={
         <>
-          <GlassButton variant="ghost" onClick={onClose}>
+          <GlassButton variant="secondary" onClick={onClose}>
             Cancel
           </GlassButton>
           <GlassButton variant="primary" onClick={handleSubmit} isLoading={isLoading}>

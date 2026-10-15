@@ -17,6 +17,7 @@ import { IoEllipsisVertical } from "react-icons/io5"
 import { FaFolder, FaFile, FaShare, FaTrash } from "react-icons/fa"
 import { Paperclip } from "lucide-react"
 import GlassModal from "../../components/ui/GlassModal"
+import GlassButton from "../../components/ui/GlassButton"
 import { useConfirm } from "../../context/ConfirmContext"
 
 const UploadDocument = () => {
@@ -249,24 +250,25 @@ const UploadDocument = () => {
       title={`Share ${currentFile?.name || files.find(f => f._id === selectedFileId)?.name}`}
       maxWidth="max-w-md"
       footer={
-        <div className="flex justify-end gap-2 w-full">
-          <button
+        <>
+          <GlassButton
+            variant="secondary"
             onClick={() => {
               setShareModalOpen(false);
               setCurrentFile(null);
             }}
-            className="px-4 py-2.5 border border-border-subtle text-main rounded-xl text-sm font-medium hover:bg-surface/50 transition shadow-sm"
           >
             Cancel
-          </button>
-          <button
+          </GlassButton>
+          <GlassButton
+            variant="primary"
             onClick={handleSaveAccessSettings}
-            className="btn btn-primary"
+            isLoading={uploading}
             disabled={uploading}
           >
-            {uploading ? 'Saving...' : 'Save Settings'}
-          </button>
-        </div>
+            Save Settings
+          </GlassButton>
+        </>
       }
     >
       <div className="mb-4">

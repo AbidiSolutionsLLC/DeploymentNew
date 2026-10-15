@@ -34,9 +34,7 @@ export default function TaskCommentsDrawer({
       description="Task discussion"
       maxWidth="max-w-lg"
       footer={
-        <div className="flex justify-end gap-2 w-full">
-          <GlassButton variant="secondary" onClick={onClose}>Close</GlassButton>
-        </div>
+        <GlassButton variant="secondary" onClick={onClose}>Close</GlassButton>
       }
     >
       <div className="flex flex-col gap-4 h-full">

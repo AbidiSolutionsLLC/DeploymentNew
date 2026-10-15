@@ -68,7 +68,7 @@ const ExportSelectionModal = ({
  maxWidth="max-w-2xl"
  footer={
  <>
- <GlassButton variant="ghost" onClick={onClose}>
+ <GlassButton variant="secondary" onClick={onClose}>
  Cancel
  </GlassButton>
  <GlassButton 

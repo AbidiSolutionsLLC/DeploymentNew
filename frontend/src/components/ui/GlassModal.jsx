@@ -74,14 +74,16 @@ export default function GlassModal({
               )}
               {description && <p className="mt-1.5 text-xs text-muted">{description}</p>}
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-ghost ml-2 flex-shrink-0 rounded-sm shrink-0 p-2 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors" 
-              aria-label="Close modal"
-            >
-              <X className="h-4 w-4 text-slate-500" />
-            </button>
+            {!footer && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="ml-2 flex-shrink-0 p-2 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -92,7 +94,7 @@ export default function GlassModal({
 
         {/* Footer (Optional) */}
         {footer && (
-          <div className="flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 px-4 py-3 border-t border-border-subtle dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+          <div className="flex-shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-4 py-3 border-t border-border-subtle dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
             {footer}
           </div>
         )}
