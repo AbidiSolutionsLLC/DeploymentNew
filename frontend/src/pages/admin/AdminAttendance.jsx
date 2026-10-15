@@ -134,8 +134,14 @@ const AdminAttendance = () => {
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         return { derivedStart: firstDay, derivedEnd: today };
       }
-      case "Custom":
-        return { derivedStart: customDateRange[0], derivedEnd: customDateRange[1] };
+      case "Custom": {
+        const customStart = customDateRange?.[0];
+        const customEnd = customDateRange?.[1];
+        if (!customStart && !customEnd) {
+          return { derivedStart: today, derivedEnd: today };
+        }
+        return { derivedStart: customStart || customEnd, derivedEnd: customEnd || customStart };
+      }
       default:
         return { derivedStart: today, derivedEnd: today };
     }
