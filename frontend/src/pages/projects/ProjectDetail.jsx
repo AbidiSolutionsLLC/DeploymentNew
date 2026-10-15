@@ -14,6 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { fetchProjectById, updateProject, deleteProject } from "../../store/projectSlice";
 import { fetchProjectTasks, createTask, updateTaskStatus, addTaskComment, fetchTaskComments } from "../../store/taskSlice";
+import { useConfirm } from "../../context/ConfirmContext";
 import Loader from "../../components/ui/Loader";
 import GlassModal from "../../components/ui/GlassModal";
 import Pill, { PROJECT_STATUS_TONE, TASK_STATUS_TONE, PRIORITY_TONE } from "../../components/projectPortal/Pill";
@@ -58,6 +59,7 @@ const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const confirm = useConfirm();
   const { projects, currentProject } = useSelector((state) => state.projects);
   const { projectTasks, projectTasksLoading, taskComments } = useSelector((state) => state.tasks);
   const { userInfo } = useSelector((state) => state.user || {});
@@ -166,15 +168,21 @@ const ProjectDetail = () => {
 
   const handleDeleteProject = () => {
     if (!project) return;
-    if (window.confirm(`Delete "${project.title}"? This cannot be undone.`)) {
-      dispatch(deleteProject(project._id))
-        .unwrap()
-        .then(() => {
+    confirm({
+      title: "Delete Project",
+      message: `Delete "${project.title}"? This cannot be undone.`,
+      confirmText: "Delete",
+      onConfirmAction: async () => {
+        try {
+          await dispatch(deleteProject(project._id)).unwrap();
           toast.success("Project deleted");
           navigate("/project/projects");
-        })
-        .catch((err) => toast.error(err?.message || "Failed to delete"));
-    }
+        } catch (err) {
+          toast.error(err?.message || "Failed to delete");
+          throw err;
+        }
+      },
+    });
   };
 
   const handleEditProject = async (updates) => {

@@ -34,6 +34,7 @@ import Toast from "../../components/Toast";
 import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 import { getInitials, downloadCsv } from "../../utils/tableUtils";
 import { getApiError } from "../../utils/validationUtils";
+import { useConfirm } from "../../context/ConfirmContext";
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -55,6 +56,7 @@ const statusBadge = (status) =>
 const pill = "text-xs font-semibold bg-surface dark:bg-app px-2.5 py-1 rounded-md border border-border-subtle text-main";
 
 const UserManagement = () => {
+  const confirm = useConfirm();
   /* ==================== DATA ==================== */
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -238,16 +240,23 @@ const UserManagement = () => {
     setIsViewDeptModalOpen(true);
   }, []);
 
-  const handleDeleteDepartment = useCallback(async (dept) => {
-    if (!window.confirm(`Delete "${dept.name}" department? This will also remove sub-departments and unassign members.`)) return;
-    try {
-      await api.delete(`/departments/${dept._id}`);
-      fetchData();
-      showToast("Department deleted successfully");
-    } catch (error) {
-      showToast(getApiError(error, "Failed to delete department"), "error");
-    }
-  }, [fetchData, showToast]);
+  const handleDeleteDepartment = useCallback((dept) => {
+    confirm({
+      title: "Delete Department",
+      message: `Delete "${dept.name}" department? This will also remove sub-departments and unassign members.`,
+      confirmText: "Delete",
+      onConfirmAction: async () => {
+        try {
+          await api.delete(`/departments/${dept._id}`);
+          fetchData();
+          showToast("Department deleted successfully");
+        } catch (error) {
+          showToast(getApiError(error, "Failed to delete department"), "error");
+          throw error;
+        }
+      },
+    });
+  }, [confirm, fetchData, showToast]);
 
   const handleUserUpdated = (type = "update") => {
     fetchData();

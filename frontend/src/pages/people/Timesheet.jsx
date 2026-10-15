@@ -19,11 +19,11 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
+import { useConfirm } from "../../context/ConfirmContext";
 import StyledTable from "../../components/ui/StyledTable";
 import ViewTimesheetModal from "../../components/ViewTimesheetModal";
 import EditTimesheetModal from "../../components/EditTimesheetModal";
 import { moment, TIMEZONE, formatDateForAPI } from "../../utils/dateUtils";
-import GlassModal from "../../components/ui/GlassModal";
 import GlassButton from "../../components/ui/GlassButton";
 import StatCard from "../../components/ui/StatCard";
 import FilterPanel from "../../components/ui/FilterPanel";
@@ -36,7 +36,7 @@ const Timesheet = ({ refreshTrigger }) => {
  const [showViewModal, setShowViewModal] = useState(false);
  const [editingTimesheet, setEditingTimesheet] = useState(null);
  const [showEditModal, setShowEditModal] = useState(false);
- const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ show: false, timesheetId: null });
+ const confirm = useConfirm();
  
  function getMonday(date) {
  const d = new Date(date);
@@ -214,27 +214,21 @@ const Timesheet = ({ refreshTrigger }) => {
  toast.error("You can only delete timesheets that are in Pending status");
  return;
  }
- setDeleteConfirmDialog({ show: true, timesheetId: timesheet._id });
- };
-
- const handleConfirmDelete = async () => {
- const id = deleteConfirmDialog.timesheetId;
- if (!id) return;
-
+ confirm({
+ title: "Delete Timesheet",
+ message: "Are you sure you want to delete this timesheet? This action cannot be undone.",
+ onConfirmAction: async () => {
  try {
- await timesheetApi.deleteTimesheet(id);
+ await timesheetApi.deleteTimesheet(timesheet._id);
  toast.success("Timesheet deleted successfully");
  fetchWeeklyTimesheets();
  } catch (error) {
  console.error("Failed to delete timesheet:", error);
  toast.error(error.response?.data?.message || "Failed to delete timesheet");
- } finally {
- setDeleteConfirmDialog({ show: false, timesheetId: null });
+ throw error;
  }
- };
-
- const handleCancelDelete = () => {
- setDeleteConfirmDialog({ show: false, timesheetId: null });
+ },
+ });
  };
 
  const handleTimesheetUpdated = () => {
@@ -508,40 +502,6 @@ const tableActions = [
  onTimesheetUpdated={handleTimesheetUpdated}
  />
  )}
-
- <GlassModal
- isOpen={deleteConfirmDialog.show}
- onClose={handleCancelDelete}
- title="Delete Timesheet"
- maxWidth="sm"
- footer={
- <div className="flex w-full gap-3">
- <button
- onClick={handleCancelDelete}
- className="btn-ghost flex-1 text-muted"
- >
- Cancel
- </button>
- <button
- onClick={handleConfirmDelete}
- className="flex-1 /10 text-red-600 dark:text-red-400 font-bold text-xs hover: hover: border border-red-500/20 hover:border-transparent active:scale-95 btn btn-danger"
- >
- Delete
- </button>
- </div>
- }
- >
- <div className="text-center py-4">
- <div className="w-16 h-16 mx-auto mb-4 bg-red-500/10 rounded-full flex items-center justify-center">
- <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
- </svg>
- </div>
- <p className="text-sm text-heading font-medium">
- Are you sure you want to delete this timesheet? This action cannot be undone.
- </p>
- </div>
- </GlassModal>
  </div>
  );
 };

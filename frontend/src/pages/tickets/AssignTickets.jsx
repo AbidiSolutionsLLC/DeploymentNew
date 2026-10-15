@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../axios";
+import { useConfirm } from "../../context/ConfirmContext";
 import Toast from "../../components/Toast";
 import ModernSelect from "../../components/ui/ModernSelect";
 import { downloadFile } from "../../utils/downloadFile";
 import { validateDescription, getApiError } from "../../utils/validationUtils";
 import {
-  FaArrowLeft, FaTrash, FaChevronDown, FaFlag, FaUser, FaExclamationTriangle,
-  FaClock, FaCheck, FaUserPlus, FaPaperPlane, FaEnvelope, FaCalendarDay, FaShieldAlt
+  FaArrowLeft, FaTrash, FaChevronDown, FaFlag, FaUser,
+  FaClock, FaCheck, FaUserPlus, FaPaperPlane, FaEnvelope, FaCalendarDay
 } from "react-icons/fa";
 import { UserPlusIcon } from "@heroicons/react/20/solid";
 import PageContainer from "../../components/ui/PageContainer";
@@ -49,8 +50,7 @@ const AssignTicket = () => {
   const [selectedUserToPromote, setSelectedUserToPromote] = useState(null);
   const [promoting, setPromoting] = useState(false);
 
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const confirm = useConfirm();
 
   const [toast, setToast] = useState(null);
 
@@ -168,15 +168,21 @@ const AssignTicket = () => {
   };
 
   const handleDeleteTicket = async () => {
-    setDeleting(true);
-    try {
-      await api.delete(`/tickets/${ticketId}`);
-      showToast("Ticket deleted");
-      setTimeout(() => navigate("/admin/assign-ticket", { replace: true }), 1000);
-    } catch (error) {
-      showToast(getApiError(error, "Failed to delete ticket"), "error");
-      setDeleting(false);
-    }
+    confirm({
+      title: "Delete Ticket",
+      message: `Are you sure you want to delete this ticket? Ticket #${ticket?.ticketID || ticket?._id?.slice(0, 8)} along with its discussion history and attachments will be permanently removed.`,
+      confirmText: "Delete Ticket",
+      onConfirmAction: async () => {
+        try {
+          await api.delete(`/tickets/${ticketId}`);
+          showToast("Ticket deleted");
+          setTimeout(() => navigate("/admin/assign-ticket", { replace: true }), 1000);
+        } catch (error) {
+          showToast(getApiError(error, "Failed to delete ticket"), "error");
+          throw error;
+        }
+      },
+    });
   };
 
   const handlePromoteToTechnician = async () => {
@@ -373,7 +379,7 @@ const AssignTicket = () => {
             </button>
 
             <button
-              onClick={() => setDeleteConfirmOpen(true)}
+              onClick={() => handleDeleteTicket()}
               className="p-2 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/50 hover:bg-red-200 dark:hover:bg-red-900/50 transition-all shadow-sm"
               title="Delete Ticket"
             >
@@ -468,7 +474,7 @@ const AssignTicket = () => {
               {/* Status */}
               <div className="space-y-1.5">
                 <p className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-1.5">
-                  <Clock size={12} /> Status
+                  <FaClock size={12} /> Status
                 </p>
                 <ModernSelect
                   value={ticket.status}
@@ -567,70 +573,6 @@ const AssignTicket = () => {
         </div>
       </div>
       </PageContainer>
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirmOpen && (
-        <GlassModal
-          isOpen={true}
-          onClose={() => {
-            if (!deleting) {
-              setDeleteConfirmOpen(false);
-            }
-          }}
-          maxWidth="max-w-md"
-          title={
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-heading tracking-widest uppercase">
-                Delete Ticket
-              </h2>
-              <p className="text-[9px] text-muted font-black tracking-[0.2em] mt-1 uppercase">This action cannot be undone</p>
-            </div>
-          }
-          footer={
-            <div className="flex gap-3 sm:gap-4 w-full">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmOpen(false)}
-                disabled={deleting}
-                className="flex-1 py-3 sm:py-4 font-black text-[10px] sm:text-[11px] text-muted uppercase tracking-widest hover:text-main transition-colors disabled:opacity-50"
-              >
-                CANCEL
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteTicket}
-                disabled={deleting}
-                className="flex-1 sm:py-4 text-[10px] sm:text-[10px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed btn btn-danger"
-              >
-                {deleting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader variant="spinner" size="sm" className="text-white" />
-                    DELETING...
-                  </span>
-                ) : (
-                  "DELETE TICKET"
-                )}
-              </button>
-            </div>
-          }
-        >
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 shrink-0">
-              <FaExclamationTriangle size={22} />
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-bold text-main">
-                <FaShieldAlt size={14} className="inline mr-1" />
-                Are you sure you want to delete this ticket?
-              </p>
-              <p className="text-xs text-muted leading-relaxed">
-                Ticket <span className="font-mono font-bold text-red-500">#{ticket.ticketID || ticket._id?.slice(0, 8)}</span> along with its
-                discussion history and attachments will be permanently removed.
-              </p>
-            </div>
-          </div>
-        </GlassModal>
-      )}
 
       {/* Add Technician Modal */}
       {addTechnicianModal && (

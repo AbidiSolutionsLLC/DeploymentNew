@@ -26,8 +26,8 @@ import { toast } from "react-toastify";
 import Timesheet from "./Timesheet";
 import CreateTimesheetModal from "./CreateTimesheetModal";
 import timesheetApi from "../../api/timesheetApi";
+import { useConfirm } from "../../context/ConfirmContext";
 import PageContainer from "../../components/ui/PageContainer";
-import GlassModal from "../../components/ui/GlassModal";
 import PortalHero from "../../components/ui/PortalHero";
 import PortalTabBar from "../../components/ui/PortalTabBar";
 import StatCard from "../../components/ui/StatCard";
@@ -52,7 +52,7 @@ const TimeTracker = () => {
  const [isCreateTimesheetModalOpen, setIsCreateTimesheetModalOpen] = useState(false);
  const [timesheets, setTimesheets] = useState([]);
  const [refreshTimesheetTrigger, setRefreshTimesheetTrigger] = useState(0);
- const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ show: false, logId: null });
+ const confirm = useConfirm();
 
  // Tab bar model — live counts ride along as badges (Leave Management style)
  const tabs = [
@@ -206,13 +206,10 @@ const TimeTracker = () => {
  };
 
  const handleDeleteClick = (id) => {
- setDeleteConfirmDialog({ show: true, logId: id });
- };
-
- const handleConfirmDelete = async () => {
- const id = deleteConfirmDialog.logId;
- if (!id) return;
-
+ confirm({
+ title: "Delete Time Log",
+ message: "Are you sure you want to delete this time log? This action cannot be undone.",
+ onConfirmAction: async () => {
  try {
  await timeLogApi.deleteTimeLog(id);
  fetchTimeLogs();
@@ -220,13 +217,10 @@ const TimeTracker = () => {
  } catch (error) {
  console.error("Failed to delete time log:", error);
  toast.error(error.response?.data?.message || "Failed to delete time log");
- } finally {
- setDeleteConfirmDialog({ show: false, logId: null });
+ throw error;
  }
- };
-
- const handleCancelDelete = () => {
- setDeleteConfirmDialog({ show: false, logId: null });
+ },
+ });
  };
 
  const handleViewLog = (log) => {
@@ -580,40 +574,6 @@ const TimeTracker = () => {
  onClose={() => setViewingLog(null)}
  />
  )}
-
- <GlassModal
- isOpen={deleteConfirmDialog.show}
- onClose={handleCancelDelete}
- title="Delete Time Log"
- maxWidth="sm"
- footer={
- <div className="flex w-full gap-3">
- <button
- onClick={handleCancelDelete}
- className="btn-ghost flex-1 text-muted"
- >
- Cancel
- </button>
- <button
- onClick={handleConfirmDelete}
- className="flex-1 /10 text-red-600 dark:text-red-400 font-bold text-xs hover: hover: border border-red-500/20 hover:border-transparent active:scale-95 btn btn-danger"
- >
- Delete
- </button>
- </div>
- }
- >
- <div className="text-center py-4">
- <div className="w-16 h-16 mx-auto mb-4 bg-red-500/10 rounded-full flex items-center justify-center">
- <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
- </svg>
- </div>
- <p className="text-sm text-heading font-medium">
- Are you sure you want to delete this time log? This action cannot be undone.
- </p>
- </div>
- </GlassModal>
  </>
  );
 };

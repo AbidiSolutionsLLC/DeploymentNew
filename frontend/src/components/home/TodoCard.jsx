@@ -13,6 +13,7 @@ import ModernDatePicker from "../ui/ModernDatePicker";
 import GlassModal from "../ui/GlassModal";
 import GlassButton from "../ui/GlassButton";
 import { formatDateForAPI } from "../../utils/dateUtils";
+import { useConfirm } from "../../context/ConfirmContext";
 import HomeCardShell from "./HomeCardShell";
 
 const EMPTY_FORM = {
@@ -61,7 +62,7 @@ const ToDoCard = ({ onDelete, userId }) => {
  const [addModalTouched, setAddModalTouched] = useState({});
  const [menuOpen, setMenuOpen] = useState(false);
  const [modalTouched, setModalTouched] = useState({});
- const [deleteDialog, setDeleteDialog] = useState({ open: false, task: null });
+ const confirm = useConfirm();
  const [detailModal, setDetailModal] = useState({ open: false, task: null });
  const [modalForm, setModalForm] = useState({ ...EMPTY_FORM, completed: false });
  const menuRef = useRef();
@@ -262,7 +263,15 @@ todos[index] = { ...todos[index], ...payload };
  };
 
  const confirmDeleteTask = (task) => {
- setDeleteDialog({ open: true, task });
+ if (!task || !resolvedUserId) return;
+ confirm({
+ title: "Delete Todo",
+ message: "Are you sure you want to delete this todo? You can undo it for a few seconds after deleting.",
+ confirmText: "Delete",
+ onConfirmAction: async () => {
+ removeTask(task);
+ },
+ });
  };
 
  const closeDetailModal = () => {
@@ -340,8 +349,7 @@ todos[index] = { ...todos[index], ...payload };
  }
  };
 
- const removeTask = () => {
- const task = deleteDialog.task;
+ const removeTask = (task) => {
  if (!task || !resolvedUserId) return;
 
  const index = tasks.findIndex((item) => item._id === task._id);
@@ -349,7 +357,6 @@ todos[index] = { ...todos[index], ...payload };
  if (detailModal.open && detailModal.task?._id === task._id) {
  closeDetailModal();
  }
- setDeleteDialog({ open: false, task: null });
 
  const timeoutId = window.setTimeout(async () => {
  try {
@@ -693,40 +700,6 @@ todos[index] = { ...todos[index], ...payload };
             error={addModalTouched.dueDate && addErrors.dueDate ? addErrors.dueDate : null}
           />
         </div>
-      </div>
-    </GlassModal>
-  )}
-
-  {deleteDialog.open && (
-    <GlassModal
-      isOpen={true}
-      onClose={() => setDeleteDialog({ open: false, task: null })}
-      maxWidth="max-w-sm"
-      title="Delete Todo"
-      footer={
-        <div className="flex gap-3 w-full">
-          <button
-            onClick={() => setDeleteDialog({ open: false, task: null })}
-            className="flex-1 py-3 bg-app text-main rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={removeTask}
-            className="flex-1 text-[10px] shadow-red-100 btn btn-danger"
-          >
-            Delete
-          </button>
-        </div>
-      }
-    >
-      <div className="text-center">
-        <div className="w-16 h-16 mx-auto mb-4 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-          <FiTrash2 className="w-8 h-8 text-red-500" />
-        </div>
-        <p className="text-xs text-muted font-medium mb-6">
-          Are you sure you want to delete this todo? You can undo it for a few seconds after deleting.
-        </p>
       </div>
     </GlassModal>
   )}
