@@ -25,6 +25,15 @@ const taskSchema = new mongoose.Schema(
       ref: "Project",
       required: true,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+    },
+    dependencies: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Task",
+    }],
     team: [
       {
         type: mongoose.Schema.Types.ObjectId,

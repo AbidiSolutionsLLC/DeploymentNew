@@ -23,7 +23,12 @@ const projectSchema = Joi.object({
   department: Joi.string().required().messages({
     "any.required": "Department is required."
   }),
-  projectGroup: Joi.string().allow(null, "").optional()
+  projectGroup: Joi.string().allow(null, "").optional(),
+  milestones: Joi.array().items(Joi.object({
+    title: Joi.string().trim().min(1).max(150).required(),
+    dueDate: Joi.date().allow(null, "").optional(),
+    status: Joi.string().valid("Planned", "In Progress", "Completed").optional()
+  })).optional()
 });
 
 const projectUpdateSchema = projectSchema.fork(["department"], schema => schema.optional());

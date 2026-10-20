@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import holidayApi from '../api/holidayApi';
 import Loader from './ui/Loader';
-import TableWithPagination from './TableWithPagination';
-import StatusBadge from './StatusBadge';
+import GlobalTable from "./ui/GlobalTable";
+import { TablePill, TableText } from "./ui/TableCells";
 
 const HolidayTable = ({ holidays: propHolidays, searchTerm = "", refreshKey = 0 }) => {
  const [holidays, setHolidays] = useState(propHolidays || []);
@@ -78,9 +78,13 @@ const getColumns = (isUpcoming) => [
     label: "Date",
     render: (_, row) => {
       const holidayDate = extractDate(row.date);
-      return holidayDate.toLocaleDateString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
-      });
+      return (
+        <TableText
+          value={holidayDate.toLocaleDateString('en-US', {
+            weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+          })}
+        />
+      );
     }
   },
   { key: "day", label: "Day" },
@@ -88,17 +92,13 @@ const getColumns = (isUpcoming) => [
     key: "holidayName", 
     label: "Holiday Name",
     render: (_, row) => (
-      <span className="truncate max-w-[200px]" title={row.holidayName}>
-        {row.holidayName}
-      </span>
+      <TableText value={row.holidayName} title={row.holidayName} truncate maxWidth="max-w-[200px]" />
     )
   },
   { 
     key: "holidayType", 
     label: "Type",
-    render: (_, row) => (
-      <StatusBadge status={row.holidayType || "Holiday"} />
-    )
+    render: (_, row) => <TablePill>{row.holidayType || "Holiday"}</TablePill>
   },
   { 
     key: "daysCount", 
@@ -115,7 +115,7 @@ const getColumns = (isUpcoming) => [
 
       const label = daysCount === 0 ? 'Today' : `${daysCount} day${daysCount !== 1 ? 's' : ''} ${isUpcoming ? '' : 'ago'}`;
       
-      return <span className="lm-success-badge">{label}</span>;
+      return <TablePill>{label}</TablePill>;
     }
   }
 ];
@@ -130,7 +130,7 @@ const getColumns = (isUpcoming) => [
       </h2>
     </div>
     <div className="overflow-x-auto">
-      <TableWithPagination
+      <GlobalTable
       columns={getColumns(isUpcoming)}
       data={data}
       loading={false}

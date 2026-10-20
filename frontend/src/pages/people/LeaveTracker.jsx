@@ -82,7 +82,6 @@ const LeaveTracker = () => {
             label="Leave tracker overview"
           title="Leave Tracker"
           description="Track your leave balance, manage your requests and see upcoming holidays — all from one place."
-          emblem={BriefcaseIcon}
           chips={[
             { icon: FaCalendarCheck, value: availableDays, label: " days available" },
             { pulse: true, value: pendingCount, label: " awaiting approval" },

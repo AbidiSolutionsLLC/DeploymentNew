@@ -3,24 +3,29 @@ import { AnimatePresence, motion } from "framer-motion";
 import { IoPencil } from "react-icons/io5";
 import { FiTrash2 } from "react-icons/fi";
 import {
-  FaEye,
-  FaCommentDots,
   FaClipboardList,
   FaHourglassHalf,
   FaClock,
   FaCheckCircle,
  FaExclamationTriangle,
- FaCalendarDay,
- FaChevronLeft,
- FaChevronRight,
+  FaCalendarDay,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
+import { EyeIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { downloadFile } from "../../utils/downloadFile";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
 import { toast } from "react-toastify";
 import { useConfirm } from "../../context/ConfirmContext";
-import StyledTable from "../../components/ui/StyledTable";
+import GlobalTable from "../../components/ui/GlobalTable";
+import {
+  TableCommentCount,
+  TableNumber,
+  TableStatus,
+  TableText,
+} from "../../components/ui/TableCells";
 import ViewTimesheetModal from "../../components/ViewTimesheetModal";
 import EditTimesheetModal from "../../components/EditTimesheetModal";
 import { moment, TIMEZONE, formatDateForAPI } from "../../utils/dateUtils";
@@ -28,7 +33,6 @@ import GlassButton from "../../components/ui/GlassButton";
 import StatCard from "../../components/ui/StatCard";
 import FilterPanel from "../../components/ui/FilterPanel";
 import FilterRow from "../../components/ui/FilterRow";
-import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 
 const Timesheet = ({ refreshTrigger }) => {
  const [showCalendar, setShowCalendar] = useState(false);
@@ -253,90 +257,59 @@ const Timesheet = ({ refreshTrigger }) => {
  key: "date",
  label: "Date",
  sortable: true,
- render: (_, row) => (
- <span className="text-main font-medium">
- {formatTimesheetDate(row.date)}
- </span>
- )
+ render: (_, row) => <TableText value={formatTimesheetDate(row.date)} />
  },
  {
  key: "name",
  label: "Timesheet Name",
  sortable: true,
  render: (_, row) => (
- <span className="text-main font-medium truncate max-w-[150px] inline-block" title={row.name || "Unnamed"}>
- {row.name || "Unnamed"}
- </span>
+ <TableText value={row.name || "Unnamed"} title={row.name || "Unnamed"} truncate maxWidth="max-w-[150px]" />
  )
  },
  {
  key: "submittedHours",
  label: "Submitted Hours",
  sortable: true,
- render: (_, row) => (
- <span className="text-main font-medium">
- {(row.submittedHours || 0).toFixed(1)}
- </span>
- )
+ render: (_, row) => <TableNumber value={row.submittedHours || 0} decimals={1} />
  },
  {
  key: "approvedHours",
  label: "Approved Hours",
  sortable: true,
- render: (_, row) => (
- <span className="text-main font-medium">
- {(row.approvedHours || 0).toFixed(1)}
- </span>
- )
+ render: (_, row) => <TableNumber value={row.approvedHours || 0} decimals={1} />
  },
  {
  key: "status",
  label: "Status",
  sortable: true,
- render: (_, row) => (
- <span
- className={`px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wide ${STATUS_VARIANTS[resolveStatusVariant(row.status)]?.badge || STATUS_VARIANTS.neutral.badge}`}
- >
- {row.status || "Pending"}
- </span>
- )
+ render: (_, row) => <TableStatus value={row.status || "Pending"} />
  },
  {
  key: "comments",
  label: "Comments",
  sortable: false,
- render: (_, row) => {
- const commentCount = row.comments?.length || 0;
- if (commentCount === 0) {
- return <span className="text-muted text-xs">No comments</span>;
- }
- return (
- <div className="flex items-center justify-center text gap-1 text-amber-600 dark:text-amber-400">
- <FaCommentDots size={14} />
- <span className="text-xs font-medium">{commentCount} {commentCount !== 1 ? 's' : ''}</span>
- </div>
- );
- }
+ render: (_, row) => <TableCommentCount count={row.comments?.length || 0} />
  }
  ];
 
 const tableActions = [
   {
-  icon: <FaEye size={14} />,
+  icon: <EyeIcon className="w-4 h-4" />,
   title: "View Details",
-  className: "lm-success-badge",
+  className: "",
   onClick: (row) => handleViewDetails(row)
   },
   {
-  icon: <IoPencil size={14} />,
+  icon: <PencilIcon className="w-4 h-4" />,
   title: "Edit",
-  className: (row) => row.status === 'Pending' ? "lm-success-badge" : "bg-surface text-muted cursor-not-allowed",
+  className: (row) => row.status === 'Pending' ? "" : "bg-surface text-muted cursor-not-allowed",
   onClick: (row) => handleEditClick(row)
   },
   {
   icon: <FiTrash2 size={14} />,
   title: "Delete",
-  className: (row) => row.status === 'Pending' ? "lm-success-badge" : "bg-surface text-muted cursor-not-allowed",
+  className: (row) => row.status === 'Pending' ? "" : "bg-surface text-muted cursor-not-allowed",
   onClick: (row) => handleDeleteClick(row)
   }
   ];
@@ -463,7 +436,7 @@ const tableActions = [
 
  {/* ============ TABLE ============ */}
  <div key={selectedWeekStart?.getTime?.() || "default"} className="animate-fadeIn">
- <StyledTable
+ <GlobalTable
  columns={timesheetColumns}
  data={weeklyData.timesheets || []}
  loading={loading}

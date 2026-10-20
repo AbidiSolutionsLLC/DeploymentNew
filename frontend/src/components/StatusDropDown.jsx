@@ -28,14 +28,14 @@ const StatusDropDown = ({ status, onChange }) => {
  </div>
 
  {isOpen && (
- <div className="absolute z-10 mt-1 w-full bg-surface border border-border-subtle rounded shadow-lg">
+ <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-900 border border-border-subtle dark:border-slate-700 rounded-lg shadow-2xl overflow-hidden">
  {statuses.map((s) => (
  <div
  key={s}
  onClick={(e) =>{e.stopPropagation();
  handleStatusChange(s)}
  }
- className="px-3 py-2 w-max hover:bg-app cursor-pointer"
+ className="px-3 py-2 w-full hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-main text-sm"
  >
  {s}
  </div>

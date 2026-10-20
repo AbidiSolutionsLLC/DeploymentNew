@@ -431,7 +431,7 @@ todos[index] = { ...todos[index], ...payload };
   {/* Add Task Button */}
   <div className="shrink-0 mb-2">
   <GlassButton
-    variant="primary"
+    variant="secondary"
     size="sm"
     onClick={openAddModal}
     className="flex items-center gap-1.5"

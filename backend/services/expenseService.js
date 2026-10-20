@@ -8,7 +8,7 @@ const { getTeamIds } = require("../utils/hierarchy");
 const { createNotification } = require('../utils/notificationService');
 const APIFeatures = require("../utils/apiFeatures");
 const { normalizeRole } = require("../utils/rbacUtils");
-const { sendEmail } = require('../config/emailConfig');
+const { sendNotificationEmail } = require('../utils/emailNotificationService');
 const emailTemplates = require('../utils/emailTemplates');
 const { generateActionUrl } = require('../utils/urlGenerator');
 const { moment } = require("../utils/dateUtils");
@@ -79,8 +79,10 @@ class ExpenseService {
             const actionUrl = generateActionUrl(recipient.role, 'expense', 'created');
             const emailHtml = emailTemplates.expenseSubmitted({ ...emailPayloadBase, actionUrl });
             
-            sendEmail({
-              to: recipient.email,
+            sendNotificationEmail({
+              recipient: recipient,
+              recipientEmail: recipient.email,
+              category: 'expenseUpdates',
               subject: `New Expense Submitted: ${expense.title}`,
               htmlContent: emailHtml,
               companyId: companyId
@@ -201,8 +203,10 @@ class ExpenseService {
 
 
       if (submitterUser && submitterUser.email) {
-        sendEmail({
-          to: submitterUser.email,
+        sendNotificationEmail({
+          recipient: submitterUser,
+          recipientEmail: submitterUser.email,
+          category: 'expenseUpdates',
           subject: `Expense ${payload.status}: ${updatedExpense.title}`,
           htmlContent: emailHtml,
           companyId: companyId
@@ -266,8 +270,10 @@ class ExpenseService {
 
 
     if (submitterUser && submitterUser.email) {
-      sendEmail({
-        to: submitterUser.email,
+      sendNotificationEmail({
+        recipient: submitterUser,
+        recipientEmail: submitterUser.email,
+        category: 'expenseUpdates',
         subject: `Expense Approved: ${expense.title}`,
         htmlContent: emailHtml,
         companyId: companyId
@@ -333,8 +339,10 @@ class ExpenseService {
 
 
     if (submitterUser && submitterUser.email) {
-      sendEmail({
-        to: submitterUser.email,
+      sendNotificationEmail({
+        recipient: submitterUser,
+        recipientEmail: submitterUser.email,
+        category: 'expenseUpdates',
         subject: `Expense Rejected: ${expense.title}`,
         htmlContent: emailHtml,
         companyId: companyId

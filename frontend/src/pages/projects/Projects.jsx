@@ -1,20 +1,27 @@
 import { useMemo, useState, useEffect } from "react";
-import { createElement } from "react";
 import { useNavigate } from "react-router-dom";
-import { PlusIcon, PencilIcon, TrashIcon, CheckCircleIcon, ClockIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, XMarkIcon, ChevronDownIcon, RectangleStackIcon } from "@heroicons/react/24/outline";
+import { FaClock, FaCheckCircle, FaCalendarAlt, FaChartLine } from "react-icons/fa";
 import NewProjectDrawer from "../../components/NewProjectDrawer";
 import useProjects from "../../hooks/useProjects";
 import projectApi from "../../api/projectApi";
 import api from "../../axios";
 import { toast } from "react-toastify";
 import { useConfirm } from "../../context/ConfirmContext";
-import PortalHeader from "../../components/projectPortal/PortalHeader";
+import PageContainer from "../../components/ui/PageContainer";
+import StatCard from "../../components/ui/StatCard";
+import PortalHero from "../../components/ui/PortalHero";
 import ToolbarSearch from "../../components/projectPortal/ToolbarSearch";
-import FilterChips from "../../components/projectPortal/FilterChips";
 import PortalTable from "../../components/projectPortal/PortalTable";
-import Pill, { PROJECT_STATUS_TONE } from "../../components/projectPortal/Pill";
-import Progress from "../../components/projectPortal/Progress";
-import { formatDate, projectProgress, personName } from "../../components/projectPortal/helpers";
+import {
+  TableDate,
+  TableProgress,
+  TableStatus,
+  TablePill,
+  TableText,
+  TableTitle,
+} from "../../components/ui/TableCells";
+import { projectProgress, personName } from "../../components/projectPortal/helpers";
 
 /**
  * Projects — "Command Center" list page (PROJECT_PORTAL_DESIGN.md §9.2).
@@ -80,6 +87,12 @@ const Projects = () => {
     ? Math.round(projects.reduce((sum, project) => sum + projectProgress(project), 0) / projects.length)
     : 0;
 
+  const filtersActive = status !== "All" || selectedGroup !== "All";
+  const resetFilters = () => {
+    setStatus("All");
+    setSelectedGroup("All");
+  };
+
   const openNew = () => {
     setEditing(null);
     setDrawerOpen(true);
@@ -135,17 +148,12 @@ const Projects = () => {
       key: "projectID",
       label: "ID",
       hideBelow: "xl",
-      render: (v) => <span className="text-xs font-medium text-muted whitespace-nowrap">{v || "—"}</span>,
+      render: (v) => <TableText value={v} muted />,
     },
     {
       key: "title",
       label: "Project",
-      render: (v, row) => (
-        <div className="min-w-0 max-w-[220px]">
-          <p className="text-sm font-semibold text-heading truncate">{v}</p>
-          {row.description && <p className="text-[11px] text-muted truncate">{row.description}</p>}
-        </div>
-      ),
+      render: (v, row) => <TableTitle title={v} subtitle={row.description || undefined} maxWidth="max-w-[220px]" />,
     },
     {
       key: "projectGroup",
@@ -153,118 +161,145 @@ const Projects = () => {
       hideBelow: "lg",
       render: (v) => {
         const name = v?.name || (typeof v === "string" ? v : null);
-        return name ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-brand-text border border-border-accent max-w-[140px] truncate">
-            {name}
-          </span>
-        ) : (
-          <span className="text-xs text-muted">—</span>
-        );
+        return name ? <TablePill>{name}</TablePill> : <TableText value="" />;
       },
     },
     {
       key: "owner",
       label: "Owner",
       hideBelow: "lg",
-      render: (v) => <span className="text-sm text-main whitespace-nowrap">{personName(v)}</span>,
+      render: (v) => <TableText value={personName(v)} />,
     },
     {
       key: "team",
       label: "Team",
       hideBelow: "xl",
-      render: (v) => <span className="text-sm text-main whitespace-nowrap">{v?.length || 0} people</span>,
+      render: (v) => <TableText value={`${v?.length || 0} people`} />,
     },
     {
       key: "status",
       label: "Status",
-      render: (v) => <Pill tone={PROJECT_STATUS_TONE[v] || "neutral"}>{v || "Planning"}</Pill>,
+      render: (v) => <TableStatus value={v || "Planning"} />,
     },
     {
       key: "startDate",
       label: "Start",
       hideBelow: "md",
-      render: (v) => <span className="text-xs text-muted whitespace-nowrap">{formatDate(v)}</span>,
+      render: (v) => <TableDate value={v} tone="muted" />,
     },
     {
       key: "dueDate",
       label: "End",
       hideBelow: "md",
-      render: (v) => <span className="text-xs text-muted whitespace-nowrap">{formatDate(v)}</span>,
+      render: (v) => <TableDate value={v} tone="muted" />,
     },
     {
       key: "progress",
       label: "Progress",
-      render: (_v, row) => {
-        const pct = projectProgress(row);
-        return (
-          <div className="flex items-center gap-2 min-w-[110px]">
-            <Progress value={pct} />
-            <span className="text-[10px] font-bold text-muted tabular-nums shrink-0">{pct}%</span>
-          </div>
-        );
-      },
+      render: (_v, row) => <TableProgress value={projectProgress(row)} />,
     },
   ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <PortalHeader
-        eyebrow="Portfolio workspace"
+    <PageContainer isCard={false}>
+      <div className="flex flex-col gap-4 w-full">
+      <PortalHero
+        label="Projects overview"
         title="Projects"
-        subtitle="Manage delivery, ownership, and progress across every project."
-        actions={
-          <>
+        description="Manage delivery, ownership, and progress across every project."
+      />
+
+      <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
+        {[
+          { label: "Active projects", value: activeCount, Icon: FaClock, sub: "In progress", tone: "text-sky-600 dark:text-sky-400" },
+          { label: "Completed", value: completedCount, Icon: FaCheckCircle, sub: "Delivered", tone: "text-emerald-600 dark:text-emerald-400" },
+          { label: "Due in 14 days", value: dueSoonCount, Icon: FaCalendarAlt, sub: "Approaching", tone: "text-amber-600 dark:text-amber-400" },
+          { label: "Average progress", value: `${averageProgress}%`, Icon: FaChartLine, sub: "Across all projects", tone: "text-indigo-600 dark:text-indigo-400" },
+        ].map(({ label, value, Icon, sub, tone }) => (
+          <StatCard key={label} title={label} value={value} sub={sub} icon={Icon} tone={tone} />
+        ))}
+      </div>
+
+      {/* Toolbar card — search, filters & actions live here, never in the hero */}
+      <div className="glass-card !p-3.5 sm:!p-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <ToolbarSearch
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search projects..."
             />
-            {projectGroups.length > 0 && (
-              <select
-                value={selectedGroup}
-                onChange={(e) => setSelectedGroup(e.target.value)}
-                className="glass-input py-2 px-3 text-xs rounded-lg cursor-pointer bg-surface border-border-subtle text-main"
-                aria-label="Filter by project group"
-              >
-                <option value="All">All Groups</option>
-                <option value="None">No Group</option>
-                {projectGroups.map((g) => (
-                  <option key={g._id || g.id} value={g._id || g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <button type="button" onClick={openNew} className="btn btn-primary py-2.5 px-4 whitespace-nowrap">
+            <button
+              type="button"
+              onClick={openNew}
+              className="btn btn-primary py-2.5 px-4 whitespace-nowrap sm:ml-auto"
+            >
               <PlusIcon className="w-4 h-4 mr-2" /> New Project
             </button>
-          </>
-        }
-      >
-        <FilterChips
-          value={status}
-          onChange={setStatus}
-          options={STATUSES.map((s) => ({ value: s, label: s, count: countFor(s) }))}
-        />
-      </PortalHeader>
+          </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: "Active projects", value: activeCount, Icon: ClockIcon, tone: "text-info" },
-          { label: "Completed", value: completedCount, Icon: CheckCircleIcon, tone: "text-success" },
-          { label: "Due in 14 days", value: dueSoonCount, Icon: CalendarDaysIcon, tone: "text-warning" },
-          { label: "Average progress", value: `${averageProgress}%`, Icon: CheckCircleIcon, tone: "text-brand-text" },
-        ].map(({ label, value, Icon, tone }) => (
-          <div key={label} className="glass-card !p-4 sm:!p-5 flex items-center gap-3 bg-surface">
-            <div className={`w-10 h-10 rounded-xl bg-card border border-border-subtle flex items-center justify-center ${tone}`}>
-              {createElement(Icon, { className: "w-5 h-5" })}
+          <div className="lm-filterbar border-t border-border-subtle pt-3">
+            <span className="lm-filterbar__lead">
+              <FunnelIcon className="h-3.5 w-3.5" aria-hidden="true" />
+              Filters
+            </span>
+
+            <div className="lm-filter-fields">
+              <label className="lm-filter-field">
+                <span className="lm-filter-field__label">Status</span>
+                <span className="lm-filter-select-wrap">
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="lm-filter-select"
+                    aria-label="Filter projects by status"
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {`${s} (${countFor(s)})`}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDownIcon className="lm-filter-chevron" aria-hidden="true" />
+                </span>
+              </label>
+
+              {projectGroups.length > 0 && (
+                <label className="lm-filter-field">
+                  <span className="lm-filter-field__label">Group</span>
+                  <span className="lm-filter-select-wrap">
+                    <select
+                      value={selectedGroup}
+                      onChange={(e) => setSelectedGroup(e.target.value)}
+                      className="lm-filter-select"
+                      aria-label="Filter projects by group"
+                    >
+                      <option value="All">All Groups</option>
+                      <option value="None">No Group</option>
+                      {projectGroups.map((g) => (
+                        <option key={g._id || g.id} value={g._id || g.id}>
+                          {g.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDownIcon className="lm-filter-chevron" aria-hidden="true" />
+                  </span>
+                </label>
+              )}
             </div>
-            <div className="min-w-0">
-              <p className="text-xl sm:text-2xl font-black text-heading tabular-nums leading-none">{value}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted mt-1 truncate">{label}</p>
+
+            <div className="lm-filterbar__meta">
+              <span className="lm-filterbar__meta-text">
+                Showing <b>{rows.length}</b> of {projects.length}
+              </span>
+              {filtersActive && (
+                <button type="button" onClick={resetFilters} className="lm-filter-reset">
+                  <XMarkIcon className="h-3.5 w-3.5" aria-hidden="true" /> Reset
+                </button>
+              )}
             </div>
           </div>
-        ))}
+        </div>
       </div>
 
       <PortalTable
@@ -289,7 +324,8 @@ const Projects = () => {
       />
 
       <NewProjectDrawer isOpen={drawerOpen} onClose={closeDrawer} onSubmit={handleSave} project={editing} />
-    </div>
+      </div>
+    </PageContainer>
   );
 };
 

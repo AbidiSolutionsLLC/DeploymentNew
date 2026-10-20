@@ -90,12 +90,12 @@ export default function NotificationBell() {
  {/* Dropdown Panel */}
  {open && (
  <div
- className="absolute right-0 mt-2 w-96 bg-surface rounded-2xl shadow-2xl border border-border-subtle z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+ className="absolute right-0 mt-2 w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-border-subtle dark:border-slate-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
  role="dialog"
  aria-label="Notifications panel"
  >
  {/* Header */}
- <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle bg-gradient-to-r from-teal-50 to-white">
+ <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
  <h3 className="font-semibold text-main text-sm flex items-center gap-2">
  Notifications
  {unreadCount > 0 && (
@@ -119,7 +119,7 @@ export default function NotificationBell() {
  </div>
 
  {/* Notification List */}
- <ul className="max-h-96 overflow-y-auto divide-y divide-gray-50" role="list">
+ <ul className="max-h-96 overflow-y-auto divide-y divide-gray-50 dark:divide-slate-800" role="list">
  {loading && (
  <li className="p-6 text-center text-sm text-muted">
  <Loader />
@@ -138,7 +138,7 @@ export default function NotificationBell() {
  onClick={() => handleNotifClick(notif)}
  role="listitem"
  className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-card-hover ${
- !notif.isRead ? 'bg-amber-50 dark:bg-amber-900/30/60' : 'bg-surface'
+ !notif.isRead ? 'bg-amber-50 dark:bg-amber-900/30' : 'bg-white dark:bg-slate-900'
  }`}
  >
  {/* Icon */}

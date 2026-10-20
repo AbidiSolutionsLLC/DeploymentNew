@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PageContainer from "../../components/ui/PageContainer";
-import TableWithPagination from "../../components/TableWithPagination";
+import GlobalTable from "../../components/ui/GlobalTable";
 import CalendarNavigator from "../../components/CalendarNavigator";
 import FilterRow from "../../components/ui/FilterRow";
 import GlassInput from "../../components/ui/GlassInput";
@@ -76,7 +76,7 @@ const ActivityLogs = () => {
  }
  >
  <div className="bg-surface rounded-[1.5rem] border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden">
- <TableWithPagination 
+ <GlobalTable 
  columns={logColumns} 
  data={users} 
  rowsPerPage={10}

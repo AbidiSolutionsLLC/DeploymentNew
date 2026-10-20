@@ -45,7 +45,7 @@ export default function EditLeaveBalanceModal({ user, isOpen, onClose, onSaved }
   };
 
   const numberInput =
-    "w-full px-4 py-3 bg-surface border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-border-accent focus:border-border-accent transition-all text-sm font-bold text-heading disabled:opacity-50 disabled:cursor-not-allowed";
+    "w-full px-4 py-3 bg-white dark:bg-slate-800 border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-border-accent focus:border-border-accent transition-all text-sm font-bold text-heading disabled:opacity-50 disabled:cursor-not-allowed";
 
   return (
     <GlassModal
@@ -71,7 +71,7 @@ export default function EditLeaveBalanceModal({ user, isOpen, onClose, onSaved }
       }
     >
       {/* Employee summary */}
-      <div className="flex items-center gap-3 p-3 mb-5 rounded-xl bg-card border border-border-subtle">
+      <div className="flex items-center gap-3 p-3 mb-5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-border-subtle">
         <div className="w-11 h-11 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center font-black text-sm flex-shrink-0">
           {getInitials(user.name)}
         </div>
@@ -108,7 +108,7 @@ export default function EditLeaveBalanceModal({ user, isOpen, onClose, onSaved }
         ].map((item) => (
           <div
             key={item.label}
-            className="rounded-xl border border-border-subtle bg-surface p-3 text-center transition-colors hover:border-border-accent"
+            className="rounded-xl border border-border-subtle bg-white dark:bg-slate-800 p-3 text-center transition-colors hover:border-border-accent"
           >
             <p className={`text-lg font-black tabular-nums ${item.cls}`}>{item.value}</p>
             <p className="text-[9px] font-black uppercase tracking-widest text-muted mt-0.5">

@@ -11,22 +11,33 @@ import {
   FlagIcon,
   ClockIcon,
   FolderIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import { fetchProjectById, updateProject, deleteProject } from "../../store/projectSlice";
-import { fetchProjectTasks, createTask, updateTaskStatus, addTaskComment, fetchTaskComments } from "../../store/taskSlice";
+import { fetchProjectTasks, createTask, updateTaskStatus, updateTask, addTaskComment, fetchTaskComments, fetchProjectActivities } from "../../store/taskSlice";
 import { useConfirm } from "../../context/ConfirmContext";
 import Loader from "../../components/ui/Loader";
+import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
-import Pill, { PROJECT_STATUS_TONE, TASK_STATUS_TONE, PRIORITY_TONE } from "../../components/projectPortal/Pill";
+import Pill, { PROJECT_STATUS_TONE } from "../../components/projectPortal/Pill";
 import Progress from "../../components/projectPortal/Progress";
 import PanelHead from "../../components/projectPortal/PanelHead";
 import EmptyState from "../../components/projectPortal/EmptyState";
-import { formatDate, shortDate, isOverdue, projectProgress, taskProgress, getAssigneeName } from "../../components/projectPortal/helpers";
+import { formatDate, shortDate, isOverdue, projectProgress, taskProgress, getAssigneeName, projectHealthTone } from "../../components/projectPortal/helpers";
 import AddTaskForm from "../../components/projectPortal/AddTaskForm";
 import EditProjectForm from "../../components/projectPortal/EditProjectForm";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
 import TaskCommentsDrawer from "../../components/projectPortal/TaskCommentsDrawer";
 import TaskCard from "../../components/projectPortal/TaskCard";
+import PortalTable from "../../components/projectPortal/PortalTable";
+import {
+  TableDate,
+  TablePriority,
+  TableProgress,
+  TableStatus,
+  TableText,
+  TableTitle,
+} from "../../components/ui/TableCells";
 
 const KANBAN_COLUMNS = [
   { id: "backlog", title: "Backlog" },
@@ -35,6 +46,13 @@ const KANBAN_COLUMNS = [
   { id: "in-review", title: "In Review" },
   { id: "done", title: "Done" },
 ];
+const COLUMN_ACCENTS = {
+  backlog: "bg-neutral",
+  todo: "bg-amber-500",
+  "in-progress": "bg-info",
+  "in-review": "bg-warning",
+  done: "bg-success",
+};
 const STATUS_DISPLAY = {
   backlog: "Backlog",
   todo: "To Do",
@@ -61,7 +79,7 @@ const ProjectDetail = () => {
   const dispatch = useDispatch();
   const confirm = useConfirm();
   const { projects, currentProject } = useSelector((state) => state.projects);
-  const { projectTasks, projectTasksLoading, taskComments } = useSelector((state) => state.tasks);
+  const { projectTasks, projectTasksLoading, taskComments, projectActivities, projectActivitiesLoading } = useSelector((state) => state.tasks);
   const { userInfo } = useSelector((state) => state.user || {});
   const currentUserId = userInfo?.user?._id || userInfo?._id || userInfo?.id;
 
@@ -81,6 +99,8 @@ const ProjectDetail = () => {
   const handleDragStart = (e, task) => {
     setDraggedTaskId(task._id);
     e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("taskId", task._id);
+    e.dataTransfer.setData("sourceColumn", toColumnId(task.status));
   };
 
   const handleDragEnd = () => {
@@ -102,8 +122,9 @@ const ProjectDetail = () => {
 
   const handleDrop = (e, columnId) => {
     e.preventDefault();
-    const taskId = e.dataTransfer.getData("taskId");
-    const sourceColumn = e.dataTransfer.getData("sourceColumn");
+    const taskId = e.dataTransfer.getData("taskId") || draggedTaskId;
+    const sourceColumn = e.dataTransfer.getData("sourceColumn") ||
+      toColumnId(tasks.find((task) => task._id === taskId)?.status);
     if (taskId && sourceColumn !== columnId) {
       const newStatus = columnId === "backlog" ? "Todo"
         : columnId === "todo" ? "Todo"
@@ -121,8 +142,13 @@ const ProjectDetail = () => {
     if (id) {
       dispatch(fetchProjectById(id));
       dispatch(fetchProjectTasks(id));
+      dispatch(fetchProjectActivities(id));
     }
   }, [id, dispatch]);
+
+  useEffect(() => {
+    if (id && activeTab === "activity") dispatch(fetchProjectActivities(id));
+  }, [id, activeTab, dispatch]);
 
   // Fetch task comments when task detail opens
   useEffect(() => {
@@ -163,6 +189,18 @@ const ProjectDetail = () => {
       toast.success("Comment added");
     } catch (err) {
       toast.error(err?.message || "Failed to add comment");
+    }
+  };
+
+  const handleUpdateTask = async (taskId, updates) => {
+    try {
+      await dispatch(updateTask({ id: taskId, updates })).unwrap();
+      toast.success("Task details updated");
+      await dispatch(fetchProjectTasks(id)).unwrap();
+      setShowTaskDetail((current) => current?._id === taskId ? { ...current, ...updates } : current);
+    } catch (err) {
+      toast.error(err?.message || "Failed to update task details");
+      throw err;
     }
   };
 
@@ -216,8 +254,58 @@ const ProjectDetail = () => {
     blocked: tasks.filter((task) => task.status === "Blocked").length,
   };
 
+  const listColumns = [
+    {
+      key: "title",
+      label: "Task",
+      render: (v, row) => <TableTitle title={v} subtitle={row.description || undefined} maxWidth="max-w-[240px]" />,
+    },
+    {
+      key: "status",
+      label: "Status",
+      hideBelow: "md",
+      render: (v) => <TableStatus value={v} label={STATUS_DISPLAY[v] || v} />,
+    },
+    {
+      key: "assignee",
+      label: "Assignee",
+      hideBelow: "lg",
+      render: (_v, row) => <TableText value={getAssigneeName(row)} />,
+    },
+    {
+      key: "dueDate",
+      label: "Due",
+      hideBelow: "md",
+      render: (v, row) => {
+        const overdue = isOverdue(v, row.status);
+        return <TableDate value={v} tone={overdue ? "danger" : "muted"} subtitle={overdue ? "Overdue" : undefined} />;
+      },
+    },
+    {
+      key: "priority",
+      label: "Priority",
+      hideBelow: "lg",
+      render: (v) => <TablePriority value={v || "Medium"} />,
+    },
+    {
+      key: "progress",
+      label: "Progress",
+      hideBelow: "xl",
+      render: (_v, row) => <TableProgress value={taskProgress(row)} />,
+    },
+  ];
+
+  const listActions = [
+    {
+      title: "Comments",
+      icon: ChatBubbleLeftRightIcon,
+      onClick: (task) => setShowComments(task),
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-4">
+    <PageContainer isCard={false}>
+      <div className="flex flex-col gap-4 w-full">
       {/* Project hero */}
       <section className="glass-card !p-0 overflow-hidden bg-surface">
         <div className="p-5 sm:p-6 lg:p-7">
@@ -275,8 +363,11 @@ const ProjectDetail = () => {
               <Progress value={pct} trackClassName="h-3 rounded-lg" />
               <div className="flex items-center justify-between mt-2 text-[10px] font-black uppercase tracking-widest text-muted">
                 <span>Project health</span>
-                <span className="text-brand-text">{pct >= 75 ? "On track" : pct >= 40 ? "In progress" : "Getting started"}</span>
+                <Pill tone={projectHealthTone(project.health?.status)}>{project.health?.status || "On Track"}</Pill>
               </div>
+              {project.health?.reasons?.length > 0 && (
+                <p className="text-[10px] text-danger mt-2">{project.health.reasons.join(" · ")}</p>
+              )}
             </div>
             <div className="grid grid-cols-3 lg:grid-cols-1 gap-2">
               <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5">
@@ -302,6 +393,35 @@ const ProjectDetail = () => {
           </div>
         </div>
       </section>
+
+      {project.milestones?.length > 0 && (
+        <section className="glass-card bg-surface">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Delivery plan</p>
+              <h2 className="text-base font-black text-heading uppercase tracking-tight mt-1">Milestones</h2>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+              {project.milestones.filter((milestone) => milestone.status === "Completed").length}/{project.milestones.length} complete
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {project.milestones.map((milestone, index) => (
+              <div key={milestone._id || index} className="rounded-xl bg-card border border-border-subtle p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-semibold text-heading">{milestone.title}</p>
+                  <Pill tone={milestone.status === "Completed" ? "success" : milestone.status === "In Progress" ? "info" : "neutral"}>
+                    {milestone.status}
+                  </Pill>
+                </div>
+                <p className={`text-[10px] uppercase tracking-widest mt-2 ${isOverdue(milestone.dueDate, milestone.status === "Completed" ? "Done" : milestone.status) ? "text-danger" : "text-muted"}`}>
+                  Due {shortDate(milestone.dueDate)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Task workspace toolbar */}
       <div className="glass-card bg-surface">
@@ -335,7 +455,7 @@ const ProjectDetail = () => {
           </div>
         </div>
         <div className="flex space-x-1 rounded-lg p-1 bg-card w-full lg:w-fit overflow-x-auto mt-4">
-          {["board", "list", "comments"].map((tab) => (
+          {["board", "list", "comments", "activity"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -354,105 +474,70 @@ const ProjectDetail = () => {
       {/* Tab content */}
       <div className="flex flex-col gap-4">
         {activeTab === "board" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-            {KANBAN_COLUMNS.map((col) => (
-              <div
-                key={col.id}
-                className={`glass-card rounded-xl p-3 sm:p-4 border border-border-subtle shadow-sm flex flex-col min-h-[400px] ${dragOverColumn === col.id ? "bg-amber-50/50 border-border-accent" : ""}`}
-                onDragOver={(e) => handleDragOver(e, col.id)}
-                onDragLeave={(e) => handleDragLeave(e, col.id)}
-                onDrop={(e) => handleDrop(e, col.id)}
-              >
-                <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                  <h3 className="font-semibold text-sm sm:text-base truncate text-heading">{col.title}</h3>
-                  <span className="text-xs px-2 py-1 rounded-full flex-shrink-0 ml-2 bg-card text-muted tabular-nums">
-                    {getTasksByStatus(col.id).length}
-                  </span>
-                </div>
-                <div className="min-h-[300px] flex-1 space-y-2 overflow-y-auto custom-scrollbar-visible">
-                  {getTasksByStatus(col.id).map((task) => (
-                    <TaskCard
-                      key={task._id}
-                      task={task}
-                      columnId={col.id}
-                      onClick={() => setShowTaskDetail(task)}
-                      onDragStart={handleDragStart}
-                      onDragEnd={handleDragEnd}
-                      onOpenComments={() => setShowComments(task)}
-                      isDragging={draggedTaskId === task._id}
-                    />
-                  ))}
-                  {getTasksByStatus(col.id).length === 0 && (
-                    <div className={`flex items-center justify-center h-32 text-sm rounded-lg border-2 border-dashed ${dragOverColumn === col.id ? "border-brand text-brand" : "border-border-subtle text-muted"}`}>
-                      {dragOverColumn === col.id ? "Drop here" : "No tasks"}
+          <div className="flex gap-4 overflow-x-auto pb-4 pt-1 items-start min-w-full custom-scrollbar-visible">
+            {KANBAN_COLUMNS.map((col) => {
+              const colTasks = getTasksByStatus(col.id);
+              return (
+                <div
+                  key={col.id}
+                  className={`glass-card rounded-2xl p-4 border border-border-subtle shadow-sm flex flex-col min-h-[500px] w-[290px] sm:w-[320px] 2xl:flex-1 shrink-0 transition-colors ${
+                    dragOverColumn === col.id ? "bg-amber-50 border-border-accent shadow-md ring-2 ring-border-accent" : ""
+                  }`}
+                  onDragOver={(e) => handleDragOver(e, col.id)}
+                  onDragLeave={(e) => handleDragLeave(e, col.id)}
+                  onDrop={(e) => handleDrop(e, col.id)}
+                >
+                  <div className="flex items-center justify-between mb-3.5 pb-2.5 border-b border-border-subtle/60 flex-shrink-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${COLUMN_ACCENTS[col.id] || "bg-amber-500"}`} />
+                      <h3 className="font-bold text-sm truncate text-heading uppercase tracking-wide">{col.title}</h3>
                     </div>
-                  )}
+                    <span className="text-xs px-2.5 py-0.5 rounded-full flex-shrink-0 ml-2 bg-card border border-border-subtle text-muted font-bold tabular-nums">
+                      {colTasks.length}
+                    </span>
+                  </div>
+                  <div className="min-h-[360px] flex-1 space-y-3 overflow-y-auto overflow-x-hidden pr-0.5 custom-scrollbar-visible">
+                    {colTasks.map((task) => (
+                      <TaskCard
+                        key={task._id}
+                        task={task}
+                        columnId={col.id}
+                        onClick={() => setShowTaskDetail(task)}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onOpenComments={() => setShowComments(task)}
+                        isDragging={draggedTaskId === task._id}
+                      />
+                    ))}
+                    {colTasks.length === 0 && (
+                      <div
+                        className={`flex items-center justify-center h-32 text-xs font-semibold uppercase tracking-wider rounded-xl border-2 border-dashed transition-colors ${
+                          dragOverColumn === col.id
+                            ? "border-brand text-brand bg-amber-50"
+                            : "border-border-subtle/70 text-muted/60"
+                        }`}
+                      >
+                        {dragOverColumn === col.id ? "Drop task here" : "No tasks"}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
         {activeTab === "list" && (
-          <div className="glass-card !p-0 overflow-hidden">
-            {loading ? (
-              <div className="flex justify-center items-center py-16"><Loader text="Loading tasks..." size="md" /></div>
-            ) : filteredTasks.length === 0 ? (
-              <EmptyState title={tasks.length === 0 ? "No tasks in this project" : "No matching tasks"} hint="Try a different search." />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px] text-left align-middle">
-                  <thead>
-                    <tr className="bg-card text-[10px] font-black uppercase tracking-widest text-muted">
-                      <th className="px-4 py-3">Task</th>
-                      <th className="px-4 py-3 hidden md:table-cell">Status</th>
-                      <th className="px-4 py-3 hidden lg:table-cell">Assignee</th>
-                      <th className="px-4 py-3 hidden md:table-cell">Due</th>
-                      <th className="px-4 py-3 hidden lg:table-cell">Priority</th>
-                      <th className="px-4 py-3 hidden xl:table-cell">Progress</th>
-                      <th className="px-4 py-3 w-10" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTasks.map((task) => (
-                      <tr key={task._id} onClick={() => setShowTaskDetail(task)} className="border-t border-border-subtle hover:bg-amber-50 transition-colors cursor-pointer">
-                        <td className="px-4 py-3 max-w-[240px]">
-                          <p className="text-sm font-semibold text-heading truncate">{task.title}</p>
-                          <p className="text-[11px] text-muted truncate">{task.description || "—"}</p>
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <Pill tone={TASK_STATUS_TONE[task.status] || "neutral"}>{STATUS_DISPLAY[task.status] || task.status}</Pill>
-                        </td>
-                        <td className="px-4 py-3 hidden lg:table-cell text-sm text-main whitespace-nowrap">{getAssigneeName(task)}</td>
-                        <td className="px-4 py-3 hidden md:table-cell text-xs text-muted whitespace-nowrap">
-                          {formatDate(task.dueDate)}
-                          {isOverdue(task.dueDate, task.status) && <span className="block text-[9px] uppercase tracking-widest text-danger">Overdue</span>}
-                        </td>
-                        <td className="px-4 py-3 hidden lg:table-cell">
-                          <Pill tone={PRIORITY_TONE[task.priority] || "neutral"}>{task.priority || "Medium"}</Pill>
-                        </td>
-                        <td className="px-4 py-3 hidden xl:table-cell min-w-[110px]">
-                          <div className="flex items-center gap-2">
-                            <Progress value={taskProgress(task)} />
-                            <span className="text-[10px] font-bold text-muted tabular-nums shrink-0">{taskProgress(task)}%</span>
-                          </div>
-                        </td>
-                        <td className="px-2 py-3 text-center">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setShowComments(task); }}
-                            className="p-2 rounded-lg text-muted hover:bg-card-hover hover:text-heading transition-colors"
-                            aria-label="Comments"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <PortalTable
+            columns={listColumns}
+            data={filteredTasks}
+            loading={loading}
+            onRowClick={(task) => setShowTaskDetail(task)}
+            actions={listActions}
+            rowsPerPage={10}
+            emptyTitle={tasks.length === 0 ? "No tasks in this project" : "No matching tasks"}
+            emptyHint="Try a different search."
+          />
         )}
 
         {activeTab === "comments" && (
@@ -489,6 +574,33 @@ const ProjectDetail = () => {
                 {filteredTasks.every((t) => !(taskComments[t._id]?.length)) && (
                   <EmptyState title="No comments yet" hint="Open a task to add comments." />
                 )}
+
+                {activeTab === "activity" && (
+                  <div className="glass-card bg-surface">
+                    <PanelHead title="Project Activity" subtitle="Changes and discussions across this project" />
+                    {projectActivitiesLoading ? (
+                      <div className="py-10"><Loader text="Loading activity..." size="md" /></div>
+                    ) : projectActivities?.length ? (
+                      <div className="divide-y divide-border-subtle">
+                        {projectActivities.map((activity) => (
+                          <div key={activity._id} className="flex items-start gap-3 py-3">
+                            <div className="w-8 h-8 rounded-full bg-amber-50 border border-border-accent flex items-center justify-center shrink-0">
+                              <span className="text-xs font-black text-brand-text">{activity.user?.name?.[0] || "U"}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm text-main">{activity.action}</p>
+                              <p className="text-[10px] uppercase tracking-widest text-muted mt-1">
+                                {activity.user?.name || "User"} · {formatDate(activity.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState title="No project activity yet" hint="Updates, comments, and task changes will appear here." />
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -512,6 +624,8 @@ const ProjectDetail = () => {
             onAddComment={(content) => handleAddComment(showTaskDetail._id, content)}
             comments={taskComments[showTaskDetail._id] || []}
             currentUserId={currentUserId}
+            projectTasks={tasks}
+            onTaskUpdate={(updates) => handleUpdateTask(showTaskDetail._id, updates)}
           />
         )}
       </div>
@@ -536,7 +650,8 @@ const ProjectDetail = () => {
       >
         <EditProjectForm project={project} onSubmit={handleEditProject} onClose={() => setShowEditProject(false)} />
       </GlassModal>
-    </div>
+      </div>
+    </PageContainer>
   );
 };
 

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FaPlus, FaTicketAlt, FaHourglassHalf, FaCheckCircle, FaTrash, FaEye, FaFileCsv, FaExclamationTriangle, FaSpinner } from "react-icons/fa";
+import { FaPlus, FaTicketAlt, FaHourglassHalf, FaCheckCircle, FaFileCsv, FaExclamationTriangle, FaSpinner } from "react-icons/fa";
 import { TicketIcon } from "@heroicons/react/20/solid";
+import { EyeIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useSelector } from "react-redux";
 import api from "../../axios";
 import { useConfirm } from "../../context/ConfirmContext";
@@ -14,13 +15,16 @@ import FilterRow from "../../components/ui/FilterRow";
 import GlassInput from "../../components/ui/GlassInput";
 import ModernSelect from "../../components/ui/ModernSelect";
 import GlassButton from "../../components/ui/GlassButton";
-import StyledTable from "../../components/ui/StyledTable";
-import Toast from "../../components/Toast";
+import GlobalTable from "../../components/ui/GlobalTable";
 import {
-  resolvePriorityPill,
-  priorityLabel,
-  statusBadgeClass,
-} from "../../components/StatusBadge";
+  TableDate,
+  TablePriority,
+  TableStatus,
+  TableText,
+  TableTitle,
+} from "../../components/ui/TableCells";
+import Toast from "../../components/Toast";
+import { priorityLabel } from "../../components/StatusBadge";
 import { formatDisplayDate } from "../../utils/dateUtils";
 import { downloadCsv } from "../../utils/tableUtils";
 import { getApiError } from "../../utils/validationUtils";
@@ -170,58 +174,34 @@ const Ticket = () => {
         key: "ticketID",
         label: "Ticket ID",
         render: (_, row) => (
-          <span
-            className="font-mono text-xs font-bold text-amber-600 dark:text-amber-400"
+          <TableText
+            value={`#${row.ticketID || row._id?.slice(0, 8).toUpperCase()}`}
             title={row.ticketID || row._id}
-          >
-            #{row.ticketID || row._id?.slice(0, 8).toUpperCase()}
-          </span>
+            className="font-mono font-bold text-brand-text"
+          />
         ),
       },
       {
         key: "subject",
         label: "Subject",
         render: (_, row) => (
-          <div className="min-w-[180px] max-w-[240px]">
-            <p className="text-sm font-bold text-heading truncate leading-tight">{row.subject}</p>
-            <p className="text-[10px] text-muted mt-0.5 line-clamp-1">{row.description}</p>
-          </div>
+          <TableTitle title={row.subject} subtitle={row.description} maxWidth="max-w-[240px]" />
         ),
       },
       {
         key: "priority",
         label: "Priority",
-        render: (_, row) => (
-          <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border whitespace-nowrap ${resolvePriorityPill(
-              row.priority
-            )}`}
-          >
-            {priorityLabel(row.priority)}
-          </span>
-        ),
+        render: (_, row) => <TablePriority value={row.priority} />,
       },
       {
         key: "status",
         label: "Status",
-        render: (_, row) => (
-          <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border whitespace-nowrap ${statusBadgeClass(
-              row.status
-            )}`}
-          >
-            {statusLabel(row.status)}
-          </span>
-        ),
+        render: (_, row) => <TableStatus value={row.status} />,
       },
       {
         key: "createdAt",
         label: "Raised On",
-        render: (value) => (
-          <span className="text-xs font-medium text-main whitespace-nowrap">
-            {value ? formatDisplayDate(value) : "-"}
-          </span>
-        ),
+        render: (value) => <TableDate value={value} />,
       },
     ],
     []
@@ -230,12 +210,12 @@ const Ticket = () => {
   const actions = useMemo(
     () => [
       {
-        icon: <FaEye size={12} />,
+        icon: <EyeIcon className="w-4 h-4" />,
         title: "View ticket",
         onClick: (row) => setSelectedTicket(row),
       },
       {
-        icon: <FaTrash size={12} />,
+        icon: <TrashIcon className="w-4 h-4" />,
         title: "Delete ticket",
         onClick: (row) => handleDelete(row._id, row.ticketID),
         className:
@@ -306,7 +286,6 @@ const Ticket = () => {
             label="Support center"
           title="My Tickets"
           description="Raise requests and track progress across your support tickets — all from one place."
-          emblem={TicketIcon}
           chips={heroChips}
         />
 
@@ -396,7 +375,7 @@ const Ticket = () => {
           </FilterRow>
         </FilterPanel>
 
-        <StyledTable
+        <GlobalTable
           columns={columns}
           data={filteredTickets}
           loading={loading}

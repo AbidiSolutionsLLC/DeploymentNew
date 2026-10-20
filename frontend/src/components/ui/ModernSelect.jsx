@@ -11,6 +11,7 @@ const ModernSelect = ({
   name,
   value,
   onChange,
+  onClick,
   options = [],
   placeholder = "Select Option",
   required = false,
@@ -101,12 +102,17 @@ const ModernSelect = ({
           width: `${dropdownPosition.width}px`,
         }}
         onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {options.length > 0 ? (
           options.map((opt) => (
             <div
               key={opt.value}
               onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 handleSelect(opt.value);
@@ -126,6 +132,7 @@ const ModernSelect = ({
           <div
             className="px-4 py-3 text-xs text-center text-muted"
             onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             No options available
           </div>
@@ -136,7 +143,11 @@ const ModernSelect = ({
 
   return (
     <>
-      <div className={`w-full ${className}`} ref={containerRef}>
+      <div
+        className={`w-full ${className}`}
+        ref={containerRef}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Label */}
         {label && (
           <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest">
@@ -149,7 +160,11 @@ const ModernSelect = ({
           <button
             type="button"
             disabled={disabled}
-            onClick={() => !disabled && setIsOpen(!isOpen)}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onClick) onClick(e);
+              if (!disabled) setIsOpen(!isOpen);
+            }}
             className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium outline-none flex justify-between items-center transition-all shadow-sm text-left
               bg-white dark:bg-slate-800
               ${disabled

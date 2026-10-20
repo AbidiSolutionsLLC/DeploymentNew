@@ -12,14 +12,21 @@ import Loader from "../../components/ui/Loader";
 import FilterRow from "../../components/ui/FilterRow";
 import FilterPanel from "../../components/ui/FilterPanel";
 import StatCard from "../../components/ui/StatCard";
-import StyledTable from "../../components/ui/StyledTable";
+import GlobalTable from "../../components/ui/GlobalTable";
+import {
+  TableBoolean,
+  TablePill,
+  TableStatus,
+  TableText,
+  TableTitle,
+} from "../../components/ui/TableCells";
 import Toast from "../../components/Toast";
-import { FaBuilding, FaUsers, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaFileCsv, FaSyncAlt, FaPlus, FaSearch, FaTimes, FaShieldAlt, FaEye, FaPen, FaTrash } from "react-icons/fa";
+import { FaBuilding, FaUsers, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaFileCsv, FaSyncAlt, FaPlus, FaSearch, FaTimes, FaShieldAlt } from "react-icons/fa";
 import { Squares2X2Icon } from "@heroicons/react/20/solid";
+import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import api from "../../axios";
 import { useConfirm } from "../../context/ConfirmContext";
 import { downloadCsv } from "../../utils/tableUtils";
-import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -239,12 +246,6 @@ function TenantManagement() {
   const activeCount = useMemo(() => companies.filter(c => (c.subscriptionStatus || "Active") === "Active").length, [companies]);
   const suspendedCount = useMemo(() => companies.filter(c => (c.subscriptionStatus || "Active") === "Suspended").length, [companies]);
 
-  // Status render helper for table column
-  const statusBadgeClass = (status) => {
-    const variant = STATUS_VARIANTS[resolveStatusVariant(status)];
-    return variant ? variant.badge : STATUS_VARIANTS.neutral.badge;
-  };
-
   // CSV export header
   const exportCsv = () => {
     const header = [
@@ -326,72 +327,53 @@ function TenantManagement() {
         label: "Company Name",
         sortable: true,
         render: (_, c) => (
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm font-bold shrink-0">
-              {c.companyName?.charAt(0).toUpperCase() || "C"}
-            </div>
-            <span className="text-main font-medium truncate max-w-[220px]" title={c.companyName}>
-              {c.companyName}
-            </span>
-          </div>
+          <TableTitle
+            title={c.companyName}
+            maxWidth="min-w-[200px]"
+            leading={
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm font-bold shrink-0">
+                {c.companyName?.charAt(0).toUpperCase() || "C"}
+              </div>
+            }
+          />
         )
       },
       {
         key: "companyOwner",
         label: "Owner",
         sortable: true,
-        render: (_, c) => <span className="text-main font-medium">{c.companyOwner}</span>
+        render: (_, c) => <TableText value={c.companyOwner} />
       },
       {
         key: "companyEmail",
         label: "Admin Email",
         sortable: true,
-        render: (_, c) => <span className="text-muted text-sm">{c.companyEmail}</span>
+        render: (_, c) => <TableText value={c.companyEmail} muted />
       },
       {
         key: "companyType",
         label: "Type",
         sortable: true,
-        render: (_, c) => (
-          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-100/50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-            {c.companyType}
-          </span>
-        )
+        render: (_, c) => <TablePill>{c.companyType}</TablePill>
       },
       {
         key: "status",
         label: "Status",
         sortable: true,
-        render: (_, c) => {
-          const status = c?.subscriptionStatus || "Active";
-          return (
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border ${statusBadgeClass(status)}`}
-            >
-              {status}
-            </span>
-          );
-        }
+        render: (_, c) => <TableStatus value={c?.subscriptionStatus || "Active"} />
       },
       {
         key: "maxUsers",
         label: "User Limit",
         sortable: true,
-        render: (_, c) => <span className="text-main font-medium">{c.maxUsers || 50}</span>
+        render: (_, c) => <TableText value={c.maxUsers || 50} />
       },
       {
         key: "isMasterTenant",
         label: "Master Tenant",
         sortable: true,
         render: (_, c) => (
-          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 w-max ${
-            c.isMasterTenant
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-              : "bg-surface border border-border-subtle text-muted"
-          }`}>
-            {c.isMasterTenant && <FaShieldAlt size={12} />}
-            {c.isMasterTenant ? "Yes" : "No"}
-          </span>
+          <TableBoolean value={c.isMasterTenant} icon={<FaShieldAlt size={12} />} />
         )
       },
       {
@@ -400,19 +382,18 @@ function TenantManagement() {
         align: "right",
         render: (_, c) => (
           <div className="flex justify-end items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <FaEye
-              size={16}
+            <EyeIcon
+              className="w-4 h-4 cursor-pointer text-muted hover:text-brand-text transition-colors"
               onClick={() => {
                 setSelectedTenant(c);
                 setIsViewModalOpen(true);
               }}
             />
-            <FaPen
-              size={16}
+            <PencilIcon
+              className="w-4 h-4 cursor-pointer text-muted hover:text-brand-text transition-colors"
               onClick={() => openEditModal(c)}
             />
-            <FaTrash
-              size={16}
+            <TrashIcon
               onClick={() => {
                 if (c.isMasterTenant) {
                   setShowToast({
@@ -429,7 +410,7 @@ function TenantManagement() {
                   onConfirmAction: () => handleDelete(c._id)
                 });
               }}
-              className={c.isMasterTenant ? "text-slate-300 dark:text-slate-600 cursor-not-allowed" : "text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 transition-colors"}
+              className={`w-4 h-4 transition-colors ${c.isMasterTenant ? "text-slate-300 dark:text-slate-600 cursor-not-allowed" : "cursor-pointer text-muted hover:text-danger"}`}
             />
           </div>
         )
@@ -476,7 +457,6 @@ function TenantManagement() {
                 label="Tenant administration"
               title="Tenant Management"
             description="Onboard isolated workspaces, tune licensing and SSO, and keep every tenant healthy."
-            emblem={Squares2X2Icon}
             chips={heroChips}
           />
 
@@ -582,7 +562,7 @@ function TenantManagement() {
             </FilterPanel>
 
             {/* ==================== TABLE ==================== */}
-            <StyledTable
+            <GlobalTable
               columns={columns}
               data={getFilteredData()}
               loading={loading}

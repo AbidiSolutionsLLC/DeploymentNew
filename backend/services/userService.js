@@ -7,6 +7,11 @@ const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/Exp
 const { sendInvitationEmail } = require('../config/emailConfig');
 const { getSearchScope } = require("../utils/rbac");
 const { createNotification } = require('../utils/notificationService');
+const { applyDefaultLeaveQuota } = require("../utils/leaveQuota");
+const {
+  getEmailCategoriesForUser,
+  resolveEmailPrefs,
+} = require("../utils/emailNotificationService");
 
 class UserService {
   async checkWritePermission(actor, targetUserId = null, targetRole = null) {
@@ -115,6 +120,8 @@ class UserService {
       isTechnician: false
     });
 
+    applyDefaultLeaveQuota(newUser);
+
     return newUser.save();
   }
 
@@ -154,6 +161,8 @@ class UserService {
       empStatus: "Pending",
       isTechnician: otherData.isTechnician || false
     });
+
+    applyDefaultLeaveQuota(newUser);
 
     const savedUser = await newUser.save();
     if (otherData.department) await Department.findByIdAndUpdate(otherData.department, { $push: { members: savedUser._id } });
@@ -337,11 +346,17 @@ class UserService {
         ];
     }
 
+    const previousEmpType = user.empType;
+
     Object.keys(updates).forEach(field => { 
         if (allowedFields.includes(field) && updates[field] !== undefined) {
             user[field] = field === 'hourlyWage' ? Number(updates[field]) : updates[field]; 
         }
     });
+
+    if (updates.empType && updates.empType !== previousEmpType) {
+        applyDefaultLeaveQuota(user);
+    }
 
     const updatedUser = await user.save();
 
@@ -581,19 +596,46 @@ class UserService {
     return user;
   }
 
+  async getNotificationSettings(userId) {
+    const user = await User.findById(userId).select("role isTechnician notificationPreferences").lean();
+    if (!user) throw new NotFoundError("User not found");
+
+    const prefs = resolveEmailPrefs(user);
+    const emailCategories = getEmailCategoriesForUser(user).map((category) => ({
+      ...category,
+      enabled: prefs[category.key] !== false,
+    }));
+
+    return {
+      emailEnabled: prefs.enabled !== false,
+      emailCategories,
+    };
+  }
+
   async updateMySettings(userId, settings) {
     const { theme, notificationPreferences, lastSeenReleaseNote } = settings;
     const updates = {};
     if (theme) updates.theme = theme;
     if (lastSeenReleaseNote !== undefined) updates.lastSeenReleaseNote = lastSeenReleaseNote;
-    
-    if (notificationPreferences) {
+
+    if (notificationPreferences && typeof notificationPreferences === "object") {
       const user = await User.findById(userId);
       if (!user) throw new NotFoundError("User not found");
-      
+
+      const rawPrefs = user.notificationPreferences;
+      const current = (rawPrefs && typeof rawPrefs.toObject === "function")
+        ? rawPrefs.toObject()
+        : (rawPrefs || {});
+
+      const mergeChannel = (channel) => {
+        const incoming = notificationPreferences[channel];
+        if (!incoming || typeof incoming !== "object") return current[channel];
+        return { ...(current[channel] || {}), ...incoming };
+      };
+
       updates.notificationPreferences = {
-        email: { ...user.notificationPreferences?.email, ...notificationPreferences.email },
-        push: { ...user.notificationPreferences?.push, ...notificationPreferences.push }
+        email: mergeChannel("email"),
+        push: mergeChannel("push"),
       };
     }
 

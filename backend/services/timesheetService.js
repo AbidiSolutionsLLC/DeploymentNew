@@ -6,7 +6,7 @@ const { getStartOfDay, getEndOfDay, moment, TIMEZONE } = require("../utils/dateU
 const { createNotification } = require('../utils/notificationService');
 const { normalizeRole } = require("../utils/rbacUtils");
 const { getSearchScope, getApprovalScope } = require("../utils/rbac");
-const { sendEmail } = require('../config/emailConfig');
+const { sendNotificationEmail } = require('../utils/emailNotificationService');
 const emailTemplates = require('../utils/emailTemplates');
 const { generateActionUrl } = require('../utils/urlGenerator');
 class TimesheetService {
@@ -110,7 +110,8 @@ class TimesheetService {
         const User = require("../models/userSchema");
         const users = await User.find({ email: { $in: recipientEmails }, company: companyId });
         const userRoleMap = {};
-        users.forEach(u => { userRoleMap[u.email] = u.role; });
+        const userByEmail = {};
+        users.forEach(u => { userRoleMap[u.email] = u.role; userByEmail[u.email] = u; });
 
         recipientEmails.forEach(email => {
           if (email !== user.email) {
@@ -118,8 +119,10 @@ class TimesheetService {
             const actionUrl = generateActionUrl(role, 'timesheet', 'created');
             const htmlContent = emailTemplates.timesheetSubmitted({ ...payloadBase, actionUrl });
             
-            sendEmail({
-              to: email,
+            sendNotificationEmail({
+              recipient: userByEmail[email],
+              recipientEmail: email,
+              category: 'timesheetUpdates',
               subject: `New Timesheet Submitted: ${employeeName}`,
               htmlContent: htmlContent,
               companyId: companyId
@@ -328,8 +331,10 @@ class TimesheetService {
         };
         const emailHtml = emailTemplates.timesheetStatusUpdated(payload);
 
-        sendEmail({
-          to: timesheet.employee.email,
+        sendNotificationEmail({
+          recipient: timesheet.employee,
+          recipientEmail: timesheet.employee.email,
+          category: 'timesheetUpdates',
           subject: `Timesheet ${status}: ${payload.periodStart} to ${payload.periodEnd}`,
           htmlContent: emailHtml,
           companyId: companyId

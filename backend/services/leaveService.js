@@ -3,7 +3,7 @@ const User = require("../models/userSchema");
 const TimeTracker = require("../models/timeTrackerSchema");
 const { moment, TIMEZONE, calculateBusinessDays } = require("../utils/dateUtils");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
-const { sendEmail } = require('../config/emailConfig');
+const { sendNotificationEmail } = require('../utils/emailNotificationService');
 const emailTemplates = require('../utils/emailTemplates');
 const { generateActionUrl } = require('../utils/urlGenerator');
 const { createNotification } = require('../utils/notificationService');
@@ -526,8 +526,10 @@ class LeaveService {
         ? emailTemplates.leaveApproved(payload) 
         : emailTemplates.leaveRejected(payload);
 
-      sendEmail({
-        to: leaveRequest.email,
+      sendNotificationEmail({
+        recipient: requester,
+        recipientEmail: leaveRequest.email,
+        category: 'leaveUpdates',
         subject: emailSubject,
         htmlContent: emailBody,
         companyId: leaveRequest.company
@@ -762,17 +764,19 @@ class LeaveService {
         refId: (leaveRequest._id ? leaveRequest._id.toString() : '').slice(-6).toUpperCase()
       };
       
-      const User = require("../models/userSchema");
       const users = await User.find({ email: { $in: recipientEmails }, company: leaveRequest.company });
       const userRoleMap = {};
-      users.forEach(u => { userRoleMap[u.email] = u.role; });
+      const userByEmail = {};
+      users.forEach(u => { userRoleMap[u.email] = u.role; userByEmail[u.email] = u; });
 
       recipientEmails.forEach(email => {
         const role = userRoleMap[email] || 'employee';
         const actionUrl = generateActionUrl(role, 'leave', 'created');
         const htmlContent = emailTemplates.leaveSubmitted({ ...payloadBase, actionUrl });
-        sendEmail({
-          to: email,
+        sendNotificationEmail({
+          recipient: userByEmail[email],
+          recipientEmail: email,
+          category: 'leaveUpdates',
           subject: subject,
           htmlContent: htmlContent,
           companyId: leaveRequest.company
@@ -799,8 +803,10 @@ class LeaveService {
       };
       const htmlContent = emailTemplates.leaveResponseAdded(payload);
      
-      sendEmail({
-        to: leaveRequest.email,
+      sendNotificationEmail({
+        recipient: requester,
+        recipientEmail: leaveRequest.email,
+        category: 'leaveUpdates',
         subject: subject,
         htmlContent: htmlContent,
         companyId: leaveRequest.company

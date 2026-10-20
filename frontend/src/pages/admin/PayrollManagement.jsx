@@ -3,10 +3,17 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { 
-  Download, Calendar, CheckCircle, Clock, Save, Search, Edit2, Play, X
+  Download, Calendar, Clock, Save, Search, Edit2, Play, X
 } from "lucide-react";
 import PageContainer from "../../components/ui/PageContainer";
-import TableWithPagination from "../../components/TableWithPagination";
+import GlobalTable from "../../components/ui/GlobalTable";
+import {
+  TablePerson,
+  TableMoney,
+  TableTitle,
+  TableDateRange,
+  TableStatus,
+} from "../../components/ui/TableCells";
 import GlassInput from "../../components/ui/GlassInput";
 import FilterRow from "../../components/ui/FilterRow";
 import GlassModal from "../../components/ui/GlassModal";
@@ -258,48 +265,48 @@ const PayrollManagement = () => {
       key: "employee",
       label: "Employee",
       render: (_, row) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "var(--color-bg-active)", color: "var(--color-brand-text)" }}>
-            {row.employee.name?.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-bold text-main">{row.employee.name}</p>
-            <p className="text-[10px] font-bold text-muted uppercase">{row.employee.designation || "N/A"}</p>
-          </div>
-        </div>
+        <TablePerson
+          name={row.employee.name}
+          subtitle={row.employee.designation || "N/A"}
+          className="min-w-[180px]"
+        />
       )
     },
     {
       key: "hours",
       label: "Hours",
       render: (_, row) => (
-        <div>
-          <p className="text-sm font-bold text-main">
-            {row.adjustedHours !== undefined ? (
-              <span className="text-amber-500 flex items-center gap-1">{row.adjustedHours} <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded">Adj</span></span>
-            ) : row.totalHoursTracked}
-          </p>
-          {row.extraHours > 0 && <p className="text-[10px] font-bold text-rose-500 uppercase">+{row.extraHours} OT</p>}
-        </div>
+        <TableTitle
+          title={
+            row.adjustedHours !== undefined
+              ? `${row.adjustedHours} (Adj)`
+              : row.totalHoursTracked
+          }
+          subtitle={row.extraHours > 0 ? `+${row.extraHours} OT` : undefined}
+          maxWidth="max-w-[120px]"
+        />
       )
     },
     {
       key: "wage",
       label: "Wage Rate",
       render: (_, row) => (
-        <p className="text-sm font-bold text-main">
-          {row.adjustedWage !== undefined ? (
-            <span className="text-amber-500 flex items-center gap-1">${row.adjustedWage}/hr <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded">Adj</span></span>
-          ) : `$${row.hourlyWage}/hr`}
-        </p>
+        <TableTitle
+          title={
+            <TableMoney
+              value={row.adjustedWage !== undefined ? row.adjustedWage : row.hourlyWage}
+              suffix="/hr"
+            />
+          }
+          subtitle={row.adjustedWage !== undefined ? "Adjusted" : undefined}
+          maxWidth="max-w-[140px]"
+        />
       )
     },
     {
       key: "total",
       label: "Total Pay",
-      render: (_, row) => (
-        <p className="text-sm font-black text-emerald-600">${row.totalWages?.toFixed(2)}</p>
-      )
+      render: (_, row) => <TableMoney value={row.totalWages} tone="success" />
     },
     ...(currentUserRole === 'superadmin' || currentUserRole === 'globalreader' ? [{
       key: "actions",
@@ -318,51 +325,42 @@ const PayrollManagement = () => {
       key: "employee",
       label: "Employee",
       render: (_, row) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "var(--color-bg-active)", color: "var(--color-brand-text)" }}>
-            {row.employee?.name?.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-bold text-main">{row.employee?.name}</p>
-            <p className="text-[10px] font-bold text-muted uppercase">{row.employee?.empID || "N/A"}</p>
-          </div>
-        </div>
+        <TablePerson
+          name={row.employee?.name}
+          subtitle={row.employee?.empID || "N/A"}
+          className="min-w-[180px]"
+        />
       )
     },
     {
       key: "period",
       label: "Period",
       render: (_, row) => (
-        <p className="text-xs font-medium text-muted">
-          {new Date(row.periodStartDate).toLocaleDateString()} - {new Date(row.periodEndDate).toLocaleDateString()}
-        </p>
+        <TableDateRange start={row.periodStartDate} end={row.periodEndDate} />
       )
     },
     {
       key: "details",
       label: "Details",
       render: (_, row) => (
-        <div>
-          <p className="text-xs text-main">{row.adjustedHours !== null ? row.adjustedHours : row.totalHoursTracked} hrs @ ${row.adjustedWage !== null ? row.adjustedWage : row.hourlyWage}/hr</p>
-          {row.extraHours > 0 && <p className="text-[10px] font-bold text-rose-500 uppercase">+{row.extraHours} OT</p>}
-        </div>
+        <TableTitle
+          title={`${
+            row.adjustedHours !== null ? row.adjustedHours : row.totalHoursTracked
+          } hrs @ $${row.adjustedWage !== null ? row.adjustedWage : row.hourlyWage}/hr`}
+          subtitle={row.extraHours > 0 ? `+${row.extraHours} OT` : undefined}
+          maxWidth="max-w-[220px]"
+        />
       )
     },
     {
       key: "total",
       label: "Total Paid",
-      render: (_, row) => (
-        <p className="text-sm font-black text-emerald-600">${row.totalWages?.toFixed(2)}</p>
-      )
+      render: (_, row) => <TableMoney value={row.totalWages} tone="success" />
     },
     {
       key: "status",
       label: "Status",
-      render: (_, row) => (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: "var(--status-info-bg)", color: "var(--status-info-fg)", border: "1px solid var(--status-info-border)" }}>
-          <CheckCircle size={12} /> {row.status}
-        </span>
-      )
+      render: (_, row) => <TableStatus value={row.status} />
     },
     {
       key: "actions",
@@ -462,14 +460,14 @@ const PayrollManagement = () => {
 
       <div className="glass-card p-0 overflow-hidden">
         {activeTab === "preview" ? (
-          <TableWithPagination
+          <GlobalTable
             columns={previewColumns}
             data={filteredPreviewData}
             loading={loading}
             emptyMessage="No timesheet records found for this period."
           />
         ) : (
-          <TableWithPagination
+          <GlobalTable
             columns={historyColumns}
             data={historyData}
             loading={loading}

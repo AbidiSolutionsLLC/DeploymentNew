@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion as Motion } from "framer-motion";
 import {
- FaEye,
- FaCommentDots,
  FaClipboardList,
  FaHourglassHalf,
  FaCheckCircle,
@@ -16,6 +14,7 @@ import {
  FaCalendarDay,
 } from "react-icons/fa";
 import { CheckBadgeIcon } from "@heroicons/react/20/solid";
+import { EyeIcon } from "@heroicons/react/24/outline";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import timesheetApi from "../../api/timesheetApi";
@@ -24,7 +23,6 @@ import ApproveTimesheetViewModal from "../../components/ApproveTimesheetViewModa
 import AdminAddTimeLogModal from "../../components/AdminAddTimeLogModal";
 import AdminCreateTimesheetModal from "../../components/AdminCreateTimesheetModal";
 import ExportSelectionModal from "../../components/ExportSelectionModal";
-import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
 import Toast from "../../components/Toast";
 import PageContainer from "../../components/ui/PageContainer";
 import PortalHero from "../../components/ui/PortalHero";
@@ -35,21 +33,18 @@ import GlassButton from "../../components/ui/GlassButton";
 import FilterRow from "../../components/ui/FilterRow";
 import FilterPanel from "../../components/ui/FilterPanel";
 import StatCard from "../../components/ui/StatCard";
-import StyledTable from "../../components/ui/StyledTable";
-import { getInitials } from "../../utils/tableUtils";
+import GlobalTable from "../../components/ui/GlobalTable";
+import {
+ TableCommentCount,
+ TableHours,
+ TablePerson,
+ TableStatus,
+ TableText,
+ TableTitle,
+} from "../../components/ui/TableCells";
 import { formatDateForAPI } from "../../utils/dateUtils";
 import { useConfirm } from "../../context/ConfirmContext";
 import { useSelector } from "react-redux";
-
-/* Status pill helpers — same tokens as the Leave Management tabs */
-const statusBadge = (status) =>
- STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
-
-/* Hours pills (theme safe — dark variants included) */
-const HOURS_PILL = {
-  submitted: "lm-success-badge",
-  approved: "lm-success-badge",
-};
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -587,26 +582,12 @@ const ApproveTimesheets = () => {
  ? ""
  : dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
  return (
- <div className="flex items-center gap-2.5 min-w-[140px] md:min-w-[180px]">
- {row.employee?.avatar ? (
- <img
- src={row.employee.avatar}
- alt=""
- className="w-8 h-8 rounded-full object-cover border border-border-subtle flex-shrink-0"
+ <TablePerson
+ name={row.employeeName}
+ subtitle={row.employee?.email || dateLabel}
+ avatar={row.employee?.avatar}
+ className="min-w-[140px] md:min-w-[180px]"
  />
- ) : (
- <div className="w-8 h-8 rounded-full bg-amber-100 text-brand-text border border-amber-200 dark:bg-amber-900/40 dark:border-amber-800 dark:text-amber-400 flex items-center justify-center text-[11px] font-black flex-shrink-0">
- {getInitials(row.employeeName)}
- </div>
- )}
- <div className="min-w-0">
- <p className="text-sm font-bold text-heading truncate leading-tight">{row.employeeName}</p>
- <p className="text-[10px] text-muted truncate">
- <span className="hidden sm:inline">{row.employee?.email || "—"}</span>
- <span className="sm:hidden">{dateLabel || row.employee?.email || "—"}</span>
- </p>
- </div>
- </div>
  );
  },
  },
@@ -616,16 +597,13 @@ const ApproveTimesheets = () => {
  hideBelow: "sm",
  render: (_, row) => {
  const dateObj = ensureDate(row.date);
- if (isNaN(dateObj.getTime())) return <span className="text-xs text-muted">-</span>;
+ if (isNaN(dateObj.getTime())) return <TableText value="" />;
  return (
- <div className="min-w-[110px]">
- <p className="text-xs font-bold text-heading whitespace-nowrap">
- {dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
- </p>
- <p className="text-[10px] text-muted mt-0.5">
- {dateObj.toLocaleDateString("en-US", { weekday: "long" })}
- </p>
- </div>
+ <TableTitle
+ title={dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+ subtitle={dateObj.toLocaleDateString("en-US", { weekday: "long" })}
+ maxWidth="min-w-[110px]"
+ />
  );
  },
  },
@@ -634,64 +612,38 @@ const ApproveTimesheets = () => {
  label: "Timesheet",
  hideBelow: "md",
  render: (_, row) => (
- <span
- className="text-xs font-semibold text-main truncate max-w-[160px] inline-block"
- title={row.name || "Unnamed"}
- >
- {row.name || "Unnamed"}
- </span>
+ <TableText value={row.name || "Unnamed"} title={row.name || "Unnamed"} truncate maxWidth="max-w-[160px]" />
  ),
  },
  {
  key: "submittedHours",
  label: "Submitted",
  align: "right",
- render: (_, row) => (
- <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tabular-nums border whitespace-nowrap ${HOURS_PILL.submitted}`}>
- {(row.submittedHours || 0).toFixed(1)} h
- </span>
- ),
+ render: (_, row) => <TableHours value={row.submittedHours || 0} />,
  },
  {
  key: "approvedHours",
  label: activeTab === 0 ? "To Approve" : "Approved",
  align: "right",
- render: (_, row) => (
- <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tabular-nums border whitespace-nowrap ${HOURS_PILL.approved}`}>
- {(row.approvedHours || 0).toFixed(1)} h
- </span>
- ),
+ render: (_, row) => <TableHours value={row.approvedHours || 0} />,
  },
  {
  key: "status",
  label: "Status",
- render: (_, row) => (
- <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border whitespace-nowrap ${statusBadge(row.status)}`}>
- {row.status || "Pending"}
- </span>
- ),
+ render: (_, row) => <TableStatus value={row.status || "Pending"} />,
  },
  {
  key: "comments",
  label: "Comments",
  sortable: false,
  hideBelow: "lg",
- render: (_, row) => {
- const commentCount = row.comments?.length || 0;
- if (commentCount === 0) return <span className="text-muted text-xs">No comments</span>;
- return (
- <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-text whitespace-nowrap">
- <FaCommentDots size={13} />
- {commentCount} comment{commentCount !== 1 ? "s" : ""}
- </span>
- );
- },
+ render: (_, row) => <TableCommentCount count={row.comments?.length || 0} />,
  },
  ];
 
  const tableActions = [
  {
- icon: <FaEye size={13} />,
+ icon: <EyeIcon className="w-4 h-4" />,
  title: "View timesheet",
  onClick: (row) => handleViewDetails(row),
  },
@@ -733,7 +685,6 @@ const ApproveTimesheets = () => {
       label="Timesheet approval overview"
    title="Approve Timesheets"
 description="Review submitted hours, dig into time logs and approve or reject team timesheets — all from one place."
-emblem={CheckBadgeIcon}
 chips={[
  { icon: FaUsers, value: allUsers.length, label: " Employees" },
  { pulse: true, value: kpis.pending, label: " Awaiting approval" },
@@ -950,7 +901,7 @@ chips={[
 
  {/* ============ TABLE ============ */}
  <div key={`${activeTab}-${selectedWeekStart}`} className="animate-fadeIn">
- <StyledTable
+ <GlobalTable
  columns={timesheetColumns}
  data={currentData}
  loading={loading || allLoading}

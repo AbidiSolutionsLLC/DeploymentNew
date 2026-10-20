@@ -348,6 +348,178 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ==================== FILTER TOOLBAR ====================
+   Real filter controls (labelled dropdowns) — deliberately NOT a row of
+   button/tab chips. Reads as a filter form: a funnel label on the left,
+   labelled selects in the middle, and a live result count + reset on the
+   right. Shared visual language with .glass-input so it belongs. */
+
+.lm-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.25rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.lm-filterbar__lead {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-brand-text);
+  white-space: nowrap;
+}
+
+.lm-filterbar__lead svg {
+  color: var(--color-brand-primary);
+}
+
+.lm-filter-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lm-filter-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.lm-filter-field__label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.lm-filter-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.lm-filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 150px;
+  padding: 0.6rem 2.4rem 0.6rem 1rem;
+  border-radius: 0.7rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  outline: none;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.lm-filter-select:hover {
+  border-color: var(--color-border-accent);
+}
+
+.lm-filter-select:focus {
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.2);
+}
+
+.lm-filter-chevron {
+  position: absolute;
+  right: 0.85rem;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.lm-filter-select option {
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+}
+
+.dark .lm-filter-select option,
+[data-theme="dark"] .lm-filter-select option {
+  color: #f1f5f9;
+  background: #1e293b;
+}
+
+.lm-filterbar__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.lm-filterbar__meta-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.lm-filterbar__meta-text b {
+  color: var(--color-text-heading);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.lm-filter-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.6rem;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-brand-text);
+  background: rgba(184, 134, 11, 0.08);
+  border: 1px solid var(--color-border-accent);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.lm-filter-reset:hover {
+  background: rgba(184, 134, 11, 0.16);
+  border-color: var(--color-brand-primary);
+}
+
+.dark .lm-filter-select,
+[data-theme="dark"] .lm-filter-select {
+  color: #f1f5f9;
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.dark .lm-filter-select:hover,
+[data-theme="dark"] .lm-filter-select:hover {
+  border-color: #475569;
+}
+
+.dark .lm-filter-select:focus,
+[data-theme="dark"] .lm-filter-select:focus {
+  border-color: #FBBF24;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
+}
+
 /* ==================== DASHBOARD CARDS ====================
    A calmer, structured card system used by the admin dashboard.
    One accent colour drives the top hairline, the icon chip, the

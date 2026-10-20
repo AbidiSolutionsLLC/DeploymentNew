@@ -237,7 +237,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  setErrors(prev => ({ ...prev, startDate: null }));
  setStartDate(date);
  }}
- className={`glass-input w-full cursor-pointer ${errors.startDate ? 'border-red-400 ring-1 ring-red-400' : ''} ${isSubmitting ? 'opacity-50' : ''}`}
+ className={`glass-input w-full cursor-pointer bg-white dark:bg-slate-800 ${errors.startDate ? 'border-red-400 ring-1 ring-red-400' : ''} ${isSubmitting ? 'opacity-50' : ''}`}
  placeholderText="Select Date"
  dateFormat="yyyy-MM-dd"
  required
@@ -265,7 +265,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  setErrors(prev => ({ ...prev, endDate: null }));
  setEndDate(date);
  }}
- className={`glass-input w-full cursor-pointer ${errors.endDate ? 'border-red-400 ring-1 ring-red-400' : ''} ${isSubmitting ? 'opacity-50' : ''}`}
+ className={`glass-input w-full cursor-pointer bg-white dark:bg-slate-800 ${errors.endDate ? 'border-red-400 ring-1 ring-red-400' : ''} ${isSubmitting ? 'opacity-50' : ''}`}
  placeholderText="Select Date"
  dateFormat="yyyy-MM-dd"
  required
@@ -281,7 +281,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  </div>
 
  {daysRequested > 0 && (
- <div className="bg-surface/50 dark:bg-slate-800/50 p-4 rounded-xl border border-dashed border-border-subtle dark:border-slate-700 flex justify-between items-center">
+ <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-dashed border-border-subtle dark:border-slate-700 flex justify-between items-center">
  <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">TOTAL DAYS</span>
  <span className="text-sm font-bold text-heading dark:text-white">{daysRequested} DAYS</span>
  </div>
@@ -292,7 +292,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  REASON FOR LEAVE
  </label>
  <textarea
- className={`glass-input w-full resize-none ${errors.reason ? 'border-red-400 ring-1 ring-red-400' : ''} ${isSubmitting ? 'opacity-50' : ''}`}
+ className={`glass-input w-full resize-none bg-white dark:bg-slate-800 ${errors.reason ? 'border-red-400 ring-1 ring-red-400' : ''} ${isSubmitting ? 'opacity-50' : ''}`}
  rows={3}
  value={reason}
  onChange={(e) => setReason(e.target.value)}
@@ -309,7 +309,7 @@ const EditLeaveModal = ({ isOpen, setIsOpen, leaveData, onLeaveEdited }) => {
  </div>
 
  {quotaError && (
- <div className="bg-red-50 dark:bg-red-900/30/50 dark:bg-red-900/20 p-3 rounded-xl border border-red-200 dark:border-red-800">
+ <div className="bg-red-50 dark:bg-red-950/40 p-3 rounded-xl border border-red-200 dark:border-red-800">
  <p className="text-[10px] font-black text-red-500 dark:text-red-400 uppercase tracking-tight text-center">
  {quotaError}
  </p>

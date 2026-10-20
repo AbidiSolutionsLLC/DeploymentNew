@@ -7,8 +7,8 @@ import {
   FaTimesCircle,
   FaExclamationTriangle,
   FaFileCsv,
-  FaEye,
 } from "react-icons/fa";
+import { EyeIcon } from "@heroicons/react/24/outline";
 import FilterRow from "../ui/FilterRow";
 import GlassInput from "../ui/GlassInput";
 import ModernSelect from "../ui/ModernSelect";
@@ -16,29 +16,21 @@ import GlassButton from "../ui/GlassButton";
 import ViewLeaveModal from "../ViewLeaveModal";
 import { getApiError } from "../../utils/validationUtils";
 import { formatDisplayDate, parseISOToLocalDate } from "../../utils/dateUtils";
-import { STATUS_VARIANTS, resolveStatusVariant } from "../StatusBadge";
-import { getInitials, downloadCsv } from "../../utils/tableUtils";
+import { downloadCsv } from "../../utils/tableUtils";
 import StatCard from "../ui/StatCard";
 import FilterPanel from "../ui/FilterPanel";
-import StyledTable from "../ui/StyledTable";
+import GlobalTable from "../ui/GlobalTable";
+import {
+  TablePerson,
+  TableDate,
+  TableText,
+  TableTitle,
+  TablePill,
+  TableStatus,
+} from "../ui/TableCells";
 
 const daysBetween = (start, end) =>
   Math.ceil((parseISOToLocalDate(end) - parseISOToLocalDate(start)) / (1000 * 60 * 60 * 24)) + 1;
-
-const statusBadge = (status) =>
-  STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
-
-/* Leave type pills — uniform green text for every type */
-const GREEN_PILL = "lm-success-badge";
-
-const TYPE_PILL = {
-  PTO: GREEN_PILL,
-  Sick: GREEN_PILL,
-  Casual: GREEN_PILL,
-  Unpaid: GREEN_PILL,
-};
-
-const typePill = (type) => TYPE_PILL[type] || GREEN_PILL;
 
 export default function LeaveRequestsTab({ showToast, onStats }) {
   const [leaves, setLeaves] = useState([]);
@@ -212,94 +204,54 @@ export default function LeaveRequestsTab({ showToast, onStats }) {
         key: "name",
         label: "Employee",
         render: (_, row) => (
-          <div className="flex items-center gap-2.5 min-w-[180px]">
-            <div className="w-8 h-8 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center text-[11px] font-black flex-shrink-0">
-              {getInitials(row.name)}
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-heading truncate leading-tight">{row.name}</p>
-              <p className="text-[10px] text-muted truncate">{row.email}</p>
-            </div>
-          </div>
+          <TablePerson name={row.name} subtitle={row.email} className="min-w-[180px]" />
         ),
       },
       {
         key: "appliedAt",
         label: "Applied On",
-        render: (value) => (
-          <span className="text-xs font-medium text-main whitespace-nowrap">
-            {value ? formatDisplayDate(value) : "-"}
-          </span>
-        ),
+        render: (value) => <TableDate value={value} />,
       },
       {
         key: "id",
         label: "Request ID",
         sortable: false,
         render: (_, row) => (
-          <span className="text-main font-mono text-xs" title={row.id}>
-            {row.id ? `${row.id.substring(0, 8)}...` : "-"}
-          </span>
+          <TableText
+            value={row.id ? `${row.id.substring(0, 8)}...` : ""}
+            title={row.id}
+            className="font-mono"
+          />
         ),
       },
       {
         key: "startDate",
         label: "Leave Period",
         render: (_, row) => (
-          <div className="min-w-[165px]">
-            <p className="text-xs font-bold text-heading whitespace-nowrap">
-              {row.date} → {formatDisplayDate(row.endDate)}
-            </p>
-            <p className="text-[10px] text-muted mt-0.5">
-              {row.daysCount} day{row.daysCount === 1 ? "" : "s"}
-            </p>
-          </div>
+          <TableTitle
+            title={`${row.date} → ${formatDisplayDate(row.endDate)}`}
+            subtitle={`${row.daysCount} day${row.daysCount === 1 ? "" : "s"}`}
+            maxWidth="min-w-[165px]"
+          />
         ),
       },
       {
         key: "leaveType",
         label: "Leave Type",
-        render: (value) => (
-          <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap border ${typePill(
-              value
-            )}`}
-          >
-            {value}
-          </span>
-        ),
+        render: (value) => <TablePill>{value}</TablePill>,
       },
       {
         key: "reason",
         label: "Reason",
         sortable: false,
         render: (_, row) => (
-          <div className="max-w-[220px] text-muted text-xs" title={row.reason}>
-            <span
-              style={{
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}
-            >
-              {row.reason}
-            </span>
-          </div>
+          <TableText value={row.reason} muted title={row.reason} clamp={2} maxWidth="max-w-[220px]" />
         ),
       },
       {
         key: "status",
         label: "Status",
-        render: (value, row) => (
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border ${statusBadge(
-              row.status
-            )}`}
-          >
-            {row.status}
-          </span>
-        ),
+        render: (_, row) => <TableStatus value={row.status} />,
       },
     ],
     []
@@ -308,7 +260,7 @@ export default function LeaveRequestsTab({ showToast, onStats }) {
   const actions = useMemo(
     () => [
       {
-        icon: <FaEye size={12} />,
+        icon: <EyeIcon className="w-4 h-4" />,
         title: "View request",
         onClick: (row) => {
           setSelectedLeave(row);
@@ -420,7 +372,7 @@ export default function LeaveRequestsTab({ showToast, onStats }) {
       </FilterPanel>
 
       {/* ============ TABLE ============ */}
-      <StyledTable
+      <GlobalTable
         columns={columns}
         data={filteredLeaves}
         loading={loading}

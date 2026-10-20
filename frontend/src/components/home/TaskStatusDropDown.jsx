@@ -33,7 +33,7 @@ const statusColor = {
 
  {/* Dropdown */}
  {isOpen && (
- <div className="absolute mt-1 w-full bg-surface border border-subtle rounded-[0.6rem] shadow-md z-10 overflow-visible">
+ <div className="absolute mt-1 w-full bg-white dark:bg-slate-900 border border-border-subtle dark:border-slate-700 rounded-[0.6rem] shadow-xl z-20 overflow-hidden">
  {statuses.map((s) => (
  <div
  key={s}
@@ -41,7 +41,7 @@ const statusColor = {
  e.stopPropagation();
  handleStatusChange(s);
  }}
- className="w-full px-2 py-1.5 hover:bg-app cursor-pointer text-[9px] text-main"
+ className="w-full px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-[9px] text-main"
  >
  {s}
  </div>

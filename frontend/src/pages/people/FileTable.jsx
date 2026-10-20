@@ -1,7 +1,7 @@
 import React from "react";
 import { FiEye, FiDownload } from "react-icons/fi";
-import { format } from "date-fns";
-import TableWithPagination from "../../components/TableWithPagination";
+import GlobalTable from "../../components/ui/GlobalTable";
+import { TableDate, TablePill, TableText, TableTitle } from "../../components/ui/TableCells";
 
 const FileTable = ({ files, onDownload, loading, searchTerm = "" }) => {
  
@@ -16,15 +16,6 @@ const FileTable = ({ files, onDownload, loading, searchTerm = "" }) => {
  (f.mimeType?.toLowerCase().includes(s) || '')
  );
  });
-
- // Format date helper
- const formatDate = (dateString) => {
- try {
- return format(new Date(dateString), 'MMM dd, yyyy');
- } catch {
- return 'Unknown date';
- }
- };
 
  // Get file category from MIME type
  const getCategory = (mimeType) => {
@@ -64,8 +55,11 @@ const FileTable = ({ files, onDownload, loading, searchTerm = "" }) => {
  key: "fileName",
  label: "File Name",
  render: (_, file) => (
- <div className="flex items-center gap-2">
- <div className="w-8 h-8 flex items-center justify-center">
+ <TableTitle
+ title={file.name}
+ maxWidth="max-w-[240px]"
+ leading={
+ <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
  {file.mimeType?.startsWith('image/') ? (
  <img 
  src={file.url} 
@@ -80,31 +74,29 @@ const FileTable = ({ files, onDownload, loading, searchTerm = "" }) => {
  </div>
  )}
  </div>
- <span className="truncate max-w-[200px]" title={file.name}>
- {file.name}
- </span>
- </div>
+ }
+ />
  )
  },
  {
  key: "owner",
  label: "Owner",
- render: (_, file) => getOwnerName(file)
+ render: (_, file) => <TableText value={getOwnerName(file)} />
  },
  {
  key: "uploaded",
  label: "Uploaded",
- render: (_, file) => formatDate(file.createdAt)
+ render: (_, file) => <TableDate value={file.createdAt} />
  },
  {
  key: "type",
  label: "Type",
- render: (_, file) => getCategory(file.mimeType)
+ render: (_, file) => <TablePill>{getCategory(file.mimeType)}</TablePill>
  },
  {
  key: "size",
  label: "Size",
- render: (_, file) => getFileSize(file.size)
+ render: (_, file) => <TableText value={getFileSize(file.size)} />
  },
  {
  key: "actions",
@@ -136,7 +128,7 @@ const FileTable = ({ files, onDownload, loading, searchTerm = "" }) => {
 
  return (
  <div className="bg-surface rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden w-full">
- <TableWithPagination
+ <GlobalTable
  columns={fileColumns}
  data={filtered}
  loading={loading}

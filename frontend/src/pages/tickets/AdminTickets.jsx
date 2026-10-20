@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion as Motion } from "framer-motion";
-import { Search, UserPlus, Clock, Check } from "lucide-react";
+import { Search, UserPlus, Check } from "lucide-react";
 import { UserPlusIcon } from "@heroicons/react/20/solid";
 import { useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
@@ -17,7 +17,15 @@ import Loader from "../../components/ui/Loader";
 import FilterRow from "../../components/ui/FilterRow";
 import FilterPanel from "../../components/ui/FilterPanel";
 import StatCard from "../../components/ui/StatCard";
-import StyledTable from "../../components/ui/StyledTable";
+import GlobalTable from "../../components/ui/GlobalTable";
+import {
+  TableDate,
+  TablePerson,
+  TablePriority,
+  TableStatus,
+  TableText,
+  TableTitle,
+} from "../../components/ui/TableCells";
 import Toast from "../../components/Toast";
 import {
   FaTicketAlt,
@@ -30,7 +38,6 @@ import {
   FaUserCircle,
   FaExclamationTriangle,
 } from "react-icons/fa";
-import { STATUS_VARIANTS, resolveStatusVariant, resolvePriorityPill } from "../../components/StatusBadge";
 import { downloadCsv } from "../../utils/tableUtils";
 import { getApiError } from "../../utils/validationUtils";
 
@@ -308,27 +315,16 @@ function AdminTickets() {
         sortable: false,
         render: (_, t) => (
           <div className="min-w-[230px] group/cell" title="Click to view ticket details">
-            <p className="text-sm font-bold text-heading truncate max-w-[260px] leading-tight">
-              {t.subject || "-"}
-            </p>
+            <TableTitle title={t.subject} maxWidth="max-w-[260px]" />
             <div className="flex flex-wrap items-center gap-2 mt-1.5">
-              <span className="text-[11px] text-muted font-mono">
-                #{t.ticketID || t._id?.slice(0, 6) || "-"}
-              </span>
-              <span
-                className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide
-                ${STATUS_VARIANTS[resolveStatusVariant(t.status)]?.badge || STATUS_VARIANTS.neutral.badge}`}>
-                {normalizeStatus(t.status)}
-              </span>
-              <span
-                className={`px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wide
-                ${resolvePriorityPill(t.priority)}`}>
-                {normalizePriority(t.priority)}
-              </span>
-              <span className="flex items-center gap-1 text-xs text-muted">
-                <Clock className="w-3 h-3" />
-                {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "-"}
-              </span>
+              <TableText
+                value={`#${t.ticketID || t._id?.slice(0, 6) || "-"}`}
+                className="font-mono"
+                muted
+              />
+              <TableStatus value={t.status} />
+              <TablePriority value={t.priority} />
+              <TableDate value={t.createdAt} />
             </div>
           </div>
         ),
@@ -345,30 +341,11 @@ function AdminTickets() {
             : "—";
           const avatarUrl = t.user?.avatar || t.closedBy?.avatar;
           return (
-            <div className="flex items-center gap-2">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt="avatar"
-                  className="w-6 h-6 rounded-full object-cover"
-                />
-              ) : (
-                <FaUserCircle className="text-muted w-6 h-6" />
-              )}
-              <div className="flex flex-col">
-                <span className="text-xs text-main font-medium whitespace-nowrap">
-                  {name}
-                </span>
-                {(t.emailAddress || t.closedBy?.email || t.user?.email) && (
-                  <span
-                    className="text-[10px] text-muted truncate max-w-[120px]"
-                    title={t.emailAddress || t.closedBy?.email || t.user?.email}
-                  >
-                    {t.emailAddress || t.closedBy?.email || t.user?.email}
-                  </span>
-                )}
-              </div>
-            </div>
+            <TablePerson
+              name={name}
+              subtitle={t.emailAddress || t.closedBy?.email || t.user?.email}
+              avatar={avatarUrl}
+            />
           );
         },
       },
@@ -378,40 +355,14 @@ function AdminTickets() {
         render: (_, t) => {
           if (t.assignedTo) {
             return (
-              <div className="flex items-center gap-2">
-                {t.assignedTo.avatar ? (
-                  <img
-                    src={t.assignedTo.avatar}
-                    alt="avatar"
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                ) : (
-                  <FaUserCircle className="text-muted w-6 h-6" />
-                )}
-                <div className="flex flex-col">
-                  <span className="text-xs text-main font-medium whitespace-nowrap">
-                    {t.assignedTo.name || "Unknown Name"}
-                  </span>
-                  {t.assignedTo.email && (
-                    <span
-                      className="text-[10px] text-muted truncate max-w-[120px]"
-                      title={t.assignedTo.email}
-                    >
-                      {t.assignedTo.email}
-                    </span>
-                  )}
-                </div>
-              </div>
+              <TablePerson
+                name={t.assignedTo.name || "Unknown Name"}
+                subtitle={t.assignedTo.email}
+                avatar={t.assignedTo.avatar}
+              />
             );
           }
-          return (
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-surface flex items-center justify-center border border-border-subtle">
-                <FaUserCircle className="text-slate-300 w-4 h-4" />
-              </div>
-              <span className="text-xs text-muted italic">Unassigned</span>
-            </div>
-          );
+          return <TableText value="Unassigned" muted className="italic" />;
         },
       },
       {
@@ -565,7 +516,6 @@ function AdminTickets() {
             label="Ticket assignment overview"
             title="Ticket Assignment"
             description="Triage, assign and track every support ticket — from the moment it's raised to closure."
-            emblem={UserPlusIcon}
             chips={heroChips}
           />
 
@@ -705,7 +655,7 @@ function AdminTickets() {
             </FilterPanel>
 
             {/* ==================== TABLE ==================== */}
-            <StyledTable
+            <GlobalTable
               columns={columns}
               data={filteredTickets}
               loading={loading}

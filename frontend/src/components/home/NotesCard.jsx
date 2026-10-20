@@ -79,7 +79,7 @@ const NotesCard = ({ onDelete, userId }) => {
           onKeyDown={(e) => e.key === "Enter" && addNote()}
         />
         <GlassButton
-          variant="primary"
+          variant="secondary"
           size="sm"
           onClick={addNote}
           className="flex items-center justify-center gap-1.5"

@@ -152,6 +152,7 @@ Mutations (all already exist and must stay wired):
 | Delete project | `DELETE /projects/:id` | row action → `useConfirm()` → 400 if it has tasks (surface the message) |
 | Create task | `POST /tasks` | New Task modal |
 | Update task status | `PUT /tasks/:id` | inline status select in My Tasks table |
+| Update task delivery details | `PUT /tasks/:id` | completion %, estimated/worked hours, and dependencies in task detail |
 | Create group | `POST /project-groups` | New Group modal |
 | Delete group | `DELETE /project-groups/:id` | row action → `useConfirm()` |
 
@@ -197,6 +198,12 @@ Mutations (all already exist and must stay wired):
 If a project has **no tasks**, the field is absent and the UI shows a documented
 status-based estimate (`Completed→100, Active→50, On Hold→30, Planning→15, else 20`).
 Task progress is always the real `completionPercent` (0–100).
+
+Project detail responses also include a derived `health` object:
+`{ status: "On Track" | "Watch" | "At Risk", score, reasons, activeTasks }`.
+Health is calculated from blocked tasks, overdue tasks, project due dates, and current
+progress; it is not stored separately. Projects may include editable `milestones` with
+`title`, `dueDate`, and `status` (`Planned`, `In Progress`, or `Completed`).
 
 ### 5.3 Error handling
 
@@ -378,7 +385,7 @@ Two portal dialogs exist:
   (icon chip `bg-amber-50 border-border-accent text-brand-text` + value + micro label).
 - **Bento** (`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`):
   1. **Active Projects** (`sm:col-span-2 lg:col-span-2`) — rows: title + status pill, progress + % + due; `View all →` → `/project/projects`.
-  2. **Time This Week** — CSS bar chart (Mon–Fri, pixel heights, gradient `from-amber-600 to-amber-500`), target progress bar.
+  2. **Task Priorities** — breakdown of active tasks by priority (High / Medium / Low) with percentage bars, count badges, and an overdue / deadline health alert bar.
   3. **Open Tasks** — list rows + status pill, `View all →` → `/project/myTasks`.
   4. **Upcoming Deadlines** — day badge (month/day stacked; red variant when overdue) + task/project.
   5. **Team Members** — avatar + name + role (scrollable list).
@@ -423,7 +430,7 @@ Default sort `createdAt desc`.
 | Item | Status |
 | --- | --- |
 | `App.jsx` blocks real touch devices ≤1024px via `MobileBlock` | Portal is mobile-ready, but phones show the block page until that gate is replaced (implementation decision). |
-| `ProjectDetail` (`/project/projectDetailed/:id`) uses mock hooks (`useProject/useTask` — fake data, drag never persists) and its own hand-rolled drawer | Not part of the 4 redesigned pages; separate work item: wire to `GET /tasks/project/:id` + `PATCH /tasks/:id/status`, restyle to this spec. |
+| `ProjectDetail` (`/project/projectDetailed/:id`) now uses Redux-backed project/task data, persists Kanban status changes, exposes task delivery details and attachments, and includes activity, dependencies, milestones, and derived project health. |
 | Backend `GET /projects` caps at 20 rows | Portal calls it with `?limit=1000` (documented in §5); server-side pagination remains available for other consumers. |
 | `TaskStatusDropDown` / `MyTaskTable` / `ProjectsTable` legacy components | Superseded by this spec for the portal; left in place for their other importers until cleaned up. |
 

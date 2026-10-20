@@ -9,12 +9,11 @@ import {
   FaCalendarDay,
   FaFileCsv,
   FaPlus,
-  FaPen,
-  FaTrash,
   FaSave,
   FaUsers,
 } from "react-icons/fa";
 import { CalendarDaysIcon } from "@heroicons/react/20/solid";
+import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import PageContainer from "../../components/ui/PageContainer";
 import PortalHero from "../../components/ui/PortalHero";
 import PortalTabBar from "../../components/ui/PortalTabBar";
@@ -29,9 +28,14 @@ import Toast from "../../components/Toast";
 import StatCard from "../../components/ui/StatCard";
 import FilterPanel from "../../components/ui/FilterPanel";
 import StatusBadge from "../../components/StatusBadge";
-import StyledTable from "../../components/ui/StyledTable";
-import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
-import { getInitials, downloadCsv } from "../../utils/tableUtils";
+import GlobalTable from "../../components/ui/GlobalTable";
+import {
+  TablePerson,
+  TableDate,
+  TableText,
+  TableStatus,
+} from "../../components/ui/TableCells";
+import { downloadCsv } from "../../utils/tableUtils";
 
 import { dispatchReadOnlyModal } from '../../utils/readOnlyEvent';
 import { formatDateForAPI, formatDisplayDate } from "../../utils/dateUtils";
@@ -44,10 +48,6 @@ const TABS = [
   { key: "absent", title: "Absent", icon: FaTimesCircle, hint: "Employees with no check-in recorded" },
   { key: "leave", title: "On Leave", icon: FaCalendarDay, hint: "Employees on an approved leave" },
 ];
-
-/* Semantic status pill (same tokens as the Leave Management badges) */
-const statusBadge = (status) =>
-  STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
 
 // --- SUB-COMPONENT: LIVE TIMER ---
 const LiveTimer = ({ startTime }) => {
@@ -444,27 +444,17 @@ const AdminAttendance = () => {
         key: "name",
         label: "Employee",
         render: (value, row) => (
-          <div className="flex items-center gap-2.5 min-w-[180px]">
-            <div className="w-8 h-8 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center text-[11px] font-black flex-shrink-0">
-              {getInitials(value)}
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-heading truncate leading-tight">{value}</p>
-              <p className="text-[10px] text-muted truncate">
-                {row.user?.designation || row.user?.email || "Employee"}
-              </p>
-            </div>
-          </div>
+          <TablePerson
+            name={value}
+            subtitle={row.user?.designation || row.user?.email || "Employee"}
+            className="min-w-[180px]"
+          />
         ),
       },
       {
         key: "date",
         label: "Date",
-        render: (value) => (
-          <span className="text-xs font-medium text-main whitespace-nowrap">
-            {formatDisplayDate(value, { month: "short", day: "numeric", year: "numeric" })}
-          </span>
-        ),
+        render: (value) => <TableDate value={value} />,
       },
     ];
 
@@ -474,20 +464,18 @@ const AdminAttendance = () => {
             {
               key: "checkInTime",
               label: "Check In",
-              render: (value) => (
-                <span className="text-sm font-semibold text-main">{formatTime(value)}</span>
-              ),
+              render: (value) => <TableText value={formatTime(value)} />,
             },
             {
               key: "checkOutTime",
               label: "Check Out",
               render: (value, row) =>
                 value ? (
-                  <span className="text-sm font-semibold text-main">{formatTime(value)}</span>
+                  <TableText value={formatTime(value)} />
                 ) : row.checkInTime ? (
                   <StatusBadge status="Active" />
                 ) : (
-                  <span className="text-muted">--:--</span>
+                  <TableText value="--:--" muted />
                 ),
             },
             {
@@ -495,13 +483,14 @@ const AdminAttendance = () => {
               label: "Duration",
               render: (value, row) =>
                 row.checkInTime && row.checkOutTime ? (
-                  <span className="text-muted text-xs font-semibold">
-                    {Math.floor(value || 0)}h {Math.round(((value || 0) % 1) * 60)}m
-                  </span>
+                  <TableText
+                    value={`${Math.floor(value || 0)}h ${Math.round(((value || 0) % 1) * 60)}m`}
+                    muted
+                  />
                 ) : row.checkInTime ? (
                   <LiveTimer startTime={row.checkInTime} />
                 ) : (
-                  <span className="text-muted text-xs italic">N/A</span>
+                  <TableText value="N/A" muted className="italic" />
                 ),
             },
           ]
@@ -510,15 +499,7 @@ const AdminAttendance = () => {
     const statusCol = {
       key: "status",
       label: "Status",
-      render: (value) => (
-        <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${statusBadge(
-            value
-          )}`}
-        >
-          {value}
-        </span>
-      ),
+      render: (value) => <TableStatus value={value} />,
     };
 
     return [...base, ...timeCols, statusCol];
@@ -529,7 +510,7 @@ const AdminAttendance = () => {
   if (canEdit) {
     tableActions.push(
       {
-        icon: <FaPen size={12} />,
+        icon: <PencilIcon className="w-4 h-4" />,
         title: "Edit record",
         onClick: (row) => {
           if (row.checkInTime && !row.checkOutTime) return;
@@ -541,7 +522,7 @@ const AdminAttendance = () => {
             : "p-2 rounded-lg text-muted bg-surface border border-border-subtle hover:text-brand-text hover:border-border-accent hover:shadow-sm",
       },
       {
-        icon: <FaTrash size={12} />,
+        icon: <TrashIcon className="w-4 h-4" />,
         title: "Delete record",
         onClick: (row) => {
           if (row._id) handleDeleteRecord(row._id);
@@ -593,7 +574,6 @@ const AdminAttendance = () => {
                 label="Attendance overview"
               title="Employee Attendance"
             description="Monitor daily check-ins, check-outs and working hours — with live status across every team member."
-            emblem={CalendarDaysIcon}
             chips={[
               { icon: FaUsers, value: counts.total, label: " Employees in range" },
               { pulse: true, value: `${presentPct}%`, label: " attendance" },
@@ -753,7 +733,7 @@ const AdminAttendance = () => {
             </FilterPanel>
 
             {/* ============ TABLE ============ */}
-            <StyledTable
+            <GlobalTable
               columns={columns}
               data={activeTabLogs}
               loading={loading}

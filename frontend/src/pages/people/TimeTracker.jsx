@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import AddTimeLogModal from "./AddTimeLogModal";
-import { IoEye, IoPencil } from "react-icons/io5";
 import { FiTrash2 } from "react-icons/fi";
 import {
   FaList,
@@ -16,6 +15,7 @@ import {
   FaExclamationTriangle,
 } from "react-icons/fa";
 import { ClockIcon } from "@heroicons/react/20/solid";
+import { EyeIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { AnimatePresence, motion } from "framer-motion";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -33,7 +33,8 @@ import PortalTabBar from "../../components/ui/PortalTabBar";
 import StatCard from "../../components/ui/StatCard";
 import FilterPanel from "../../components/ui/FilterPanel";
 import FilterRow from "../../components/ui/FilterRow";
-import StyledTable from "../../components/ui/StyledTable";
+import GlobalTable from "../../components/ui/GlobalTable";
+import { TableNumber, TableText } from "../../components/ui/TableCells";
 import GlassButton from "../../components/ui/GlassButton";
 
 const EASE = [0.16, 1, 0.3, 1];
@@ -164,7 +165,7 @@ const TimeTracker = () => {
  : "";
 
  useEffect(() => {
- // Current page is managed internally by TableWithPagination
+ // Current page is managed internally by GlobalTable
  }, [selectedDate, timeLogs]);
 
  const handleSaveLogs = async (newLogs) => {
@@ -278,48 +279,42 @@ const TimeTracker = () => {
  key: "jobTitle",
  label: "Job Title",
  sortable: true,
- render: (value, row) => (
- <span className="font-medium text-main">{row.jobTitle || row.job || "-"}</span>
- )
+ render: (value, row) => <TableText value={row.jobTitle || row.job} />
  },
  {
  key: "date",
  label: "Date",
  sortable: true,
- render: (value, row) => (
- <span className="text-muted">{formatBackendDate(row.date)}</span>
- )
+ render: (value, row) => <TableText value={formatBackendDate(row.date)} muted />
  },
  {
  key: "description",
  label: "Description",
  sortable: false,
  render: (value, row) => (
- <div className="max-w-xs truncate text-muted">{row.description}</div>
+ <TableText value={row.description} muted truncate maxWidth="max-w-xs" />
  )
  },
  {
  key: "totalHours",
  label: "Hours",
  sortable: true,
- render: (value, row) => (
- <span className="font-medium text-main">{row.totalHours || row.hours}</span>
- )
+ render: (value, row) => <TableNumber value={row.totalHours || row.hours} />
  }
  ];
 
 // Define actions for Time Logs
   const timeLogActions = [
   {
-  icon: <IoEye size={16} />,
+  icon: <EyeIcon className="w-4 h-4" />,
   title: "View",
-  className: "lm-success-badge",
+  className: "",
   onClick: (row) => handleViewLog(row)
   },
   {
-  icon: <IoPencil size={16} />,
+  icon: <PencilIcon className="w-4 h-4" />,
   title: "Edit",
-  className: (row) => row.isAddedToTimesheet ? "hidden" : "lm-success-badge",
+  className: (row) => row.isAddedToTimesheet ? "hidden" : "",
   onClick: (row) => {
   setEditingLogId(row._id);
   setModalMode("edit");
@@ -329,7 +324,7 @@ const TimeTracker = () => {
   {
   icon: <FiTrash2 size={16} />,
   title: "Delete",
-  className: (row) => row.isAddedToTimesheet ? "hidden" : "lm-success-badge",
+  className: (row) => row.isAddedToTimesheet ? "hidden" : "",
   onClick: (row) => handleDeleteClick(row._id)
   }
   ];
@@ -345,7 +340,6 @@ const TimeTracker = () => {
     label="Time tracking overview"
   title="Time Tracker"
   description="Log your daily work, review submitted hours and manage weekly timesheets — all from one place."
-  emblem={ClockIcon}
   chips={[
   { icon: FaClipboardList, value: timeLogs.length, label: " Time logs" },
   { icon: FaHourglassHalf, value: totalAllHours.toFixed(1), label: " Hours logged" },
@@ -512,7 +506,7 @@ const TimeTracker = () => {
  </FilterPanel>
 
  {/* ============ TABLE ============ */}
- <StyledTable
+ <GlobalTable
  columns={timeLogColumns}
  data={filteredData}
  loading={loading}

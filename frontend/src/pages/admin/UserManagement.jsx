@@ -10,11 +10,9 @@ import {
   FaBuilding,
   FaFileCsv,
   FaSyncAlt,
-  FaPen,
-  FaTrash,
-  FaEye,
 } from "react-icons/fa";
 import { UsersIcon } from "@heroicons/react/20/solid";
+import { PencilIcon, TrashIcon, EyeIcon } from "@heroicons/react/24/outline";
 import CreateUserModal from "../../components/CreateUserModal";
 import CreateDepartmentModal from "../../components/CreateDepartmentModal";
 import EditDepartmentModal from "../../components/EditDepartmentModal";
@@ -29,10 +27,19 @@ import FilterRow from "../../components/ui/FilterRow";
 import GlassInput from "../../components/ui/GlassInput";
 import GlassButton from "../../components/ui/GlassButton";
 import ModernSelect from "../../components/ui/ModernSelect";
-import StyledTable from "../../components/ui/StyledTable";
+import GlobalTable from "../../components/ui/GlobalTable";
+import {
+  TablePerson,
+  TableId,
+  TablePill,
+  TableRole,
+  TableMoney,
+  TableStatus,
+  TableTitle,
+  TableDate,
+} from "../../components/ui/TableCells";
 import Toast from "../../components/Toast";
-import { STATUS_VARIANTS, resolveStatusVariant } from "../../components/StatusBadge";
-import { getInitials, downloadCsv } from "../../utils/tableUtils";
+import { downloadCsv } from "../../utils/tableUtils";
 import { getApiError } from "../../utils/validationUtils";
 import { useConfirm } from "../../context/ConfirmContext";
 
@@ -48,12 +55,6 @@ const TABS = [
 ];
 
 const ROLE_ORDER = ["Super Admin", "Admin", "HR", "Manager", "Employee"];
-
-/* Semantic status pill (same tokens as the Leave Management badges) */
-const statusBadge = (status) =>
-  STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
-
-const pill = "text-xs font-semibold bg-surface dark:bg-app px-2.5 py-1 rounded-md border border-border-subtle text-main";
 
 const UserManagement = () => {
   const confirm = useConfirm();
@@ -313,67 +314,37 @@ const UserManagement = () => {
         key: "name",
         label: "Employee",
         render: (value, row) => (
-          <div className="flex items-center gap-2.5 min-w-[180px]">
-            <div className="w-8 h-8 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center text-[11px] font-black flex-shrink-0">
-              {getInitials(value)}
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-heading truncate leading-tight">{value || "—"}</p>
-              <p className="text-[10px] text-muted truncate">{row.designation || row.email || "Employee"}</p>
-            </div>
-          </div>
+          <TablePerson
+            name={value}
+            subtitle={row.designation || row.email || "Employee"}
+            className="min-w-[180px]"
+          />
         ),
       },
       {
         key: "empID",
         label: "Employee ID",
-        render: (value) =>
-          value ? (
-            <span className={pill}>#{value}</span>
-          ) : (
-            <span className="text-muted text-xs">—</span>
-          ),
+        render: (value) => <TableId value={value} />,
       },
       {
         key: "departmentName",
         label: "Department",
-        render: (value) =>
-          value ? <span className={pill}>{value}</span> : <span className="text-muted text-xs">—</span>,
+        render: (value) => <TablePill>{value}</TablePill>,
       },
       {
         key: "role",
         label: "Role",
-        render: (value) =>
-          value ? (
-            <span className="bg-brand/10 text-brand border border-brand/20 px-2.5 py-1 rounded-full text-xs font-bold">
-              {value}
-            </span>
-          ) : (
-            <span className="text-muted text-xs">—</span>
-          ),
+        render: (value) => <TableRole value={value} />,
       },
       {
         key: "hourlyWage",
         label: "Wage",
-        render: (value) =>
-          value ? (
-            <span className="text-sm font-semibold text-main">${value}</span>
-          ) : (
-            <span className="text-muted text-xs">—</span>
-          ),
+        render: (value) => <TableMoney value={value} decimals={0} />,
       },
       {
         key: "empStatus",
         label: "Status",
-        render: (value) => (
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${statusBadge(
-              value
-            )}`}
-          >
-            {value || "Unknown"}
-          </span>
-        ),
+        render: (value) => <TableStatus value={value} />,
       },
     ],
     []
@@ -392,15 +363,15 @@ const UserManagement = () => {
         key: "name",
         label: "Department",
         render: (value, row) => (
-          <div className="flex items-center gap-2.5 min-w-[180px]">
-            <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400 border border-sky-200 dark:border-sky-800 flex items-center justify-center flex-shrink-0">
-              <FaBuilding size={13} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-heading truncate leading-tight">{value || "—"}</p>
-              <p className="text-[10px] text-muted truncate">{row.description || "No description"}</p>
-            </div>
-          </div>
+          <TableTitle
+            title={value}
+            subtitle={row.description || "No description"}
+            leading={
+              <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400 border border-sky-200 dark:border-sky-800 flex items-center justify-center flex-shrink-0">
+                <FaBuilding size={13} />
+              </div>
+            }
+          />
         ),
       },
       {
@@ -408,12 +379,7 @@ const UserManagement = () => {
         label: "Head",
         render: (value) =>
           value ? (
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center text-[9px] font-black flex-shrink-0">
-                {getInitials(value)}
-              </div>
-              <span className="text-xs font-semibold text-main truncate">{value}</span>
-            </div>
+            <TablePerson name={value} size="xs" />
           ) : (
             <span className="text-muted text-xs italic">Unassigned</span>
           ),
@@ -422,27 +388,15 @@ const UserManagement = () => {
         key: "memberCount",
         label: "Members",
         render: (value) => (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border bg-info-bg text-info border-info-border">
-            <FaUsers size={10} />
+          <TablePill tone="info" icon={<FaUsers size={10} />}>
             {value}
-          </span>
+          </TablePill>
         ),
       },
       {
         key: "createdAt",
         label: "Created",
-        render: (value) =>
-          value ? (
-            <span className="text-xs font-medium text-main whitespace-nowrap">
-              {new Date(value).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </span>
-          ) : (
-            <span className="text-muted text-xs">—</span>
-          ),
+        render: (value) => <TableDate value={value} />,
       },
     ],
     []
@@ -450,21 +404,21 @@ const UserManagement = () => {
 
   const deptTableActions = useMemo(() => [
     {
-      icon: <FaPen size={12} />,
+      icon: <PencilIcon className="w-4 h-4" />,
       title: "Edit department",
       onClick: (row) => handleEditDepartment(row),
       className:
         "p-2 rounded-lg text-muted bg-surface border border-border-subtle hover:text-brand-text hover:border-border-accent hover:shadow-sm",
     },
     {
-      icon: <FaEye size={12} />,
+      icon: <EyeIcon className="w-4 h-4" />,
       title: "View department",
       onClick: (row) => handleViewDepartment(row),
       className:
         "p-2 rounded-lg text-muted bg-surface border border-border-subtle hover:text-brand-text hover:border-border-accent hover:shadow-sm",
     },
     {
-      icon: <FaTrash size={12} />,
+      icon: <TrashIcon className="w-4 h-4" />,
       title: "Delete department",
       onClick: (row) => handleDeleteDepartment(row),
       className:
@@ -474,7 +428,7 @@ const UserManagement = () => {
 
   const tableActions = [
     {
-      icon: <FaPen size={12} />,
+      icon: <PencilIcon className="w-4 h-4" />,
       title: "View / edit employee",
       onClick: (row) => handleUserClick(row),
       className:
@@ -504,7 +458,6 @@ const UserManagement = () => {
                 label="User management overview"
               title="User Management"
             description="Manage employees, roles and departments — invite users, track statuses and keep your org structure in sync from one place."
-            emblem={UsersIcon}
             chips={[
               { icon: FaUsers, value: counts.total, label: " Employees" },
               { pulse: true, value: counts.pending, label: " Pending invites" },
@@ -649,7 +602,7 @@ const UserManagement = () => {
                 </FilterPanel>
 
                 {/* ============ EMPLOYEE TABLE ============ */}
-                <StyledTable
+                <GlobalTable
                   columns={userColumns}
                   data={filteredUsers}
                   loading={loading}
@@ -694,7 +647,7 @@ const UserManagement = () => {
                 </FilterPanel>
 
                 {/* ============ DEPARTMENT TABLE ============ */}
-                <StyledTable
+                <GlobalTable
                   columns={departmentColumns}
                   data={filteredDepartments}
                   loading={loading}

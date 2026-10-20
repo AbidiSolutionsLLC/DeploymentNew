@@ -89,5 +89,15 @@ describe('Project Portal service guards', () => {
       status: 400,
       message: 'All task team members must belong to the task company',
     });
+
+  });
+
+  test('task dependencies reject self references', async () => {
+    await expect(
+      taskService.validateDependencies('company-1', 'project-1', 'task-1', ['task-1'])
+    ).rejects.toMatchObject({
+      status: 400,
+      message: 'A task cannot depend on itself',
+    });
   });
 });

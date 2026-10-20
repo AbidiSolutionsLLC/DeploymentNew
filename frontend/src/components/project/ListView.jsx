@@ -1,89 +1,78 @@
 import React from "react";
+import GlobalTable from "../ui/GlobalTable";
+import {
+  TableDate,
+  TablePriority,
+  TableStatus,
+  TableTitle,
+} from "../ui/TableCells";
 
 const ListView = ({ tasks, onTaskClick }) => {
-  const GREEN = "lm-success-badge";
-
-  const getPriorityColor = (priority) => {
-    return GREEN;
-  };
-
-  const getStatusColor = (status) => {
-    return GREEN;
-  };
-
-  if (!tasks || tasks.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 bg-surface rounded-2xl border border-white/20 dark:border-white/10 shadow-sm min-h-[300px]">
-        <p className="text-muted">No tasks found.</p>
-      </div>
-    );
-  }
+  const columns = [
+    {
+      key: "title",
+      label: "Task",
+      render: (_, task) => (
+        <TableTitle title={task.title} subtitle={task.taskID || "TSK"} maxWidth="max-w-[240px]" />
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (value) => <TableStatus value={value || "To Do"} />,
+    },
+    {
+      key: "team",
+      label: "Assignees",
+      sortable: false,
+      render: (_, task) => (
+        <span className="flex -space-x-2">
+          {task.team && task.team.length > 0 ? (
+            task.team.slice(0, 3).map((user, idx) => (
+              <img
+                key={idx}
+                className="w-7 h-7 rounded-full border-2 border-surface object-cover"
+                src={
+                  user.avatar ||
+                  `https://ui-avatars.com/api/?name=${user.name || "User"}&background=random`
+                }
+                title={user.name}
+                alt="Avatar"
+              />
+            ))
+          ) : (
+            <span className="text-muted text-xs">Unassigned</span>
+          )}
+          {task.team && task.team.length > 3 && (
+            <span className="w-7 h-7 rounded-full border-2 border-surface bg-app flex items-center justify-center text-[10px] font-medium text-muted">
+              +{task.team.length - 3}
+            </span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: "dueDate",
+      label: "Due Date",
+      render: (value) => <TableDate value={value} tone="muted" fallback="No date" />,
+    },
+    {
+      key: "priority",
+      label: "Priority",
+      render: (value) => <TablePriority value={value || "Medium"} />,
+    },
+  ];
 
   return (
-    <div className="bg-surface rounded-xl border border-white/20 dark:border-white/10 overflow-hidden shadow-sm">
-      <div className="overflow-x-auto w-full">
-        <table className="w-full text-left text-sm whitespace-nowrap">
-          <thead className="bg-app border-b border-white/20 dark:border-white/10 text-muted">
-            <tr>
-              <th className="px-6 py-4 font-medium uppercase tracking-wider text-xs">Task</th>
-              <th className="px-6 py-4 font-medium uppercase tracking-wider text-xs">Status</th>
-              <th className="px-6 py-4 font-medium uppercase tracking-wider text-xs">Assignees</th>
-              <th className="px-6 py-4 font-medium uppercase tracking-wider text-xs">Due Date</th>
-              <th className="px-6 py-4 font-medium uppercase tracking-wider text-xs">Priority</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/20 dark:divide-white/10 bg-surface">
-            {tasks.map(task => (
-              <tr 
-                key={task._id || task.id} 
-                className="hover:bg-app transition-colors cursor-pointer group"
-                onClick={() => onTaskClick && onTaskClick(task)}
-              >
-                <td className="px-6 py-4 font-medium text-main flex items-center gap-2">
-                  <span className="text-xs text-muted font-mono">{task.taskID || "TSK"}</span>
-                  <span className="group-hover:text-brand transition-colors">{task.title}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                    {task.status || "To Do"}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex -space-x-2">
-                    {task.team && task.team.length > 0 ? (
-                      task.team.slice(0, 3).map((user, idx) => (
-                        <img 
-                          key={idx} 
-                          className="w-7 h-7 rounded-full border-2 border-surface object-cover" 
-                          src={user.avatar || `https://ui-avatars.com/api/?name=${user.name || "User"}&background=random`} 
-                          title={user.name}
-                          alt="Avatar" 
-                        />
-                      ))
-                    ) : (
-                      <span className="text-muted text-xs">Unassigned</span>
-                    )}
-                    {task.team && task.team.length > 3 && (
-                      <div className="w-7 h-7 rounded-full border-2 border-surface bg-app flex items-center justify-center text-[10px] font-medium text-muted">
-                        +{task.team.length - 3}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-muted">
-                  {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : "No date"}
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded text-xs font-semibold ${getPriorityColor(task.priority)}`}>
-                    {task.priority || "Medium"}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <GlobalTable
+      columns={columns}
+      data={tasks || []}
+      emptyMessage="No tasks found"
+      emptyHint="Tasks added to this project will appear here."
+      onRowClick={onTaskClick}
+      defaultSort={{ key: "dueDate", direction: "asc" }}
+      countLabel="tasks"
+    />
   );
 };
 

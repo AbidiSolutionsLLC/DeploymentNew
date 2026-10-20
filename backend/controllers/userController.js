@@ -146,3 +146,9 @@ exports.updateMySettings = catchAsync(async (req, res) => {
   const user = await userService.updateMySettings(userId, req.body);
   res.status(200).json(ApiResponse.success(user));
 });
+
+exports.getNotificationSettings = catchAsync(async (req, res) => {
+  const userId = req.user._id || req.user.id;
+  const settings = await userService.getNotificationSettings(userId);
+  res.status(200).json(ApiResponse.success(settings));
+});

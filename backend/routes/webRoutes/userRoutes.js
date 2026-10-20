@@ -16,7 +16,7 @@ const upload = multer({
 });
 const userController = require("../../controllers/userController");
 const todoController = require("../../controllers/todoController");
-const { userUpdateSchema } = require("../../JoiSchema/UserJoiSchema");
+const { userUpdateSchema, userSettingsSchema } = require("../../JoiSchema/UserJoiSchema");
 const {
   createTodoSchema,
   updateTodoSchema,
@@ -45,7 +45,8 @@ router.route("/search").get(isLoggedIn, userController.getUserById);
 
 // My Profile & Settings (Must come before /:id)
 router.put('/profile', isLoggedIn, userController.updateMyProfile);
-router.put('/settings', isLoggedIn, userController.updateMySettings);
+router.put('/settings', isLoggedIn, validationMiddleware(userSettingsSchema), userController.updateMySettings);
+router.get('/settings/notifications', isLoggedIn, userController.getNotificationSettings);
 
 router.get("/:id/summary", isLoggedIn, userController.getUserSummary);
 

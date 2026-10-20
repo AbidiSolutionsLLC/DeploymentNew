@@ -12,6 +12,9 @@ export const resolveStickyKeys = (columns = [], stickyColumnKey) => {
   if (stickyColumnKey) {
     return Array.isArray(stickyColumnKey) ? stickyColumnKey : [stickyColumnKey];
   }
+  /* Explicit `sticky: true` columns win over the default first-two rule. */
+  const explicit = columns.filter((c) => c.sticky).map((c) => c.key);
+  if (explicit.length > 0) return explicit;
   return columns.slice(0, FROZEN_COLUMNS).map((c) => c.key);
 };
 

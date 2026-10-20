@@ -294,7 +294,6 @@ const Home = () => {
             label="People portal home"
           title={`${greeting}, ${userName}!`}
           description="Your personal workspace — track time, manage cards and stay on top of your day."
-          emblem={HomeIcon}
           chips={[
             {
               icon: FaUser,

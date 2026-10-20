@@ -10,7 +10,20 @@ exports.getActivities = catchAsync(async (req, res) => {
     limit: limit || 10,
     seenId,
   });
+
   res.status(200).json(ApiResponse.success(result.data, "Activities retrieved successfully", result.pagination));
+});
+
+exports.getProjectActivities = catchAsync(async (req, res) => {
+  const { page, limit, seenId } = req.query;
+  const result = await activityLogService.getProjectActivityLogs({
+    companyId: req.companyId || req.user?.company,
+    projectId: req.params.projectId,
+    page,
+    limit: limit || 25,
+    seenId,
+  });
+  res.status(200).json(ApiResponse.success(result.data, "Project activities retrieved successfully", result.pagination));
 });
 
 exports.recordActivity = catchAsync(async (req, res) => {

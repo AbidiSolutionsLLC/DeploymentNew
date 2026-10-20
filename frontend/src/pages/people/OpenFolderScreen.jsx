@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { FiUpload, FiArrowLeft } from "react-icons/fi";
-import TableWithPagination from "../../components/TableWithPagination";
+import GlobalTable from "../../components/ui/GlobalTable";
+import { TableNumber, TablePill, TableTitle } from "../../components/ui/TableCells";
 
 const OpenFolderScreen = ({ folder, onClose }) => {
  const [searchTerm, setSearchTerm] = useState("");
@@ -28,17 +29,17 @@ const OpenFolderScreen = ({ folder, onClose }) => {
  {
  key: "fileName",
  label: "File Name",
- render: (_, file) => file.name
+ render: (_, file) => <TableTitle title={file.name} maxWidth="max-w-[240px]" />
  },
  {
  key: "size",
  label: "Size (KB)",
- render: (_, file) => (file.size / 1024).toFixed(2)
+ render: (_, file) => <TableNumber value={file.size / 1024} decimals={2} />
  },
  {
  key: "type",
  label: "Type",
- render: (_, file) => file.type || "Unknown"
+ render: (_, file) => <TablePill>{file.type || "Unknown"}</TablePill>
  }
  ];
 
@@ -95,7 +96,7 @@ const OpenFolderScreen = ({ folder, onClose }) => {
  <div className="bg-surface rounded-xl shadow p-2 sm:p-4 w-full">
  {filteredFiles.length > 0 ? (
  <div className="bg-surface rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden">
- <TableWithPagination
+ <GlobalTable
  columns={fileColumns}
  data={filteredFiles}
  emptyMessage="No files match your search."

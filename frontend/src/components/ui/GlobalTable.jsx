@@ -1,27 +1,35 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FaAngleLeft, FaAngleRight, FaInbox } from "react-icons/fa";
 import useStickyColumns from "./useStickyColumns";
 
 /**
- * StyledTable — the standard table for every admin list page.
+ * GlobalTable — the single universal table for the whole application.
+ *
+ * It merges the user-management directory table and the leave-management
+ * "Manage Leaves" register into one reusable component:
+ *   • one or two level headers (grouped column bands)
+ *   • sorting (internal or controlled)
+ *   • pagination + rows-per-page
+ *   • frozen leading columns while scrolling sideways
+ *   • skeleton loading, friendly error and empty states
+ *   • row actions and clickable rows
+ *   • index columns and responsive column hiding
  *
  * Column definition:
  *   {
- *     key:      string                // row[key] used for sorting
- *     label:    string                // header text
- *     group?:   string                // grouped header (two level header)
- *     align?:   'left'|'center'|'right'
- *     sortable?: boolean              // default true
- *     type?:    'index'               // renders the page-relative S.No.
- *     sticky?:  boolean               // makes this column sticky/frozen on horizontal scroll
- *     render?:  (value, row) => node
+ *     key:        string                // row[key] used for sorting
+ *     label:      ReactNode             // header text (string or JSX)
+ *     group?:     string                // grouped header (two level header)
+ *     align?:     'left'|'center'|'right'
+ *     width?:     string|number         // column width
+ *     sortable?:  boolean               // default true
+ *     type?:      'index'               // renders the page-relative S.No.
+ *     sticky?:    boolean               // freezes this column (see useStickyColumns)
+ *     hideBelow?: 'sm'|'md'|'lg'|'xl'   // responsive hiding
+ *     className?: string                // extra body cell classes
+ *     headerClassName?: string          // extra header cell classes
+ *     render?:    (value, row, index) => node
  *   }
- *
- * Supports: two-level grouped headers (soft tint, ONE divider between
- * groups, no internal lines), sorting, pagination with rows-per-page,
- * an actions column, skeleton loading and a friendly empty state.
- * The first two columns are frozen while scrolling horizontally (see
- * useStickyColumns) and never show the cells scrolling behind them.
  */
 const GROUP_TINT = "bg-slate-50 dark:bg-slate-800/50";
 
@@ -32,10 +40,17 @@ const ALIGN_CLASS = {
 };
 
 /* Optional per-column responsive hiding: `hideBelow: 'md'` → hidden below md */
-const responsiveCls = (col) => col?.hideBelow ? `hidden ${col.hideBelow}:table-cell` : "";
+const responsiveCls = (col) => (col?.hideBelow ? `hidden ${col.hideBelow}:table-cell` : "");
 
-const SHELL =
-  "w-full glass-card !p-0 rounded-2xl overflow-hidden flex flex-col";
+const SHELL = "w-full glass-card !p-0 rounded-2xl overflow-hidden flex flex-col";
+
+const widthStyle = (col) => (col?.width ? { width: col.width } : undefined);
+
+const cellStyle = (col, sticky) => ({ ...widthStyle(col), ...sticky });
+
+/* Index / selection columns are structural and never sortable. */
+const isSortable = (col) =>
+  Boolean(col?.key) && col?.sortable !== false && col?.type !== "index" && col?.key !== "select";
 
 const buildHeaderRowOne = (columns, hasGroups) => {
   const row = [];
@@ -43,7 +58,13 @@ const buildHeaderRowOne = (columns, hasGroups) => {
   for (let i = 0; i < columns.length; ) {
     const col = columns[i];
     if (!col.group) {
-      row.push({ key: col.key, label: col.label, col, rowSpan: hasGroups ? 2 : 1, responsive: col.hideBelow });
+      row.push({
+        key: col.key,
+        label: col.label,
+        col,
+        rowSpan: hasGroups ? 2 : 1,
+        responsive: col.hideBelow,
+      });
       i += 1;
     } else {
       let j = i;
@@ -65,14 +86,13 @@ const buildHeaderRowOne = (columns, hasGroups) => {
 /* Skeleton bar widths, cycled per column so the loading state feels real */
 const SKELETON_W = ["w-6", "w-24", "w-20", "w-16", "w-28", "w-14", "w-24", "w-20", "w-32", "w-16"];
 
-/* Responsive hiding classes per column */
-const columnResponsiveCls = (col) => (col?.hideBelow ? `hidden ${col.hideBelow}:table-cell` : "");
-
-export default function StyledTable({
+export default function GlobalTable({
   columns = [],
   data = [],
   loading = false,
+  error = null,
   emptyMessage = "No data found",
+  emptyHint,
   emptyIcon = null,
   onEmptyAction,
   emptyActionLabel = "Clear filters",
@@ -80,14 +100,26 @@ export default function StyledTable({
   rowsPerPage = 10,
   rowsPerPageOptions = [10, 25, 50, 100],
   defaultSort = { key: null, direction: "asc" },
+  sort,
+  onSortChange,
   countLabel = "records",
   onRowClick,
   onRowsPerPageChange,
   stickyColumnKey,
+  getRowKey,
+  rowClassName,
+  className = "",
 }) {
   const [page, setPage] = useState(1);
   const [localRowsPerPage, setLocalRowsPerPage] = useState(rowsPerPage);
-  const [sortConfig, setSortConfig] = useState(defaultSort);
+  /* Controlled sorting (optional). When `onSortChange` is supplied the parent
+     owns the sort state; otherwise the table manages it internally. */
+  const controlledSort = typeof onSortChange === "function";
+  const [internalSort, setInternalSort] = useState(defaultSort);
+  const sortConfig = useMemo(
+    () => (controlledSort ? sort || { key: null, direction: "asc" } : internalSort),
+    [controlledSort, sort, internalSort]
+  );
 
   useEffect(() => {
     setLocalRowsPerPage(rowsPerPage);
@@ -101,11 +133,14 @@ export default function StyledTable({
   );
 
   const hasGroups = columns.some((c) => c.group);
-  const headerRowOne = React.useMemo(() => buildHeaderRowOne(columns, hasGroups), [columns, hasGroups]);
+  const headerRowOne = useMemo(
+    () => buildHeaderRowOne(columns, hasGroups),
+    [columns, hasGroups]
+  );
   const headerRowTwo = columns.filter((c) => c.group);
 
   /* Only ONE vertical divider: between the first and second column group */
-  const dividerKeys = React.useMemo(() => {
+  const dividerKeys = useMemo(() => {
     const starts = columns
       .filter((c, idx) => c.group && (idx === 0 || columns[idx - 1].group !== c.group))
       .map((c) => c.key);
@@ -116,7 +151,7 @@ export default function StyledTable({
   const currentPage = Math.min(page, totalPages);
   const pageStart = (currentPage - 1) * localRowsPerPage;
 
-  const sortedData = React.useMemo(() => {
+  const sortedData = useMemo(() => {
     const { key, direction } = sortConfig;
     if (!key) return data;
     const factor = direction === "asc" ? 1 : -1;
@@ -136,10 +171,12 @@ export default function StyledTable({
 
   const handleSort = (key) => {
     if (!key) return;
-    setSortConfig((prev) => {
-      if (prev.key === key) return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
-      return { key, direction: "asc" };
-    });
+    const next =
+      sortConfig.key === key
+        ? { key, direction: sortConfig.direction === "asc" ? "desc" : "asc" }
+        : { key, direction: "asc" };
+    if (controlledSort) onSortChange(next);
+    else setInternalSort(next);
     setPage(1);
   };
 
@@ -174,18 +211,26 @@ export default function StyledTable({
     return `${base} ${col.className || ""} ${responsiveCls(col)}`;
   };
 
+  const rowKey = (row, idx) =>
+    (typeof getRowKey === "function" ? getRowKey(row, idx) : null) ||
+    row?.id ||
+    row?._id ||
+    `${row?.name || row?.title || "row"}-${pageStart + idx}`;
+
   /* ---------------- shared header ---------------- */
   const theadNode = (
     <thead>
       {/* Row 1: groups + rowSpan cells */}
       <tr className={`bg-card ${hasGroups ? "" : "border-b border-border-subtle"}`}>
-{headerRowOne.map((cell) =>
+        {headerRowOne.map((cell) =>
           cell.group ? (
             <th
               key={cell.key}
               colSpan={cell.colSpan}
               className={headerThClass(
-                `text-center align-bottom text-heading ${GROUP_TINT} ${cell.divider ? "border-l border-border-subtle" : ""} ${cell.hideBelow ? "hidden " + cell.hideBelow + ":table-cell" : ""}`
+                `text-center align-bottom text-heading ${GROUP_TINT} ${
+                  cell.divider ? "border-l border-border-subtle" : ""
+                } ${cell.hideBelow ? "hidden " + cell.hideBelow + ":table-cell" : ""}`
               )}
             >
               <span className="inline-flex items-center gap-1.5">{cell.label}</span>
@@ -194,18 +239,29 @@ export default function StyledTable({
             <th
               key={cell.key}
               rowSpan={cell.rowSpan}
-              onClick={() => cell.col.sortable !== false && handleSort(cell.col.key)}
+              onClick={() => isSortable(cell.col) && handleSort(cell.col.key)}
+              aria-sort={
+                sortConfig.key === cell.col.key
+                  ? sortConfig.direction === "asc"
+                    ? "ascending"
+                    : "descending"
+                  : undefined
+              }
               className={headerThClass(
-                `${ALIGN_CLASS[cell.col.align || "left"]} align-bottom cursor-pointer transition-colors group ${
+                `${ALIGN_CLASS[cell.col.align || "left"]} align-bottom ${
+                  isSortable(cell.col) ? "cursor-pointer" : ""
+                } transition-colors group ${
                   sortConfig.key === cell.col.key ? "text-brand-text" : "text-muted hover:text-heading"
-                } ${cell.hideBelow ? `hidden ${cell.hideBelow}:table-cell` : ""} ${responsiveCls(cell.col)} ${isSticky(cell.col.key) ? "bg-surface" : ""}`
+                } ${cell.hideBelow ? `hidden ${cell.hideBelow}:table-cell` : ""} ${responsiveCls(
+                  cell.col
+                )} ${isSticky(cell.col.key) ? "bg-surface" : ""} ${cell.col.headerClassName || ""}`
               )}
-              style={stickyStyle(cell.col.key, { header: true })}
+              style={cellStyle(cell.col, stickyStyle(cell.col.key, { header: true }))}
               {...firstStickyAttr(cell.col.key)}
             >
               <span className="inline-flex items-center gap-1.5">
                 {cell.label}
-                {cell.col.sortable !== false && sortIndicator(cell.col.key)}
+                {isSortable(cell.col) && sortIndicator(cell.col.key)}
               </span>
             </th>
           )
@@ -226,18 +282,22 @@ export default function StyledTable({
           {headerRowTwo.map((col) => (
             <th
               key={`${col.group}-${col.key}`}
-              onClick={() => handleSort(col.key)}
+              onClick={() => isSortable(col) && handleSort(col.key)}
               className={headerThClass(
-                `cursor-pointer transition-colors ${ALIGN_CLASS[col.align || "center"]} ${GROUP_TINT} ${
+                `transition-colors ${ALIGN_CLASS[col.align || "center"]} ${GROUP_TINT} ${
                   dividerKeys.has(col.key) ? "border-l border-border-subtle" : ""
-                } ${sortConfig.key === col.key ? "text-brand-text" : "text-muted hover:text-heading"} ${responsiveCls(col)} ${isSticky(col.key) ? "bg-surface" : ""}`
+                } ${
+                  isSortable(col) ? "cursor-pointer" : ""
+                } ${sortConfig.key === col.key ? "text-brand-text" : "text-muted hover:text-heading"} ${responsiveCls(
+                  col
+                )} ${isSticky(col.key) ? "bg-surface" : ""} ${col.headerClassName || ""}`
               )}
-              style={stickyStyle(col.key, { header: true })}
+              style={cellStyle(col, stickyStyle(col.key, { header: true }))}
               {...firstStickyAttr(col.key)}
             >
               <span className="inline-flex items-center gap-1.5">
                 {col.label}
-                {col.sortable !== false && sortIndicator(col.key)}
+                {isSortable(col) && sortIndicator(col.key)}
               </span>
             </th>
           ))}
@@ -249,9 +309,13 @@ export default function StyledTable({
   /* ---------------- loading (skeleton) ---------------- */
   if (loading) {
     return (
-      <div className={SHELL} aria-busy="true" aria-label="Loading table data">
+      <div className={`${SHELL} ${className}`} aria-busy="true" aria-label="Loading table data">
         <div className="w-full overflow-x-auto custom-scrollbar">
-<table ref={tableRef} className="min-w-full text-sm border-collapse" style={{ '--sticky-col-1-width': '60px' }}>
+          <table
+            ref={tableRef}
+            className="min-w-full text-sm border-collapse"
+            style={{ "--sticky-col-1-width": "60px" }}
+          >
             {theadNode}
             <tbody className="divide-y divide-border-subtle bg-surface">
               {Array.from({ length: Math.min(rowsPerPage, 6) }).map((_, rIdx) => (
@@ -259,8 +323,10 @@ export default function StyledTable({
                   {columns.map((col, cIdx) => (
                     <td
                       key={col.key}
-                      className={`px-3 sm:px-4 py-3.5 ${responsiveCls(col)} ${isSticky(col.key) ? "bg-surface" : ""}`}
-                      style={stickyStyle(col.key)}
+                      className={`px-3 sm:px-4 py-3.5 ${responsiveCls(col)} ${
+                        isSticky(col.key) ? "bg-surface" : ""
+                      }`}
+                      style={cellStyle(col, stickyStyle(col.key))}
                     >
                       <div
                         className={`skeleton h-3 ${SKELETON_W[(rIdx + cIdx) % SKELETON_W.length]}`}
@@ -281,19 +347,34 @@ export default function StyledTable({
     );
   }
 
+  /* ---------------- error ---------------- */
+  if (error) {
+    return (
+      <div className={`${SHELL} ${className}`}>
+        <div className="m-4 text-sm text-danger bg-danger-bg border border-danger-border rounded-xl px-4 py-3">
+          {String(error)}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={SHELL}>
+    <div className={`${SHELL} ${className}`}>
       <div className="w-full overflow-x-auto custom-scrollbar">
-<table ref={tableRef} className="min-w-full text-sm border-collapse" style={{ '--sticky-col-1-width': '60px' }}>
-            {theadNode}
-            <tbody className="divide-y divide-border-subtle bg-surface">
+        <table
+          ref={tableRef}
+          className="min-w-full text-sm border-collapse"
+          style={{ "--sticky-col-1-width": "60px" }}
+        >
+          {theadNode}
+          <tbody className="divide-y divide-border-subtle bg-surface">
             {pageRows.length > 0 ? (
               pageRows.map((row, idx) => (
                 <tr
-                  key={row.id || row._id || `${row.name || ""}-${pageStart + idx}`}
+                  key={rowKey(row, idx)}
                   className={`group row-in transition-colors duration-200 hover:bg-card-hover ${
                     onRowClick ? "cursor-pointer" : ""
-                  }`}
+                  } ${typeof rowClassName === "function" ? rowClassName(row) || "" : ""}`}
                   style={{ animationDelay: `${Math.min(idx, 12) * 35}ms`, zIndex: 1 }}
                   onClick={() => onRowClick && onRowClick(row)}
                 >
@@ -301,13 +382,13 @@ export default function StyledTable({
                     <td
                       key={col.key}
                       className={cellClass(col)}
-                      style={stickyStyle(col.key)}
+                      style={cellStyle(col, stickyStyle(col.key))}
                       {...(idx === 0 ? firstStickyAttr(col.key) : {})}
                     >
                       {col.type === "index"
                         ? pageStart + idx + 1
                         : col.render
-                        ? col.render(row[col.key], row)
+                        ? col.render(row[col.key], row, pageStart + idx)
                         : row[col.key]}
                     </td>
                   ))}
@@ -349,7 +430,7 @@ export default function StyledTable({
                     </div>
                     <p className="text-sm font-bold text-heading tracking-tight">{emptyMessage}</p>
                     <p className="text-xs text-muted -mt-1">
-                      Try adjusting your search or filters.
+                      {emptyHint || "Try adjusting your search or filters."}
                     </p>
                     {onEmptyAction && (
                       <button
@@ -371,8 +452,7 @@ export default function StyledTable({
       {data.length > 0 && (
         <div className="flex flex-col lg:flex-row justify-between items-center gap-4 px-3 sm:px-5 py-3.5 bg-card border-t border-border-subtle">
           <div className="text-xs text-muted font-medium order-2 lg:order-1">
-            Showing{" "}
-            <span className="text-heading font-bold">{pageStart + 1}</span>–
+            Showing <span className="text-heading font-bold">{pageStart + 1}</span>–
             <span className="text-heading font-bold">
               {Math.min(pageStart + localRowsPerPage, data.length)}
             </span>{" "}
@@ -418,9 +498,7 @@ export default function StyledTable({
           </div>
 
           <div className="flex items-center gap-2 order-3">
-            <span className="text-[10px] font-black text-muted uppercase tracking-wider">
-              Rows
-            </span>
+            <span className="text-[10px] font-black text-muted uppercase tracking-wider">Rows</span>
             <select
               value={localRowsPerPage}
               onChange={(e) => {

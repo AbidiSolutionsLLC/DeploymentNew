@@ -11,6 +11,11 @@ const settingsApi = {
  return response.data;
  },
 
+ getNotificationSettings: async () => {
+ const response = await api.get('/users/settings/notifications');
+ return response.data;
+ },
+
  uploadAvatar: async (userId, file) => {
  const formData = new FormData();
  formData.append('avatar', file);

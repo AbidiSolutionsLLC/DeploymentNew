@@ -13,6 +13,41 @@ class TaskService {
     }
   }
 
+  async validateDependencies(companyId, projectId, taskId, dependencies = []) {
+    const uniqueDependencies = [...new Set((dependencies || []).map(String))];
+    if (taskId && uniqueDependencies.includes(String(taskId))) {
+      throw new BadRequestError("A task cannot depend on itself");
+    }
+    if (!uniqueDependencies.length) return uniqueDependencies;
+    const count = await Task.countDocuments({
+      _id: { $in: uniqueDependencies },
+      project: projectId,
+      company: companyId,
+    });
+    if (count !== uniqueDependencies.length) {
+      throw new BadRequestError("Dependencies must be tasks in the same project");
+    }
+    if (taskId) {
+      const visited = new Set();
+      const queue = [...uniqueDependencies];
+      while (queue.length) {
+      const dependencyId = queue.shift();
+      if (visited.has(dependencyId)) continue;
+      visited.add(dependencyId);
+      if (dependencyId === String(taskId)) {
+        throw new BadRequestError("Task dependencies cannot contain a cycle");
+      }
+      const dependency = await Task.findOne({
+        _id: dependencyId,
+        project: projectId,
+        company: companyId,
+      }).select("dependencies").lean();
+      (dependency?.dependencies || []).forEach((nextId) => queue.push(String(nextId)));
+      }
+    }
+    return uniqueDependencies;
+  }
+
   mapAttachments(files) {
     return (files || []).map((file) => ({
       public_id: file.blobName || file.filename,
@@ -23,17 +58,20 @@ class TaskService {
     }));
   }
 
-  async createTask(companyId, data, files) {
-    const { title, description, project, team, priority, status, dueDate, duration, completionPercent, workedHours } = data;
+  async createTask(user, companyId, data, files) {
+    const { title, description, project, team, priority, status, dueDate, duration, completionPercent, workedHours, dependencies } = data;
+    const userId = user?.id || user?._id;
 
     const projectExists = await Project.findOne({ _id: project, company: companyId });
     if (!projectExists) throw new NotFoundError("Project");
     await this.validateCompanyTeam(companyId, team);
+    const validDependencies = await this.validateDependencies(companyId, project, null, dependencies);
 
     const task = new Task({
       title,
       description,
       project,
+      createdBy: userId,
       team,
       priority,
       status,
@@ -43,9 +81,19 @@ class TaskService {
       workedHours,
       attachments: this.mapAttachments(files),
       company: companyId,
+      dependencies: validDependencies,
     });
 
     const savedTask = await task.save();
+
+    require("./activityLogService").recordActivity({
+      actorId: user?.id || user?._id,
+      action: `created task "${savedTask.title}"`,
+      entityType: "task",
+      entityId: savedTask._id,
+      companyId,
+      level: "success",
+    });
 
     if (savedTask.team && savedTask.team.length > 0) {
       try {
@@ -89,6 +137,7 @@ class TaskService {
       Task.find(filter)
         .populate("team", "name email avatar")
         .populate("project", "title")
+        .populate("dependencies", "title status")
         .skip(skip)
         .limit(Number(limit))
         .sort({ createdAt: -1 }),
@@ -110,6 +159,7 @@ class TaskService {
     const task = await Task.findOne({ _id: taskId, company: companyId })
       .populate("team", "name email avatar")
       .populate("project", "title")
+      .populate("dependencies", "title status")
       .populate("comments.user", "name email avatar");
 
     if (!task) throw new NotFoundError("Task");
@@ -119,12 +169,15 @@ class TaskService {
   async updateTask(user, companyId, taskId, data, files) {
     const {
       title, description, team, priority, dueDate, duration,
-      completionPercent, workedHours, status
+      completionPercent,       workedHours, status, dependencies
     } = data;
 
     const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
     await this.validateCompanyTeam(companyId, team);
+    const validDependencies = dependencies !== undefined
+      ? await this.validateDependencies(companyId, task.project, taskId, dependencies)
+      : task.dependencies;
 
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
@@ -154,11 +207,21 @@ class TaskService {
     task.completionPercent = completionPercent !== undefined ? completionPercent : task.completionPercent;
     task.workedHours = workedHours !== undefined ? workedHours : task.workedHours;
     task.status = status || task.status;
+    task.dependencies = validDependencies;
     if (files?.length) {
       task.attachments = [...(task.attachments || []), ...this.mapAttachments(files)];
     }
 
     const updatedTask = await task.save();
+
+    require("./activityLogService").recordActivity({
+      actorId: user.id || user._id,
+      action: `updated task "${updatedTask.title}"`,
+      entityType: "task",
+      entityId: updatedTask._id,
+      companyId,
+      level: "info",
+    });
 
     if (team && team.length > 0) {
       const newMembers = team.filter(id => !previousTeam.includes(id.toString()));
@@ -269,20 +332,56 @@ class TaskService {
     if (!task) throw new NotFoundError("Task");
 
     task.comments.push({ user: userId, text });
-    return task.save();
+    const savedTask = await task.save();
+    await savedTask.populate("comments.user", "name email avatar");
+    require("./activityLogService").recordActivity({
+      actorId: userId,
+      action: `commented on task "${task.title}"`,
+      entityType: "task",
+      entityId: task._id,
+      companyId,
+      level: "info",
+    });
+    return savedTask.comments[savedTask.comments.length - 1];
   }
 
   async getProjectTasks(companyId, projectId) {
     return Task.find({ project: projectId, company: companyId })
       .populate("team", "name email avatar")
+      .populate("dependencies", "title status")
       .populate("project", "title");
+  }
+
+  async getTaskComments(companyId, taskId) {
+    const task = await Task.findOne({ _id: taskId, company: companyId })
+      .select("comments")
+      .populate("comments.user", "name email avatar");
+    if (!task) throw new NotFoundError("Task");
+    return task.comments || [];
   }
 
   async getUserTasks(user, companyId) {
     const userId = user.id || user._id;
-    return Task.find({ team: userId, company: companyId })
+    const userRole = (user.role || "").replace(/\s+/g, "").toLowerCase();
+    const isPrivileged =
+      userRole === "superadmin" ||
+      userRole === "admin" ||
+      (userRole === "manager" && user.isTechnician);
+
+    // Privileged roles run the command center and need visibility of every task
+    // in the company. Everyone else sees tasks assigned to or created by them.
+    const filter = isPrivileged
+      ? { company: companyId }
+      : {
+          company: companyId,
+          $or: [{ team: userId }, { createdBy: userId }],
+        };
+
+    return Task.find(filter)
       .populate("team", "name email avatar")
-      .populate("project", "title");
+      .populate("dependencies", "title status")
+      .populate("project", "title")
+      .sort({ createdAt: -1 });
   }
 }
 

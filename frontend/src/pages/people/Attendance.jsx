@@ -319,7 +319,6 @@ const Attendance = () => {
               label="Attendance overview"
             title="My Attendance"
             description="Your weekly check-ins, working hours and leave days — laid out clearly, day by day."
-            emblem={CalendarDaysIcon}
             chips={[
               { icon: FaCheckCircle, value: counts.present, label: " present" },
               { icon: FaClock, value: `${totalHours.toFixed(1)}h`, label: " logged" },

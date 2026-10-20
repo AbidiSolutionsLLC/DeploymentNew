@@ -49,6 +49,18 @@ export const updateTask = createAsyncThunk(
   }
 );
 
+export const fetchProjectActivities = createAsyncThunk(
+  'tasks/fetchProjectActivities',
+  async (projectId, { rejectWithValue }) => {
+    try {
+      const response = await api.getProjectActivities(projectId);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 export const updateTaskStatus = createAsyncThunk(
   'tasks/updateTaskStatus',
   async ({ id, status }, { rejectWithValue }) => {
@@ -91,6 +103,8 @@ const taskSlice = createSlice({
     tasks: [],
     projectTasks: [],
     taskComments: {},
+    projectActivities: [],
+    projectActivitiesLoading: false,
     loading: false,
     projectTasksLoading: false,
     error: null,
@@ -109,7 +123,8 @@ const taskSlice = createSlice({
       })
       .addCase(fetchMyTasks.fulfilled, (state, action) => {
         state.loading = false;
-        state.tasks = action.payload;
+        const payload = action.payload;
+        state.tasks = Array.isArray(payload) ? payload : payload?.data || [];
       })
       .addCase(fetchMyTasks.rejected, (state, action) => {
         state.loading = false;
@@ -143,6 +158,17 @@ const taskSlice = createSlice({
         if (projIndex !== -1) {
           state.projectTasks[projIndex] = action.payload;
         }
+      })
+      .addCase(fetchProjectActivities.pending, (state) => {
+        state.projectActivitiesLoading = true;
+      })
+      .addCase(fetchProjectActivities.fulfilled, (state, action) => {
+        state.projectActivitiesLoading = false;
+        state.projectActivities = action.payload;
+      })
+      .addCase(fetchProjectActivities.rejected, (state, action) => {
+        state.projectActivitiesLoading = false;
+        state.error = action.payload;
       })
       // updateTaskStatus
       .addCase(updateTaskStatus.fulfilled, (state, action) => {

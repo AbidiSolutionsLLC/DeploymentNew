@@ -8,16 +8,22 @@ import {
   FaCheckCircle,
   FaFileCsv,
   FaPlus,
-  FaEye,
-  FaPen,
 } from "react-icons/fa";
+import { EyeIcon, PencilIcon } from "@heroicons/react/24/outline";
 import FilterRow from "../ui/FilterRow";
 import GlassInput from "../ui/GlassInput";
 import ModernSelect from "../ui/ModernSelect";
 import GlassButton from "../ui/GlassButton";
 import StatCard from "../ui/StatCard";
 import FilterPanel from "../ui/FilterPanel";
-import StyledTable from "../ui/StyledTable";
+import GlobalTable from "../ui/GlobalTable";
+import {
+  TableDate,
+  TablePill,
+  TableStatus,
+  TableText,
+  TableTitle,
+} from "../ui/TableCells";
 import ApplyLeaveModal from "../LeaveModal";
 import EditLeaveModal from "../EditLeaveModal";
 import ViewLeaveModal from "../ViewLeaveModal";
@@ -29,18 +35,6 @@ import {
 } from "../../utils/dateUtils";
 import { downloadCsv } from "../../utils/tableUtils";
 import api from "../../axios";
-
-/* Leave type pills — uniform green text for every type */
-const GREEN_PILL = "lm-success-badge";
-
-const TYPE_PILL = {
-  PTO: GREEN_PILL,
-  Sick: GREEN_PILL,
-  Casual: GREEN_PILL,
-  Unpaid: GREEN_PILL,
-};
-
-const typePill = (type) => TYPE_PILL[type] || GREEN_PILL;
 
 /* Backend may return the duration as a number or "2 days" string */
 const formatDuration = (leave) => {
@@ -73,7 +67,7 @@ const parseDays = (durationStr) => {
 
 /**
  * People-portal "My Leaves" tab — the employee-facing mirror of the admin
- * Leave Requests tab (KPI cards + filter panel + StyledTable + modals).
+ * Leave Requests tab (KPI cards + filter panel + GlobalTable + modals).
  */
 export default function MyLeavesTab({ showToast }) {
   const dispatch = useDispatch();
@@ -278,70 +272,40 @@ export default function MyLeavesTab({ showToast }) {
         key: "startDate",
         label: "Leave Period",
         render: (_, row) => (
-          <div className="min-w-[165px]">
-            <p className="text-xs font-bold text-heading whitespace-nowrap">
-              {formatDisplayDate(row.startDate)} → {formatDisplayDate(row.endDate)}
-            </p>
-            <p className="text-[10px] text-muted mt-0.5">{row.duration}</p>
-          </div>
+          <TableTitle
+            title={`${formatDisplayDate(row.startDate)} → ${formatDisplayDate(row.endDate)}`}
+            subtitle={row.duration}
+            maxWidth="min-w-[165px]"
+          />
         ),
       },
       {
         key: "leaveType",
         label: "Leave Type",
-        render: (value) => (
-          <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap border ${typePill(
-              value
-            )}`}
-          >
-            {value}
-          </span>
-        ),
+        render: (value) => <TablePill>{value}</TablePill>,
       },
       {
         key: "reason",
         label: "Reason",
         sortable: false,
         render: (_, row) => (
-          <div className="max-w-[220px] text-muted text-xs" title={row.reason}>
-            <span
-              style={{
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}
-            >
-              {row.reason}
-            </span>
-          </div>
+          <TableText value={row.reason} muted title={row.reason} clamp={2} maxWidth="max-w-[220px]" />
         ),
       },
       {
         key: "duration",
         label: "Duration",
-        render: (value) => (
-          <span className="text-xs font-bold text-heading whitespace-nowrap">{value}</span>
-        ),
+        render: (value) => <TableText value={value} className="font-bold text-heading" />,
       },
       {
         key: "status",
         label: "Status",
-        render: (value, row) => (
-          <span className={`lm-success-badge capitalize`}>
-            {row.status}
-          </span>
-        ),
+        render: (_, row) => <TableStatus value={row.status} />,
       },
       {
         key: "appliedAt",
         label: "Applied On",
-        render: (value) => (
-          <span className="text-xs font-medium text-main whitespace-nowrap">
-            {value ? formatDisplayDate(value) : "-"}
-          </span>
-        ),
+        render: (value) => <TableDate value={value} />,
       },
     ],
     []
@@ -350,12 +314,12 @@ export default function MyLeavesTab({ showToast }) {
   const actions = useMemo(
     () => [
       {
-        icon: <FaEye size={12} />,
+        icon: <EyeIcon className="w-4 h-4" />,
         title: "View request",
         onClick: (row) => handleViewLeave(row),
       },
       {
-        icon: <FaPen size={11} />,
+        icon: <PencilIcon className="w-4 h-4" />,
         title: "Edit request",
         className: (row) =>
           row.status === "Pending" && row.isEditable ? "" : "hidden",
@@ -454,7 +418,7 @@ export default function MyLeavesTab({ showToast }) {
       </FilterPanel>
 
       {/* ============ TABLE ============ */}
-      <StyledTable
+      <GlobalTable
         columns={columns}
         data={filteredRows}
         loading={refreshing}

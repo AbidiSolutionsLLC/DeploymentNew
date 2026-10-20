@@ -18,13 +18,20 @@ import ExpenseDetail from "../../components/ExpenseDetails";
 import { downloadFile } from "../../utils/downloadFile";
 import { formatDateForAPI } from "../../utils/dateUtils";
 import PageContainer from "../../components/ui/PageContainer";
-import TableWithPagination from "../../components/TableWithPagination";
+import GlobalTable from "../../components/ui/GlobalTable";
+import {
+  TableDate,
+  TableMoney,
+  TablePerson,
+  TablePill,
+  TableStatus,
+  TableTitle,
+} from "../../components/ui/TableCells";
 import expensesApi from "../../api/expensesApi";
 import GlassModal from "../../components/ui/GlassModal";
 import GlassButton from "../../components/ui/GlassButton";
 import { dispatchReadOnlyModal } from "../../utils/readOnlyEvent";
 import { useConfirm } from "../../context/ConfirmContext";
-import StatusBadge from "../../components/StatusBadge";
 
 // --- MAIN COMPONENT ---
 const ExpenseManagement = () => {
@@ -306,16 +313,7 @@ const ExpenseManagement = () => {
  .reduce((sum, e) => sum + (e.amount || 0), 0)
  };
 
-const getStatusBadge = (status) => {
-  const statusMap = {
-    approved: "Approved",
-    rejected: "Rejected",
-    pending: "Pending"
-  };
-  return <StatusBadge status={statusMap[status] || status} />;
-  };
-
- const getCategoryLabel = (category) => {
+const getCategoryLabel = (category) => {
  const categories = { travel: "Travel", food: "Food", supplies: "Supplies", equipment: "Equipment", other: "Other" };
  return categories[category] || category;
  };
@@ -325,53 +323,38 @@ const getStatusBadge = (status) => {
  key: "expense",
  label: "Expense",
  render: (_, expense) => (
- <div className="flex flex-col">
- <p className="text-sm font-bold text-main">{expense.title}</p>
- {expense.description && (
- <p className="text-[10px] font-medium text-muted truncate max-w-[200px]">
- {expense.description}
- </p>
- )}
- </div>
+ <TableTitle title={expense.title} subtitle={expense.description || undefined} maxWidth="max-w-[220px]" />
  )
  },
  {
  key: "category",
  label: "Category",
- render: (val) => (
- <span className="p-4 text-xs font-semibold bg-app px-2.5 py-1 rounded-md border border-subtle uppercase tracking-tight text-muted">
- {getCategoryLabel(val)}
- </span>
- )
+ render: (val) => <TablePill>{getCategoryLabel(val)}</TablePill>
  },
  {
  key: "amount",
  label: "Amount",
- render: (val) => <span className="text-sm font-bold text-main">${val?.toFixed(2)}</span>
+ render: (val) => <TableMoney value={val} />
  },
  {
  key: "submittedBy",
  label: "Submitted By",
  render: (_, expense) => (
- <div className="flex items-center gap-2">
- <div className="w-6 h-6 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold border border-indigo-100">
- {(expense.submittedByName || expense.submittedBy?.name || "?").charAt(0).toUpperCase()}
- </div>
- <span className="text-xs font-semibold text-muted">
- {expense.submittedByName || expense.submittedBy?.name || "Unknown"}
- </span>
- </div>
+ <TablePerson
+ name={expense.submittedByName || expense.submittedBy?.name || "Unknown"}
+ size="xs"
+ />
  )
  },
  {
  key: "createdAt",
  label: "Date",
- render: (val) => <span className="text-xs font-medium text-muted">{new Date(val).toLocaleDateString()}</span>
+ render: (val) => <TableDate value={val} />
  },
  {
  key: "status",
  label: "Status",
- render: (val) => getStatusBadge(val)
+ render: (val) => <TableStatus value={val} />
  },
  {
  key: "actions",
@@ -483,7 +466,7 @@ const getStatusBadge = (status) => {
  }
  `}</style>
  <div className="bg-surface rounded-2xl border border-white/60 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3)] overflow-hidden">
- <TableWithPagination
+ <GlobalTable
  columns={expenseColumns}
  data={filteredExpenses}
  loading={loading}

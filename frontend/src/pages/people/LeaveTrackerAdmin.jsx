@@ -122,7 +122,6 @@ const LeaveTrackerAdmin = () => {
               label="Leave management overview"
             title="Leave Management"
           description="Approve requests, run holidays and keep every leave balance in sync — all from one place."
-          emblem={BriefcaseIcon}
           chips={[
             { icon: FaUsers, value: users.length, label: " Employees" },
             { pulse: true, value: pendingCount, label: " Awaiting approval" },

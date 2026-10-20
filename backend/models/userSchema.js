@@ -68,10 +68,15 @@ const userSchema = new mongoose.Schema(
     },
     notificationPreferences: {
       email: {
+        // Master switch: when false, NO notification emails are sent to this user.
+        enabled: { type: Boolean, default: true },
+        leaveUpdates: { type: Boolean, default: true },
         ticketUpdates: { type: Boolean, default: true },
-        leaveApprovals: { type: Boolean, default: true },
         expenseUpdates: { type: Boolean, default: true },
-        dailyDigest: { type: Boolean, default: false }
+        timesheetUpdates: { type: Boolean, default: true },
+        payrollUpdates: { type: Boolean, default: true },
+        // Deprecated alias retained for backwards compatibility with older records.
+        leaveApprovals: { type: Boolean, default: true }
       },
       push: {
         ticketUpdates: { type: Boolean, default: true },

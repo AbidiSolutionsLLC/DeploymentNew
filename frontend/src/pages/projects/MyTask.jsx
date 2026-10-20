@@ -1,23 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
-import { createElement } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { PlusIcon, ArrowsUpDownIcon, EyeIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, ArrowsUpDownIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { FaClipboardList, FaSpinner, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 import AddTaskDrawer from "../../components/addTaskModal";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
 import { fetchMyTasks, createTask, updateTask } from "../../store/taskSlice";
 import { toast } from "react-toastify";
-import PortalHeader from "../../components/projectPortal/PortalHeader";
-import ToolbarSearch from "../../components/projectPortal/ToolbarSearch";
-import FilterChips from "../../components/projectPortal/FilterChips";
-import PortalTable from "../../components/projectPortal/PortalTable";
+import PageContainer from "../../components/ui/PageContainer";
+import StatCard from "../../components/ui/StatCard";
+import PortalHero from "../../components/ui/PortalHero";
+import FilterPanel from "../../components/ui/FilterPanel";
+import FilterRow from "../../components/ui/FilterRow";
+import GlassInput from "../../components/ui/GlassInput";
+import GlassButton from "../../components/ui/GlassButton";
+import GlobalTable from "../../components/ui/GlobalTable";
+import {
+  TableDate,
+  TablePriority,
+  TableProgress,
+  TableText,
+  TableTitle,
+} from "../../components/ui/TableCells";
 import ModernSelect from "../../components/ui/ModernSelect";
-import Pill, { TASK_STATUS_TONE, PRIORITY_TONE } from "../../components/projectPortal/Pill";
-import Progress from "../../components/projectPortal/Progress";
-import { formatDate, isOverdue, taskProgress } from "../../components/projectPortal/helpers";
+import { isOverdue, taskProgress } from "../../components/projectPortal/helpers";
 
 /**
  * My Tasks — "Command Center" list page (PROJECT_PORTAL_DESIGN.md §9.3).
- * Functional status select (PUT /tasks/:id), row click → TaskDetailModal.
+ * Uses the same KPI + FilterPanel + GlobalTable kit as Leave Management so the
+ * table chrome stays identical across the app. Functional status select
+ * (PUT /tasks/:id), row click → TaskDetailDrawer.
  */
 const STATUSES = ["All", "Todo", "In Progress", "In Review", "Blocked", "Done"];
 const TASK_STATUS_OPTIONS = ["Todo", "In Progress", "In Review", "Done", "Blocked"];
@@ -83,40 +94,36 @@ const MyTask = () => {
     setSort({ key: next.key, direction: "asc" });
   };
 
+  const hasFilters = status !== "All" || query.trim() !== "";
+  const resetFilters = () => {
+    setStatus("All");
+    setQuery("");
+  };
+
   const columns = [
     {
       key: "title",
       label: "Task",
-      render: (v, row) => (
-        <div className="min-w-0 max-w-[240px]">
-          <p className="text-sm font-semibold text-heading truncate">{v}</p>
-          <p className="md:hidden text-[11px] text-muted truncate">{row.project?.title || "No project"}</p>
-        </div>
-      ),
+      render: (v) => <TableTitle title={v} maxWidth="max-w-[240px]" />,
     },
     {
       key: "project",
       label: "Project",
       hideBelow: "md",
-      render: (v) => <span className="text-sm text-main whitespace-nowrap">{v?.title || "—"}</span>,
+      render: (v) => <TableText value={v?.title} />,
     },
     {
       key: "priority",
       label: "Priority",
       hideBelow: "lg",
-      render: (v) => <Pill tone={PRIORITY_TONE[v] || "neutral"}>{v || "Medium"}</Pill>,
+      render: (v) => <TablePriority value={v || "Medium"} />,
     },
     {
       key: "dueDate",
       label: "Due",
       render: (v, row) => {
         const overdue = isOverdue(v, row.status);
-        return (
-          <span className={`text-xs whitespace-nowrap font-bold ${overdue ? "text-danger" : "text-muted"}`}>
-            {formatDate(v)}
-            {overdue && <span className="block text-[9px] uppercase tracking-widest">Overdue</span>}
-          </span>
-        );
+        return <TableDate value={v} tone={overdue ? "danger" : "default"} subtitle={overdue ? "Overdue" : undefined} />;
       },
     },
     {
@@ -124,115 +131,151 @@ const MyTask = () => {
       label: "Status",
       sortable: false,
       render: (v, row) => (
-        <ModernSelect
-          value={v || "Todo"}
-          onChange={(e) => handleUpdateTask(row._id, { status: e.target.value })}
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`Status for ${row.title}`}
-          options={TASK_STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
-          className="max-w-[130px]"
-        />
+        <div onClick={(e) => e.stopPropagation()} className="w-fit">
+          <ModernSelect
+            value={v || "Todo"}
+            onChange={(e) => handleUpdateTask(row._id, { status: e.target.value })}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Status for ${row.title}`}
+            options={TASK_STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
+            className="w-[130px]"
+          />
+        </div>
       ),
     },
     {
       key: "completionPercent",
       label: "Progress",
       hideBelow: "lg",
-      render: (_v, row) => {
-        const pct = taskProgress(row);
-        return (
-          <div className="flex items-center gap-2 min-w-[110px]">
-            <Progress value={pct} />
-            <span className="text-[10px] font-bold text-muted tabular-nums shrink-0">{pct}%</span>
-          </div>
-        );
-      },
+      render: (_v, row) => <TableProgress value={taskProgress(row)} />,
     },
   ];
 
+  const actions = [
+    {
+      icon: <EyeIcon className="w-4 h-4" />,
+      title: "View task",
+      onClick: (task) => setDetailTask(task),
+    },
+  ];
+
+  const statusOptions = STATUSES.map((s) => ({
+    value: s,
+    label: `${s} (${countFor(s)})`,
+  }));
+
   return (
-    <div className="flex flex-col gap-4">
-      <PortalHeader
-        eyebrow="Personal workspace"
-        title="My Tasks"
-        subtitle="Prioritize your assigned work and keep delivery moving."
-        actions={
-          <>
-            <ToolbarSearch
+    <PageContainer isCard={false}>
+      <div className="flex flex-col gap-4 w-full">
+        {/* ==================== HERO ==================== */}
+        <PortalHero
+          label="My tasks overview"
+          title="My Tasks"
+          description="Prioritize your assigned work and keep delivery moving."
+        />
+
+        {/* ==================== KPI CARDS ==================== */}
+        <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
+          <StatCard
+            title="Assigned"
+            value={tasks.length}
+            sub="All your tasks"
+            icon={FaClipboardList}
+            tone="text-amber-600 dark:text-amber-400"
+          />
+          <StatCard
+            title="In progress"
+            value={activeCount}
+            sub="Active work"
+            icon={FaSpinner}
+            tone="text-sky-600 dark:text-sky-400"
+          />
+          <StatCard
+            title="Completed"
+            value={completedCount}
+            sub="Done"
+            icon={FaCheckCircle}
+            tone="text-emerald-600 dark:text-emerald-400"
+          />
+          <StatCard
+            title="Overdue"
+            value={overdueCount}
+            sub="Past due"
+            icon={FaExclamationTriangle}
+            tone="text-rose-600 dark:text-rose-400"
+          />
+        </div>
+
+        {/* ==================== FILTERS ==================== */}
+        <FilterPanel
+          title="Assigned Tasks"
+          subtitle={`${rows.length} of ${tasks.length} tasks · updated just now`}
+          hint="Click any row to open the task detail — change status inline, or create a new task."
+          actions={
+            <>
+              {hasFilters && (
+                <GlassButton variant="ghost" size="sm" onClick={resetFilters}>
+                  RESET
+                </GlassButton>
+              )}
+              <GlassButton variant="secondary" size="sm" icon={ArrowsUpDownIcon} onClick={cycleSort}>
+                {SORTS.find((s) => s.key === sort.key)?.label || "Sort by"}
+              </GlassButton>
+              <GlassButton variant="primary" size="sm" icon={PlusIcon} onClick={() => setShowModal(true)}>
+                NEW TASK
+              </GlassButton>
+            </>
+          }
+        >
+          <FilterRow>
+            <GlassInput
+              placeholder="Search tasks..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search tasks..."
+              className="flex-1 min-w-[220px]"
             />
-            <button
-              type="button"
-              onClick={cycleSort}
-              className="btn btn-secondary py-2.5 px-4 whitespace-nowrap"
-              title="Change sort"
-            >
-              <ArrowsUpDownIcon className="w-4 h-4 mr-2" />
-              {SORTS.find((s) => s.key === sort.key)?.label || "Sort by"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowModal(true)}
-              className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
-            >
-              <PlusIcon className="w-4 h-4 mr-2" /> New Task
-            </button>
-          </>
-        }
-      >
-        <FilterChips
-          value={status}
-          onChange={setStatus}
-          options={STATUSES.map((s) => ({ value: s, label: s, count: countFor(s) }))}
+            <div className="min-w-[180px]">
+              <ModernSelect
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                options={statusOptions}
+                aria-label="Filter tasks by status"
+              />
+            </div>
+          </FilterRow>
+        </FilterPanel>
+
+        {/* ==================== TABLE ==================== */}
+        <GlobalTable
+          columns={columns}
+          data={rows}
+          loading={loading}
+          error={error ? error.message || "Failed to load tasks" : null}
+          onRowClick={(task) => setDetailTask(task)}
+          actions={actions}
+          sort={sort}
+          onSortChange={setSort}
+          rowsPerPage={10}
+          countLabel="tasks"
+          defaultSort={{ key: "dueDate", direction: "asc" }}
+          emptyMessage={tasks.length === 0 ? "No tasks assigned" : "No matching tasks"}
+          emptyHint={
+            tasks.length === 0
+              ? "New tasks assigned to you will appear here."
+              : "Try a different search or status filter."
+          }
+          onEmptyAction={hasFilters ? resetFilters : undefined}
+          emptyActionLabel="Clear all filters"
         />
-      </PortalHeader>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: "Assigned", value: tasks.length, Icon: ClockIcon, tone: "text-brand-text" },
-          { label: "In progress", value: activeCount, Icon: ClockIcon, tone: "text-info" },
-          { label: "Completed", value: completedCount, Icon: CheckCircleIcon, tone: "text-success" },
-          { label: "Overdue", value: overdueCount, Icon: ExclamationCircleIcon, tone: "text-danger" },
-        ].map(({ label, value, Icon, tone }) => (
-          <div key={label} className="glass-card !p-4 sm:!p-5 flex items-center gap-3 bg-surface">
-            <div className={`w-10 h-10 rounded-xl bg-card border border-border-subtle flex items-center justify-center ${tone}`}>
-              {createElement(Icon, { className: "w-5 h-5" })}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xl sm:text-2xl font-black text-heading tabular-nums leading-none">{value}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted mt-1 truncate">{label}</p>
-            </div>
-          </div>
-        ))}
+        <AddTaskDrawer isOpen={showModal} onClose={() => setShowModal(false)} onSubmit={handleCreateTask} />
+        <TaskDetailDrawer
+          task={detailTask}
+          onClose={() => setDetailTask(null)}
+          onStatusChange={(status) => handleUpdateTask(detailTask?._id, { status })}
+        />
       </div>
-
-      <PortalTable
-        columns={columns}
-        data={rows}
-        sort={sort}
-        onSortChange={setSort}
-        loading={loading}
-        error={error}
-        onRowClick={(task) => setDetailTask(task)}
-        actions={[{ title: "View task", icon: EyeIcon, onClick: (task) => setDetailTask(task) }]}
-        rowsPerPage={10}
-        emptyTitle={tasks.length === 0 ? "No tasks assigned" : "No matching tasks"}
-        emptyHint={
-          tasks.length === 0
-            ? "New tasks assigned to you will appear here."
-            : "Try a different search or status filter."
-        }
-      />
-
-      <AddTaskDrawer isOpen={showModal} onClose={() => setShowModal(false)} onSubmit={handleCreateTask} />
-      <TaskDetailDrawer
-        task={detailTask}
-        onClose={() => setDetailTask(null)}
-        onStatusChange={(status) => handleUpdateTask(detailTask?._id, { status })}
-      />
-    </div>
+    </PageContainer>
   );
 };
 

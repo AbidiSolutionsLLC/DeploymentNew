@@ -18,6 +18,11 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
     team: (project?.team || []).map((m) => m._id || m),
     startDate: project?.startDate ? String(project.startDate).slice(0, 10) : "",
     dueDate: project?.dueDate ? String(project.dueDate).slice(0, 10) : "",
+    milestones: (project?.milestones || []).map((milestone) => ({
+      title: milestone.title || "",
+      dueDate: milestone.dueDate ? String(milestone.dueDate).slice(0, 10) : "",
+      status: milestone.status || "Planned",
+    })),
   });
   const [errors, setErrors] = useState({});
   const [users, setUsers] = useState([]);
@@ -63,6 +68,13 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
     setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
+  const updateMilestone = (index, field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      milestones: prev.milestones.map((milestone, i) => i === index ? { ...milestone, [field]: value } : milestone),
+    }));
+  };
+
   const validate = () => {
     const next = {};
     if (!form.title.trim()) next.title = "Project name is required.";
@@ -88,6 +100,11 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
         team: form.team,
         startDate: form.startDate || null,
         dueDate: form.dueDate || null,
+        milestones: form.milestones.filter((milestone) => milestone.title.trim()).map((milestone) => ({
+          ...milestone,
+          title: milestone.title.trim(),
+          dueDate: milestone.dueDate || null,
+        })),
       });
     } finally {
       setSaving(false);
@@ -114,6 +131,27 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
         <label htmlFor="project-title" className={labelCls}>Project Name*</label>
         <input id="project-title" type="text" placeholder="e.g. Website Redesign" value={form.title} onChange={(e) => set("title", e.target.value)} className={`glass-input ${errors.title ? "is-error" : ""}`} required />
         {errors.title && <p className="text-danger text-xs mt-1">{errors.title}</p>}
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className={labelCls}>Milestones</label>
+          <button type="button" className="text-xs font-bold text-brand-text hover:underline" onClick={() => setForm((prev) => ({
+            ...prev,
+            milestones: [...prev.milestones, { title: "", dueDate: "", status: "Planned" }],
+          }))}>Add milestone</button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {form.milestones.map((milestone, index) => (
+            <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_150px_120px_auto] gap-2 items-center">
+              <input className="glass-input" placeholder="Milestone name" value={milestone.title} onChange={(e) => updateMilestone(index, "title", e.target.value)} />
+              <ModernDatePicker value={milestone.dueDate} onChange={(e) => updateMilestone(index, "dueDate", e.target.value)} />
+              <ModernSelect value={milestone.status} onChange={(e) => updateMilestone(index, "status", e.target.value)} options={["Planned", "In Progress", "Completed"].map((status) => ({ value: status, label: status }))} />
+              <button type="button" className="p-2 text-danger hover:bg-danger-bg rounded-lg" aria-label="Remove milestone" onClick={() => setForm((prev) => ({ ...prev, milestones: prev.milestones.filter((_, i) => i !== index) }))}>×</button>
+            </div>
+          ))}
+          {!form.milestones.length && <p className="text-xs text-muted">No milestones added yet.</p>}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

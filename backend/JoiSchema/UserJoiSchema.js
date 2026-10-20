@@ -56,7 +56,28 @@ const userUpdateSchema = userSchema.fork(
   (schema) => schema.optional()
 );
 
+const notificationChannelSchema = Joi.object({
+  enabled: Joi.boolean(),
+  leaveUpdates: Joi.boolean(),
+  ticketUpdates: Joi.boolean(),
+  expenseUpdates: Joi.boolean(),
+  timesheetUpdates: Joi.boolean(),
+  payrollUpdates: Joi.boolean(),
+  leaveApprovals: Joi.boolean(),
+  directMessages: Joi.boolean()
+});
+
+const userSettingsSchema = Joi.object({
+  theme: Joi.string().valid("light", "dark", "violet", "slate", "system"),
+  lastSeenReleaseNote: Joi.string().allow(""),
+  notificationPreferences: Joi.object({
+    email: notificationChannelSchema,
+    push: notificationChannelSchema
+  })
+}).min(1);
+
 module.exports = {
   userSchema,
   userUpdateSchema,
+  userSettingsSchema,
 };

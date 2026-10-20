@@ -5,9 +5,9 @@ import {
   FaWallet,
   FaExclamationTriangle,
   FaFileCsv,
-  FaPen,
   FaHistory,
 } from "react-icons/fa";
+import { PencilIcon } from "@heroicons/react/24/outline";
 import FilterRow from "../ui/FilterRow";
 import GlassInput from "../ui/GlassInput";
 import ModernSelect from "../ui/ModernSelect";
@@ -16,17 +16,22 @@ import Loader from "../ui/Loader";
 import EditLeaveBalanceModal from "./EditLeaveBalanceModal";
 import StatCard from "../ui/StatCard";
 import FilterPanel from "../ui/FilterPanel";
-import StyledTable from "../ui/StyledTable";
+import GlobalTable from "../ui/GlobalTable";
+import {
+  TablePerson,
+  TableText,
+  TableTitle,
+  TableNumber,
+  TableProgress,
+  TablePill,
+  TableStatus,
+} from "../ui/TableCells";
 import {
   computeLeaveStats,
-  getInitials,
   getBalanceRemark,
-  EMP_TYPE_BADGE,
-  EMP_TYPE_VARIANTS,
   BALANCE_TEXT,
   BALANCE_BAR,
   BALANCE_LABEL,
-  BALANCE_PILL,
   LOW_BALANCE_THRESHOLD,
   downloadCsv,
 } from "./leaveStats";
@@ -34,7 +39,8 @@ import {
 /* ------------------------------------------------------------------ */
 /* Column definition (two level grouped header)                       */
 /* ------------------------------------------------------------------ */
-const remainingCellClass = (r) => BALANCE_TEXT[r.balanceStatus] || "text-main";
+const remainingTone = (status) =>
+  ({ healthy: "success", low: "warning", exhausted: "danger" }[status] || "default");
 
 const COLUMNS = [
   {
@@ -48,91 +54,66 @@ const COLUMNS = [
     key: "name",
     label: "Employee",
     render: (_, row) => (
-      <div className="flex items-center gap-2.5 min-w-[180px]">
-        <div className="w-8 h-8 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center text-[11px] font-black flex-shrink-0">
-          {getInitials(row.name)}
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-heading truncate leading-tight">{row.name}</p>
-          <p className="text-[10px] text-muted truncate">{row.empID || row.email}</p>
-        </div>
-      </div>
+      <TablePerson name={row.name} subtitle={row.empID || row.email} className="min-w-[180px]" />
     ),
   },
   {
     key: "designation",
     label: "Designation",
-    render: (_, row) => (
-      <span
-        className="block max-w-[150px] truncate text-xs font-medium text-main"
-        title={row.designation}
-      >
-        {row.designation}
-      </span>
-    ),
+    render: (_, row) => <TableText value={row.designation} truncate maxWidth="max-w-[150px]" />,
   },
   {
     key: "allowanceTotal",
     label: "Total Leave Allowance",
     render: (_, row) => (
-      <div>
-        <p className="text-sm font-bold text-heading leading-tight">{row.allowanceTotal}</p>
-        <p className="text-[10px] text-muted font-medium">
-          {row.allowancePto} PTO · {row.allowanceSick} Sick
-        </p>
-      </div>
+      <TableTitle
+        title={row.allowanceTotal}
+        subtitle={`${row.allowancePto} PTO · ${row.allowanceSick} Sick`}
+        maxWidth="max-w-[180px]"
+      />
     ),
   },
   {
     key: "usedPto",
     label: "PTO",
     group: "Leaves Used",
-    render: (_, row) => <span className="text-sm font-semibold text-main">{row.usedPto}</span>,
+    render: (_, row) => <TableNumber value={row.usedPto} />,
   },
   {
     key: "usedSick",
     label: "Sick",
     group: "Leaves Used",
-    render: (_, row) => <span className="text-sm font-semibold text-main">{row.usedSick}</span>,
+    render: (_, row) => <TableNumber value={row.usedSick} />,
   },
   {
     key: "usedTotal",
     label: "Total",
     group: "Leaves Used",
     render: (_, row) => (
-      <div>
-        <span className="text-sm font-bold text-heading">{row.usedTotal}</span>
-        {row.pendingRequests > 0 && (
-          <p className="text-[9px] font-bold text-amber-600 dark:text-amber-400 mt-0.5">
-            {row.pendingRequests} pending
-          </p>
-        )}
-      </div>
+      <TableTitle
+        title={row.usedTotal}
+        subtitle={row.pendingRequests > 0 ? `${row.pendingRequests} pending` : undefined}
+        maxWidth="max-w-[120px]"
+      />
     ),
   },
   {
     key: "remainingPto",
     label: "PTO",
     group: "Remaining Balance",
-    render: (_, row) => (
-      <span className={`text-sm font-semibold ${remainingCellClass(row)}`}>{row.remainingPto}</span>
-    ),
+    render: (_, row) => <TableNumber value={row.remainingPto} tone={remainingTone(row.balanceStatus)} />,
   },
   {
     key: "remainingSick",
     label: "Sick",
     group: "Remaining Balance",
-    render: (_, row) => (
-      <span className={`text-sm font-semibold ${remainingCellClass(row)}`}>{row.remainingSick}</span>
-    ),
+    render: (_, row) => <TableNumber value={row.remainingSick} tone={remainingTone(row.balanceStatus)} />,
   },
   {
     key: "remainingTotal",
     label: "Total",
     group: "Remaining Balance",
-    render: (_, row) => (
-      <span className={`text-sm font-bold ${remainingCellClass(row)}`}>{row.remainingTotal}</span>
-    ),
+    render: (_, row) => <TableNumber value={row.remainingTotal} tone={remainingTone(row.balanceStatus)} />,
   },
   {
     key: "remainingPercent",
@@ -148,14 +129,12 @@ const COLUMNS = [
             {row.remainingPercent}%
           </span>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${
-              BALANCE_BAR[row.balanceStatus]
-            }`}
-            style={{ width: `${Math.max(row.remainingPercent, 2)}%` }}
-          />
-        </div>
+        <TableProgress
+          value={row.remainingPercent}
+          showLabel={false}
+          width="w-full"
+          barClass={BALANCE_BAR[row.balanceStatus]}
+        />
       </div>
     ),
   },
@@ -165,26 +144,11 @@ const COLUMNS = [
     align: "right",
     render: (_, row) => (
       <div className="flex flex-col items-end gap-1.5 min-w-[150px]">
-        <span
-          className={`${EMP_TYPE_BADGE} ${
-            EMP_TYPE_VARIANTS[row.empType] || EMP_TYPE_VARIANTS.Permanent
-          }`}
-        >
-          {row.empType}
-        </span>
-        <span
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wide ${
-            BALANCE_PILL[row.balanceStatus].badge
-          }`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${BALANCE_PILL[row.balanceStatus].dot}`}
-          />
-          {BALANCE_LABEL[row.balanceStatus]}
-        </span>
-        <p className="text-[10px] font-medium text-muted text-right leading-tight">
+        <TablePill tone="success">{row.empType}</TablePill>
+        <TableStatus value={BALANCE_LABEL[row.balanceStatus]} />
+        <span className="text-[10px] font-medium text-muted text-right leading-tight">
           {row.empStatus === "Inactive" ? "Inactive employee" : getBalanceRemark(row)}
-        </p>
+        </span>
       </div>
     ),
   },
@@ -375,7 +339,7 @@ export default function ManageLeavesTab({
 
   const actions = [
     {
-      icon: <FaPen size={12} />,
+      icon: <PencilIcon className="w-4 h-4" />,
       title: "Update leave balance",
       onClick: (row) => setEditingUser(row),
     },
@@ -517,7 +481,7 @@ export default function ManageLeavesTab({
       </FilterPanel>
 
       {/* ============ GROUPED TABLE ============ */}
-      <StyledTable
+      <GlobalTable
         columns={COLUMNS}
         data={filteredRows}
         emptyMessage={hasFilters ? "No employees match these filters" : "No employees found"}

@@ -25,6 +25,7 @@ const EMPTY_FORM = {
   team: [],
   startDate: "",
   dueDate: "",
+  milestones: [],
 };
 
 const toId = (v) => (v && typeof v === "object" ? v._id || "" : v || "");
@@ -90,6 +91,11 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
         team: (project.team || []).map((m) => toId(m)),
         startDate: toDateInput(project.startDate),
         dueDate: toDateInput(project.dueDate),
+        milestones: (project.milestones || []).map((milestone) => ({
+          title: milestone.title || "",
+          dueDate: toDateInput(milestone.dueDate),
+          status: milestone.status || "Planned",
+        })),
       });
     } else {
       setForm(EMPTY_FORM);
@@ -130,6 +136,11 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
         team: form.team,
         startDate: form.startDate || null,
         dueDate: form.dueDate || null,
+        milestones: form.milestones.filter((milestone) => milestone.title.trim()).map((milestone) => ({
+          ...milestone,
+          title: milestone.title.trim(),
+          dueDate: milestone.dueDate || null,
+        })),
       });
     } finally {
       setSaving(false);
@@ -284,6 +295,61 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
           />
         </div>
         {errors.dueDate && <p className="text-danger text-xs -mt-2">{errors.dueDate}</p>}
+
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className={labelCls}>Milestones</label>
+            <button
+              type="button"
+              className="text-xs font-bold text-brand-text hover:underline"
+              onClick={() => setForm((prev) => ({
+                ...prev,
+                milestones: [...prev.milestones, { title: "", dueDate: "", status: "Planned" }],
+              }))}
+            >
+              Add milestone
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {form.milestones.map((milestone, index) => (
+              <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_150px_120px_auto] gap-2 items-center">
+                <input
+                  className="glass-input"
+                  placeholder="Milestone name"
+                  value={milestone.title}
+                  onChange={(e) => setForm((prev) => ({
+                    ...prev,
+                    milestones: prev.milestones.map((item, i) => i === index ? { ...item, title: e.target.value } : item),
+                  }))}
+                />
+                <ModernDatePicker
+                  value={milestone.dueDate}
+                  onChange={(e) => setForm((prev) => ({
+                    ...prev,
+                    milestones: prev.milestones.map((item, i) => i === index ? { ...item, dueDate: e.target.value } : item),
+                  }))}
+                />
+                <ModernSelect
+                  value={milestone.status}
+                  onChange={(e) => setForm((prev) => ({
+                    ...prev,
+                    milestones: prev.milestones.map((item, i) => i === index ? { ...item, status: e.target.value } : item),
+                  }))}
+                  options={["Planned", "In Progress", "Completed"].map((status) => ({ value: status, label: status }))}
+                />
+                <button
+                  type="button"
+                  className="p-2 text-danger hover:bg-danger-bg rounded-lg"
+                  aria-label="Remove milestone"
+                  onClick={() => setForm((prev) => ({ ...prev, milestones: prev.milestones.filter((_, i) => i !== index) }))}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {!form.milestones.length && <p className="text-xs text-muted">No milestones added yet.</p>}
+          </div>
+        </div>
 
         {/* Description */}
         <div>

@@ -1,5 +1,7 @@
 import React from "react";
 import { motion as Motion } from "framer-motion";
+import { useLocation } from "react-router-dom";
+import { pageIcon } from "../../config/pageIcons";
 import "../../styles/adminPortal.css";
 
 const EASE = [0.16, 1, 0.3, 1];
@@ -7,19 +9,21 @@ const EASE = [0.16, 1, 0.3, 1];
 /**
  * Universal animated page hero shared by every admin portal screen.
  *
- * chips: [{ id?, icon?, value?, label, pulse? }]
- *   - icon renders a small leading glyph, value renders bold (<b>) text
- *   - pulse renders the animated gold dot instead of an icon
- * emblem: optional react-icon component rendered in the rotating badge
- * accent: hex colour for the emblem ring / glass disc / glow, so every
- *         page can carry its own emblem colour instead of all being gold.
+ * title / description: heading copy.
+ * emblem: optional override for the animated badge icon. When omitted, the
+ *         emblem is resolved from the current route via the global
+ *         PAGE_ICONS map, guaranteeing the hero icon always matches the
+ *         left-nav icon for that page.
+ * label: accessible label (defaults to title).
  */
 export default function PortalHero({
   title,
   description,
-  emblem: Emblem,
+  emblem,
   label,
 }) {
+  const { pathname } = useLocation();
+  const Emblem = emblem || pageIcon(pathname);
   return (
     <Motion.section
       initial={{ opacity: 0, y: 16 }}

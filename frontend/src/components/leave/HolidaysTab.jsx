@@ -20,26 +20,8 @@ import { formatDisplayDate, parseISOToLocalDate, getTodayESTString } from "../..
 import { downloadCsv } from "../../utils/tableUtils";
 import StatCard from "../ui/StatCard";
 import FilterPanel from "../ui/FilterPanel";
-import StyledTable from "../ui/StyledTable";
-
-/* Holiday type pills — uniform green text for every type */
-const GREEN_PILL = "lm-success-badge";
-
-const TYPE_VARIANTS = {
-  National: GREEN_PILL,
-  Regional: GREEN_PILL,
-  Religious: GREEN_PILL,
-  "Company-Specific": GREEN_PILL,
-};
-
-const TYPE_BADGE =
-  "inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border whitespace-nowrap";
-
-const TIMING_PILL = {
-  today: "lm-success-badge",
-  upcoming: "lm-success-badge",
-  past: "lm-success-badge",
-};
+import GlobalTable from "../ui/GlobalTable";
+import { TablePill, TableText, TableTitle } from "../ui/TableCells";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -213,67 +195,53 @@ export default function HolidaysTab({
         key: "date",
         label: "Date",
         render: (_, row) => (
-          <div className="flex items-center gap-3 min-w-[170px]">
-            <div className="w-11 h-11 rounded-xl bg-app border border-border-subtle shadow-sm flex flex-col items-center justify-center leading-none flex-shrink-0">
-              <span className="text-[15px] font-black text-heading">{row.dayNum}</span>
-              <span className="text-[8px] font-black uppercase tracking-wider text-brand-text mt-1">
-                {row.monthAbbr}
-              </span>
-            </div>
-            <span className="text-xs font-semibold text-main whitespace-nowrap">
-              {row.displayDate}
-            </span>
-          </div>
+          <TableTitle
+            title={row.displayDate}
+            maxWidth="min-w-[170px]"
+            leading={
+              <div className="w-11 h-11 rounded-xl bg-app border border-border-subtle shadow-sm flex flex-col items-center justify-center leading-none flex-shrink-0">
+                <span className="text-[15px] font-black text-heading">{row.dayNum}</span>
+                <span className="text-[8px] font-black uppercase tracking-wider text-brand-text mt-1">
+                  {row.monthAbbr}
+                </span>
+              </div>
+            }
+          />
         ),
       },
-      { key: "day", label: "Day" },
+      {
+        key: "day",
+        label: "Day",
+        render: (value) => <TableText value={value} />,
+      },
       {
         key: "holidayName",
         label: "Holiday",
         render: (_, row) => (
-          <div className="min-w-[190px]">
-            <p className="text-sm font-bold text-heading truncate leading-tight" title={row.name}>
-              {row.name}
-            </p>
-            <p className="text-[10px] text-muted truncate mt-0.5 max-w-[240px]">
-              {row.isRecurring ? "Repeats every year" : row.description || "One-time holiday"}
-            </p>
-          </div>
+          <TableTitle
+            title={row.name}
+            subtitle={row.isRecurring ? "Repeats every year" : row.description || "One-time holiday"}
+            maxWidth="max-w-[260px]"
+          />
         ),
       },
       {
         key: "holidayType",
         label: "Type",
-        render: (_, row) => (
-          <span className={`${TYPE_BADGE} ${TYPE_VARIANTS[row.type] || TYPE_VARIANTS.National}`}>
-            {row.type}
-          </span>
-        ),
+        render: (_, row) => <TablePill>{row.type}</TablePill>,
       },
       {
         key: "daysUntil",
         label: "Timing",
         align: "center",
         render: (_, row) => {
-          const pill =
-            row.daysUntil === 0
-              ? TIMING_PILL.today
-              : row.daysUntil > 0
-              ? TIMING_PILL.upcoming
-              : TIMING_PILL.past;
           const label =
             row.daysUntil === 0
               ? "Today"
               : row.daysUntil > 0
               ? `In ${row.daysUntil} day${row.daysUntil === 1 ? "" : "s"}`
               : `${-row.daysUntil} day${row.daysUntil === -1 ? "" : "s"} ago`;
-          return (
-            <span
-              className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border whitespace-nowrap ${pill}`}
-            >
-              {label}
-            </span>
-          );
+          return <TablePill>{label}</TablePill>;
         },
       },
     ],
@@ -386,7 +354,7 @@ export default function HolidaysTab({
       </FilterPanel>
 
       {/* ============ TABLE ============ */}
-      <StyledTable
+      <GlobalTable
         columns={columns}
         data={filteredRows}
         loading={loading}

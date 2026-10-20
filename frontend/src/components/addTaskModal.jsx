@@ -32,7 +32,14 @@ const EMPTY_FORM = {
 
 const AddTaskModal = ({ isOpen, onClose, onSubmit, projectId, project: propProject }) => {
   const { userInfo } = useSelector((state) => state.user || {});
-  const currentUserId = userInfo?.user?._id || userInfo?._id || userInfo?.id;
+  const authUser = useSelector((state) => state.auth?.user);
+  const currentUserId =
+    userInfo?.user?._id ||
+    userInfo?._id ||
+    userInfo?.id ||
+    authUser?.user?._id ||
+    authUser?._id ||
+    authUser?.id;
 
   const reduxProject = useSelector((state) =>
     projectId

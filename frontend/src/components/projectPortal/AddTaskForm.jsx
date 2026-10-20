@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
@@ -27,7 +27,14 @@ const EMPTY_FORM = {
 
 export default function AddTaskForm({ projectId, project: propProject, onSubmit, onClose }) {
   const { userInfo } = useSelector((state) => state.user || {});
-  const currentUserId = userInfo?.user?._id || userInfo?._id || userInfo?.id;
+  const authUser = useSelector((state) => state.auth?.user);
+  const currentUserId =
+    userInfo?.user?._id ||
+    userInfo?._id ||
+    userInfo?.id ||
+    authUser?.user?._id ||
+    authUser?._id ||
+    authUser?.id;
 
   const reduxProject = useSelector((state) =>
     projectId

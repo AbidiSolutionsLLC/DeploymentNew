@@ -156,7 +156,6 @@ export default function Profile({ userId: propUserId }) {
           label="User Profile"
           title={user.name}
           description="View personal and professional details"
-          emblem={UserCircleIcon}
         />
 
         {/* Banner & Avatar Section */}

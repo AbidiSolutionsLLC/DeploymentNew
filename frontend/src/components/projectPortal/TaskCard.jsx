@@ -1,10 +1,9 @@
 import { FaCalendar, FaComment, FaClock, FaGripLines } from "react-icons/fa";
 import Pill, { TASK_STATUS_TONE, PRIORITY_TONE } from "./Pill";
-import Progress from "./Progress";
-import { formatDate, isOverdue, taskProgress, getAssigneeName } from "./helpers";
+import { shortDate, isOverdue, taskProgress, getAssigneeName } from "./helpers";
 
 /**
- * TaskCard — compact card for Kanban columns and list view.
+ * TaskCard — relaxed compact card for Kanban columns and list view.
  * Uses only design tokens; no hard-coded colors.
  * Supports native HTML5 drag-and-drop for Kanban board.
  */
@@ -20,6 +19,8 @@ export default function TaskCard({
   const overdue = isOverdue(task.dueDate, task.status);
   const dueSoon = task.dueDate && new Date(task.dueDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) && !overdue;
   const pct = taskProgress(task);
+  const assigneeName = getAssigneeName(task);
+  const hasAssignee = assigneeName && assigneeName !== "—";
 
   const handleDragStart = (e) => {
     e.dataTransfer.effectAllowed = "move";
@@ -35,71 +36,86 @@ export default function TaskCard({
   return (
     <div
       draggable
-      className={`p-3 rounded-lg shadow-sm border border-border-subtle cursor-pointer hover:shadow-md hover:bg-amber-50/50 transition-all duration-200 ${isDragging ? "rotate-2 shadow-lg scale-105 z-50 opacity-80" : ""}`}
+      className={`p-3.5 rounded-xl shadow-sm border border-border-subtle bg-surface cursor-pointer hover:shadow-md hover:border-border-accent hover:bg-card-hover/20 transition-all duration-200 select-none ${
+        isDragging ? "rotate-2 shadow-lg scale-105 z-50 opacity-80 ring-2 ring-brand" : ""
+      }`}
       onClick={onClick}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <FaGripLines className="text-muted cursor-grab flex-shrink-0" aria-hidden="true" />
-          <h4 className="font-medium text-sm leading-tight break-words text-heading flex-1 min-w-0">{task.title}</h4>
+      {/* Header: Title + Priority */}
+      <div className="flex items-start justify-between gap-2.5 mb-2">
+        <div className="flex items-start gap-2 flex-1 min-w-0">
+          <FaGripLines className="text-muted/50 cursor-grab flex-shrink-0 mt-1 hover:text-muted transition-colors" aria-hidden="true" />
+          <h4 className="font-semibold text-sm leading-snug break-words text-heading flex-1 min-w-0">
+            {task.title}
+          </h4>
         </div>
-        <Pill tone={PRIORITY_TONE[task.priority] || "neutral"}>{task.priority || "Medium"}</Pill>
+        <div className="shrink-0">
+          <Pill tone={PRIORITY_TONE[task.priority] || "neutral"}>{task.priority || "Medium"}</Pill>
+        </div>
       </div>
 
       {/* Description */}
-      {task.description && <p className="text-xs mb-2 line-clamp-2 text-muted">{task.description}</p>}
+      {task.description && (
+        <p className="text-xs mb-2.5 line-clamp-2 text-muted leading-relaxed">
+          {task.description}
+        </p>
+      )}
 
       {/* Due date alerts */}
       {overdue && (
-        <div className="flex items-center gap-1 mb-2 px-2 py-1 bg-danger-bg border border-danger-border text-danger rounded text-xs">
-          <FaClock className="w-3 h-3" /> Overdue
+        <div className="flex items-center gap-1.5 mb-2.5 px-2.5 py-1 bg-danger-bg border border-danger-border text-danger rounded-lg text-xs font-semibold">
+          <FaClock className="w-3 h-3 shrink-0" /> Overdue
         </div>
       )}
       {dueSoon && !overdue && (
-        <div className="flex items-center gap-1 mb-2 px-2 py-1 bg-warning-bg border border-warning-border text-warning rounded text-xs">
-          <FaClock className="w-3 h-3" /> Due Soon
+        <div className="flex items-center gap-1.5 mb-2.5 px-2.5 py-1 bg-warning-bg border border-warning-border text-warning rounded-lg text-xs font-semibold">
+          <FaClock className="w-3 h-3 shrink-0" /> Due Soon
         </div>
       )}
 
-      {/* Footer */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          {(() => {
-            const assigneeName = getAssigneeName(task);
-            if (assigneeName === "—") return null;
-            return (
-              <div className="flex items-center gap-1">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-50 border border-border-accent flex items-center justify-center flex-shrink-0">
-                  <span className="text-brand-text font-black text-xs">{assigneeName?.[0] || "U"}</span>
-                </div>
-                <span className="text-xs truncate max-w-[80px] text-muted">{assigneeName}</span>
+      {/* Footer: Assignee & Date on left, Comments & Progress on right */}
+      <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-border-subtle/80 mt-2">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          {hasAssignee && (
+            <div className="flex items-center gap-1.5 min-w-0" title={assigneeName}>
+              <div className="w-6 h-6 rounded-full bg-amber-50 border border-border-accent flex items-center justify-center flex-shrink-0 text-brand-text font-black text-xs">
+                {assigneeName[0] || "U"}
               </div>
-            );
-          })()}
+              <span className="text-xs truncate max-w-[95px] text-muted font-medium">{assigneeName}</span>
+            </div>
+          )}
+
           {task.dueDate && (
-            <div className="flex items-center">
-              <FaCalendar className="w-3 h-3 mr-1 flex-shrink-0 text-muted" />
-              <span className={`text-xs whitespace-nowrap ${overdue ? "text-danger" : "text-muted"}`}>
-                {formatDate(task.dueDate)}
-              </span>
+            <div className={`flex items-center text-xs font-medium shrink-0 ${overdue ? "text-danger font-semibold" : "text-muted"}`}>
+              <FaCalendar className="w-3 h-3 mr-1 shrink-0 opacity-70" />
+              <span>{shortDate(task.dueDate)}</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 shrink-0">
           {task.commentsCount > 0 && onOpenComments && (
             <button
-              onClick={(e) => { e.stopPropagation(); onOpenComments(); }}
-              className="p-1.5 rounded-lg text-muted hover:bg-card-hover hover:text-heading transition-colors"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenComments();
+              }}
+              className="p-1 rounded-md text-muted hover:bg-card-hover hover:text-heading transition-colors"
               aria-label="Comments"
             >
               <FaComment className="w-3.5 h-3.5" />
             </button>
           )}
-          <span className={`px-2 py-1 rounded-full text-[10px] font-black tabular-nums ${pct === 100 ? "bg-success-bg text-success" : "bg-card text-muted"}`}>
+          <span
+            className={`px-2 py-0.5 rounded-md text-[10px] font-black tabular-nums border ${
+              pct === 100
+                ? "bg-success-bg border-success-border text-success"
+                : "bg-card border-border-subtle text-muted"
+            }`}
+          >
             {pct}%
           </span>
         </div>

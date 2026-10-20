@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { EyeIcon } from "@heroicons/react/24/solid";
+import { EyeIcon } from "@heroicons/react/24/outline";
 import api from "../../axios";
 import { downloadFile } from "../../utils/downloadFile";
 import { validateDescription, getApiError } from "../../utils/validationUtils";
@@ -11,7 +11,15 @@ import FilterRow from "../../components/ui/FilterRow";
 import GlassInput from "../../components/ui/GlassInput";
 import ModernSelect from "../../components/ui/ModernSelect";
 import GlassButton from "../../components/ui/GlassButton";
-import StyledTable from "../../components/ui/StyledTable";
+import GlobalTable from "../../components/ui/GlobalTable";
+import {
+  TableDate,
+  TablePerson,
+  TablePriority,
+  TableStatus,
+  TableText,
+  TableTitle,
+} from "../../components/ui/TableCells";
 import Toast from "../../components/Toast";
 import AssignedTicketDetailsModal from "./AssignedTicketDetailsModal";
 import {
@@ -23,21 +31,6 @@ import {
   FaExclamationTriangle,
 } from "react-icons/fa";
 import { ClipboardDocumentCheckIcon } from "@heroicons/react/20/solid";
-import {
-  resolvePriorityPill,
-  priorityLabel,
-  statusBadgeClass,
-} from "../../components/StatusBadge";
-import { formatDisplayDate } from "../../utils/dateUtils";
-import { getInitials } from "../../utils/tableUtils";
-
-const statusLabel = (status) => {
-  const s = String(status || "").toLowerCase();
-  if (s === "open" || s === "opened") return "Open";
-  if (s === "closed") return "Closed";
-  if (s === "in progress") return "In Progress";
-  return status || "Unknown";
-};
 
 export default function AssignedTickets() {
   const [tickets, setTickets] = useState([]);
@@ -219,49 +212,33 @@ export default function AssignedTickets() {
       key: "ticketID",
       label: "Ticket ID",
       render: (_, ticket) => (
-        <span
-          className="font-mono text-xs font-bold text-amber-600 dark:text-amber-400"
+        <TableText
+          value={`#${ticket.ticketID}`}
           title={ticket.ticketID}
-        >
-          #{ticket.ticketID}
-        </span>
+          className="font-mono font-bold text-brand-text"
+        />
       ),
     },
     {
       key: "subject",
       label: "Subject",
       render: (_, ticket) => (
-        <div className="min-w-[180px] max-w-[240px]">
-          <p className="text-sm font-bold text-heading truncate leading-tight">{ticket.subject}</p>
-          <p className="text-[10px] text-muted mt-0.5 line-clamp-1">{ticket.description}</p>
-        </div>
+        <TableTitle
+          title={ticket.subject}
+          subtitle={ticket.description}
+          maxWidth="max-w-[240px]"
+        />
       ),
     },
     {
       key: "priority",
       label: "Priority",
-      render: (_, ticket) => (
-        <span
-          className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border whitespace-nowrap ${resolvePriorityPill(
-            ticket.priority
-          )}`}
-        >
-          {priorityLabel(ticket.priority)}
-        </span>
-      ),
+      render: (_, ticket) => <TablePriority value={ticket.priority} />,
     },
     {
       key: "status",
       label: "Status",
-      render: (_, ticket) => (
-        <span
-          className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border whitespace-nowrap ${statusBadgeClass(
-            ticket.status
-          )}`}
-        >
-          {statusLabel(ticket.status)}
-        </span>
-      ),
+      render: (_, ticket) => <TableStatus value={ticket.status} />,
     },
     {
       key: "assignedTo",
@@ -275,36 +252,19 @@ export default function AssignedTickets() {
           : "—";
         const avatarUrl = ticket.user?.avatar || ticket.closedBy?.avatar;
         return (
-          <div className="flex items-center gap-2 min-w-[140px]">
-            <div className="w-8 h-8 rounded-full bg-amber-100 text-brand-text border border-amber-200 flex items-center justify-center text-[11px] font-black flex-shrink-0 overflow-hidden">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                getInitials(name)
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-heading truncate leading-tight">
-                {name}
-              </p>
-              <p className="text-[10px] text-muted truncate">{ticket.emailAddress}</p>
-            </div>
-          </div>
+          <TablePerson
+            name={name}
+            subtitle={ticket.emailAddress}
+            avatar={avatarUrl}
+            className="min-w-[140px]"
+          />
         );
       },
     },
     {
       key: "createdAt",
       label: "Raised On",
-      render: (value) => (
-        <span className="text-xs font-medium text-main whitespace-nowrap">
-          {value ? formatDisplayDate(value) : "-"}
-        </span>
-      ),
+      render: (value) => <TableDate value={value} />,
     },
   ];
 
@@ -371,7 +331,6 @@ export default function AssignedTickets() {
              label="Technician workspace"
            title="Assigned Tickets"
            description="Track tickets assigned to you, update statuses and reply to requesters — all from one place."
-           emblem={ClipboardDocumentCheckIcon}
            chips={heroChips}
          />
 
@@ -446,7 +405,7 @@ export default function AssignedTickets() {
           </FilterRow>
         </FilterPanel>
 
-        <StyledTable
+        <GlobalTable
           columns={columns}
           data={filteredTickets}
           loading={loading}

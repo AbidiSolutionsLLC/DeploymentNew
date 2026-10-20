@@ -37,7 +37,47 @@ class ProjectService {
     const result = project.toObject ? project.toObject() : { ...project };
     const progress = progressMap.get(project._id.toString());
     if (progress !== undefined) result.progress = progress;
+    result.health = await this.getProjectHealth(result, companyId);
     return result;
+  }
+
+  async getProjectHealth(project, companyId) {
+    const tasks = await Task.find({ company: companyId, project: project._id })
+      .select("status dueDate completionPercent");
+    const activeTasks = tasks.filter((task) => task.status !== "Done");
+    const overdueTasks = activeTasks.filter((task) => task.dueDate && new Date(task.dueDate) < new Date());
+    const blockedTasks = tasks.filter((task) => task.status === "Blocked");
+    const overdueMilestones = (project.milestones || []).filter((milestone) =>
+      milestone.status !== "Completed" && milestone.dueDate && new Date(milestone.dueDate) < new Date()
+    );
+    const progress = typeof project.progress === "number" ? project.progress : 0;
+    const dueDate = project.dueDate ? new Date(project.dueDate) : null;
+    const daysRemaining = dueDate ? Math.ceil((dueDate - new Date()) / 86400000) : null;
+    const reasons = [];
+
+    if (blockedTasks.length) reasons.push(`${blockedTasks.length} blocked task${blockedTasks.length === 1 ? "" : "s"}`);
+    if (overdueTasks.length) reasons.push(`${overdueTasks.length} overdue task${overdueTasks.length === 1 ? "" : "s"}`);
+    if (overdueMilestones.length) reasons.push(`${overdueMilestones.length} overdue milestone${overdueMilestones.length === 1 ? "" : "s"}`);
+    if (daysRemaining !== null && daysRemaining < 0 && project.status !== "Completed") reasons.push("Project deadline passed");
+    if (!reasons.length && daysRemaining !== null && daysRemaining <= 7 && project.status !== "Completed") {
+      reasons.push("Deadline is within 7 days");
+    }
+
+    let status = "On Track";
+    let score = 100;
+    if (blockedTasks.length || overdueTasks.length || (daysRemaining !== null && daysRemaining < 0)) {
+      status = "At Risk";
+      score = 55;
+    } else if (daysRemaining !== null && daysRemaining <= 7 && progress < 75) {
+      status = "Watch";
+      score = 75;
+    }
+    if (project.status === "Completed") {
+      status = "On Track";
+      score = 100;
+    }
+
+    return { status, score, reasons, activeTasks: activeTasks.length };
   }
 
   mapAttachments(files) {
@@ -51,7 +91,7 @@ class ProjectService {
   }
 
   async createProject(user, companyId, data, files) {
-    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status, projectGroup } = data;
+    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status, projectGroup, milestones } = data;
     const owner = dataOwner || user.id || user._id;
     await this.validateCompanyReferences(companyId, { owner, team, department, projectGroup });
 
@@ -67,6 +107,7 @@ class ProjectService {
       isPublic,
       startDate,
       dueDate,
+      milestones,
       attachments: this.mapAttachments(files),
       company: companyId,
     });
@@ -90,6 +131,15 @@ class ProjectService {
         }).catch(err => console.error('Notification failed:', err));
       });
     }
+
+    require("./activityLogService").recordActivity({
+      actorId: owner,
+      action: `created project "${savedProject.title}"`,
+      entityType: "project",
+      entityId: savedProject._id,
+      companyId,
+      level: "success",
+    });
 
     return this.withProgress(savedProject, companyId);
   }
@@ -194,7 +244,7 @@ class ProjectService {
   }
 
   async updateProject(user, companyId, projectId, data, files) {
-    const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department, projectGroup } = data;
+    const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department, projectGroup, milestones } = data;
 
     const project = await Project.findOne({ _id: projectId, company: companyId });
     if (!project) throw new NotFoundError("Project");
@@ -232,6 +282,7 @@ class ProjectService {
     project.dueDate = dueDate !== undefined ? dueDate : project.dueDate;
     project.owner = owner !== undefined ? owner : project.owner;
     project.department = department !== undefined ? department : project.department;
+    project.milestones = milestones !== undefined ? milestones : project.milestones;
 
     if (projectGroup !== undefined) {
       const oldGroupId = project.projectGroup ? project.projectGroup.toString() : null;
@@ -279,6 +330,15 @@ class ProjectService {
         }).catch(err => console.error('Notification failed:', err));
       });
     }
+
+    require("./activityLogService").recordActivity({
+      actorId: user.id || user._id,
+      action: `updated project "${updatedProject.title}"`,
+      entityType: "project",
+      entityId: updatedProject._id,
+      companyId,
+      level: "info",
+    });
 
     return this.withProgress(updatedProject, companyId);
   }
@@ -367,11 +427,27 @@ class ProjectService {
       status: "Completed",
     });
 
-    const openTasks = await Task.countDocuments({
+    const taskFilter = {
       company: companyId,
       status: { $ne: "Done" },
       ...(isPrivileged ? {} : { team: userId }),
-    });
+    };
+
+    const [openTasks, highTasks, mediumTasks, lowTasks, overdueTasks] = await Promise.all([
+      Task.countDocuments(taskFilter),
+      Task.countDocuments({ ...taskFilter, priority: "High" }),
+      Task.countDocuments({ ...taskFilter, priority: "Medium" }),
+      Task.countDocuments({ ...taskFilter, priority: { $in: ["Low", null, undefined] } }),
+      Task.countDocuments({ ...taskFilter, dueDate: { $lt: new Date() } }),
+    ]);
+
+    const taskPriorities = {
+      high: highTasks,
+      medium: mediumTasks,
+      low: lowTasks,
+      overdue: overdueTasks,
+      total: openTasks,
+    };
 
     // "Project Groups" must count ProjectGroup documents (was: count of projects)
     const projectGroups = await ProjectGroup.countDocuments({ company: companyId });
@@ -489,7 +565,8 @@ class ProjectService {
       recentTasks,
       upcomingDeadlines,
       teamMembers,
-      timeTracking
+      timeTracking,
+      taskPriorities
     };
   }
 }

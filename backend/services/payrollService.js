@@ -1,7 +1,7 @@
 const Timesheet = require("../models/timesheetSchema");
 const User = require("../models/userSchema");
 const Payslip = require("../models/payslipSchema");
-const { sendEmail } = require('../config/emailConfig');
+const { sendNotificationEmail } = require('../utils/emailNotificationService');
 const emailTemplates = require('../utils/emailTemplates');
 const { generateActionUrl } = require('../utils/urlGenerator');
 const { moment } = require("../utils/dateUtils");
@@ -94,8 +94,10 @@ class PayrollService {
         
         superAdmins.forEach(admin => {
           if (admin.email) {
-            sendEmail({
-              to: admin.email,
+            sendNotificationEmail({
+              recipient: admin,
+              recipientEmail: admin.email,
+              category: 'payrollUpdates',
               subject: `Payroll Generated: ${payload.period}`,
               htmlContent: htmlContent,
               companyId: user.company

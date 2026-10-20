@@ -3,7 +3,7 @@ const User = require("../models/userSchema");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { containerClient } = require("../config/azureConfig");
 const { getSearchScope } = require("../utils/rbac");
-const { sendEmail } = require('../config/emailConfig');
+const { sendNotificationEmail } = require('../utils/emailNotificationService');
 const templates = require('../utils/emailTemplates');
 const { createNotification } = require('../utils/notificationService');
 const { generateActionUrl } = require('../utils/urlGenerator');
@@ -418,7 +418,8 @@ class TicketService {
     const User = require("../models/userSchema");
     const users = await User.find({ email: { $in: recipients }, company: ticket.company });
     const userRoleMap = {};
-    users.forEach(u => { userRoleMap[u.email] = u.role; });
+    const userByEmail = {};
+    users.forEach(u => { userRoleMap[u.email] = u.role; userByEmail[u.email] = u; });
 
     recipients.forEach(email => {
       const role = userRoleMap[email] || 'employee';
@@ -434,8 +435,14 @@ class TicketService {
         description: ticket.description,
         actionUrl
       });
-      sendEmail({ to: email, subject, htmlContent, companyId: ticket.company })
-        .catch(err => console.error(`❌ Failed to send background email to ${email}:`, err.message));
+      sendNotificationEmail({
+        recipient: userByEmail[email],
+        recipientEmail: email,
+        category: 'ticketUpdates',
+        subject,
+        htmlContent,
+        companyId: ticket.company
+      }).catch(err => console.error(`❌ Failed to send background email to ${email}:`, err.message));
     });
   }
 
@@ -456,8 +463,14 @@ class TicketService {
       latestUpdate: 'This ticket has been assigned to you.',
       actionUrl
     });
-    sendEmail({ to: email, subject, htmlContent, companyId: ticket.company })
-      .catch(err => console.error(`❌ Failed to send assignment email to ${email}:`, err.message));
+    sendNotificationEmail({
+      recipient: assignedUser,
+      recipientEmail: email,
+      category: 'ticketUpdates',
+      subject,
+      htmlContent,
+      companyId: ticket.company
+    }).catch(err => console.error(`❌ Failed to send assignment email to ${email}:`, err.message));
   }
 }
 

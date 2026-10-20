@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../../axios";
-import { FaEye, FaUsers, FaInbox } from "react-icons/fa";
+import { FaUsers, FaInbox } from "react-icons/fa";
+import { EyeIcon } from "@heroicons/react/24/outline";
 import {
   FaCalendarCheck,
   FaHourglassHalf,
@@ -14,10 +15,15 @@ import GlassButton from "../ui/GlassButton";
 import HistoryViewLeaveModal from "../HistoryViewLeaveModal";
 import StatCard from "../ui/StatCard";
 import FilterPanel from "../ui/FilterPanel";
-import StyledTable from "../ui/StyledTable";
+import GlobalTable from "../ui/GlobalTable";
+import {
+  TablePill,
+  TableStatus,
+  TableText,
+  TableTitle,
+} from "../ui/TableCells";
 import { getApiError } from "../../utils/validationUtils";
 import { formatDisplayDate, parseISOToLocalDate } from "../../utils/dateUtils";
-import { STATUS_VARIANTS, resolveStatusVariant } from "../StatusBadge";
 import {
   computeLeaveStats,
   getInitials,
@@ -187,9 +193,6 @@ export default function EmployeeLeaveHistoryTab({
   };
 
   /* ---------------- table ---------------- */
-  const getStatusColor = (status) =>
-    STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
-
   const columns = [
     {
       key: "__index",
@@ -203,72 +206,52 @@ export default function EmployeeLeaveHistoryTab({
       label: "Leave Period",
       sortable: true,
       render: (_, row) => (
-        <div className="min-w-[170px]">
-          <p className="text-xs font-bold text-heading whitespace-nowrap">
-            {fmtDate(row.startDate)} → {fmtDate(row.endDate)}
-          </p>
-          <p className="text-[10px] text-muted mt-0.5">
-            Applied {fmtDate(row.appliedAt || row.createdAt)}
-          </p>
-        </div>
+        <TableTitle
+          title={`${fmtDate(row.startDate)} → ${fmtDate(row.endDate)}`}
+          subtitle={`Applied ${fmtDate(row.appliedAt || row.createdAt)}`}
+          maxWidth="min-w-[170px]"
+        />
       ),
     },
     {
       key: "leaveType",
       label: "Leave Type",
       sortable: true,
-      render: (_, row) => (
-        <span className="lm-success-badge">
-          {row.leaveType}
-        </span>
-      ),
+      render: (_, row) => <TablePill>{row.leaveType}</TablePill>,
     },
     {
       key: "daysTaken",
       label: "Days",
       sortable: true,
       render: (_, row) => (
-        <span className="text-main font-bold whitespace-nowrap">{getDurationDays(row)}</span>
+        <TableText value={getDurationDays(row)} className="font-bold text-heading" />
       ),
     },
     {
       key: "status",
       label: "Status",
       sortable: true,
-      render: (_, row) => (
-        <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border ${getStatusColor(
-            row.status
-          )}`}
-        >
-          {row.status}
-        </span>
-      ),
+      render: (_, row) => <TableStatus value={row.status} />,
     },
     {
       key: "reason",
       label: "Reason",
       sortable: false,
       render: (_, row) => (
-        <div className="max-w-[220px] text-muted text-xs" title={row.reason || ""}>
-          <span
-            style={{
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {row.reason || "-"}
-          </span>
-        </div>
+        <TableText
+          value={row.reason}
+          muted
+          title={row.reason || ""}
+          clamp={2}
+          maxWidth="max-w-[220px]"
+        />
       ),
     },
   ];
 
   const actions = [
     {
-      icon: <FaEye size={12} />,
+      icon: <EyeIcon className="w-4 h-4" />,
       title: "View request",
       onClick: (row) => handleViewLeave(row),
     },
@@ -536,7 +519,7 @@ export default function EmployeeLeaveHistoryTab({
           </FilterPanel>
 
           {/* History table */}
-          <StyledTable
+          <GlobalTable
             columns={columns}
             data={filteredHistory.map((leave, index) => ({
               ...leave,

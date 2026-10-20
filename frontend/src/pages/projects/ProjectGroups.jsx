@@ -9,6 +9,9 @@ import {
   ArrowTopRightOnSquareIcon,
   FolderIcon,
 } from "@heroicons/react/24/outline";
+import { FaLayerGroup, FaFolderOpen, FaPlayCircle, FaChartLine } from "react-icons/fa";
+import PageContainer from "../../components/ui/PageContainer";
+import StatCard from "../../components/ui/StatCard";
 import {
   fetchProjectGroups,
   createProjectGroup,
@@ -19,9 +22,15 @@ import { toast } from "react-toastify";
 import { useConfirm } from "../../context/ConfirmContext";
 import GlassModal from "../../components/ui/GlassModal";
 import GlassButton from "../../components/ui/GlassButton";
-import PortalHeader from "../../components/projectPortal/PortalHeader";
+import PortalHero from "../../components/ui/PortalHero";
 import ToolbarSearch from "../../components/projectPortal/ToolbarSearch";
 import PortalTable from "../../components/projectPortal/PortalTable";
+import {
+  TableDate,
+  TableProgress,
+  TableText,
+  TableTitle,
+} from "../../components/ui/TableCells";
 import Progress from "../../components/projectPortal/Progress";
 import Pill, { PROJECT_STATUS_TONE } from "../../components/projectPortal/Pill";
 import { formatDate, shortDate, personName } from "../../components/projectPortal/helpers";
@@ -96,10 +105,10 @@ const ProjectGroups = () => {
       : 0;
 
   const stats = [
-    { label: "Total Portfolios", value: groups.length },
-    { label: "Projects Covered", value: totalProjects },
-    { label: "Active Projects", value: totalActiveProjects },
-    { label: "Avg Portfolio Progress", value: `${avgPortfolioProgress}%` },
+    { label: "Total Portfolios", value: groups.length, Icon: FaLayerGroup, sub: "Groups created", tone: "text-indigo-600 dark:text-indigo-400" },
+    { label: "Projects Covered", value: totalProjects, Icon: FaFolderOpen, sub: "Across all groups", tone: "text-sky-600 dark:text-sky-400" },
+    { label: "Active Projects", value: totalActiveProjects, Icon: FaPlayCircle, sub: "Currently active", tone: "text-emerald-600 dark:text-emerald-400" },
+    { label: "Avg Portfolio Progress", value: `${avgPortfolioProgress}%`, Icon: FaChartLine, sub: "Mean completion", tone: "text-amber-600 dark:text-amber-400" },
   ];
 
   const openCreateModal = () => {
@@ -195,20 +204,19 @@ const ProjectGroups = () => {
       key: "name",
       label: "Group",
       render: (v, row) => (
-        <div className="min-w-0 max-w-[220px]">
-          <div className="flex items-center gap-1.5">
-            <FolderIcon className="w-4 h-4 text-amber-500 shrink-0" />
-            <p className="text-sm font-semibold text-heading truncate">{v}</p>
-          </div>
-          <p className="text-[11px] text-muted truncate mt-0.5">{row.description || "—"}</p>
-        </div>
+        <TableTitle
+          title={v}
+          subtitle={row.description || undefined}
+          icon={<FolderIcon className="w-4 h-4 text-brand-text shrink-0" />}
+          maxWidth="max-w-[220px]"
+        />
       ),
     },
     {
       key: "owner",
       label: "Owner",
       hideBelow: "md",
-      render: (v) => <span className="text-sm text-main whitespace-nowrap">{personName(v)}</span>,
+      render: (v) => <TableText value={personName(v)} />,
     },
     {
       key: "projects",
@@ -218,49 +226,51 @@ const ProjectGroups = () => {
         const total = row.projectCount ?? (Array.isArray(row.projects) ? row.projects.length : 0);
         const active = row.activeProjectsCount ?? 0;
         return (
-          <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold tabular-nums">
-              {active} active
-            </span>
-            <span className="text-xs text-muted tabular-nums">/ {total} total</span>
-          </div>
+          <TableTitle title={`${active} active`} subtitle={`${total} total`} maxWidth="max-w-[120px]" />
         );
       },
     },
     {
       key: "progress",
       label: "Rollup Progress",
-      render: (_v, row) => {
-        const pct = row.progress ?? 0;
-        return (
-          <div className="flex items-center gap-2 min-w-[120px]">
-            <Progress value={pct} />
-            <span className="text-[10px] font-bold text-muted tabular-nums shrink-0">{pct}%</span>
-          </div>
-        );
-      },
+      render: (_v, row) => <TableProgress value={row.progress ?? 0} width="min-w-[120px]" />,
     },
     {
       key: "createdAt",
       label: "Created",
       hideBelow: "xl",
-      render: (v) => <span className="text-xs text-muted whitespace-nowrap">{formatDate(v)}</span>,
+      render: (v) => <TableDate value={v} tone="muted" />,
     },
   ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <PortalHeader
-        eyebrow="Portfolio workspace"
+    <PageContainer isCard={false}>
+      <div className="flex flex-col gap-4 w-full">
+      <PortalHero
+        label="Project groups overview"
         title="Project Groups"
-        subtitle="Organize related projects into focused delivery portfolios."
-        actions={
-          <>
-            <ToolbarSearch
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search groups..."
-            />
+        description="Organize related projects into focused delivery portfolios."
+      />
+
+      {/* Summary KPIs */}
+      <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
+        {stats.map((s) => (
+          <StatCard key={s.label} title={s.label} value={s.value} sub={s.sub} icon={s.Icon} tone={s.tone} />
+        ))}
+      </div>
+
+      {/* Toolbar card — search & actions live here, never in the hero */}
+      <div className="glass-card !p-3.5 sm:!p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <ToolbarSearch
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search groups..."
+          />
+          <div className="flex items-center gap-3 sm:ml-auto">
+            <span className="lm-filterbar__meta-text">
+              Showing <b>{rows.length}</b> of {groups.length}
+            </span>
             <button
               type="button"
               onClick={openCreateModal}
@@ -268,21 +278,9 @@ const ProjectGroups = () => {
             >
               <PlusIcon className="w-4 h-4 mr-2" /> New Group
             </button>
-          </>
-        }
-      >
-        {/* Summary strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {stats.map((s) => (
-            <div key={s.label} className="bg-card border border-border-subtle rounded-xl px-3 py-3 min-w-0">
-              <p className="text-xl sm:text-2xl font-black text-heading tabular-nums leading-none">{s.value}</p>
-              <p className="mt-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted truncate">
-                {s.label}
-              </p>
-            </div>
-          ))}
+          </div>
         </div>
-      </PortalHeader>
+      </div>
 
       <PortalTable
         columns={columns}
@@ -501,7 +499,7 @@ const ProjectGroups = () => {
                               setDetailGroup(null);
                               navigate(`/project/projectDetailed/${p._id}`);
                             }}
-                            className="p-1.5 rounded-lg text-muted hover:text-amber-500 hover:bg-card-hover transition-colors"
+                            className="p-1.5 rounded-lg text-muted hover:text-brand-text hover:bg-card-hover transition-colors"
                             title="Open project details"
                           >
                             <ArrowTopRightOnSquareIcon className="w-4 h-4" />
@@ -520,7 +518,8 @@ const ProjectGroups = () => {
           </div>
         </GlassModal>
       )}
-    </div>
+      </div>
+    </PageContainer>
   );
 };
 

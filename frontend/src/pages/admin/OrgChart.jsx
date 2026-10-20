@@ -799,7 +799,6 @@ const OrgChartPage = () => {
               label="Organization structure overview"
             title="Company Hierarchy"
             description="Interactive visualization of the organization's reporting structure and team relationships."
-            emblem={FaSitemap}
             chips={[
               { icon: FaUserTie, value: originalTotalNodes, label: " Total Members" },
               { pulse: true, value: totalNodes, label: " Visible" },
