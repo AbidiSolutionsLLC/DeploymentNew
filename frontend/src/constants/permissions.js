@@ -52,9 +52,18 @@ const PERMISSIONS = {
   'tickets:manage_status': ['superadmin', 'admin', 'manager'],
   
   // PROJECTS / TASKS
+  'projects:access':       ['superadmin', 'admin', 'manager', 'employee', 'hr', 'technician', 'globalreader'],
+  'projects:create':       ['superadmin', 'admin'],
+  'projects:edit':         ['superadmin', 'admin', 'manager'],
+  'projects:delete':       ['superadmin', 'admin'],
   'projects:read:own':     ['*'],
   'projects:read:all':     ['superadmin', 'admin', 'globalreader'],
   'projects:manage':       ['superadmin', 'admin', 'manager'],
+  'tasks:create':          ['superadmin', 'admin', 'manager'],
+  'tasks:edit:critical':   ['superadmin', 'admin', 'manager'],
+  'tasks:edit:uncritical': ['*'],
+  'tasks:delete':          ['superadmin', 'admin', 'manager'],
+  'project_groups:manage': ['superadmin', 'admin'],
   
   // DOCUMENTS / FILES
   'files:read:all':        ['superadmin', 'admin', 'globalreader'],

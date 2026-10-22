@@ -15,10 +15,10 @@ const taskSchema = new mongoose.Schema(
       type: String,
     },
     company: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Company',
-        required: true,
-        index: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Company',
+      required: true,
+      index: true,
     },
     project: {
       type: mongoose.Schema.Types.ObjectId,
@@ -63,8 +63,8 @@ const taskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Todo", "In Progress", "In Review", "Done", "Blocked"],
-      default: "Todo",
+      enum: ["Backlog", "Todo", "In Progress", "In Review", "Done"],
+      default: "Backlog",
     },
     comments: [
       {
@@ -73,6 +73,28 @@ const taskSchema = new mongoose.Schema(
           ref: "User",
         },
         text: String,
+        attachments: [
+          {
+            name: String,
+            originalname: String,
+            url: String,
+            blobName: String,
+            size: Number,
+            format: String,
+            mimetype: String,
+          },
+        ],
+        replyTo: {
+          commentId: {
+            type: mongoose.Schema.Types.ObjectId,
+          },
+          text: String,
+          userName: String,
+          user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+        },
         createdAt: {
           type: Date,
           default: Date.now,
@@ -93,6 +115,13 @@ const taskSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+taskSchema.pre("validate", function (next) {
+  if (this.status === "Blocked" || this.status === "blocked") {
+    this.status = "Backlog";
+  }
+  next();
+});
 
 taskSchema.pre("save", async function (next) {
   if (!this.taskID) {

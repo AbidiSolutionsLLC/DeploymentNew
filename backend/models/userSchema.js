@@ -90,6 +90,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    hasProjectPortalAccess: {
+      type: Boolean,
+      default: false,
+    },
     hourlyWage: {
       type: Number,
       default: 0,

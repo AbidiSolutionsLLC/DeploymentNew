@@ -8,12 +8,12 @@ exports.createTask = catchAsync(async (req, res) => {
 });
 
 exports.getAllTasks = catchAsync(async (req, res) => {
-  const result = await taskService.getAllTasks(req.companyId, req.query);
+  const result = await taskService.getAllTasks(req.user, req.companyId, req.query);
   res.status(200).json(ApiResponse.success(result.data, 'Tasks retrieved successfully', result.pagination));
 });
 
 exports.getTaskById = catchAsync(async (req, res) => {
-  const task = await taskService.getTaskById(req.companyId, req.params.id);
+  const task = await taskService.getTaskById(req.user, req.companyId, req.params.id);
   res.status(200).json(ApiResponse.success(task, 'Task retrieved successfully'));
 });
 
@@ -33,8 +33,8 @@ exports.deleteTask = catchAsync(async (req, res) => {
 });
 
 exports.addComment = catchAsync(async (req, res) => {
-  const task = await taskService.addComment(req.user, req.companyId, req.params.id, req.body.text || req.body.content);
-  res.status(200).json(ApiResponse.success(task, 'Comment added successfully'));
+  const comment = await taskService.addComment(req.user, req.companyId, req.params.id, req.body, req.files);
+  res.status(200).json(ApiResponse.success(comment, 'Comment added successfully'));
 });
 
 exports.getTaskComments = catchAsync(async (req, res) => {
@@ -42,8 +42,13 @@ exports.getTaskComments = catchAsync(async (req, res) => {
   res.status(200).json(ApiResponse.success(comments, "Task comments retrieved successfully"));
 });
 
+exports.deleteComment = catchAsync(async (req, res) => {
+  const result = await taskService.deleteComment(req.user, req.companyId, req.params.id, req.params.commentId);
+  res.status(200).json(ApiResponse.success(result, 'Comment deleted successfully'));
+});
+
 exports.getProjectTasks = catchAsync(async (req, res) => {
-  const tasks = await taskService.getProjectTasks(req.companyId, req.params.projectId);
+  const tasks = await taskService.getProjectTasks(req.user, req.companyId, req.params.projectId);
   res.status(200).json(ApiResponse.success(tasks, 'Project tasks retrieved successfully'));
 });
 

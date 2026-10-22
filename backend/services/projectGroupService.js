@@ -50,6 +50,10 @@ class ProjectGroupService {
   }
 
   async createGroup(user, companyId, data) {
+    const role = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    if (role !== 'admin' && role !== 'superadmin') {
+      throw new ForbiddenError('Only Super Admins and Admins can create project groups');
+    }
     const owner = user.id || user._id;
     await this.validateProjects(companyId, data.projects);
     const { name, description, projects } = data;
@@ -117,7 +121,8 @@ class ProjectGroupService {
     if (!group) throw new NotFoundError('ProjectGroup');
     
     const role = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    if (group.owner.toString() !== (user.id || user._id).toString() && role !== 'admin' && role !== 'superadmin') {
+    const isOwner = group.owner?.toString() === (user.id || user._id)?.toString();
+    if (role !== 'admin' && role !== 'superadmin' && !isOwner) {
       throw new ForbiddenError('Not authorized to update this group');
     }
 
@@ -156,7 +161,7 @@ class ProjectGroupService {
     if (!group) throw new NotFoundError('ProjectGroup');
     
     const role = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    if (group.owner.toString() !== (user.id || user._id).toString() && role !== 'admin' && role !== 'superadmin') {
+    if (role !== 'admin' && role !== 'superadmin') {
       throw new ForbiddenError('Not authorized to delete this group');
     }
 

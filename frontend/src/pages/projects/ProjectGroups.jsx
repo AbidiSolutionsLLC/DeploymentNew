@@ -20,6 +20,7 @@ import {
 } from "../../store/projectGroupSlice";
 import { toast } from "react-toastify";
 import { useConfirm } from "../../context/ConfirmContext";
+import usePermission from "../../hooks/usePermission";
 import GlassModal from "../../components/ui/GlassModal";
 import GlassButton from "../../components/ui/GlassButton";
 import PortalHero from "../../components/ui/PortalHero";
@@ -111,6 +112,8 @@ const ProjectGroups = () => {
   const [allProjects, setAllProjects] = useState([]);
 
   const confirm = useConfirm();
+  const { can } = usePermission();
+  const canManageGroups = can("project_groups:manage");
 
   useEffect(() => {
     dispatch(fetchProjectGroups());
@@ -428,13 +431,15 @@ const ProjectGroups = () => {
           </>
         }
         actions={
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
-          >
-            <PlusIcon className="w-4 h-4 mr-2" /> New Group
-          </button>
+          canManageGroups ? (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
+            >
+              <PlusIcon className="w-4 h-4 mr-2" /> New Group
+            </button>
+          ) : null
         }
       />
 
@@ -447,8 +452,12 @@ const ProjectGroups = () => {
         onRowClick={(row) => setDetailGroup(row)}
         actions={[
           { title: "View details", icon: EyeIcon, onClick: (row) => setDetailGroup(row) },
-          { title: "Edit group", icon: PencilIcon, onClick: (row) => openEditModal(row) },
-          { title: "Delete group", icon: TrashIcon, danger: true, onClick: (row) => handleDelete(row._id) },
+          ...(canManageGroups
+            ? [
+                { title: "Edit group", icon: PencilIcon, onClick: (row) => openEditModal(row) },
+                { title: "Delete group", icon: TrashIcon, danger: true, onClick: (row) => handleDelete(row._id) },
+              ]
+            : []),
         ]}
         rowsPerPage={10}
         countLabel="groups"
@@ -564,6 +573,7 @@ const ProjectGroups = () => {
                 <GlassButton variant="secondary" onClick={() => setDetailGroup(null)}>
                   Close
                 </GlassButton>
+                {canManageGroups && (
                 <GlassButton
                   variant="primary"
                   onClick={() => {
@@ -574,6 +584,7 @@ const ProjectGroups = () => {
                 >
                   <PencilIcon className="w-4 h-4 mr-1.5 inline" /> Edit Group
                 </GlassButton>
+              )}
               </div>
             </div>
           }

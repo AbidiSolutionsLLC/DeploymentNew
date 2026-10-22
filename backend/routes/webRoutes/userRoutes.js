@@ -22,7 +22,7 @@ const {
   updateTodoSchema,
 } = require("../../JoiSchema/TodoJoiSchema");
 const validationMiddleware = require("../../middlewares/validationMiddleware");
-const { isLoggedIn } = require("../../middlewares/authMiddleware"); // <--- IMPORT THIS
+const { isLoggedIn, restrictTo } = require("../../middlewares/authMiddleware");
 
 // User Routes
 router
@@ -47,6 +47,7 @@ router.route("/search").get(isLoggedIn, userController.getUserById);
 router.put('/profile', isLoggedIn, userController.updateMyProfile);
 router.put('/settings', isLoggedIn, validationMiddleware(userSettingsSchema), userController.updateMySettings);
 router.get('/settings/notifications', isLoggedIn, userController.getNotificationSettings);
+router.put('/project-portal-access', isLoggedIn, restrictTo('Super Admin', 'Admin'), userController.updateProjectPortalAccess);
 
 router.get("/:id/summary", isLoggedIn, userController.getUserSummary);
 

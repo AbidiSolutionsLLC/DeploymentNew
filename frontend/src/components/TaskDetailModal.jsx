@@ -85,7 +85,7 @@ const TaskDetailModal = ({ task, onClose }) => {
           </div>
           <div className="flex-1 flex flex-col items-center p-3 bg-card rounded-xl border border-border-subtle">
             <span className="text-[9px] font-black text-muted mb-1 uppercase tracking-widest">Status</span>
-            <TableStatus value={task?.status || "Todo"} />
+            <TableStatus value={task?.status || "Backlog"} />
           </div>
         </div>
 

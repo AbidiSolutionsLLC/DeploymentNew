@@ -342,7 +342,7 @@ class UserService {
             "name", "email", "timeZone", "reportsTo", "empID", "role", "phoneNumber", 
             "designation", "department", "branch", "empType", "joiningDate", "endDate", "about", 
             "salary", "hourlyWage", "education", "address", "experience", "DOB", "maritalStatus", 
-            "emergencyContact", "addedby", "empStatus", "avalaibleLeaves", "isTechnician"
+            "emergencyContact", "addedby", "empStatus", "avalaibleLeaves", "isTechnician", "hasProjectPortalAccess"
         ];
     }
 
@@ -640,6 +640,43 @@ class UserService {
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updates, { new: true });
+    if (!updatedUser) throw new NotFoundError("User not found");
+    return updatedUser;
+  }
+
+  async updateProjectPortalAccess(actor, { userIds, userId, hasProjectPortalAccess }) {
+    const actorRole = (actor.role || '').replace(/\s+/g, '').toLowerCase();
+    if (actorRole !== 'superadmin' && actorRole !== 'admin') {
+      throw new ForbiddenError("Only Super Admins and Admins can assign Project Portal access.");
+    }
+
+    const companyId = actor.company;
+
+    if (Array.isArray(userIds)) {
+      const stringIds = userIds.map(String);
+      await User.updateMany(
+        { company: companyId, _id: { $in: stringIds } },
+        { $set: { hasProjectPortalAccess: true } }
+      );
+      await User.updateMany(
+        {
+          company: companyId,
+          _id: { $nin: stringIds },
+          role: { $nin: ['Super Admin', 'Admin'] }
+        },
+        { $set: { hasProjectPortalAccess: false } }
+      );
+    } else if (userId !== undefined && hasProjectPortalAccess !== undefined) {
+      const targetUser = await User.findOne({ _id: userId, company: companyId });
+      if (!targetUser) throw new NotFoundError("User not found");
+      targetUser.hasProjectPortalAccess = Boolean(hasProjectPortalAccess);
+      await targetUser.save();
+    }
+
+    return User.find({ company: companyId })
+      .select('_id name email role avatar department designation hasProjectPortalAccess')
+      .populate('department', 'name')
+      .lean();
     if (!updatedUser) throw new NotFoundError("User not found");
     return updatedUser;
   }

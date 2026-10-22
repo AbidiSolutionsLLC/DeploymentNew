@@ -7,6 +7,14 @@ const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/Exp
 const { createNotification } = require('../utils/notificationService');
 
 class ProjectService {
+  ensureProjectPortalAccess(user) {
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    if (userRole === 'superadmin' || userRole === 'admin') return true;
+    if (!user.hasProjectPortalAccess) {
+      throw new ForbiddenError("You do not have access to the Project Portal.");
+    }
+  }
+
   async validateCompanyReferences(companyId, { owner, team, department, projectGroup } = {}) {
     const userIds = [owner, ...(team || [])].filter(Boolean);
     if (userIds.length) {
@@ -91,6 +99,11 @@ class ProjectService {
   }
 
   async createProject(user, companyId, data, files) {
+    this.ensureProjectPortalAccess(user);
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    if (userRole !== 'superadmin' && userRole !== 'admin') {
+      throw new ForbiddenError("Only Super Admins and Admins can create new projects.");
+    }
     const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status, projectGroup, milestones } = data;
     const owner = dataOwner || user.id || user._id;
     await this.validateCompanyReferences(companyId, { owner, team, department, projectGroup });
@@ -144,36 +157,76 @@ class ProjectService {
     return this.withProgress(savedProject, companyId);
   }
 
-  // Progress rule (single definition, used everywhere):
-  // progress = average completionPercent across the project's tasks.
-  // Projects without tasks get NO entry, so the UI can show its documented status-based estimate.
+  // Progress rule:
+  // - Completed project = 100%
+  // - Average task progress across tasks (Done tasks count as 100%, otherwise completionPercent)
+  // - Projects without tasks = 0%
   async getProjectProgressMap(projectIds, companyId) {
     const map = new Map();
     if (!projectIds || projectIds.length === 0) return map;
 
-    const tasks = await Task.find({ company: companyId, project: { $in: projectIds } })
-      .select("project completionPercent");
+    const [tasks, projects] = await Promise.all([
+      Task.find({ company: companyId, project: { $in: projectIds } })
+        .select("project completionPercent status"),
+      Project.find({ _id: { $in: projectIds }, company: companyId })
+        .select("_id status")
+    ]);
+
+    const projectStatusMap = new Map();
+    projects.forEach((p) => projectStatusMap.set(p._id.toString(), p.status));
 
     const sums = new Map();
     const counts = new Map();
+
     tasks.forEach((t) => {
       if (!t.project) return;
       const key = t.project.toString();
-      sums.set(key, (sums.get(key) || 0) + (t.completionPercent || 0));
+      const taskPct = t.status === "Done" ? 100 : (typeof t.completionPercent === "number" ? t.completionPercent : 0);
+      sums.set(key, (sums.get(key) || 0) + taskPct);
       counts.set(key, (counts.get(key) || 0) + 1);
     });
-    sums.forEach((sum, key) => map.set(key, Math.round(sum / counts.get(key))));
+
+    projectIds.forEach((pid) => {
+      const key = pid.toString();
+      const pStatus = projectStatusMap.get(key);
+      if (pStatus === "Completed") {
+        map.set(key, 100);
+      } else if (counts.has(key) && counts.get(key) > 0) {
+        map.set(key, Math.round(sums.get(key) / counts.get(key)));
+      } else {
+        map.set(key, 0);
+      }
+    });
+
     return map;
   }
 
-  async getAllProjects(user, companyId, query) {
+  async getAllProjects(user, companyId, query = {}) {
+    this.ensureProjectPortalAccess(user);
     const { page = 1, limit = 20, search = '', status, myProjects, projectGroup } = query;
     const skip = (page - 1) * limit;
 
     const userId = user.id || user._id;
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isGlobalReader = userRole === 'globalreader';
+    const isManager = userRole === 'manager';
+
+    let roleFilter = {};
+    if (isSuperAdmin || isAdmin || isGlobalReader) {
+      if (myProjects === 'true') {
+        roleFilter = { $or: [{ owner: userId }, { team: userId }] };
+      }
+    } else if (isManager) {
+      roleFilter = { $or: [{ owner: userId }, { team: userId }] };
+    } else {
+      roleFilter = { team: userId };
+    }
 
     const filter = {
       company: companyId,
+      ...roleFilter,
       ...(status && { status }),
       ...(projectGroup && { projectGroup }),
       ...(search && {
@@ -181,9 +234,6 @@ class ProjectService {
           { title: { $regex: search, $options: 'i' } },
           { description: { $regex: search, $options: 'i' } }
         ]
-      }),
-      ...(myProjects === 'true' && {
-        $or: [{ owner: userId }, { team: userId }],
       })
     };
 
@@ -220,6 +270,7 @@ class ProjectService {
   }
 
   async getProjectById(user, companyId, projectId) {
+    this.ensureProjectPortalAccess(user);
     const project = await Project.findOne({ _id: projectId, company: companyId })
       .populate("team", "name email avatar")
       .populate("owner", "name email avatar")
@@ -230,20 +281,21 @@ class ProjectService {
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
-    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isGlobalReader = userRole === 'globalreader';
     const isOwner = project.owner && project.owner._id ? project.owner._id.toString() === (user.id || user._id).toString() : project.owner?.toString() === (user.id || user._id).toString();
     const isTeamMember = project.team.some(member => {
         return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
     });
     
-    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isTeamMember) {
-      throw new ForbiddenError("You do not have permission to access or modify this project.");
+    if (!isSuperAdmin && !isAdmin && !isGlobalReader && !isOwner && !isTeamMember) {
+      throw new ForbiddenError("You do not have permission to access this project.");
     }
 
     return this.withProgress(project, companyId);
   }
 
   async updateProject(user, companyId, projectId, data, files) {
+    this.ensureProjectPortalAccess(user);
     const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department, projectGroup, milestones } = data;
 
     const project = await Project.findOne({ _id: projectId, company: companyId });
@@ -258,14 +310,10 @@ class ProjectService {
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
-    const isManagerTech = userRole === 'manager' && user.isTechnician;
     const isOwner = project.owner && project.owner._id ? project.owner._id.toString() === (user.id || user._id).toString() : project.owner?.toString() === (user.id || user._id).toString();
-    const isTeamMember = project.team.some(member => {
-        return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
-    });
     
-    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isTeamMember) {
-      throw new ForbiddenError("You do not have permission to access or modify this project.");
+    if (!isSuperAdmin && !isAdmin && !isOwner) {
+      throw new ForbiddenError("Only project managers or administrators can modify project settings.");
     }
 
     const previousTeam = project.team.map(id => id.toString());
@@ -344,20 +392,16 @@ class ProjectService {
   }
 
   async deleteProject(user, companyId, projectId) {
+    this.ensureProjectPortalAccess(user);
     const project = await Project.findOne({ _id: projectId, company: companyId });
     if (!project) throw new NotFoundError("Project");
 
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
-    const isManagerTech = userRole === 'manager' && user.isTechnician;
-    const isOwner = project.owner && project.owner._id ? project.owner._id.toString() === (user.id || user._id).toString() : project.owner?.toString() === (user.id || user._id).toString();
-    const isTeamMember = project.team.some(member => {
-        return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
-    });
     
-    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isOwner && !isTeamMember) {
-      throw new ForbiddenError("You do not have permission to access or modify this project.");
+    if (!isSuperAdmin && !isAdmin) {
+      throw new ForbiddenError("Only Super Admins and Admins can delete projects.");
     }
 
     const tasksCount = await Task.countDocuments({ project: project._id, company: companyId });
@@ -403,17 +447,22 @@ class ProjectService {
   }
 
   async getProjectDashboard(user, companyId) {
+    this.ensureProjectPortalAccess(user);
     const userId = user.id || user._id;
 
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
-    const isManagerTech = userRole === 'manager' && user.isTechnician;
-    const isPrivileged = isSuperAdmin || isAdmin || isManagerTech;
+    const isManager = userRole === 'manager';
 
-    const projectScope = isPrivileged
-      ? { company: companyId }
-      : { company: companyId, $or: [{ owner: userId }, { team: userId }] };
+    let projectScope;
+    if (isSuperAdmin || isAdmin) {
+      projectScope = { company: companyId };
+    } else if (isManager) {
+      projectScope = { company: companyId, $or: [{ owner: userId }, { team: userId }] };
+    } else {
+      projectScope = { company: companyId, team: userId };
+    }
 
     const activeStatusQuery = { $in: ["Active", "Planning", "In Progress", "Open"] };
 
@@ -427,11 +476,20 @@ class ProjectService {
       status: "Completed",
     });
 
-    const taskFilter = {
-      company: companyId,
-      status: { $ne: "Done" },
-      ...(isPrivileged ? {} : { team: userId }),
-    };
+    let taskFilter;
+    if (isSuperAdmin || isAdmin) {
+      taskFilter = { company: companyId, status: { $ne: "Done" } };
+    } else if (isManager) {
+      const managerProjects = await Project.find({ company: companyId, $or: [{ owner: userId }, { team: userId }] }).select('_id');
+      const managerProjectIds = managerProjects.map(p => p._id);
+      taskFilter = {
+        company: companyId,
+        status: { $ne: "Done" },
+        $or: [{ project: { $in: managerProjectIds } }, { team: userId }]
+      };
+    } else {
+      taskFilter = { company: companyId, team: userId, status: { $ne: "Done" } };
+    }
 
     const [openTasks, highTasks, mediumTasks, lowTasks, overdueTasks] = await Promise.all([
       Task.countDocuments(taskFilter),
@@ -449,8 +507,14 @@ class ProjectService {
       total: openTasks,
     };
 
-    // "Project Groups" must count ProjectGroup documents (was: count of projects)
-    const projectGroups = await ProjectGroup.countDocuments({ company: companyId });
+    let projectGroups = 0;
+    if (isSuperAdmin || isAdmin) {
+      projectGroups = await ProjectGroup.countDocuments({ company: companyId });
+    } else {
+      const scopedProjects = await Project.find(projectScope).select('projectGroup');
+      const groupIds = [...new Set(scopedProjects.map(p => p.projectGroup).filter(Boolean).map(String))];
+      projectGroups = groupIds.length;
+    }
 
     // Fetch lists for dynamic dashboard mapping
     const recentProjects = await Project.find({

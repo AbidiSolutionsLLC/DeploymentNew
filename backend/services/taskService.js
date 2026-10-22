@@ -1,10 +1,18 @@
 const Task = require("../models/taskSchema");
 const Project = require("../models/projectSchema");
 const User = require("../models/userSchema");
-const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
+const { NotFoundError, BadRequestError, ForbiddenError, UnauthorizedError } = require("../utils/ExpressError");
 const { createNotification } = require('../utils/notificationService');
 
 class TaskService {
+  ensureProjectPortalAccess(user) {
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    if (userRole === 'superadmin' || userRole === 'admin') return true;
+    if (!user.hasProjectPortalAccess) {
+      throw new ForbiddenError("You do not have access to the Project Portal.");
+    }
+  }
+
   async validateCompanyTeam(companyId, team) {
     if (!team || !team.length) return;
     const count = await User.countDocuments({ _id: { $in: team }, company: companyId });
@@ -59,11 +67,26 @@ class TaskService {
   }
 
   async createTask(user, companyId, data, files) {
-    const { title, description, project, team, priority, status, dueDate, duration, completionPercent, workedHours, dependencies } = data;
+    this.ensureProjectPortalAccess(user);
     const userId = user?.id || user?._id;
+    const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
+
+    if (userRole !== 'superadmin' && userRole !== 'admin' && userRole !== 'manager') {
+      throw new ForbiddenError("Employees cannot create new tasks.");
+    }
+
+    const { title, description, project, team, priority, status, dueDate, duration, completionPercent, workedHours, dependencies } = data;
 
     const projectExists = await Project.findOne({ _id: project, company: companyId });
     if (!projectExists) throw new NotFoundError("Project");
+
+    if (userRole === 'manager') {
+      const isOwner = projectExists.owner && projectExists.owner.toString() === userId.toString();
+      const isTeam = projectExists.team && projectExists.team.some(m => m.toString() === userId.toString());
+      if (!isOwner && !isTeam) {
+        throw new ForbiddenError("Managers can only create tasks in projects they manage or belong to.");
+      }
+    }
     await this.validateCompanyTeam(companyId, team);
     const validDependencies = await this.validateDependencies(companyId, project, null, dependencies);
 
@@ -115,16 +138,42 @@ class TaskService {
     return savedTask;
   }
 
-  async getAllTasks(companyId, query) {
+  async getAllTasks(user, companyId, query = {}) {
+    this.ensureProjectPortalAccess(user);
     const { page = 1, limit = 20, search = '', project, status, priority, assignee } = query;
     const skip = (page - 1) * limit;
 
+    const userId = user.id || user._id;
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isGlobalReader = userRole === 'globalreader';
+    const isManager = userRole === 'manager';
+
+    let roleFilter = {};
+    if (isSuperAdmin || isAdmin || isGlobalReader) {
+      if (assignee) roleFilter = { team: assignee };
+    } else if (isManager) {
+      const managerProjects = await Project.find({ company: companyId, $or: [{ owner: userId }, { team: userId }] }).select('_id');
+      const managerProjectIds = managerProjects.map(p => p._id);
+      roleFilter = {
+        $or: [
+          { project: { $in: managerProjectIds } },
+          { team: userId },
+          { createdBy: userId }
+        ]
+      };
+      if (assignee) roleFilter = { ...roleFilter, team: assignee };
+    } else {
+      roleFilter = { team: userId };
+    }
+
     const filter = {
       company: companyId,
+      ...roleFilter,
       ...(project && { project }),
       ...(status && { status }),
       ...(priority && { priority }),
-      ...(assignee && { team: assignee }),
       ...(search && {
         $or: [
           { title: { $regex: search, $options: 'i' } },
@@ -160,7 +209,8 @@ class TaskService {
       .populate("team", "name email avatar")
       .populate("project", "title")
       .populate("dependencies", "title status")
-      .populate("comments.user", "name email avatar");
+      .populate("comments.user", "name email avatar")
+      .populate("comments.replyTo.user", "name email avatar");
 
     if (!task) throw new NotFoundError("Task");
     return task;
@@ -172,29 +222,57 @@ class TaskService {
       completionPercent,       workedHours, status, dependencies
     } = data;
 
+    this.ensureProjectPortalAccess(user);
     const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
-    await this.validateCompanyTeam(companyId, team);
-    const validDependencies = dependencies !== undefined
-      ? await this.validateDependencies(companyId, task.project, taskId, dependencies)
-      : task.dependencies;
 
+    const userId = user.id || user._id;
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
-    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isManager = userRole === 'manager';
     const isAssignee = task.team && task.team.some(member => {
-        return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
+        const memberId = (member?._id || member || '').toString();
+        return (user._id && memberId === user._id.toString()) || (user.id && memberId === user.id.toString());
     });
-    
-    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isAssignee) {
-      const Project = require('../models/projectSchema');
-      const projectDoc = await Project.findOne({ _id: task.project, company: companyId }).lean();
-      const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === (user.id || user._id).toString();
-      if (!isProjectOwner) {
-         throw new ForbiddenError("You do not have permission to access or modify this task.");
+
+    const Project = require('../models/projectSchema');
+    const projectQuery = Project.findOne({ _id: task.project, company: companyId });
+    const projectDoc = projectQuery && typeof projectQuery.lean === 'function' ? await projectQuery.lean() : await projectQuery;
+    const isProjectOwner = projectDoc && projectDoc.owner && (
+        (user._id && projectDoc.owner.toString() === user._id.toString()) ||
+        (user.id && projectDoc.owner.toString() === user.id.toString())
+    );
+
+    if (!isSuperAdmin && !isAdmin) {
+      if (isManager) {
+        if (!isProjectOwner && !isAssignee) {
+          throw new ForbiddenError("You do not have permission to modify this task.");
+        }
+      } else {
+        // Employee or other role
+        if (!isAssignee) {
+          throw new ForbiddenError("You can only modify tasks assigned to you.");
+        }
+        // Critical fields check: Employee cannot alter team, priority, dueDate, duration, dependencies, project
+        const teamChanged = team !== undefined && JSON.stringify(team.map(String)) !== JSON.stringify(task.team.map(String));
+        const priorityChanged = priority !== undefined && priority !== task.priority;
+        const dueChanged = dueDate !== undefined && (new Date(dueDate).getTime() !== (task.dueDate ? new Date(task.dueDate).getTime() : null));
+        const durationChanged = duration !== undefined && Number(duration) !== Number(task.duration);
+        const depChanged = dependencies !== undefined && JSON.stringify((dependencies || []).map(String)) !== JSON.stringify((task.dependencies || []).map(String));
+
+        if (teamChanged || priorityChanged || dueChanged || durationChanged || depChanged) {
+          throw new ForbiddenError("Employees can only update task status, progress percentage, worked hours, and description.");
+        }
       }
     }
+
+    if (team !== undefined) {
+      await this.validateCompanyTeam(companyId, team);
+    }
+    const validDependencies = dependencies !== undefined
+      ? await this.validateDependencies(companyId, task.project, taskId, dependencies)
+      : task.dependencies;
 
     const previousTeam = task.team.map(id => id.toString());
     
@@ -248,23 +326,25 @@ class TaskService {
   }
 
   async updateTaskStatus(user, companyId, taskId, status) {
+    this.ensureProjectPortalAccess(user);
     const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
 
+    const userId = user.id || user._id;
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
-    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isManager = userRole === 'manager';
     const isAssignee = task.team && task.team.some(member => {
-        return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
+        return member && member._id ? member._id.toString() === userId.toString() : member.toString() === userId.toString();
     });
     
-    if (!isSuperAdmin && !isAdmin && !isManagerTech && !isAssignee) {
+    if (!isSuperAdmin && !isAdmin && !isAssignee) {
       const Project = require('../models/projectSchema');
       const projectDoc = await Project.findOne({ _id: task.project, company: companyId }).lean();
-      const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === (user.id || user._id).toString();
+      const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === userId.toString();
       if (!isProjectOwner) {
-         throw new ForbiddenError("You do not have permission to access or modify this task.");
+         throw new ForbiddenError("You do not have permission to update status for this task.");
       }
     }
 
@@ -284,20 +364,25 @@ class TaskService {
   }
 
   async deleteTask(user, companyId, taskId) {
+    this.ensureProjectPortalAccess(user);
     const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
 
+    const userId = user.id || user._id;
     const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
     const isSuperAdmin = userRole === 'superadmin';
     const isAdmin = userRole === 'admin';
-    const isManagerTech = userRole === 'manager' && user.isTechnician;
+    const isManager = userRole === 'manager';
     
-    if (!isSuperAdmin && !isAdmin && !isManagerTech) {
+    if (!isSuperAdmin && !isAdmin) {
+      if (!isManager) {
+        throw new ForbiddenError("Employees cannot delete tasks.");
+      }
       const Project = require('../models/projectSchema');
       const projectDoc = await Project.findOne({ _id: task.project, company: companyId }).lean();
-      const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === (user.id || user._id).toString();
+      const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === userId.toString();
       if (!isProjectOwner) {
-         throw new ForbiddenError("You do not have permission to delete this task.");
+         throw new ForbiddenError("Only project managers or administrators can delete tasks.");
       }
     }
 
@@ -325,15 +410,66 @@ class TaskService {
     await task.deleteOne();
   }
 
-  async addComment(user, companyId, taskId, text) {
+  async addComment(user, companyId, taskId, data, files = []) {
     const userId = user.id || user._id;
 
     const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
 
-    task.comments.push({ user: userId, text });
+    // Extract text / content
+    let text = "";
+    if (typeof data === "string") {
+      text = data;
+    } else if (data) {
+      text = data.text || data.content || "";
+    }
+
+    // Parse replyTo if provided
+    let replyTo = null;
+    if (data?.replyTo) {
+      try {
+        replyTo = typeof data.replyTo === "string" ? JSON.parse(data.replyTo) : data.replyTo;
+      } catch (err) {
+        replyTo = null;
+      }
+    }
+
+    // Process uploaded attachments
+    const attachments = (files || []).map((file) => ({
+      name: file.originalname || file.name,
+      originalname: file.originalname || file.name,
+      url: file.url || file.path,
+      blobName: file.blobName || file.filename,
+      size: file.size,
+      format: file.mimetype || file.format,
+      mimetype: file.mimetype,
+    }));
+
+    if (!text.trim() && attachments.length === 0) {
+      throw new BadRequestError("Comment text or attachment is required");
+    }
+
+    const commentDoc = {
+      user: userId,
+      text: text.trim(),
+      attachments,
+      createdAt: new Date(),
+    };
+
+    if (replyTo && (replyTo.commentId || replyTo._id)) {
+      commentDoc.replyTo = {
+        commentId: replyTo.commentId || replyTo._id,
+        text: replyTo.text || replyTo.content || "",
+        userName: replyTo.userName || replyTo.author || replyTo.user?.name || "User",
+        user: replyTo.userId || replyTo.user?._id || replyTo.user || undefined,
+      };
+    }
+
+    task.comments.push(commentDoc);
     const savedTask = await task.save();
     await savedTask.populate("comments.user", "name email avatar");
+    await savedTask.populate("comments.replyTo.user", "name email avatar");
+
     require("./activityLogService").recordActivity({
       actorId: userId,
       action: `commented on task "${task.title}"`,
@@ -341,11 +477,29 @@ class TaskService {
       entityId: task._id,
       companyId,
       level: "info",
-    });
+    }).catch(() => {});
+
     return savedTask.comments[savedTask.comments.length - 1];
   }
 
-  async getProjectTasks(companyId, projectId) {
+  async getProjectTasks(user, companyId, projectId) {
+    this.ensureProjectPortalAccess(user);
+    const userId = user.id || user._id;
+    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const isSuperAdmin = userRole === 'superadmin';
+    const isAdmin = userRole === 'admin';
+    const isGlobalReader = userRole === 'globalreader';
+
+    const projectDoc = await Project.findOne({ _id: projectId, company: companyId }).lean();
+    if (!projectDoc) throw new NotFoundError("Project");
+
+    const isOwner = projectDoc.owner && projectDoc.owner.toString() === userId.toString();
+    const isTeamMember = projectDoc.team && projectDoc.team.some(m => m.toString() === userId.toString());
+
+    if (!isSuperAdmin && !isAdmin && !isGlobalReader && !isOwner && !isTeamMember) {
+      throw new ForbiddenError("You do not have access to tasks in this project.");
+    }
+
     return Task.find({ project: projectId, company: companyId })
       .populate("team", "name email avatar")
       .populate("dependencies", "title status")
@@ -355,9 +509,46 @@ class TaskService {
   async getTaskComments(companyId, taskId) {
     const task = await Task.findOne({ _id: taskId, company: companyId })
       .select("comments")
-      .populate("comments.user", "name email avatar");
+      .populate("comments.user", "name email avatar")
+      .populate("comments.replyTo.user", "name email avatar");
     if (!task) throw new NotFoundError("Task");
     return task.comments || [];
+  }
+
+  async deleteComment(user, companyId, taskId, commentId) {
+    const userId = (user.id || user._id).toString();
+    const userRole = (user.role || "").replace(/\s+/g, "").toLowerCase();
+    const isSuperAdmin = userRole === "superadmin";
+    const isAdmin = userRole === "admin";
+
+    const task = await Task.findOne({ _id: taskId, company: companyId });
+    if (!task) throw new NotFoundError("Task");
+
+    const commentIndex = task.comments.findIndex(
+      (c) => c._id.toString() === commentId.toString()
+    );
+    if (commentIndex === -1) throw new NotFoundError("Comment");
+
+    const comment = task.comments[commentIndex];
+    const isAuthor = comment.user && comment.user.toString() === userId;
+
+    if (!isSuperAdmin && !isAdmin && !isAuthor) {
+      throw new ForbiddenError("You are not authorized to delete this comment");
+    }
+
+    task.comments.splice(commentIndex, 1);
+    await task.save();
+
+    require("./activityLogService").recordActivity({
+      actorId: userId,
+      action: `deleted comment on task "${task.title}"`,
+      entityType: "task",
+      entityId: task._id,
+      companyId,
+      level: "info",
+    }).catch(() => {});
+
+    return { message: "Comment deleted successfully", commentId };
   }
 
   async getUserTasks(user, companyId) {

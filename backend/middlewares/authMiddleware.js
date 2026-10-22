@@ -12,7 +12,8 @@ function attachUserToRequest(req, user) {
   req.user = {
     id: user.id, _id: user._id, azureId: user.azureId, name: user.name,
     email: user.email, role: user.role, company: user.company,
-    department: user.department, isTechnician: user.isTechnician, avatar: user.avatar
+    department: user.department, isTechnician: user.isTechnician, avatar: user.avatar,
+    hasProjectPortalAccess: ['superadmin', 'admin'].includes((user.role || '').replace(/\s+/g, '').toLowerCase()) ? true : Boolean(user.hasProjectPortalAccess)
   };
 }
 

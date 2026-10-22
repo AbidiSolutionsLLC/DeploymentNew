@@ -4,7 +4,7 @@ import { PlusIcon, ArrowsUpDownIcon, EyeIcon } from "@heroicons/react/24/outline
 import { FaClipboardList, FaSpinner, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 import AddTaskDrawer from "../../components/addTaskModal";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
-import { fetchMyTasks, createTask, updateTask } from "../../store/taskSlice";
+import { fetchMyTasks, createTask, updateTask, addTaskComment, fetchTaskComments, deleteTaskComment } from "../../store/taskSlice";
 import { toast } from "react-toastify";
 import PageContainer from "../../components/ui/PageContainer";
 import PortalHero from "../../components/ui/PortalHero";
@@ -26,8 +26,8 @@ import { isOverdue, taskProgress } from "../../components/projectPortal/helpers"
  * table chrome stays identical across the app. Functional status select
  * (PUT /tasks/:id), row click → TaskDetailDrawer.
  */
-const STATUSES = ["All", "Todo", "In Progress", "In Review", "Blocked", "Done"];
-const TASK_STATUS_OPTIONS = ["Todo", "In Progress", "In Review", "Done", "Blocked"];
+const STATUSES = ["All", "Backlog", "Todo", "In Progress", "In Review", "Done"];
+const TASK_STATUS_OPTIONS = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
 const SORTS = [
   { key: "dueDate", label: "Due date" },
   { key: "priority", label: "Priority" },
@@ -78,7 +78,14 @@ const apiError = (err, fallback) => err?.response?.data?.message || err?.message
 
 const MyTask = () => {
   const dispatch = useDispatch();
-  const { tasks, loading, error } = useSelector((state) => state.tasks);
+  const { tasks, taskComments = {}, loading, error } = useSelector((state) => state.tasks);
+  const authStateUser = useSelector((state) => state.auth.user);
+  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
+  const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
+  const isSuperAdmin = userRole === 'superadmin';
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'manager';
+  const canCreateTask = isSuperAdmin || isAdmin || isManager;
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
@@ -110,6 +117,34 @@ const MyTask = () => {
     overdue: overdueCount,
   };
 
+  useEffect(() => {
+    if (detailTask?._id) {
+      dispatch(fetchTaskComments(detailTask._id));
+    }
+  }, [detailTask?._id, dispatch]);
+
+  const handleAddComment = async (taskId, commentData) => {
+    try {
+      const payload = typeof commentData === 'string'
+        ? { taskId, content: commentData }
+        : { taskId, ...commentData };
+      await dispatch(addTaskComment(payload)).unwrap();
+      toast.success("Comment added");
+    } catch (err) {
+      toast.error(apiError(err, "Failed to add comment"));
+      throw err;
+    }
+  };
+
+  const handleDeleteComment = async (taskId, commentId) => {
+    try {
+      await dispatch(deleteTaskComment({ taskId, commentId })).unwrap();
+    } catch (err) {
+      toast.error(apiError(err, "Failed to delete comment"));
+      throw err;
+    }
+  };
+
   const handleCreateTask = async (taskData) => {
     try {
       await dispatch(createTask(taskData)).unwrap();
@@ -124,8 +159,9 @@ const MyTask = () => {
 
   const handleUpdateTask = async (id, updates) => {
     try {
-      await dispatch(updateTask({ id, updates })).unwrap();
+      const updated = await dispatch(updateTask({ id, updates })).unwrap();
       toast.success("Task updated successfully");
+      setDetailTask((prev) => (prev?._id === id ? { ...prev, ...updated } : prev));
     } catch (err) {
       toast.error(apiError(err, "Failed to update task"));
     }
@@ -325,13 +361,15 @@ const MyTask = () => {
             </>
           }
           actions={
-            <button
-              type="button"
-              onClick={() => setShowModal(true)}
-              className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
-            >
-              <PlusIcon className="w-4 h-4 mr-2" /> New Task
-            </button>
+            canCreateTask ? (
+              <button
+                type="button"
+                onClick={() => setShowModal(true)}
+                className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
+              >
+                <PlusIcon className="w-4 h-4 mr-2" /> New Task
+              </button>
+            ) : null
           }
         />
 
@@ -361,8 +399,16 @@ const MyTask = () => {
         <AddTaskDrawer isOpen={showModal} onClose={() => setShowModal(false)} onSubmit={handleCreateTask} />
         <TaskDetailDrawer
           task={detailTask}
+          canManageTasks={canCreateTask}
+          currentUserId={user?._id || user?.id}
           onClose={() => setDetailTask(null)}
           onStatusChange={(status) => handleUpdateTask(detailTask?._id, { status })}
+          onAddComment={(commentData) => handleAddComment(detailTask?._id, commentData)}
+          onAddcomment={(commentData) => handleAddComment(detailTask?._id, commentData)}
+          onDeleteComment={(commentId) => handleDeleteComment(detailTask?._id, commentId)}
+          comments={taskComments[detailTask?._id] || []}
+          projectTasks={tasks}
+          onTaskUpdate={(updates) => handleUpdateTask(detailTask?._id, updates)}
         />
       </div>
     </PageContainer>

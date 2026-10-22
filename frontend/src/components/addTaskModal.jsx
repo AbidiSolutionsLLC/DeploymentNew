@@ -18,14 +18,14 @@ import projectApi from "../api/projectApi";
  * - Validation always visible; state resets on open.
  */
 const PRIORITIES = ["Low", "Medium", "High"];
-const STATUSES = ["Todo", "In Progress", "In Review", "Done", "Blocked"];
+const STATUSES = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
 
 const EMPTY_FORM = {
   taskName: "",
   project: "",
   assignTo: "",
   priority: "Medium",
-  status: "Todo",
+  status: "Backlog",
   dueDate: "",
   description: "",
 };

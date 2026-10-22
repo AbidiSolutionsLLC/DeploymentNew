@@ -37,7 +37,12 @@ const NavbarVertical = () => {
 
   const navLinks = [
     { name: "People", to: "/people", icon: UserGroupIcon, show: true },
-    { name: "Project", to: "/project", icon: SquaresPlusIcon, show: true },
+    {
+      name: "Project",
+      to: "/project",
+      icon: SquaresPlusIcon,
+      show: hasRole(["Super Admin", "Admin"]) || Boolean(user?.hasProjectPortalAccess),
+    },
     {
       name: "Admin",
       to: "/admin",

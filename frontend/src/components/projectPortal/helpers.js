@@ -34,36 +34,35 @@ export function isOverdue(value, status) {
  * backend `progress` = average task completionPercent. Projects without tasks
  * have NO `progress` field, so we show the documented status-based estimate.
  */
-export function projectProgress(project) {
-  if (typeof project?.progress === "number") return project.progress;
-  // Fallback based on status
-  switch (project?.status) {
-    case "Completed":
-      return 100;
-    case "Active":
-      return 50;
-    case "On Hold":
-      return 30;
-    case "Planning":
-      return 15;
-    default:
-      return 20;
+/**
+ * Progress rule — single definition:
+ * - If status is Completed => 100%
+ * - If tasks are provided (or embedded in project) => average task progress
+ *   (Done tasks count as 100%, in-progress tasks use completionPercent, 0% if empty)
+ * - If project.progress is a number from backend => use it
+ * - Default for new/empty projects => 0%
+ */
+export function projectProgress(project, tasks) {
+  if (project?.status === "Completed") return 100;
+
+  const taskList = Array.isArray(tasks) ? tasks : (Array.isArray(project?.tasks) ? project.tasks : null);
+  if (taskList !== null) {
+    if (taskList.length === 0) return 0;
+    const total = taskList.reduce((sum, t) => {
+      const pct = t?.status === "Done" ? 100 : (typeof t?.completionPercent === "number" ? t.completionPercent : 0);
+      return sum + pct;
+    }, 0);
+    return Math.round(total / taskList.length);
   }
+
+  if (typeof project?.progress === "number") return project.progress;
+
+  return 0;
 }
 
 /** Calculate exact project progress from tasks if available */
-export function calculateProjectProgress(project) {
-  // If backend already computed progress, use it
-  if (typeof project?.progress === "number") return project.progress;
-  
-  // If we have tasks array with completionPercent, calculate average
-  if (Array.isArray(project?.tasks) && project.tasks.length > 0) {
-    const total = project.tasks.reduce((sum, t) => sum + (t.completionPercent || 0), 0);
-    return Math.round(total / project.tasks.length);
-  }
-  
-  // Fallback to status-based estimate
-  return projectProgress(project);
+export function calculateProjectProgress(project, tasks) {
+  return projectProgress(project, tasks);
 }
 
 /** Task progress = real completionPercent; Done without a percent still shows 100. */

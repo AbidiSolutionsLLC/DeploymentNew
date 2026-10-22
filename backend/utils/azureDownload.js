@@ -7,9 +7,10 @@ const { blobServiceClient, containerName } = require("../config/azureConfig");
 /**
  * Generates a short-lived SAS URL for a specific blob in Azure Storage.
  * @param {string} blobName - The name or path of the blob in the container.
+ * @param {string} [fileName] - Optional filename for Content-Disposition header.
  * @returns {Promise<string>} - The SAS URL.
  */
-const generateBlobSasUrlHelper = async (blobName) => {
+const generateBlobSasUrlHelper = async (blobName, fileName) => {
   const containerClient = blobServiceClient.getContainerClient(containerName);
   const blobClient = containerClient.getBlobClient(blobName);
 
@@ -17,13 +18,17 @@ const generateBlobSasUrlHelper = async (blobName) => {
   const permissions = new BlobSASPermissions();
   permissions.read = true;
 
-  // Set SAS expiry: 5 minutes from now
+  // Set SAS expiry: 15 minutes from now
   const expiryTime = new Date();
-  expiryTime.setMinutes(expiryTime.getMinutes() + 5);
+  expiryTime.setMinutes(expiryTime.getMinutes() + 15);
+
+  const cleanFileName = fileName || blobName.split("/").pop() || "downloaded_file";
+  const safeName = cleanFileName.replace(/[^\w\.\-\s]/gi, '_');
 
   const sasUrl = await blobClient.generateSasUrl({
     permissions,
     expiresOn: expiryTime,
+    contentDisposition: `attachment; filename="${safeName}"`,
   });
 
   return sasUrl;

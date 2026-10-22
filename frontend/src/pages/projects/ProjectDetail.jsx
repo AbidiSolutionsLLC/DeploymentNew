@@ -14,7 +14,7 @@ import {
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import { fetchProjectById, updateProject, deleteProject } from "../../store/projectSlice";
-import { fetchProjectTasks, createTask, updateTaskStatus, updateTask, addTaskComment, fetchTaskComments, fetchProjectActivities } from "../../store/taskSlice";
+import { fetchProjectTasks, createTask, updateTaskStatus, updateTask, addTaskComment, fetchTaskComments, deleteTaskComment, fetchProjectActivities } from "../../store/taskSlice";
 import { useConfirm } from "../../context/ConfirmContext";
 import Loader from "../../components/ui/Loader";
 import PageContainer from "../../components/ui/PageContainer";
@@ -53,22 +53,30 @@ const COLUMN_ACCENTS = {
   done: "bg-success",
 };
 const STATUS_DISPLAY = {
+  Backlog: "Backlog",
+  Todo: "To Do",
+  "In Progress": "In Progress",
+  "In Review": "In Review",
+  Done: "Done",
   backlog: "Backlog",
   todo: "To Do",
   "in-progress": "In Progress",
   "in-review": "In Review",
   done: "Done",
+  blocked: "Backlog",
+  Blocked: "Backlog",
 };
 
 /** Map backend status to Kanban column ID */
 function toColumnId(status) {
   if (!status) return "backlog";
   const s = String(status).toLowerCase();
+  if (s === "backlog") return "backlog";
   if (s === "todo") return "todo";
   if (s === "in progress") return "in-progress";
   if (s === "in review") return "in-review";
   if (s === "done") return "done";
-  if (s === "blocked") return "in-review"; // blocked goes to In Review column
+  if (s === "blocked") return "backlog";
   return "backlog";
 }
 
@@ -79,12 +87,23 @@ const ProjectDetail = () => {
   const confirm = useConfirm();
   const { projects, currentProject } = useSelector((state) => state.projects);
   const { projectTasks, projectTasksLoading, taskComments, projectActivities, projectActivitiesLoading } = useSelector((state) => state.tasks);
+  const authStateUser = useSelector((state) => state.auth.user);
+  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
   const { userInfo } = useSelector((state) => state.user || {});
-  const currentUserId = userInfo?.user?._id || userInfo?._id || userInfo?.id;
+  const currentUserId = (user?._id || user?.id || userInfo?.user?._id || userInfo?._id || userInfo?.id)?.toString();
+  const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
+  const isSuperAdmin = userRole === 'superadmin';
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'manager';
 
   const project = currentProject?._id === id ? currentProject : projects?.find((p) => p._id === id);
   const tasks = projectTasks || [];
   const loading = projectTasksLoading;
+
+  const isProjectOwner = (project?.owner?._id || project?.owner)?.toString() === currentUserId;
+  const canEditProject = isSuperAdmin || isAdmin || (isManager && isProjectOwner);
+  const canDeleteProject = isSuperAdmin || isAdmin;
+  const canManageTasks = isSuperAdmin || isAdmin || isManager;
 
   const [activeTab, setActiveTab] = useState("board");
   const [searchQuery, setSearchQuery] = useState("");
@@ -95,7 +114,19 @@ const ProjectDetail = () => {
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
 
+  const isTaskAssignee = (task) => {
+    return task?.team && task.team.some((member) => {
+      const mid = (member?._id || member)?.toString();
+      return mid === currentUserId;
+    });
+  };
+
   const handleDragStart = (e, task) => {
+    if (!canManageTasks && !isTaskAssignee(task)) {
+      e.preventDefault();
+      toast.info("You can only move tasks assigned to you.");
+      return;
+    }
     setDraggedTaskId(task._id);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("taskId", task._id);
@@ -124,8 +155,15 @@ const ProjectDetail = () => {
     const taskId = e.dataTransfer.getData("taskId") || draggedTaskId;
     const sourceColumn = e.dataTransfer.getData("sourceColumn") ||
       toColumnId(tasks.find((task) => task._id === taskId)?.status);
+    const task = tasks.find((t) => t._id === taskId);
+    if (task && !canManageTasks && !isTaskAssignee(task)) {
+      toast.error("You can only update status for tasks assigned to you.");
+      setDraggedTaskId(null);
+      setDragOverColumn(null);
+      return;
+    }
     if (taskId && sourceColumn !== columnId) {
-      const newStatus = columnId === "backlog" ? "Todo"
+      const newStatus = columnId === "backlog" ? "Backlog"
         : columnId === "todo" ? "Todo"
         : columnId === "in-progress" ? "In Progress"
         : columnId === "in-review" ? "In Review"
@@ -182,12 +220,26 @@ const ProjectDetail = () => {
     }
   };
 
-  const handleAddComment = async (taskId, content) => {
+    const handleAddComment = async (taskId, commentData) => {
     try {
-      await dispatch(addTaskComment({ taskId, content })).unwrap();
+      const payload = typeof commentData === 'string'
+        ? { taskId, content: commentData }
+        : { taskId, ...commentData };
+      await dispatch(addTaskComment(payload)).unwrap();
       toast.success("Comment added");
     } catch (err) {
       toast.error(err?.message || "Failed to add comment");
+      throw err;
+    }
+  };
+
+  const handleDeleteComment = async (taskId, commentId) => {
+    try {
+      await dispatch(deleteTaskComment({ taskId, commentId })).unwrap();
+      toast.success("Comment deleted");
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete comment");
+      throw err;
     }
   };
 
@@ -244,13 +296,13 @@ const ProjectDetail = () => {
     );
   }
 
-  const pct = projectProgress(project);
+  const pct = projectProgress(project, tasks);
   const team = project.team || [];
   const taskCounts = {
     total: tasks.length,
     done: tasks.filter((task) => task.status === "Done").length,
     active: tasks.filter((task) => ["In Progress", "In Review"].includes(task.status)).length,
-    blocked: tasks.filter((task) => task.status === "Blocked").length,
+    backlog: tasks.filter((task) => task.status === "Backlog").length,
   };
 
   const listColumns = [
@@ -335,18 +387,22 @@ const ProjectDetail = () => {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-              <button
-                onClick={() => setShowEditProject(true)}
-                className="btn btn-secondary py-2.5 px-4 whitespace-nowrap"
-              >
-                <PencilIcon className="w-4 h-4 mr-2" /> Edit project
-              </button>
-              <button
-                onClick={handleDeleteProject}
-                className="btn btn-secondary py-2.5 px-4 whitespace-nowrap text-danger hover:bg-danger-bg"
-              >
-                <TrashIcon className="w-4 h-4 mr-2" /> Delete
-              </button>
+              {canEditProject && (
+                <button
+                  onClick={() => setShowEditProject(true)}
+                  className="btn btn-secondary py-2.5 px-4 whitespace-nowrap"
+                >
+                  <PencilIcon className="w-4 h-4 mr-2" /> Edit project
+                </button>
+              )}
+              {canDeleteProject && (
+                <button
+                  onClick={handleDeleteProject}
+                  className="btn btn-secondary py-2.5 px-4 whitespace-nowrap text-danger hover:bg-danger-bg"
+                >
+                  <TrashIcon className="w-4 h-4 mr-2" /> Delete
+                </button>
+              )}
             </div>
           </div>
 
@@ -374,8 +430,8 @@ const ProjectDetail = () => {
                 <p className="text-lg font-black text-heading tabular-nums mt-1">{taskCounts.active}</p>
               </div>
               <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted">Blocked</p>
-                <p className={`text-lg font-black tabular-nums mt-1 ${taskCounts.blocked ? "text-danger" : "text-heading"}`}>{taskCounts.blocked}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted">Backlog</p>
+                <p className="text-lg font-black text-heading tabular-nums mt-1">{taskCounts.backlog}</p>
               </div>
               <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted">Team</p>
@@ -442,13 +498,15 @@ const ProjectDetail = () => {
                 className="glass-input !pl-9 w-full"
               />
             </div>
-            <button
-              onClick={() => setShowAddTask(true)}
-              className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-              New Task
-            </button>
+            {canManageTasks && (
+              <button
+                onClick={() => setShowAddTask(true)}
+                className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                New Task
+              </button>
+            )}
           </div>
         </div>
         <div className="flex space-x-1 rounded-lg p-1 bg-card w-full lg:w-fit overflow-x-auto mt-4">
@@ -499,6 +557,7 @@ const ProjectDetail = () => {
                         key={task._id}
                         task={task}
                         columnId={col.id}
+                        draggable={canManageTasks || isTaskAssignee(task)}
                         onClick={() => setShowTaskDetail(task)}
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
@@ -560,7 +619,7 @@ const ProjectDetail = () => {
                                 <span className="text-sm font-semibold text-heading">{c.user?.name || "Unknown"}</span>
                                 <span className="text-[10px] text-muted">{new Date(c.createdAt || c.timestamp).toLocaleDateString()}</span>
                               </div>
-                              <p className="text-sm text-main">{c.content}</p>
+                              <p className="text-sm text-main">{c.text || c.content}</p>
                             </div>
                           </div>
                         ))}
@@ -608,7 +667,9 @@ const ProjectDetail = () => {
             task={showComments}
             comments={taskComments[showComments?._id] || []}
             onClose={() => setShowComments(null)}
-            onAddComment={(content) => handleAddComment(showComments._id, content)}
+            onAddComment={(commentData) => handleAddComment(showComments._id, commentData)}
+            onAddcomment={(commentData) => handleAddComment(showComments._id, commentData)}
+            onDeleteComment={(commentId) => handleDeleteComment(showComments._id, commentId)}
             currentUserId={currentUserId}
           />
         )}
@@ -618,10 +679,13 @@ const ProjectDetail = () => {
             task={showTaskDetail}
             onClose={() => setShowTaskDetail(null)}
             onStatusChange={(status) => handleUpdateStatus(showTaskDetail._id, status)}
-            onAddComment={(content) => handleAddComment(showTaskDetail._id, content)}
+            onAddComment={(commentData) => handleAddComment(showTaskDetail._id, commentData)}
+            onAddcomment={(commentData) => handleAddComment(showTaskDetail._id, commentData)}
+            onDeleteComment={(commentId) => handleDeleteComment(showTaskDetail._id, commentId)}
             comments={taskComments[showTaskDetail._id] || []}
             currentUserId={currentUserId}
             projectTasks={tasks}
+            canManageTasks={canManageTasks}
             onTaskUpdate={(updates) => handleUpdateTask(showTaskDetail._id, updates)}
           />
         )}

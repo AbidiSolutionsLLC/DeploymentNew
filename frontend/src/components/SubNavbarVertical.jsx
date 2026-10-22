@@ -46,7 +46,8 @@ const SubNavbarVertical = () => {
       "Leave Management": "leaves:approve",
       "Leave Tracker Admin": "leaves:approve",
       "Upload Document": "files:manage",
-      "File Management": "files:manage"
+      "File Management": "files:manage",
+      "Project Groups": "project_groups:manage"
     };
 
     if (link.name === "Tenant Management") {

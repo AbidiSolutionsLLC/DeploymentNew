@@ -76,6 +76,13 @@ const ProjectDashBoard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { dashboardData, loading, error } = useSelector((state) => state.projects);
+  const authStateUser = useSelector((state) => state.auth.user);
+  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
+  const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
+  const isSuperAdmin = userRole === 'superadmin';
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'manager';
+  const isEmployee = !isSuperAdmin && !isAdmin && !isManager;
 
   useEffect(() => {
     dispatch(fetchProjectDashboard());
@@ -148,9 +155,9 @@ const ProjectDashBoard = () => {
       <div className="flex flex-col gap-4 w-full">
       {/* Command header */}
       <PortalHero
-        label="Project command center overview"
-        title="Project Command Center"
-        description="Live status of your projects, tasks and team."
+        label={isEmployee ? "My workspace overview" : "Project command center overview"}
+        title={isEmployee ? "Project Dashboard" : "Project Command Center"}
+        description={isEmployee ? "Live status of your assigned tasks, projects, and upcoming deadlines." : "Live status of your projects, tasks and team."}
       />
 
       {/* KPI command deck — one cohesive overview panel */}
@@ -225,7 +232,7 @@ const ProjectDashBoard = () => {
             <button
               type="button"
               onClick={() => navigate("/project/myTasks")}
-              className="btn btn-secondary py-2.5 px-3"
+              className={`py-2.5 px-3 ${isEmployee ? "btn btn-primary" : "btn btn-secondary"}`}
             >
               <ClipboardDocumentListIcon className="w-4 h-4 mr-2" />
               My tasks
@@ -233,10 +240,10 @@ const ProjectDashBoard = () => {
             <button
               type="button"
               onClick={() => navigate("/project/projects")}
-              className="btn btn-primary py-2.5 px-3"
+              className={`py-2.5 px-3 ${isEmployee ? "btn btn-secondary" : "btn btn-primary"}`}
             >
-              <PlusIcon className="w-4 h-4 mr-2" />
-              Projects
+              <RectangleStackIcon className="w-4 h-4 mr-2" />
+              {isEmployee ? "Assigned Projects" : "Projects"}
             </button>
           </div>
         </div>
@@ -248,7 +255,7 @@ const ProjectDashBoard = () => {
         <section className="glass-card sm:col-span-2 lg:col-span-2 flex flex-col min-w-0 bg-surface">
           <PanelHead
             title="Active Projects"
-            subtitle="Ongoing work & status"
+            subtitle={isEmployee ? "Your assigned projects" : "Ongoing work & status"}
             action={
               <button
                 type="button"
@@ -260,7 +267,7 @@ const ProjectDashBoard = () => {
             }
           />
           {projects.length === 0 ? (
-            <EmptyState title="No active projects" hint="Projects in Planning or Active status show up here." />
+            <EmptyState title={isEmployee ? "No assigned projects" : "No active projects"} hint={isEmployee ? "Projects you are assigned to as a team member show up here." : "Projects in Planning or Active status show up here."} />
           ) : (
             <ul className="divide-y divide-border-subtle -mx-1 px-1">
               {projects.map((p, i) => {
@@ -456,7 +463,7 @@ const ProjectDashBoard = () => {
                     </div>
                   </div>
                   <div className="shrink-0 pt-0.5">
-                    <TableStatus value={t.status || "Todo"} />
+                    <TableStatus value={t.status || "Backlog"} />
                   </div>
                 </li>
               ))}

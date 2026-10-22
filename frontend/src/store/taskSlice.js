@@ -87,10 +87,22 @@ export const fetchTaskComments = createAsyncThunk(
 
 export const addTaskComment = createAsyncThunk(
   'tasks/addTaskComment',
-  async ({ taskId, content }, { rejectWithValue }) => {
+  async ({ taskId, content, files, replyTo }, { rejectWithValue }) => {
     try {
-      const response = await api.addTaskComment(taskId, content);
+      const response = await api.addTaskComment(taskId, { content, files, replyTo });
       return { taskId, comment: response };
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+export const deleteTaskComment = createAsyncThunk(
+  'tasks/deleteTaskComment',
+  async ({ taskId, commentId }, { rejectWithValue }) => {
+    try {
+      await api.deleteTaskComment(taskId, commentId);
+      return { taskId, commentId };
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
     }
@@ -123,8 +135,7 @@ const taskSlice = createSlice({
       })
       .addCase(fetchMyTasks.fulfilled, (state, action) => {
         state.loading = false;
-        const payload = action.payload;
-        state.tasks = Array.isArray(payload) ? payload : payload?.data || [];
+        state.tasks = action.payload;
       })
       .addCase(fetchMyTasks.rejected, (state, action) => {
         state.loading = false;
@@ -145,8 +156,8 @@ const taskSlice = createSlice({
       })
       // createTask
       .addCase(createTask.fulfilled, (state, action) => {
-        state.tasks.push(action.payload);
-        state.projectTasks.push(action.payload);
+        state.tasks.unshift(action.payload);
+        state.projectTasks.unshift(action.payload);
       })
       // updateTask
       .addCase(updateTask.fulfilled, (state, action) => {
@@ -159,6 +170,7 @@ const taskSlice = createSlice({
           state.projectTasks[projIndex] = action.payload;
         }
       })
+      // fetchProjectActivities
       .addCase(fetchProjectActivities.pending, (state) => {
         state.projectActivitiesLoading = true;
       })
@@ -166,9 +178,8 @@ const taskSlice = createSlice({
         state.projectActivitiesLoading = false;
         state.projectActivities = action.payload;
       })
-      .addCase(fetchProjectActivities.rejected, (state, action) => {
+      .addCase(fetchProjectActivities.rejected, (state) => {
         state.projectActivitiesLoading = false;
-        state.error = action.payload;
       })
       // updateTaskStatus
       .addCase(updateTaskStatus.fulfilled, (state, action) => {
@@ -191,7 +202,16 @@ const taskSlice = createSlice({
         if (!state.taskComments[taskId]) {
           state.taskComments[taskId] = [];
         }
-        state.taskComments[taskId].unshift(comment);
+        state.taskComments[taskId].push(comment);
+      })
+      // deleteTaskComment
+      .addCase(deleteTaskComment.fulfilled, (state, action) => {
+        const { taskId, commentId } = action.payload;
+        if (state.taskComments[taskId]) {
+          state.taskComments[taskId] = state.taskComments[taskId].filter(
+            (c) => (c._id || c.id) !== commentId
+          );
+        }
       });
   },
 });

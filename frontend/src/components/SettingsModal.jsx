@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
   X, Check, Sun, Moon, Monitor, Bell, Mail, User as UserIcon,
-  LogOut, Palette, AlertTriangle, Loader2,
+  LogOut, Palette, AlertTriangle, Loader2, FolderKanban, Search,
 } from "lucide-react";
 import api from "../axios";
 import settingsApi from "../api/settingsApi";
@@ -89,6 +89,65 @@ export default function SettingsModal({ isOpen, onClose }) {
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
+
+  // --- PROJECT PORTAL ASSIGNMENT STATE ---
+  const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
+  const isAdminOrSuper = userRole === 'superadmin' || userRole === 'admin';
+  const [portalUsers, setPortalUsers] = useState([]);
+  const [loadingPortalUsers, setLoadingPortalUsers] = useState(false);
+  const [portalSearch, setPortalSearch] = useState('');
+  const [savingPortalAccess, setSavingPortalAccess] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !isAdminOrSuper) return;
+    let mounted = true;
+    (async () => {
+      try {
+        setLoadingPortalUsers(true);
+        const res = await api.get('/users?limit=1000');
+        const list = res.data?.data || res.data || [];
+        if (mounted) setPortalUsers(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error('Failed to load users for portal assignment', err);
+      } finally {
+        if (mounted) setLoadingPortalUsers(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [isOpen, isAdminOrSuper]);
+
+  const handleTogglePortalAccess = (userId) => {
+    setPortalUsers(prev => prev.map(u => {
+      if ((u._id || u.id) === userId) {
+        return { ...u, hasProjectPortalAccess: !u.hasProjectPortalAccess };
+      }
+      return u;
+    }));
+  };
+
+  const handleSavePortalAccess = async () => {
+    try {
+      setSavingPortalAccess(true);
+      const assignedIds = portalUsers
+        .filter(u => u.hasProjectPortalAccess || ['superadmin', 'admin'].includes((u.role || '').replace(/\s+/g, '').toLowerCase()))
+        .map(u => u._id || u.id);
+
+      await api.put('/users/project-portal-access', { userIds: assignedIds });
+      toast.success('Project Portal access updated successfully');
+
+      const currentId = user._id || user.id;
+      const currentUserInList = portalUsers.find(u => (u._id || u.id) === currentId);
+      if (currentUserInList) {
+        const updatedAuth = { ...user, hasProjectPortalAccess: currentUserInList.hasProjectPortalAccess };
+        dispatch(setAuthUser(updatedAuth));
+        dispatch(setUser(updatedAuth));
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update Project Portal access');
+    } finally {
+      setSavingPortalAccess(false);
+    }
+  };
 
   // Escape to close + scroll lock while open
   useEffect(() => {
@@ -262,7 +321,10 @@ export default function SettingsModal({ isOpen, onClose }) {
             className="flex shrink-0 gap-2 overflow-x-auto border-b p-3 no-scrollbar sm:w-60 sm:flex-col sm:overflow-visible sm:border-b-0 sm:border-r"
             style={{ borderColor: "var(--color-border-primary)" }}
           >
-            {TABS.map((item) => {
+            {[
+              ...TABS,
+              ...(isAdminOrSuper ? [{ id: "portalAccess", label: "Portal Access", hint: "Project assignment", icon: FolderKanban }] : [])
+            ].map((item) => {
               const Icon = item.icon;
               const active = tab === item.id;
               return (
@@ -465,6 +527,142 @@ export default function SettingsModal({ isOpen, onClose }) {
                         );
                       })}
                     </div>
+                  </div>
+                )}
+
+                {/* ─── PORTAL ACCESS (SUPER ADMIN & ADMIN ONLY) ─── */}
+                {tab === "portalAccess" && isAdminOrSuper && (
+                  <div>
+                    <SectionHeading
+                      icon={FolderKanban}
+                      title="Project Portal Access"
+                      subtitle="Assign users who can see the Project Portal icon and access project workspaces."
+                    />
+
+                    {/* Summary bar + search */}
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
+                        <input
+                          type="text"
+                          value={portalSearch}
+                          onChange={(e) => setPortalSearch(e.target.value)}
+                          placeholder="Search users by name, email, or role..."
+                          className="glass-input !pl-9 w-full"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className="rounded-full px-3 py-1 text-xs font-bold"
+                          style={{
+                            background: "var(--color-bg-hover)",
+                            color: "var(--color-brand-text)",
+                            border: "1px solid var(--color-border-accent)"
+                          }}
+                        >
+                          {portalUsers.filter(u => u.hasProjectPortalAccess || ['superadmin', 'admin'].includes((u.role || '').replace(/\s+/g, '').toLowerCase())).length} of {portalUsers.length} assigned
+                        </span>
+                        <GlassButton
+                          variant="primary"
+                          size="sm"
+                          onClick={handleSavePortalAccess}
+                          isLoading={savingPortalAccess}
+                        >
+                          Save Changes
+                        </GlassButton>
+                      </div>
+                    </div>
+
+                    {/* User list */}
+                    {loadingPortalUsers ? (
+                      <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted">
+                        <Loader2 className="h-6 w-6 animate-spin text-brand-primary" />
+                        <span className="text-xs">Loading users...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-[360px] overflow-y-auto custom-scrollbar-visible pr-1">
+                        {portalUsers
+                          .filter(u => {
+                            const q = portalSearch.toLowerCase().trim();
+                            if (!q) return true;
+                            const name = (u.name || '').toLowerCase();
+                            const email = (u.email || '').toLowerCase();
+                            const role = (u.role || '').toLowerCase();
+                            const dept = (typeof u.department === 'object' ? u.department?.name : u.department || '').toLowerCase();
+                            return name.includes(q) || email.includes(q) || role.includes(q) || dept.includes(q);
+                          })
+                          .map(u => {
+                            const uId = u._id || u.id;
+                            const cleanRole = (u.role || '').replace(/\s+/g, '').toLowerCase();
+                            const isUserAdmin = cleanRole === 'superadmin' || cleanRole === 'admin';
+                            const isAssigned = isUserAdmin || Boolean(u.hasProjectPortalAccess);
+
+                            return (
+                              <div
+                                key={uId}
+                                className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 transition-colors"
+                                style={{
+                                  background: "var(--color-bg-secondary)",
+                                  border: `1px solid ${isAssigned ? "var(--color-border-accent)" : "var(--color-border-primary)"}`
+                                }}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div
+                                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold shadow-sm"
+                                    style={{
+                                      background: "var(--gradient-gold-foil)",
+                                      color: "var(--color-text-on-brand)"
+                                    }}
+                                  >
+                                    {u.avatar ? (
+                                      <img src={u.avatar} alt="" className="h-full w-full object-cover rounded-xl" />
+                                    ) : (
+                                      (u.name || 'U').charAt(0).toUpperCase()
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>
+                                        {u.name || u.email}
+                                      </p>
+                                      <span
+                                        className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                                        style={{
+                                          background: "var(--color-bg-hover)",
+                                          color: "var(--color-brand-text)",
+                                          border: "1px solid var(--color-border-accent)"
+                                        }}
+                                      >
+                                        {u.role || "Employee"}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] truncate" style={{ color: "var(--color-text-tertiary)" }}>
+                                      {u.email}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {isUserAdmin ? (
+                                    <span className="text-[11px] font-bold text-amber-500 uppercase tracking-wider px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20">
+                                      Admin (Always On)
+                                    </span>
+                                  ) : (
+                                    <ToggleSwitch
+                                      id={`portal-assign-${uId}`}
+                                      size="sm"
+                                      checked={Boolean(u.hasProjectPortalAccess)}
+                                      disabled={savingPortalAccess}
+                                      onChange={() => handleTogglePortalAccess(uId)}
+                                      ariaLabel={`Toggle project portal access for ${u.name || u.email}`}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
                   </div>
                 )}
 

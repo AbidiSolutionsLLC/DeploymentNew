@@ -15,6 +15,7 @@ export default function TaskCard({
   onDragEnd,
   isDragging = false,
   columnId,
+  draggable = true,
 }) {
   const overdue = isOverdue(task.dueDate, task.status);
   const dueSoon = task.dueDate && new Date(task.dueDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) && !overdue;
@@ -35,7 +36,7 @@ export default function TaskCard({
 
   return (
     <div
-      draggable
+      draggable={draggable}
       className={`p-3.5 rounded-xl shadow-sm border border-border-subtle bg-surface cursor-pointer hover:shadow-md hover:border-border-accent hover:bg-card-hover/20 transition-all duration-200 select-none ${
         isDragging ? "rotate-2 shadow-lg scale-105 z-50 opacity-80 ring-2 ring-brand" : ""
       }`}
@@ -46,7 +47,7 @@ export default function TaskCard({
       {/* Header: Title + Priority */}
       <div className="flex items-start justify-between gap-2.5 mb-2">
         <div className="flex items-start gap-2 flex-1 min-w-0">
-          <FaGripLines className="text-muted/50 cursor-grab flex-shrink-0 mt-1 hover:text-muted transition-colors" aria-hidden="true" />
+          {draggable && <FaGripLines className="text-muted/50 cursor-grab flex-shrink-0 mt-1 hover:text-muted transition-colors" aria-hidden="true" />}
           <h4 className="font-semibold text-sm leading-snug break-words text-heading flex-1 min-w-0">
             {task.title}
           </h4>

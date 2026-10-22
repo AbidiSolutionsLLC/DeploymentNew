@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import "react-datepicker/dist/react-datepicker.css";
 import "./index.css";
 
@@ -200,14 +200,14 @@ function App() {
  <Route path="upload" element={<UploadDocument />} />
  </Route>
 
- <Route path="/project/*">
+ <Route path="/project/*" element={<PrivateRoute requiredPermission="projects:access"><Outlet /></PrivateRoute>}>
   <Route index element={<Navigate to="projectDashboard" replace />} />
   <Route path="projectDashboard" element={<ProjectDashBoard />} />
   <Route path="projects" element={<Projects />} />
   <Route path="projectDetailed/:id" element={<ProjectDetail />} />
   <Route path="projects/:id" element={<ProjectDetail />} />
   <Route path="myTasks" element={<MyTask />} />
-  <Route path="projectGroups" element={<ProjectGroups />} />
+  <Route path="projectGroups" element={<PrivateRoute requiredPermission="project_groups:manage"><ProjectGroups /></PrivateRoute>} />
   <Route path="*" element={<Navigate to="projectDashboard" replace />} />
  </Route>
 

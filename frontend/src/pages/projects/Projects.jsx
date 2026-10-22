@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { PlusIcon, PencilIcon, TrashIcon, RectangleStackIcon } from "@heroicons/react/24/outline";
 import { FaClock, FaCheckCircle, FaCalendarAlt, FaChartLine } from "react-icons/fa";
@@ -34,6 +35,15 @@ const apiError = (err, fallback) => err?.response?.data?.message || err?.message
 
 const Projects = () => {
   const navigate = useNavigate();
+  const authStateUser = useSelector((state) => state.auth.user);
+  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
+  const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
+  const isSuperAdmin = userRole === 'superadmin';
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'manager';
+  const canCreateProject = isSuperAdmin || isAdmin;
+  const canDeleteProject = isSuperAdmin || isAdmin;
+
   const { projects, loading, error, refetch } = useProjects();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
@@ -227,6 +237,25 @@ const Projects = () => {
     },
   ];
 
+  const tableActions = [
+    ...((canCreateProject || isManager)
+      ? [{
+          title: "Edit",
+          icon: PencilIcon,
+          onClick: openEdit,
+          disabled: (row) => !canCreateProject && ((row.owner?._id || row.owner) !== (user?._id || user?.id))
+        }]
+      : []),
+    ...(canDeleteProject
+      ? [{
+          title: "Delete",
+          icon: TrashIcon,
+          danger: true,
+          onClick: handleDeleteProject,
+        }]
+      : [])
+  ];
+
   return (
     <PageContainer isCard={false}>
       <div className="flex flex-col gap-4 w-full">
@@ -283,13 +312,15 @@ const Projects = () => {
           </>
         }
         actions={
-          <button
-            type="button"
-            onClick={openNew}
-            className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
-          >
-            <PlusIcon className="w-4 h-4 mr-2" /> New Project
-          </button>
+          canCreateProject ? (
+            <button
+              type="button"
+              onClick={openNew}
+              className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
+            >
+              <PlusIcon className="w-4 h-4 mr-2" /> New Project
+            </button>
+          ) : null
         }
       />
 
@@ -301,10 +332,7 @@ const Projects = () => {
         loading={loading}
         error={error}
         onRowClick={handleRowClick}
-        actions={[
-          { title: "Edit", icon: PencilIcon, onClick: openEdit },
-          { title: "Delete", icon: TrashIcon, danger: true, onClick: handleDeleteProject },
-        ]}
+        actions={tableActions}
         rowsPerPage={10}
         countLabel="projects"
         emptyTitle={projects.length === 0 ? "No projects yet" : "No matching projects"}

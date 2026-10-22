@@ -8,11 +8,11 @@ import projectApi from "../../api/projectApi";
 
 const PRIORITIES = ["Low", "Medium", "High"];
 const STATUS_OPTIONS = [
+  { value: "Backlog", label: "Backlog" },
   { value: "Todo", label: "Todo" },
   { value: "In Progress", label: "In Progress" },
   { value: "In Review", label: "In Review" },
   { value: "Done", label: "Done" },
-  { value: "Blocked", label: "Blocked" },
 ];
 
 const EMPTY_FORM = {
@@ -21,7 +21,7 @@ const EMPTY_FORM = {
   project: "",
   assignee: "",
   priority: "Medium",
-  status: "Todo",
+  status: "Backlog",
   dueDate: "",
 };
 
