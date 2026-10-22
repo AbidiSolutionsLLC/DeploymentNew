@@ -1,5 +1,5 @@
 import { FaCalendar, FaComment, FaClock, FaGripLines } from "react-icons/fa";
-import Pill, { TASK_STATUS_TONE, PRIORITY_TONE } from "./Pill";
+import { TablePriority } from "../ui/TableCells";
 import { shortDate, isOverdue, taskProgress, getAssigneeName } from "./helpers";
 
 /**
@@ -52,7 +52,7 @@ export default function TaskCard({
           </h4>
         </div>
         <div className="shrink-0">
-          <Pill tone={PRIORITY_TONE[task.priority] || "neutral"}>{task.priority || "Medium"}</Pill>
+          <TablePriority value={task.priority || "Medium"} />
         </div>
       </div>
 

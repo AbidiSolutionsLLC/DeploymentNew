@@ -19,11 +19,11 @@ const createTicketSchema = Joi.object({
 });
 
 const ticketResponseSchema = Joi.object({
-  content: Joi.string().trim().min(1).max(2000).required().messages({
-    'string.empty': 'Response cannot be empty.',
-    'any.required': 'Response is required.'
+  content: Joi.string().trim().max(2000).allow("", null).optional().messages({
+    'string.max': 'Response cannot exceed 2000 characters.'
   }),
-  avatar: Joi.string().allow(null, "").optional()
+  avatar: Joi.string().allow(null, "").optional(),
+  attachments: Joi.array().optional()
 });
 
 module.exports = { createTicketSchema, ticketResponseSchema };

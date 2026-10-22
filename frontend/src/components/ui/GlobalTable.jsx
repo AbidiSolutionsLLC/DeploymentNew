@@ -155,9 +155,15 @@ export default function GlobalTable({
     const { key, direction } = sortConfig;
     if (!key) return data;
     const factor = direction === "asc" ? 1 : -1;
+    const sortableValue = (value) => {
+      if (value && typeof value === "object") {
+        return value.name || value.title || value.email || value.projectID || "";
+      }
+      return value;
+    };
     return [...data].sort((a, b) => {
-      const av = a[key];
-      const bv = b[key];
+      const av = sortableValue(a[key]);
+      const bv = sortableValue(b[key]);
       if (typeof av === "number" && typeof bv === "number") return (av - bv) * factor;
       const as = String(av ?? "").toLowerCase();
       const bs = String(bv ?? "").toLowerCase();
@@ -221,7 +227,7 @@ export default function GlobalTable({
   const theadNode = (
     <thead>
       {/* Row 1: groups + rowSpan cells */}
-      <tr className={`bg-card ${hasGroups ? "" : "border-b border-border-subtle"}`}>
+      <tr className={`bg-app ${hasGroups ? "" : "border-b border-border-accent"}`}>
         {headerRowOne.map((cell) =>
           cell.group ? (
             <th
@@ -278,7 +284,7 @@ export default function GlobalTable({
 
       {/* Row 2: sub columns (only when grouped) */}
       {hasGroups && (
-        <tr className="bg-card border-b border-border-subtle">
+        <tr className="bg-app border-b border-border-accent">
           {headerRowTwo.map((col) => (
             <th
               key={`${col.group}-${col.key}`}
@@ -378,18 +384,26 @@ export default function GlobalTable({
                   style={{ animationDelay: `${Math.min(idx, 12) * 35}ms`, zIndex: 1 }}
                   onClick={() => onRowClick && onRowClick(row)}
                 >
-                  {columns.map((col) => (
+                  {columns.map((col, colIdx) => (
                     <td
                       key={col.key}
-                      className={cellClass(col)}
+                      className={`${cellClass(col)} ${
+                        colIdx === 0
+                          ? "border-l-2 border-transparent transition-colors group-hover:border-brand"
+                          : ""
+                      }`}
                       style={cellStyle(col, stickyStyle(col.key))}
                       {...(idx === 0 ? firstStickyAttr(col.key) : {})}
                     >
-                      {col.type === "index"
-                        ? pageStart + idx + 1
-                        : col.render
-                        ? col.render(row[col.key], row, pageStart + idx)
-                        : row[col.key]}
+                      {col.type === "index" ? (
+                        <span className="inline-flex h-6 min-w-[26px] items-center justify-center rounded-md border border-border-subtle bg-card px-1.5 text-[10px] font-bold text-muted tabular-nums transition-colors group-hover:border-border-accent group-hover:text-brand-text">
+                          {String(pageStart + idx + 1).padStart(2, "0")}
+                        </span>
+                      ) : col.render ? (
+                        col.render(row[col.key], row, pageStart + idx)
+                      ) : (
+                        row[col.key]
+                      )}
                     </td>
                   ))}
                   {actions.length > 0 && (
@@ -402,13 +416,14 @@ export default function GlobalTable({
                               e.stopPropagation();
                               action.onClick(row);
                             }}
-                            className={`p-2 rounded-lg transition-all active:scale-95 ${
+                            className={`p-2 rounded-lg transition-all hover:-translate-y-0.5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 ${
                               typeof action.className === "function"
                                 ? action.className(row)
                                 : action.className ||
                                   "text-muted bg-surface border border-border-subtle hover:text-brand-text hover:border-border-accent hover:shadow-sm"
                             }`}
                             title={action.title}
+                            aria-label={action.title}
                           >
                             {action.icon}
                           </button>

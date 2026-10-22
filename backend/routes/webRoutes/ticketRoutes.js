@@ -35,7 +35,7 @@ router.patch("/:id/priority", isLoggedIn, ticketController.updateTicketPriority)
 
 // Assign & Respond
 router.patch("/:id/assign", isLoggedIn, ticketController.updateTicketAssignee);
-router.post("/:id/response", isLoggedIn, validate(ticketResponseSchema), ticketController.addTicketResponse);
+router.post("/:id/response", isLoggedIn, handleUpload(upload.array("attachments", 5)), validate(ticketResponseSchema), ticketController.addTicketResponse);
 
 // --- DOWNLOAD ROUTE ---
 router.get("/:id/attachment/:attachmentId", isLoggedIn, ticketController.downloadTicketAttachment);

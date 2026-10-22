@@ -33,6 +33,7 @@ export default function PortalTable({
   actions,
   rowsPerPage = 10,
   rowsPerPageOptions = [10, 20, 50, 100],
+  countLabel = "records",
   emptyTitle = "Nothing here yet",
   emptyHint,
 }) {
@@ -42,6 +43,10 @@ export default function PortalTable({
     align: col.align,
     sortable: col.sortable,
     hideBelow: col.hideBelow,
+    type: col.type,
+    width: col.width,
+    group: col.group,
+    headerClassName: col.headerClassName,
     className: col.cellClass,
     render: col.render,
   }));
@@ -66,6 +71,7 @@ export default function PortalTable({
       actions={mappedActions}
       rowsPerPage={rowsPerPage}
       rowsPerPageOptions={rowsPerPageOptions}
+      countLabel={countLabel}
       defaultSort={defaultSort || sort || { key: null, direction: "asc" }}
       sort={sort}
       onSortChange={onSortChange}

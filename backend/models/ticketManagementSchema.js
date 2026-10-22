@@ -48,7 +48,12 @@ const ticketSchema = new mongoose.Schema({
       author: String,
       content: String,
       time: String,
-      avatar: String
+      avatar: String,
+      attachments: [{
+        name: String,
+        url: String,
+        blobName: String
+      }]
     }
   ],
   status: {

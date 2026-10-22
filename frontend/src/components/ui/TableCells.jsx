@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FaCommentDots } from "react-icons/fa";
 import { getInitials } from "../../utils/tableUtils";
 import { priorityLabel } from "../StatusBadge";
@@ -55,6 +55,7 @@ export const TableEmpty = ({ fallback = "—", className = "" }) => (
 );
 
 export function TableAvatar({ name, src, size = "md", className = "" }) {
+  const [imageFailed, setImageFailed] = useState(false);
   const sizeCls = {
     xs: "w-6 h-6 text-[9px]",
     sm: "w-7 h-7 text-[10px]",
@@ -62,18 +63,23 @@ export function TableAvatar({ name, src, size = "md", className = "" }) {
     lg: "w-10 h-10 text-sm",
   }[size];
 
-  if (src) {
+  useEffect(() => {
+    setImageFailed(false);
+  }, [src]);
+
+  if (src && !imageFailed) {
     return (
       <img
         src={src}
         alt=""
-        className={`${sizeCls} rounded-full object-cover border border-border-subtle flex-shrink-0 ${className}`}
+        onError={() => setImageFailed(true)}
+        className={`${sizeCls} rounded-full object-cover border border-border-accent shadow-sm flex-shrink-0 ${className}`}
       />
     );
   }
   return (
     <span
-      className={`${sizeCls} rounded-full bg-amber-100 text-brand-text border border-amber-200 dark:bg-amber-900/40 dark:border-amber-800 dark:text-amber-400 flex items-center justify-center font-black flex-shrink-0 ${className}`}
+      className={`${sizeCls} rounded-full bg-gradient-to-br from-amber-100 to-amber-200 text-brand-text border border-amber-200 shadow-sm dark:from-amber-900/40 dark:to-amber-800/40 dark:border-amber-800 dark:text-amber-400 flex items-center justify-center font-bold tracking-wide flex-shrink-0 ${className}`}
     >
       {getInitials(name)}
     </span>
@@ -95,7 +101,7 @@ export function TablePerson({
     <div className={`flex items-center gap-2.5 min-w-0 ${className}`}>
       <TableAvatar name={display} src={avatar} size={size} />
       <div className="min-w-0">
-        <p className="text-sm font-bold text-heading truncate leading-tight">{display}</p>
+        <p className="text-sm font-semibold text-heading truncate leading-tight">{display}</p>
         {subtitle ? (
           <p className={`text-[10px] text-muted truncate ${subtitleClassName}`}>{subtitle}</p>
         ) : null}
@@ -113,12 +119,15 @@ export function TableTitle({
   fallback = "—",
   maxWidth = "max-w-[240px]",
   className = "",
+  titleClassName = "",
 }) {
   return (
     <div className={`flex items-center gap-2.5 min-w-0 ${maxWidth} ${className}`}>
       {leading}
       <div className="min-w-0">
-        <p className="text-sm font-bold text-heading truncate leading-tight flex items-center gap-1.5">
+        <p
+          className={`text-sm font-semibold text-heading truncate leading-tight flex items-center gap-1.5 ${titleClassName}`}
+        >
           {icon}
           {title || fallback}
         </p>
@@ -380,21 +389,24 @@ export function TableProgress({
   value = 0,
   total,
   showLabel = true,
-  width = "min-w-[110px]",
+  width = "min-w-[120px]",
   barClass,
 }) {
   const pct = total ? Math.round((value / total) * 100) : Math.max(0, Math.min(100, Math.round(value || 0)));
-  const tone = barClass || (pct <= 25 ? "bg-rose-500" : pct <= 60 ? "bg-amber-500" : "bg-emerald-500");
+  const tone =
+    barClass || "bg-gradient-to-r from-amber-300 via-amber-500 to-amber-600";
   return (
-    <div className={`flex items-center gap-2 ${width}`}>
-      <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+    <div className={`flex items-center gap-2.5 ${width}`}>
+      <div className="h-1.5 w-full rounded-full bg-border-subtle overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${tone}`}
+          className={`h-full rounded-full transition-all duration-700 ease-out ${tone}`}
           style={{ width: `${Math.max(pct, 2)}%` }}
         />
       </div>
       {showLabel && (
-        <span className="text-[10px] font-bold text-muted tabular-nums shrink-0">{pct}%</span>
+        <span className="w-9 shrink-0 text-right text-[11px] font-bold text-heading tabular-nums">
+          {pct}%
+        </span>
       )}
     </div>
   );

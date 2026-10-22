@@ -8,10 +8,10 @@ import {
   EyeIcon,
   ArrowTopRightOnSquareIcon,
   FolderIcon,
+  ArrowsUpDownIcon,
 } from "@heroicons/react/24/outline";
 import { FaLayerGroup, FaFolderOpen, FaPlayCircle, FaChartLine } from "react-icons/fa";
 import PageContainer from "../../components/ui/PageContainer";
-import StatCard from "../../components/ui/StatCard";
 import {
   fetchProjectGroups,
   createProjectGroup,
@@ -23,21 +23,70 @@ import { useConfirm } from "../../context/ConfirmContext";
 import GlassModal from "../../components/ui/GlassModal";
 import GlassButton from "../../components/ui/GlassButton";
 import PortalHero from "../../components/ui/PortalHero";
-import ToolbarSearch from "../../components/projectPortal/ToolbarSearch";
+import PortalToolbar, { ToolbarSelect } from "../../components/projectPortal/PortalToolbar";
 import PortalTable from "../../components/projectPortal/PortalTable";
 import {
   TableDate,
+  TablePerson,
   TableProgress,
+  TableStatus,
   TableText,
   TableTitle,
 } from "../../components/ui/TableCells";
 import Progress from "../../components/projectPortal/Progress";
-import Pill, { PROJECT_STATUS_TONE } from "../../components/projectPortal/Pill";
 import { formatDate, shortDate, personName } from "../../components/projectPortal/helpers";
 import api from "../../axios";
 
 const apiError = (err, fallback) =>
   typeof err === "string" ? err : err?.response?.data?.message || err?.message || fallback;
+
+const GROUP_SORTS = [
+  { value: "createdAt", label: "Created date" },
+  { value: "name", label: "Group name" },
+  { value: "owner", label: "Owner" },
+  { value: "progress", label: "Progress" },
+];
+
+/**
+ * KPI configuration matching Project Dashboard design
+ */
+const KPIS = [
+  { label: "Total Portfolios", key: "totalPortfolios", Icon: FaLayerGroup, sub: "Groups created", tone: "amber" },
+  { label: "Projects Covered", key: "projectsCovered", Icon: FaFolderOpen, sub: "Across all groups", tone: "sky" },
+  { label: "Active Projects", key: "activeProjects", Icon: FaPlayCircle, sub: "Currently active", tone: "emerald" },
+  { label: "Avg Portfolio Progress", key: "avgProgress", Icon: FaChartLine, sub: "Mean completion", tone: "violet" },
+];
+
+const KPI_TONES = {
+  amber: {
+    wash: "bg-[rgba(232,213,160,0.25)] dark:bg-[rgba(251,191,36,0.09)]",
+    tile: "border-accent bg-[linear-gradient(135deg,#E8D5A0,#C5B588)] text-brand-text dark:border-[rgba(251,191,36,0.45)] dark:bg-[linear-gradient(135deg,rgba(251,191,36,0.30),rgba(245,158,11,0.10))] dark:text-[#FFE7A3] dark:shadow-[0_0_26px_-6px_rgba(251,191,36,0.65)]",
+    rail: "via-[rgba(251,191,36,0.8)]",
+    glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(251,191,36,0.16),transparent_62%)]",
+    value: "dark:[text-shadow:0_0_24px_rgba(251,191,36,0.4)]",
+  },
+  emerald: {
+    wash: "dark:hover:bg-[rgba(16,185,129,0.05)]",
+    tile: "border-border-subtle bg-app text-muted group-hover:border-border-accent group-hover:text-brand-text dark:border-[rgba(52,211,153,0.4)] dark:bg-[rgba(16,185,129,0.16)] dark:text-[#6EE7B7] dark:shadow-[0_0_24px_-8px_rgba(16,185,129,0.75)]",
+    rail: "via-[rgba(52,211,153,0.75)]",
+    glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(16,185,129,0.14),transparent_62%)]",
+    value: "dark:[text-shadow:0_0_24px_rgba(16,185,129,0.35)]",
+  },
+  sky: {
+    wash: "dark:hover:bg-[rgba(56,189,248,0.05)]",
+    tile: "border-border-subtle bg-app text-muted group-hover:border-border-accent group-hover:text-brand-text dark:border-[rgba(56,189,248,0.4)] dark:bg-[rgba(56,189,248,0.16)] dark:text-[#7DD3FC] dark:shadow-[0_0_24px_-8px_rgba(56,189,248,0.75)]",
+    rail: "via-[rgba(56,189,248,0.75)]",
+    glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(56,189,248,0.14),transparent_62%)]",
+    value: "dark:[text-shadow:0_0_24px_rgba(56,189,248,0.35)]",
+  },
+  violet: {
+    wash: "dark:hover:bg-[rgba(167,139,250,0.05)]",
+    tile: "border-border-subtle bg-app text-muted group-hover:border-border-accent group-hover:text-brand-text dark:border-[rgba(167,139,250,0.4)] dark:bg-[rgba(167,139,250,0.16)] dark:text-[#C4B5FD] dark:shadow-[0_0_24px_-8px_rgba(167,139,250,0.75)]",
+    rail: "via-[rgba(167,139,250,0.75)]",
+    glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(167,139,250,0.14),transparent_62%)]",
+    value: "dark:[text-shadow:0_0_24px_rgba(167,139,250,0.35)]",
+  },
+};
 
 const ProjectGroups = () => {
   const dispatch = useDispatch();
@@ -104,12 +153,12 @@ const ProjectGroups = () => {
       ? Math.round(groups.reduce((sum, g) => sum + (g.progress || 0), 0) / groups.length)
       : 0;
 
-  const stats = [
-    { label: "Total Portfolios", value: groups.length, Icon: FaLayerGroup, sub: "Groups created", tone: "text-indigo-600 dark:text-indigo-400" },
-    { label: "Projects Covered", value: totalProjects, Icon: FaFolderOpen, sub: "Across all groups", tone: "text-sky-600 dark:text-sky-400" },
-    { label: "Active Projects", value: totalActiveProjects, Icon: FaPlayCircle, sub: "Currently active", tone: "text-emerald-600 dark:text-emerald-400" },
-    { label: "Avg Portfolio Progress", value: `${avgPortfolioProgress}%`, Icon: FaChartLine, sub: "Mean completion", tone: "text-amber-600 dark:text-amber-400" },
-  ];
+  const kpiData = {
+    totalPortfolios: groups.length,
+    projectsCovered: totalProjects,
+    activeProjects: totalActiveProjects,
+    avgProgress: avgPortfolioProgress,
+  };
 
   const openCreateModal = () => {
     setEditingGroup(null);
@@ -201,14 +250,26 @@ const ProjectGroups = () => {
 
   const columns = [
     {
+      key: "_index",
+      label: "#",
+      type: "index",
+      sortable: false,
+      width: 56,
+      hideBelow: "sm",
+    },
+    {
       key: "name",
       label: "Group",
       render: (v, row) => (
         <TableTitle
           title={v}
           subtitle={row.description || undefined}
-          icon={<FolderIcon className="w-4 h-4 text-brand-text shrink-0" />}
-          maxWidth="max-w-[220px]"
+          maxWidth="max-w-[240px]"
+          leading={
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border-accent bg-amber-50 text-brand-text dark:bg-amber-900/30">
+              <FolderIcon className="h-4 w-4" />
+            </span>
+          }
         />
       ),
     },
@@ -216,7 +277,14 @@ const ProjectGroups = () => {
       key: "owner",
       label: "Owner",
       hideBelow: "md",
-      render: (v) => <TableText value={personName(v)} />,
+      render: (v) => {
+        const name = personName(v);
+        return name && name !== "—" ? (
+          <TablePerson name={name} size="sm" />
+        ) : (
+          <TableText value="" />
+        );
+      },
     },
     {
       key: "projects",
@@ -226,7 +294,10 @@ const ProjectGroups = () => {
         const total = row.projectCount ?? (Array.isArray(row.projects) ? row.projects.length : 0);
         const active = row.activeProjectsCount ?? 0;
         return (
-          <TableTitle title={`${active} active`} subtitle={`${total} total`} maxWidth="max-w-[120px]" />
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <span className="lm-success-badge">{active} active</span>
+            <span className="text-[11px] font-medium text-muted">{total} total</span>
+          </div>
         );
       },
     },
@@ -253,34 +324,119 @@ const ProjectGroups = () => {
       />
 
       {/* Summary KPIs */}
-      <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <StatCard key={s.label} title={s.label} value={s.value} sub={s.sub} icon={s.Icon} tone={s.tone} />
-        ))}
-      </div>
+      <section className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-[0_4px_20px_0_rgba(15,23,42,0.06)] backdrop-blur-[16px] dark:border-white/10 dark:bg-[linear-gradient(145deg,#1e293b_0%,#1a2436_55%,#162031_100%)] dark:shadow-[0_22px_60px_-24px_rgba(0,0,0,0.85)]">
+        <span
+          className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[rgba(232,213,160,0.7)] blur-3xl dark:bg-[rgba(251,191,36,0.16)]"
+          aria-hidden="true"
+        />
+        <span
+          className="pointer-events-none absolute -bottom-28 left-1/4 h-56 w-56 rounded-full bg-[rgba(232,213,160,0.3)] blur-3xl dark:bg-[rgba(251,191,36,0.08)]"
+          aria-hidden="true"
+        />
 
-      {/* Toolbar card — search & actions live here, never in the hero */}
-      <div className="glass-card !p-3.5 sm:!p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <ToolbarSearch
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search groups..."
-          />
-          <div className="flex items-center gap-3 sm:ml-auto">
-            <span className="lm-filterbar__meta-text">
-              Showing <b>{rows.length}</b> of {groups.length}
-            </span>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
-            >
-              <PlusIcon className="w-4 h-4 mr-2" /> New Group
-            </button>
+        <div className="relative z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {KPIS.map((kpi, index) => {
+              const Icon = kpi.Icon;
+              const tone = KPI_TONES[kpi.tone];
+              const borders = [
+                index > 0 ? "border-t border-border-subtle dark:border-white/10" : "",
+                index % 2 === 1 ? "sm:border-l sm:border-border-subtle sm:dark:border-white/10" : "",
+                index < 2 ? "sm:border-t-0" : "",
+                index > 0 ? "lg:border-l lg:border-border-subtle lg:dark:border-white/10" : "",
+                "lg:border-t-0",
+              ]
+                .filter(Boolean)
+                .join(" ");
+
+              return (
+                <div
+                  key={kpi.key}
+                  className={`group relative flex items-center gap-4 overflow-hidden px-5 py-5 transition-colors duration-300 ${tone.wash} ${borders}`}
+                >
+                  <span
+                    className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 dark:opacity-100 ${tone.rail}`}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={`pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 ${tone.glow}`}
+                    aria-hidden="true"
+                  />
+
+                  <span
+                    className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl border shadow-sm transition-all duration-300 group-hover:-translate-y-0.5 ${tone.tile}`}
+                  >
+                    <Icon size={18} />
+                  </span>
+
+                  <div className="relative min-w-0">
+                    <p className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-muted dark:text-slate-300">
+                      {kpi.label}
+                    </p>
+                    <p className={`mt-1.5 text-2xl font-black leading-none text-heading tabular-nums dark:text-white ${tone.value}`}>
+                      {kpiData[kpi.key] ?? 0}
+                      {kpi.key === "avgProgress" && "%"}
+                    </p>
+                    <p className="mt-1 truncate text-[10px] font-medium text-muted dark:text-slate-400">{kpi.sub}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Toolbar card — search, filters & actions live here, never in the hero */}
+      <PortalToolbar
+        searchValue={query}
+        onSearchChange={(e) => setQuery(e.target.value)}
+        searchPlaceholder="Search groups..."
+        showing={rows.length}
+        total={groups.length}
+        countLabel="groups"
+        filtersActive={query.trim() !== ""}
+        onReset={() => setQuery("")}
+        filters={
+          <>
+            <ToolbarSelect
+              label="Sort by"
+              value={sort.key}
+              onChange={(e) => {
+                const key = e.target.value;
+                setSort({
+                  key,
+                  direction: key === "createdAt" || key === "progress" ? "desc" : "asc",
+                });
+              }}
+              ariaLabel="Sort project groups"
+              options={GROUP_SORTS}
+            />
+            <button
+              type="button"
+              onClick={() =>
+                setSort((current) => ({
+                  ...current,
+                  direction: current.direction === "asc" ? "desc" : "asc",
+                }))
+              }
+              className="lm-filter-reset"
+              title="Toggle sort direction"
+            >
+              <ArrowsUpDownIcon className="h-3.5 w-3.5" aria-hidden="true" />
+              {sort.direction === "asc" ? "Ascending" : "Descending"}
+            </button>
+          </>
+        }
+        actions={
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
+          >
+            <PlusIcon className="w-4 h-4 mr-2" /> New Group
+          </button>
+        }
+      />
 
       <PortalTable
         columns={columns}
@@ -295,6 +451,7 @@ const ProjectGroups = () => {
           { title: "Delete group", icon: TrashIcon, danger: true, onClick: (row) => handleDelete(row._id) },
         ]}
         rowsPerPage={10}
+        countLabel="groups"
         emptyTitle={groups.length === 0 ? "No project groups yet" : "No matching groups"}
         emptyHint={
           groups.length === 0
@@ -476,9 +633,7 @@ const ProjectGroups = () => {
                         <div className="min-w-0 flex-1 mr-3">
                           <div className="flex items-center gap-2">
                             <h4 className="text-sm font-semibold text-heading truncate">{p.title}</h4>
-                            <Pill tone={PROJECT_STATUS_TONE[p.status] || "neutral"}>
-                              {p.status || "Planning"}
-                            </Pill>
+                            <TableStatus value={p.status || "Planning"} />
                           </div>
                           <div className="flex items-center gap-4 text-[11px] text-muted mt-1">
                             <span>Owner: {personName(p.owner)}</span>

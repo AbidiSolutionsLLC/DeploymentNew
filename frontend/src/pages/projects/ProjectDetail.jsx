@@ -19,11 +19,10 @@ import { useConfirm } from "../../context/ConfirmContext";
 import Loader from "../../components/ui/Loader";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
-import Pill, { PROJECT_STATUS_TONE } from "../../components/projectPortal/Pill";
 import Progress from "../../components/projectPortal/Progress";
 import PanelHead from "../../components/projectPortal/PanelHead";
 import EmptyState from "../../components/projectPortal/EmptyState";
-import { formatDate, shortDate, isOverdue, projectProgress, taskProgress, getAssigneeName, projectHealthTone } from "../../components/projectPortal/helpers";
+import { formatDate, shortDate, isOverdue, projectProgress, taskProgress, getAssigneeName } from "../../components/projectPortal/helpers";
 import AddTaskForm from "../../components/projectPortal/AddTaskForm";
 import EditProjectForm from "../../components/projectPortal/EditProjectForm";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
@@ -323,7 +322,7 @@ const ProjectDetail = () => {
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-black text-heading tracking-tight break-words">{project.title}</h1>
-                <Pill tone={PROJECT_STATUS_TONE[project.status] || "neutral"}>{project.status || "Planning"}</Pill>
+                <TableStatus value={project.status || "Planning"} />
                 {project.projectGroup && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-brand-text border border-border-accent">
                     <FolderIcon className="w-3.5 h-3.5" />
@@ -363,7 +362,7 @@ const ProjectDetail = () => {
               <Progress value={pct} trackClassName="h-3 rounded-lg" />
               <div className="flex items-center justify-between mt-2 text-[10px] font-black uppercase tracking-widest text-muted">
                 <span>Project health</span>
-                <Pill tone={projectHealthTone(project.health?.status)}>{project.health?.status || "On Track"}</Pill>
+                <TableStatus value={project.health?.status || "On Track"} />
               </div>
               {project.health?.reasons?.length > 0 && (
                 <p className="text-[10px] text-danger mt-2">{project.health.reasons.join(" · ")}</p>
@@ -410,9 +409,7 @@ const ProjectDetail = () => {
               <div key={milestone._id || index} className="rounded-xl bg-card border border-border-subtle p-3">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm font-semibold text-heading">{milestone.title}</p>
-                  <Pill tone={milestone.status === "Completed" ? "success" : milestone.status === "In Progress" ? "info" : "neutral"}>
-                    {milestone.status}
-                  </Pill>
+                  <TableStatus value={milestone.status} />
                 </div>
                 <p className={`text-[10px] uppercase tracking-widest mt-2 ${isOverdue(milestone.dueDate, milestone.status === "Completed" ? "Done" : milestone.status) ? "text-danger" : "text-muted"}`}>
                   Due {shortDate(milestone.dueDate)}

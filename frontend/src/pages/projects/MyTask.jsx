@@ -7,12 +7,8 @@ import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
 import { fetchMyTasks, createTask, updateTask } from "../../store/taskSlice";
 import { toast } from "react-toastify";
 import PageContainer from "../../components/ui/PageContainer";
-import StatCard from "../../components/ui/StatCard";
 import PortalHero from "../../components/ui/PortalHero";
-import FilterPanel from "../../components/ui/FilterPanel";
-import FilterRow from "../../components/ui/FilterRow";
-import GlassInput from "../../components/ui/GlassInput";
-import GlassButton from "../../components/ui/GlassButton";
+import PortalToolbar, { ToolbarSelect } from "../../components/projectPortal/PortalToolbar";
 import GlobalTable from "../../components/ui/GlobalTable";
 import {
   TableDate,
@@ -36,7 +32,47 @@ const SORTS = [
   { key: "dueDate", label: "Due date" },
   { key: "priority", label: "Priority" },
   { key: "title", label: "Title" },
+  { key: "project", label: "Project" },
+  { key: "completionPercent", label: "Progress" },
 ];
+
+const KPIS = [
+  { label: "Assigned", key: "assigned", Icon: FaClipboardList, sub: "All your tasks", tone: "amber" },
+  { label: "In progress", key: "inProgress", Icon: FaSpinner, sub: "Active work", tone: "sky" },
+  { label: "Completed", key: "completed", Icon: FaCheckCircle, sub: "Done", tone: "emerald" },
+  { label: "Overdue", key: "overdue", Icon: FaExclamationTriangle, sub: "Past due", tone: "rose" },
+];
+
+const KPI_TONES = {
+  amber: {
+    wash: "bg-[rgba(232,213,160,0.25)] dark:bg-[rgba(251,191,36,0.09)]",
+    tile: "border-accent bg-[linear-gradient(135deg,#E8D5A0,#C5B588)] text-brand-text dark:border-[rgba(251,191,36,0.45)] dark:bg-[linear-gradient(135deg,rgba(251,191,36,0.30),rgba(245,158,11,0.10))] dark:text-[#FFE7A3] dark:shadow-[0_0_26px_-6px_rgba(251,191,36,0.65)]",
+    rail: "via-[rgba(251,191,36,0.8)]",
+    glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(251,191,36,0.16),transparent_62%)]",
+    value: "dark:[text-shadow:0_0_24px_rgba(251,191,36,0.4)]",
+  },
+  emerald: {
+    wash: "dark:hover:bg-[rgba(16,185,129,0.05)]",
+    tile: "border-border-subtle bg-app text-muted group-hover:border-border-accent group-hover:text-brand-text dark:border-[rgba(52,211,153,0.4)] dark:bg-[rgba(16,185,129,0.16)] dark:text-[#6EE7B7] dark:shadow-[0_0_24px_-8px_rgba(16,185,129,0.75)]",
+    rail: "via-[rgba(52,211,153,0.75)]",
+    glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(16,185,129,0.14),transparent_62%)]",
+    value: "dark:[text-shadow:0_0_24px_rgba(16,185,129,0.35)]",
+  },
+  sky: {
+    wash: "dark:hover:bg-[rgba(56,189,248,0.05)]",
+    tile: "border-border-subtle bg-app text-muted group-hover:border-border-accent group-hover:text-brand-text dark:border-[rgba(56,189,248,0.4)] dark:bg-[rgba(56,189,248,0.16)] dark:text-[#7DD3FC] dark:shadow-[0_0_24px_-8px_rgba(56,189,248,0.75)]",
+    rail: "via-[rgba(56,189,248,0.75)]",
+    glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(56,189,248,0.14),transparent_62%)]",
+    value: "dark:[text-shadow:0_0_24px_rgba(56,189,248,0.35)]",
+  },
+  rose: {
+    wash: "dark:hover:bg-[rgba(251,113,133,0.05)]",
+    tile: "border-border-subtle bg-app text-muted group-hover:border-border-accent group-hover:text-brand-text dark:border-[rgba(251,113,133,0.4)] dark:bg-[rgba(251,113,133,0.16)] dark:text-[#FDA4AF] dark:shadow-[0_0_24px_-8px_rgba(251,113,133,0.75)]",
+    rail: "via-[rgba(251,113,133,0.75)]",
+    glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(251,113,133,0.14),transparent_62%)]",
+    value: "dark:[text-shadow:0_0_24px_rgba(251,113,133,0.35)]",
+  },
+};
 
 const apiError = (err, fallback) => err?.response?.data?.message || err?.message || fallback;
 
@@ -67,6 +103,13 @@ const MyTask = () => {
   const activeCount = tasks.filter((task) => ["In Progress", "In Review"].includes(task.status)).length;
   const overdueCount = tasks.filter((task) => isOverdue(task.dueDate, task.status)).length;
 
+  const kpiData = {
+    assigned: tasks.length,
+    inProgress: activeCount,
+    completed: completedCount,
+    overdue: overdueCount,
+  };
+
   const handleCreateTask = async (taskData) => {
     try {
       await dispatch(createTask(taskData)).unwrap();
@@ -88,12 +131,6 @@ const MyTask = () => {
     }
   };
 
-  const cycleSort = () => {
-    const idx = SORTS.findIndex((s) => s.key === sort.key);
-    const next = SORTS[(idx + 1) % SORTS.length];
-    setSort({ key: next.key, direction: "asc" });
-  };
-
   const hasFilters = status !== "All" || query.trim() !== "";
   const resetFilters = () => {
     setStatus("All");
@@ -102,9 +139,19 @@ const MyTask = () => {
 
   const columns = [
     {
+      key: "_index",
+      label: "#",
+      type: "index",
+      sortable: false,
+      width: 56,
+      hideBelow: "sm",
+    },
+    {
       key: "title",
       label: "Task",
-      render: (v) => <TableTitle title={v} maxWidth="max-w-[240px]" />,
+      render: (v) => (
+        <TableTitle title={v} maxWidth="max-w-[260px]" titleClassName="font-medium" />
+      ),
     },
     {
       key: "project",
@@ -175,75 +222,118 @@ const MyTask = () => {
         />
 
         {/* ==================== KPI CARDS ==================== */}
-        <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard
-            title="Assigned"
-            value={tasks.length}
-            sub="All your tasks"
-            icon={FaClipboardList}
-            tone="text-amber-600 dark:text-amber-400"
+        <section className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-[0_4px_20px_0_rgba(15,23,42,0.06)] backdrop-blur-[16px] dark:border-white/10 dark:bg-[linear-gradient(145deg,#1e293b_0%,#1a2436_55%,#162031_100%)] dark:shadow-[0_22px_60px_-24px_rgba(0,0,0,0.85)]">
+          <span
+            className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[rgba(232,213,160,0.7)] blur-3xl dark:bg-[rgba(251,191,36,0.16)]"
+            aria-hidden="true"
           />
-          <StatCard
-            title="In progress"
-            value={activeCount}
-            sub="Active work"
-            icon={FaSpinner}
-            tone="text-sky-600 dark:text-sky-400"
+          <span
+            className="pointer-events-none absolute -bottom-28 left-1/4 h-56 w-56 rounded-full bg-[rgba(232,213,160,0.3)] blur-3xl dark:bg-[rgba(251,191,36,0.08)]"
+            aria-hidden="true"
           />
-          <StatCard
-            title="Completed"
-            value={completedCount}
-            sub="Done"
-            icon={FaCheckCircle}
-            tone="text-emerald-600 dark:text-emerald-400"
-          />
-          <StatCard
-            title="Overdue"
-            value={overdueCount}
-            sub="Past due"
-            icon={FaExclamationTriangle}
-            tone="text-rose-600 dark:text-rose-400"
-          />
-        </div>
+
+          <div className="relative z-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              {KPIS.map((kpi, index) => {
+                const Icon = kpi.Icon;
+                const tone = KPI_TONES[kpi.tone];
+                const borders = [
+                  index > 0 ? "border-t border-border-subtle dark:border-white/10" : "",
+                  index % 2 === 1 ? "sm:border-l sm:border-border-subtle sm:dark:border-white/10" : "",
+                  index < 2 ? "sm:border-t-0" : "",
+                  index > 0 ? "lg:border-l lg:border-border-subtle lg:dark:border-white/10" : "",
+                  "lg:border-t-0",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+
+                return (
+                  <div
+                    key={kpi.key}
+                    className={`group relative flex items-center gap-4 overflow-hidden px-5 py-5 transition-colors duration-300 ${tone.wash} ${borders}`}
+                  >
+                    <span
+                      className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 dark:opacity-100 ${tone.rail}`}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className={`pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 ${tone.glow}`}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl border shadow-sm transition-all duration-300 group-hover:-translate-y-0.5 ${tone.tile}`}
+                    >
+                      <Icon size={18} />
+                    </span>
+
+                    <div className="relative min-w-0">
+                      <p className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-muted dark:text-slate-300">
+                        {kpi.label}
+                      </p>
+                      <p className={`mt-1.5 text-2xl font-black leading-none text-heading tabular-nums dark:text-white ${tone.value}`}>
+                        {kpiData[kpi.key] ?? 0}
+                      </p>
+                      <p className="mt-1 truncate text-[10px] font-medium text-muted dark:text-slate-400">{kpi.sub}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
 
         {/* ==================== FILTERS ==================== */}
-        <FilterPanel
-          title="Assigned Tasks"
-          subtitle={`${rows.length} of ${tasks.length} tasks · updated just now`}
-          hint="Click any row to open the task detail — change status inline, or create a new task."
-          actions={
+        <PortalToolbar
+          searchValue={query}
+          onSearchChange={(e) => setQuery(e.target.value)}
+          searchPlaceholder="Search tasks..."
+          showing={rows.length}
+          total={tasks.length}
+          countLabel="tasks"
+          filtersActive={hasFilters}
+          onReset={resetFilters}
+          filters={
             <>
-              {hasFilters && (
-                <GlassButton variant="ghost" size="sm" onClick={resetFilters}>
-                  RESET
-                </GlassButton>
-              )}
-              <GlassButton variant="secondary" size="sm" icon={ArrowsUpDownIcon} onClick={cycleSort}>
-                {SORTS.find((s) => s.key === sort.key)?.label || "Sort by"}
-              </GlassButton>
-              <GlassButton variant="primary" size="sm" icon={PlusIcon} onClick={() => setShowModal(true)}>
-                NEW TASK
-              </GlassButton>
-            </>
-          }
-        >
-          <FilterRow>
-            <GlassInput
-              placeholder="Search tasks..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 min-w-[220px]"
-            />
-            <div className="min-w-[180px]">
-              <ModernSelect
+              <ToolbarSelect
+                label="Status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 options={statusOptions}
-                aria-label="Filter tasks by status"
+                ariaLabel="Filter tasks by status"
               />
-            </div>
-          </FilterRow>
-        </FilterPanel>
+              <ToolbarSelect
+                label="Sort by"
+                value={sort.key}
+                onChange={(e) => setSort({ key: e.target.value, direction: "asc" })}
+                options={SORTS.map((s) => ({ value: s.key, label: s.label }))}
+                ariaLabel="Sort tasks"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setSort((current) => ({
+                    ...current,
+                    direction: current.direction === "asc" ? "desc" : "asc",
+                  }))
+                }
+                className="lm-filter-reset"
+                title="Toggle sort direction"
+              >
+                <ArrowsUpDownIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                {sort.direction === "asc" ? "Ascending" : "Descending"}
+              </button>
+            </>
+          }
+          actions={
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
+            >
+              <PlusIcon className="w-4 h-4 mr-2" /> New Task
+            </button>
+          }
+        />
 
         {/* ==================== TABLE ==================== */}
         <GlobalTable

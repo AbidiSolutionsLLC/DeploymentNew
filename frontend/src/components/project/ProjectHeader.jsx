@@ -1,10 +1,8 @@
 import React from "react";
-import { FaUsers, FaCalendar, FaFlag, FaChartLine } from "react-icons/fa";
-import { useTheme } from "../../context/ThemeContext";
+import { FaUsers, FaCalendar, FaFlag } from "react-icons/fa";
+import { TableAvatar } from "../ui/TableCells";
 
 const ProjectHeader = ({ project }) => {
- const { selectedTheme } = useTheme(); 
-
  const getStatusColor = (status) => {
    switch (status?.toLowerCase()) {
    case 'active':
@@ -38,11 +36,6 @@ const ProjectHeader = ({ project }) => {
     return project?.completionPercent || statusProgressMap[project?.status] || 0;
  })();
 
- const progressColor = (() => {
-    if (progress < 40) return "#f44336";
-    if (progress < 70) return "#ff9800";
-    return "#4caf50";
- })();
 
  return (
  <div className="rounded-lg p-4 sm:p-6 mb-6 shadow-sm border border-primary/20 bg-secondary">
@@ -72,12 +65,12 @@ const ProjectHeader = ({ project }) => {
  {progress}%
  </span>
  </div>
- <div className="w-full bg-app rounded-full h-2.5 overflow-hidden border border-border-subtle">
- <div 
- className="h-full rounded-full transition-all duration-300"
- style={{ width: `${progress}%`, backgroundColor: progressColor }}
- ></div>
- </div>
+  <div className="w-full bg-border-subtle rounded-full h-2.5 overflow-hidden">
+  <div 
+  className="h-full rounded-full bg-gradient-to-r from-amber-300 via-amber-500 to-amber-600 transition-all duration-500"
+  style={{ width: `${progress}%` }}
+  ></div>
+  </div>
  </div>
  
  {/* Project Meta */}
@@ -119,10 +112,10 @@ const ProjectHeader = ({ project }) => {
  key={index} 
  className="flex items-center gap-3 p-3 rounded-lg border border-primary/30 bg-background"
  >
- <img
- src={member.avatar || member.profileImage || "/placeholder.svg"}
- alt={member.name || member.firstName}
- className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
+ <TableAvatar
+ name={member.name || member.firstName}
+ src={member.avatar || member.profileImage}
+ size="lg"
  />
  <div className="min-w-0 flex-1">
  <p className="text-sm font-medium truncate text-text">

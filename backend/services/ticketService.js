@@ -337,17 +337,28 @@ class TicketService {
     return ticketUpdated;
   }
 
-  async addTicketResponse(user, companyId, ticketId, data) {
+  async addTicketResponse(user, companyId, ticketId, data, files) {
     const { content, avatar } = data;
 
     const ticket = await Ticket.findOne({ _id: ticketId, company: companyId });
     if (!ticket) throw new NotFoundError("Ticket");
 
+    const attachments = (files || []).map(file => ({
+      name: file.originalname,
+      url: file.url || file.path,
+      blobName: file.blobName
+    }));
+
+    if (!String(content || "").trim() && attachments.length === 0) {
+      throw new BadRequestError("Response message or attachment is required.");
+    }
+
     const newResponse = {
       author: user?.name || "Unknown",
-      content,
+      content: content || "",
       time: new Date().toISOString(),
-      avatar: user?.avatar || avatar || ""
+      avatar: user?.avatar || avatar || "",
+      attachments
     };
 
     ticket.responses.push(newResponse);

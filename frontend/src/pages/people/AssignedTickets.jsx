@@ -176,14 +176,40 @@ export default function AssignedTickets() {
     await downloadFile(blobName, originalName);
   };
 
-  const handleAddComment = async (ticketId, commentText) => {
-    const err = validateDescription(commentText, { min: 10, max: 500, required: true });
+  const handlePriorityChange = async (ticketId, newPriority) => {
+    try {
+      await api.patch(`/tickets/${ticketId}/priority`, { priority: newPriority });
+      setTickets((prev) =>
+        prev.map((t) => (t._id === ticketId ? { ...t, priority: newPriority } : t))
+      );
+      if (selectedTicket && selectedTicket._id === ticketId) {
+        setSelectedTicket((prev) => ({ ...prev, priority: newPriority }));
+      }
+      showToast(`Priority updated to ${newPriority.replace(" Priority", "")}`);
+    } catch (err) {
+      showToast(getApiError(err, "Failed to update priority"), "error");
+    }
+  };
+
+  const handleAddComment = async (ticketId, commentText, files = []) => {
+    const hasFiles = files.length > 0;
+    const err = validateDescription(commentText, {
+      min: 10,
+      max: 500,
+      required: !hasFiles,
+    });
     if (err) return { error: err };
     try {
-      const res = await api.post(`/tickets/${ticketId}/response`, {
-        content: commentText,
-        avatar: currentUser?.avatar,
-      });
+      let payload;
+      if (hasFiles) {
+        payload = new FormData();
+        payload.append("content", commentText);
+        if (currentUser?.avatar) payload.append("avatar", currentUser.avatar);
+        files.forEach((file) => payload.append("attachments", file));
+      } else {
+        payload = { content: commentText, avatar: currentUser?.avatar };
+      }
+      const res = await api.post(`/tickets/${ticketId}/response`, payload);
       setTickets((prev) => prev.map((t) => (t._id === res.data._id ? res.data : t)));
       if (selectedTicket && selectedTicket._id === ticketId) {
         setSelectedTicket(res.data);
@@ -429,6 +455,7 @@ export default function AssignedTickets() {
             setSelectedTicket(null);
           }}
           onStatusChange={handleStatusChange}
+          onPriorityChange={handlePriorityChange}
           onAddComment={handleAddComment}
           onDownload={handleDownload}
           showToast={showToast}

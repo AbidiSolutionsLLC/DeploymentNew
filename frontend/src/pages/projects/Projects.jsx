@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, XMarkIcon, ChevronDownIcon, RectangleStackIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, PencilIcon, TrashIcon, RectangleStackIcon } from "@heroicons/react/24/outline";
 import { FaClock, FaCheckCircle, FaCalendarAlt, FaChartLine } from "react-icons/fa";
 import NewProjectDrawer from "../../components/NewProjectDrawer";
 import useProjects from "../../hooks/useProjects";
@@ -11,10 +11,11 @@ import { useConfirm } from "../../context/ConfirmContext";
 import PageContainer from "../../components/ui/PageContainer";
 import StatCard from "../../components/ui/StatCard";
 import PortalHero from "../../components/ui/PortalHero";
-import ToolbarSearch from "../../components/projectPortal/ToolbarSearch";
+import PortalToolbar, { ToolbarSelect } from "../../components/projectPortal/PortalToolbar";
 import PortalTable from "../../components/projectPortal/PortalTable";
 import {
   TableDate,
+  TablePerson,
   TableProgress,
   TableStatus,
   TablePill,
@@ -145,6 +146,14 @@ const Projects = () => {
 
   const columns = [
     {
+      key: "_index",
+      label: "#",
+      type: "index",
+      sortable: false,
+      width: 56,
+      hideBelow: "sm",
+    },
+    {
       key: "projectID",
       label: "ID",
       hideBelow: "xl",
@@ -153,7 +162,18 @@ const Projects = () => {
     {
       key: "title",
       label: "Project",
-      render: (v, row) => <TableTitle title={v} subtitle={row.description || undefined} maxWidth="max-w-[220px]" />,
+      render: (v, row) => (
+        <TableTitle
+          title={v}
+          subtitle={row.description || undefined}
+          maxWidth="max-w-[240px]"
+          leading={
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border-accent bg-amber-50 text-brand-text dark:bg-amber-900/30">
+              <RectangleStackIcon className="h-4 w-4" />
+            </span>
+          }
+        />
+      ),
     },
     {
       key: "projectGroup",
@@ -168,7 +188,14 @@ const Projects = () => {
       key: "owner",
       label: "Owner",
       hideBelow: "lg",
-      render: (v) => <TableText value={personName(v)} />,
+      render: (v) => {
+        const name = personName(v);
+        return name && name !== "—" ? (
+          <TablePerson name={name} size="sm" />
+        ) : (
+          <TableText value="" />
+        );
+      },
     },
     {
       key: "team",
@@ -221,86 +248,50 @@ const Projects = () => {
       </div>
 
       {/* Toolbar card — search, filters & actions live here, never in the hero */}
-      <div className="glass-card !p-3.5 sm:!p-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <ToolbarSearch
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search projects..."
+      <PortalToolbar
+        searchValue={query}
+        onSearchChange={(e) => setQuery(e.target.value)}
+        searchPlaceholder="Search projects..."
+        showing={rows.length}
+        total={projects.length}
+        countLabel="projects"
+        filtersActive={filtersActive}
+        onReset={resetFilters}
+        filters={
+          <>
+            <ToolbarSelect
+              label="Status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              ariaLabel="Filter projects by status"
+              options={STATUSES.map((s) => ({ value: s, label: `${s} (${countFor(s)})` }))}
             />
-            <button
-              type="button"
-              onClick={openNew}
-              className="btn btn-primary py-2.5 px-4 whitespace-nowrap sm:ml-auto"
-            >
-              <PlusIcon className="w-4 h-4 mr-2" /> New Project
-            </button>
-          </div>
 
-          <div className="lm-filterbar border-t border-border-subtle pt-3">
-            <span className="lm-filterbar__lead">
-              <FunnelIcon className="h-3.5 w-3.5" aria-hidden="true" />
-              Filters
-            </span>
-
-            <div className="lm-filter-fields">
-              <label className="lm-filter-field">
-                <span className="lm-filter-field__label">Status</span>
-                <span className="lm-filter-select-wrap">
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="lm-filter-select"
-                    aria-label="Filter projects by status"
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {`${s} (${countFor(s)})`}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDownIcon className="lm-filter-chevron" aria-hidden="true" />
-                </span>
-              </label>
-
-              {projectGroups.length > 0 && (
-                <label className="lm-filter-field">
-                  <span className="lm-filter-field__label">Group</span>
-                  <span className="lm-filter-select-wrap">
-                    <select
-                      value={selectedGroup}
-                      onChange={(e) => setSelectedGroup(e.target.value)}
-                      className="lm-filter-select"
-                      aria-label="Filter projects by group"
-                    >
-                      <option value="All">All Groups</option>
-                      <option value="None">No Group</option>
-                      {projectGroups.map((g) => (
-                        <option key={g._id || g.id} value={g._id || g.id}>
-                          {g.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDownIcon className="lm-filter-chevron" aria-hidden="true" />
-                  </span>
-                </label>
-              )}
-            </div>
-
-            <div className="lm-filterbar__meta">
-              <span className="lm-filterbar__meta-text">
-                Showing <b>{rows.length}</b> of {projects.length}
-              </span>
-              {filtersActive && (
-                <button type="button" onClick={resetFilters} className="lm-filter-reset">
-                  <XMarkIcon className="h-3.5 w-3.5" aria-hidden="true" /> Reset
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+            {projectGroups.length > 0 && (
+              <ToolbarSelect
+                label="Group"
+                value={selectedGroup}
+                onChange={(e) => setSelectedGroup(e.target.value)}
+                ariaLabel="Filter projects by group"
+                options={[
+                  { value: "All", label: "All Groups" },
+                  { value: "None", label: "No Group" },
+                  ...projectGroups.map((g) => ({ value: g._id || g.id, label: g.name })),
+                ]}
+              />
+            )}
+          </>
+        }
+        actions={
+          <button
+            type="button"
+            onClick={openNew}
+            className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
+          >
+            <PlusIcon className="w-4 h-4 mr-2" /> New Project
+          </button>
+        }
+      />
 
       <PortalTable
         columns={columns}
@@ -315,6 +306,7 @@ const Projects = () => {
           { title: "Delete", icon: TrashIcon, danger: true, onClick: handleDeleteProject },
         ]}
         rowsPerPage={10}
+        countLabel="projects"
         emptyTitle={projects.length === 0 ? "No projects yet" : "No matching projects"}
         emptyHint={
           projects.length === 0

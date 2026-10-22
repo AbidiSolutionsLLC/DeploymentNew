@@ -1,0 +1,2819 @@
+openapi: 3.0.3
+info:
+  title: Abidi Desk API
+  version: 1.0.0
+  license:
+    name: Proprietary
+  description: |
+    Multi-tenant internal support desk API for Abidi Desk.
+
+    Authentication uses an Azure Entra ID access token in the Authorization
+    header. The API validates the token, resolves the tenant, and enforces
+    record-level ticket scope. There is no password login endpoint; the SPA
+    obtains tokens through MSAL using Authorization Code + PKCE.
+
+    Errors use RFC 7807 Problem Details with an application-specific `code`
+    and a `requestId`. List endpoints are paginated. Mutating POST endpoints
+    accept an `Idempotency-Key`. PATCH endpoints accept `If-Match` with the
+    ticket version.
+servers:
+  - url: https://tickets.abidipro.abidisolutions.com/api
+    description: Production
+  - url: http://localhost:4010/api
+    description: Local development
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+    description: Identity bootstrap and current-user context.
+  - name: Tickets
+    description: Ticket lifecycle, assignment, comments, and attachments.
+  - name: Search
+    description: Cross-ticket search.
+  - name: Stats
+    description: Dashboard and reporting aggregates.
+  - name: Settings
+    description: Tenant settings, categories, priorities, and SLA policies.
+  - name: Directory
+    description: Read-only user and agent lookup.
+  - name: Audit
+    description: Append-only audit trail.
+  - name: Health
+    description: Liveness and readiness.
+
+paths:
+  /v1/auth/config:
+    get:
+      tags: [Auth]
+      summary: Public OIDC configuration for the SPA
+      description: Returns non-secret MSAL configuration. No authentication required.
+      security: []
+      responses:
+        '200':
+          description: OIDC configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthConfig'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user, tenant, roles, and capabilities
+      responses:
+        '200':
+          description: Current principal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets:
+    get:
+      tags: [Tickets]
+      summary: List, filter, and search tickets
+      description: |
+        Results are always scoped to the authenticated tenant and role. A
+        requester sees only their own tickets. An agent sees assigned tickets
+        and may use `view=unassigned` for the queue. An admin/viewer may use
+        `view=all`.
+      x-required-permission: ticket:read:own|ticket:read:assigned|ticket:read:queue|ticket:read:tenant
+      parameters:
+        - $ref: '#/components/parameters/View'
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/PriorityFilter'
+        - $ref: '#/components/parameters/CategoryFilter'
+        - $ref: '#/components/parameters/AssigneeFilter'
+        - $ref: '#/components/parameters/RequesterFilter'
+        - $ref: '#/components/parameters/SlaStateFilter'
+        - $ref: '#/components/parameters/TagFilter'
+        - $ref: '#/components/parameters/Query'
+        - $ref: '#/components/parameters/CreatedFrom'
+        - $ref: '#/components/parameters/CreatedTo'
+        - $ref: '#/components/parameters/UpdatedFrom'
+        - $ref: '#/components/parameters/UpdatedTo'
+        - $ref: '#/components/parameters/IncludeDeleted'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Include'
+      responses:
+        '200':
+          description: Paginated ticket list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Tickets]
+      summary: Create a ticket
+      description: |
+        Accepts JSON or multipart/form-data. Use multipart to include up to
+        five attachments in the same request. Requester defaults to the current
+        user; admins may create on behalf of another requester in the tenant.
+      x-required-permission: ticket:create
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TicketCreateMultipartRequest'
+      responses:
+        '201':
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/export:
+    get:
+      tags: [Tickets]
+      summary: Export the current filtered ticket view as CSV
+      x-required-permission: stats:export
+      parameters:
+        - $ref: '#/components/parameters/View'
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/PriorityFilter'
+        - $ref: '#/components/parameters/CategoryFilter'
+        - $ref: '#/components/parameters/AssigneeFilter'
+        - $ref: '#/components/parameters/RequesterFilter'
+        - $ref: '#/components/parameters/SlaStateFilter'
+        - $ref: '#/components/parameters/TagFilter'
+        - $ref: '#/components/parameters/Query'
+        - $ref: '#/components/parameters/CreatedFrom'
+        - $ref: '#/components/parameters/CreatedTo'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: CSV export
+          content:
+            text/csv:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/bulk:
+    post:
+      tags: [Tickets]
+      summary: Apply one action to up to 100 tickets
+      description: |
+        Partial success is possible. The response reports each failed ticket.
+        Bulk delete is soft-delete. Bulk transition validates each ticket
+        independently.
+      x-required-permission: ticket:bulk
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkActionRequest'
+      responses:
+        '200':
+          description: Bulk result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkActionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    get:
+      tags: [Tickets]
+      summary: Get ticket detail
+      x-required-permission: ticket:read:own|ticket:read:assigned|ticket:read:queue|ticket:read:tenant
+      responses:
+        '200':
+          description: Ticket detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    patch:
+      tags: [Tickets]
+      summary: Update ticket content fields
+      description: |
+        Updates subject, description, category, priority, or tags. Status and
+        assignment have dedicated command endpoints. Requires If-Match for
+        optimistic concurrency.
+      x-required-permission: ticket:update
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketUpdateRequest'
+      responses:
+        '200':
+          description: Updated ticket
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [Tickets]
+      summary: Soft-delete a ticket
+      x-required-permission: ticket:delete
+      responses:
+        '204':
+          description: Ticket soft-deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/restore:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    post:
+      tags: [Tickets]
+      summary: Restore a soft-deleted ticket
+      x-required-permission: ticket:restore
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Restored ticket
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/transitions:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    post:
+      tags: [Tickets]
+      summary: Transition ticket status
+      description: |
+        Validates the transition against the state machine and caller scope.
+        Writes status history, audit, and an outbox event. Reopening clears
+        resolved/closed timestamps and increments reopenCount.
+      x-required-permission: ticket:transition
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketTransitionRequest'
+      responses:
+        '200':
+          description: Ticket after transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/assign:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    post:
+      tags: [Tickets]
+      summary: Assign or reassign a ticket
+      description: |
+        Agents may self-assign an unassigned ticket. Admins may assign to any
+        active agent in the tenant. Assignees outside the tenant or without an
+        agent/admin role are rejected.
+      x-required-permission: ticket:assign
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRequest'
+      responses:
+        '200':
+          description: Ticket after assignment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/unassign:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    post:
+      tags: [Tickets]
+      summary: Remove the current assignee
+      x-required-permission: ticket:unassign
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnassignRequest'
+      responses:
+        '200':
+          description: Ticket after unassignment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/assignments:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    get:
+      tags: [Tickets]
+      summary: Assignment history
+      x-required-permission: ticket:read:own|ticket:read:assigned|ticket:read:queue|ticket:read:tenant
+      responses:
+        '200':
+          description: Assignment history, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssignmentHistoryEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/history:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    get:
+      tags: [Tickets]
+      summary: Combined status, assignment, and audit history
+      x-required-permission: ticket:read:own|ticket:read:assigned|ticket:read:queue|ticket:read:tenant
+      responses:
+        '200':
+          description: Combined ticket history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/comments:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    get:
+      tags: [Tickets]
+      summary: List comments
+      description: Requesters receive public comments only. Agents/admins may request internal comments.
+      x-required-permission: ticket:read:own|ticket:read:assigned|ticket:read:queue|ticket:read:tenant
+      parameters:
+        - name: visibility
+          in: query
+          schema:
+            $ref: '#/components/schemas/CommentVisibility'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Paginated comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Tickets]
+      summary: Add a public or internal comment
+      description: |
+        Accepts JSON or multipart/form-data. Multipart supports up to five
+        attachments. Internal comments require comment:internal and are never
+        visible to requesters.
+      x-required-permission: comment:public|comment:internal
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentCreateMultipartRequest'
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/comments/{commentId}:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+      - $ref: '#/components/parameters/CommentId'
+    patch:
+      tags: [Tickets]
+      summary: Edit a comment
+      description: Authors may edit within 15 minutes. Admins with comment:moderate may edit later.
+      x-required-permission: comment:public|comment:internal|comment:moderate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentUpdateRequest'
+      responses:
+        '200':
+          description: Updated comment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [Tickets]
+      summary: Soft-delete a comment
+      x-required-permission: comment:public|comment:internal|comment:moderate
+      responses:
+        '204':
+          description: Comment soft-deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/attachments:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    get:
+      tags: [Tickets]
+      summary: List ticket attachments
+      x-required-permission: ticket:read:own|ticket:read:assigned|ticket:read:queue|ticket:read:tenant
+      responses:
+        '200':
+          description: Attachments, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attachment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Tickets]
+      summary: Upload ticket attachments
+      description: Max 5 files, 25 MB each, 10 per ticket. Allowed MIME types are validated server-side.
+      x-required-permission: attachment:upload
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [attachments]
+              properties:
+                attachments:
+                  type: array
+                  maxItems: 5
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '201':
+          description: Uploaded attachments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attachment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: File too large
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/attachments/{attachmentId}:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+      - $ref: '#/components/parameters/AttachmentId'
+    delete:
+      tags: [Tickets]
+      summary: Soft-delete an attachment
+      x-required-permission: attachment:delete
+      responses:
+        '204':
+          description: Attachment soft-deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/tickets/{ticketId}/attachments/{attachmentId}/download-url:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+      - $ref: '#/components/parameters/AttachmentId'
+    get:
+      tags: [Tickets]
+      summary: Get a short-lived download URL
+      description: Returns a 5-minute SAS URL only when the attachment is clean and the caller can read the ticket.
+      x-required-permission: attachment:download
+      responses:
+        '200':
+          description: Short-lived download URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachmentDownload'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Attachment is not yet clean
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/search:
+    get:
+      tags: [Search]
+      summary: Search tickets and comments
+      x-required-permission: ticket:read:own|ticket:read:assigned|ticket:read:queue|ticket:read:tenant
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 150
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/stats/overview:
+    get:
+      tags: [Stats]
+      summary: Dashboard overview
+      x-required-permission: stats:read
+      parameters:
+        - $ref: '#/components/parameters/StatsFrom'
+        - $ref: '#/components/parameters/StatsTo'
+        - $ref: '#/components/parameters/View'
+        - $ref: '#/components/parameters/CategoryFilter'
+        - $ref: '#/components/parameters/PriorityFilter'
+        - $ref: '#/components/parameters/AssigneeFilter'
+      responses:
+        '200':
+          description: Overview metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsOverview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/stats/timeseries:
+    get:
+      tags: [Stats]
+      summary: Created, resolved, and backlog time series
+      x-required-permission: stats:read
+      parameters:
+        - $ref: '#/components/parameters/StatsFrom'
+        - $ref: '#/components/parameters/StatsTo'
+        - name: interval
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: day
+        - $ref: '#/components/parameters/View'
+        - $ref: '#/components/parameters/CategoryFilter'
+        - $ref: '#/components/parameters/PriorityFilter'
+        - $ref: '#/components/parameters/AssigneeFilter'
+      responses:
+        '200':
+          description: Time series
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeseriesPoint'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/stats/agents:
+    get:
+      tags: [Stats]
+      summary: Per-agent workload and SLA
+      x-required-permission: stats:read
+      parameters:
+        - $ref: '#/components/parameters/StatsFrom'
+        - $ref: '#/components/parameters/StatsTo'
+      responses:
+        '200':
+          description: Agent statistics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgentStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/stats/sla:
+    get:
+      tags: [Stats]
+      summary: SLA compliance
+      x-required-permission: stats:read
+      parameters:
+        - $ref: '#/components/parameters/StatsFrom'
+        - $ref: '#/components/parameters/StatsTo'
+        - $ref: '#/components/parameters/PriorityFilter'
+      responses:
+        '200':
+          description: SLA statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlaStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/stats/categories:
+    get:
+      tags: [Stats]
+      summary: Volume by category
+      x-required-permission: stats:read
+      parameters:
+        - $ref: '#/components/parameters/StatsFrom'
+        - $ref: '#/components/parameters/StatsTo'
+      responses:
+        '200':
+          description: Category statistics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/settings:
+    get:
+      tags: [Settings]
+      summary: Get tenant settings
+      x-required-permission: settings:read
+      responses:
+        '200':
+          description: Tenant settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    patch:
+      tags: [Settings]
+      summary: Update tenant settings
+      x-required-permission: settings:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsUpdateRequest'
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/categories:
+    get:
+      tags: [Settings]
+      summary: List categories
+      x-required-permission: settings:read
+      parameters:
+        - name: includeInactive
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Settings]
+      summary: Create a category
+      x-required-permission: categories:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreateRequest'
+      responses:
+        '201':
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    patch:
+      tags: [Settings]
+      summary: Update a category
+      x-required-permission: categories:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdateRequest'
+      responses:
+        '200':
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [Settings]
+      summary: Delete an unused category
+      x-required-permission: categories:manage
+      responses:
+        '204':
+          description: Category deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Category is in use
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/priorities:
+    get:
+      tags: [Settings]
+      summary: List priorities
+      x-required-permission: settings:read
+      responses:
+        '200':
+          description: Priorities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Priority'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Settings]
+      summary: Create a priority
+      x-required-permission: priorities:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriorityCreateRequest'
+      responses:
+        '201':
+          description: Created priority
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Priority'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/priorities/{priorityId}:
+    parameters:
+      - $ref: '#/components/parameters/PriorityId'
+    patch:
+      tags: [Settings]
+      summary: Update a priority
+      x-required-permission: priorities:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriorityUpdateRequest'
+      responses:
+        '200':
+          description: Updated priority
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Priority'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [Settings]
+      summary: Delete an unused priority
+      x-required-permission: priorities:manage
+      responses:
+        '204':
+          description: Priority deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Priority is in use
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/sla-policies:
+    get:
+      tags: [Settings]
+      summary: List SLA policies
+      x-required-permission: settings:read
+      responses:
+        '200':
+          description: SLA policies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SlaPolicy'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Settings]
+      summary: Create an SLA policy
+      x-required-permission: sla:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SlaPolicyCreateRequest'
+      responses:
+        '201':
+          description: Created policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlaPolicy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/sla-policies/{slaPolicyId}:
+    parameters:
+      - $ref: '#/components/parameters/SlaPolicyId'
+    get:
+      tags: [Settings]
+      summary: Get an SLA policy
+      x-required-permission: settings:read
+      responses:
+        '200':
+          description: SLA policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlaPolicy'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    patch:
+      tags: [Settings]
+      summary: Update an SLA policy
+      x-required-permission: sla:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SlaPolicyUpdateRequest'
+      responses:
+        '200':
+          description: Updated policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlaPolicy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [Settings]
+      summary: Delete an unused SLA policy
+      x-required-permission: sla:manage
+      responses:
+        '204':
+          description: SLA policy deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Policy is in use
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/directory/users:
+    get:
+      tags: [Directory]
+      summary: Read-only user and agent lookup
+      description: Used by assignee pickers and audit filters. Never returns credentials.
+      x-required-permission: directory:read
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/Role'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive]
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Directory page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirectoryUserPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/audit-events:
+    get:
+      tags: [Audit]
+      summary: List audit events
+      x-required-permission: audit:read
+      parameters:
+        - name: actorId
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: entityType
+          in: query
+          schema:
+            type: string
+            enum: [ticket, comment, attachment, category, priority, sla_policy, settings, role_binding]
+        - name: entityId
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/StatsFrom'
+        - $ref: '#/components/parameters/StatsTo'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Audit event page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Liveness
+      security: []
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+
+  /readyz:
+    get:
+      tags: [Health]
+      summary: Readiness
+      security: []
+      responses:
+        '200':
+          description: Dependencies are ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '503':
+          description: A dependency is not ready
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TicketId:
+      name: ticketId
+      in: path
+      required: true
+      schema:
+        type: string
+        description: Ticket ObjectId.
+    CommentId:
+      name: commentId
+      in: path
+      required: true
+      schema:
+        type: string
+        description: Comment ObjectId.
+    AttachmentId:
+      name: attachmentId
+      in: path
+      required: true
+      schema:
+        type: string
+        description: Attachment ObjectId.
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema:
+        type: string
+        description: Category ObjectId.
+    PriorityId:
+      name: priorityId
+      in: path
+      required: true
+      schema:
+        type: string
+        description: Priority ObjectId.
+    SlaPolicyId:
+      name: slaPolicyId
+      in: path
+      required: true
+      schema:
+        type: string
+        description: SLA policy ObjectId.
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+    Sort:
+      name: sort
+      in: query
+      description: Comma-separated sort fields; prefix with - for descending.
+      schema:
+        type: string
+        example: -createdAt
+    View:
+      name: view
+      in: query
+      schema:
+        type: string
+        enum: [my, assigned, unassigned, all]
+        default: my
+    StatusFilter:
+      name: status
+      in: query
+      description: Comma-separated ticket statuses.
+      schema:
+        type: string
+        example: new,open,in_progress
+    PriorityFilter:
+      name: priority
+      in: query
+      description: Comma-separated priority keys.
+      schema:
+        type: string
+        example: high,urgent
+    CategoryFilter:
+      name: categoryId
+      in: query
+      schema:
+        type: string
+    AssigneeFilter:
+      name: assigneeId
+      in: query
+      description: ObjectId, "me", or "unassigned".
+      schema:
+        type: string
+    RequesterFilter:
+      name: requesterId
+      in: query
+      description: ObjectId or "me".
+      schema:
+        type: string
+    SlaStateFilter:
+      name: slaState
+      in: query
+      schema:
+        type: string
+        example: on_track,at_risk
+    TagFilter:
+      name: tag
+      in: query
+      description: Comma-separated tags.
+      schema:
+        type: string
+    Query:
+      name: q
+      in: query
+      description: Search ticket number, subject, description, requester email/name.
+      schema:
+        type: string
+        maxLength: 150
+    CreatedFrom:
+      name: createdFrom
+      in: query
+      schema:
+        type: string
+        format: date-time
+    CreatedTo:
+      name: createdTo
+      in: query
+      schema:
+        type: string
+        format: date-time
+    UpdatedFrom:
+      name: updatedFrom
+      in: query
+      schema:
+        type: string
+        format: date-time
+    UpdatedTo:
+      name: updatedTo
+      in: query
+      schema:
+        type: string
+        format: date-time
+    IncludeDeleted:
+      name: includeDeleted
+      in: query
+      description: Admin only.
+      schema:
+        type: boolean
+        default: false
+    Include:
+      name: include
+      in: query
+      description: Optional heavy fields.
+      schema:
+        type: string
+        example: total,sla,commentCount
+    IfMatch:
+      name: If-Match
+      in: header
+      description: Ticket version from the last read, e.g. "3".
+      schema:
+        type: string
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      description: Client-generated unique key for safe retries. Replays are stored for 24 hours.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+    StatsFrom:
+      name: from
+      in: query
+      schema:
+        type: string
+        format: date-time
+    StatsTo:
+      name: to
+      in: query
+      schema:
+        type: string
+        format: date-time
+
+  responses:
+    BadRequest:
+      description: Malformed request
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: Authenticated but not permitted
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Resource not found in the tenant
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Version, state, or idempotency conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableEntity:
+      description: Validation failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          format: uri
+          example: https://errors.abididesk.com/validation-error
+        title:
+          type: string
+          example: Validation failed
+        status:
+          type: integer
+          example: 422
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        requestId:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    Role:
+      type: string
+      enum: [requester, agent, admin, viewer]
+
+    TicketStatus:
+      type: string
+      enum: [new, open, in_progress, pending_requester, resolved, closed, cancelled]
+
+    TicketSource:
+      type: string
+      enum: [web, api, migration, email]
+
+    SlaState:
+      type: string
+      enum: [on_track, at_risk, breached, met, not_applicable]
+
+    CommentVisibility:
+      type: string
+      enum: [public, internal]
+
+    AttachmentScanStatus:
+      type: string
+      enum: [pending, clean, blocked, failed]
+
+    AuthConfig:
+      type: object
+      required: [authority, clientId, apiScope]
+      properties:
+        authority:
+          type: string
+          format: uri
+        clientId:
+          type: string
+        apiScope:
+          type: string
+        redirectUri:
+          type: string
+          format: uri
+        tenantHint:
+          type: string
+          nullable: true
+
+    UserSummary:
+      type: object
+      required: [id, displayName, email]
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+          format: email
+        avatarUrl:
+          type: string
+          nullable: true
+
+    TenantSummary:
+      type: object
+      required: [id, name, timezone]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        timezone:
+          type: string
+          example: America/New_York
+
+    Me:
+      type: object
+      required: [user, tenant, roles, capabilities]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserSummary'
+        tenant:
+          $ref: '#/components/schemas/TenantSummary'
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        capabilities:
+          type: array
+          items:
+            type: string
+            example: ticket:create
+
+    PriorityRef:
+      type: object
+      required: [id, key, label, rank]
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+          enum: [urgent, high, normal, low]
+        label:
+          type: string
+        rank:
+          type: integer
+        color:
+          type: string
+          nullable: true
+
+    CategoryRef:
+      type: object
+      required: [id, name, slug]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+
+    SlaSummary:
+      type: object
+      required: [state]
+      properties:
+        state:
+          $ref: '#/components/schemas/SlaState'
+        firstResponseDueAt:
+          type: string
+          format: date-time
+          nullable: true
+        resolutionDueAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    TicketSummary:
+      type: object
+      required:
+        - id
+        - number
+        - subject
+        - status
+        - priority
+        - category
+        - requester
+        - sla
+        - createdAt
+        - updatedAt
+        - version
+      properties:
+        id:
+          type: string
+        number:
+          type: string
+          example: TKT-2026-000123
+        subject:
+          type: string
+        status:
+          $ref: '#/components/schemas/TicketStatus'
+        priority:
+          $ref: '#/components/schemas/PriorityRef'
+        category:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/CategoryRef'
+          nullable: true
+        requester:
+          $ref: '#/components/schemas/UserSummary'
+        assignee:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/UserSummary'
+          nullable: true
+        sla:
+          $ref: '#/components/schemas/SlaSummary'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+
+    Ticket:
+      allOf:
+        - $ref: '#/components/schemas/TicketSummary'
+        - type: object
+          required:
+            - description
+            - source
+            - createdBy
+            - tags
+            - reopenCount
+          properties:
+            description:
+              type: string
+            source:
+              $ref: '#/components/schemas/TicketSource'
+            createdBy:
+              $ref: '#/components/schemas/UserSummary'
+            tags:
+              type: array
+              items:
+                type: string
+            firstRespondedAt:
+              type: string
+              format: date-time
+              nullable: true
+            resolvedAt:
+              type: string
+              format: date-time
+              nullable: true
+            closedAt:
+              type: string
+              format: date-time
+              nullable: true
+            lastActivityAt:
+              type: string
+              format: date-time
+              nullable: true
+            reopenCount:
+              type: integer
+              minimum: 0
+            commentCount:
+              type: integer
+              minimum: 0
+            attachmentCount:
+              type: integer
+              minimum: 0
+            deletedAt:
+              type: string
+              format: date-time
+              nullable: true
+            slaPolicyId:
+              type: string
+              nullable: true
+            slaPausedTotalSeconds:
+              type: integer
+              minimum: 0
+
+    TicketPage:
+      type: object
+      required: [items, page, pageSize, total, hasNext, hasPrevious]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketSummary'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    TicketCreateRequest:
+      type: object
+      required: [subject, description]
+      additionalProperties: false
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        categoryId:
+          type: string
+          nullable: true
+        priorityId:
+          type: string
+          nullable: true
+        requesterId:
+          type: string
+          nullable: true
+          description: Admin only. Defaults to the current user.
+        tags:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 32
+        source:
+          $ref: '#/components/schemas/TicketSource'
+
+    TicketCreateMultipartRequest:
+      type: object
+      required: [subject, description]
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        categoryId:
+          type: string
+          nullable: true
+        priorityId:
+          type: string
+          nullable: true
+        requesterId:
+          type: string
+          nullable: true
+        tags:
+          type: string
+          description: Comma-separated tags.
+        attachments:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            format: binary
+
+    TicketUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        categoryId:
+          type: string
+          nullable: true
+        priorityId:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 32
+
+    TicketTransitionRequest:
+      type: object
+      required: [to]
+      additionalProperties: false
+      properties:
+        to:
+          $ref: '#/components/schemas/TicketStatus'
+        reason:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    AssignRequest:
+      type: object
+      required: [assigneeId]
+      additionalProperties: false
+      properties:
+        assigneeId:
+          type: string
+        reason:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    UnassignRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    AssignmentHistoryEntry:
+      type: object
+      required: [id, assignee, assignedAt]
+      properties:
+        id:
+          type: string
+        assignee:
+          $ref: '#/components/schemas/UserSummary'
+        assignedBy:
+          $ref: '#/components/schemas/UserSummary'
+        assignedAt:
+          type: string
+          format: date-time
+        unassignedAt:
+          type: string
+          format: date-time
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+
+    StatusHistoryEntry:
+      type: object
+      required: [id, toStatus, changedBy, createdAt]
+      properties:
+        id:
+          type: string
+        fromStatus:
+          type: string
+          allOf:
+            - $ref: '#/components/schemas/TicketStatus'
+          nullable: true
+        toStatus:
+          $ref: '#/components/schemas/TicketStatus'
+        changedBy:
+          $ref: '#/components/schemas/UserSummary'
+        reason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    HistoryResponse:
+      type: object
+      required: [statusHistory, assignments, audit]
+      properties:
+        statusHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusHistoryEntry'
+        assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssignmentHistoryEntry'
+        audit:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+
+    Comment:
+      type: object
+      required: [id, ticketId, author, visibility, body, attachments, createdAt]
+      properties:
+        id:
+          type: string
+        ticketId:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserSummary'
+        visibility:
+          $ref: '#/components/schemas/CommentVisibility'
+        body:
+          type: string
+        bodyFormat:
+          type: string
+          enum: [plain]
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+        createdAt:
+          type: string
+          format: date-time
+        editedAt:
+          type: string
+          format: date-time
+          nullable: true
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CommentCreateRequest:
+      type: object
+      required: [body]
+      additionalProperties: false
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        visibility:
+          allOf:
+            - $ref: '#/components/schemas/CommentVisibility'
+          default: public
+
+    CommentCreateMultipartRequest:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        visibility:
+          allOf:
+            - $ref: '#/components/schemas/CommentVisibility'
+          default: public
+        attachments:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            format: binary
+
+    CommentUpdateRequest:
+      type: object
+      required: [body]
+      additionalProperties: false
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 5000
+
+    CommentPage:
+      type: object
+      required: [items, page, pageSize, total, hasNext, hasPrevious]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    Attachment:
+      type: object
+      required: [id, ticketId, fileName, contentType, sizeBytes, scanStatus, createdAt]
+      properties:
+        id:
+          type: string
+        ticketId:
+          type: string
+        commentId:
+          type: string
+          nullable: true
+        fileName:
+          type: string
+        contentType:
+          type: string
+        sizeBytes:
+          type: integer
+        scanStatus:
+          $ref: '#/components/schemas/AttachmentScanStatus'
+        createdAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AttachmentDownload:
+      type: object
+      required: [url, expiresAt]
+      properties:
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+
+    BulkActionRequest:
+      type: object
+      required: [ticketIds, action]
+      additionalProperties: false
+      properties:
+        ticketIds:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: string
+        action:
+          type: string
+          enum: [assign, unassign, transition, priority, category, delete]
+        assigneeId:
+          type: string
+          nullable: true
+        to:
+          type: string
+          allOf:
+            - $ref: '#/components/schemas/TicketStatus'
+          nullable: true
+        priorityId:
+          type: string
+          nullable: true
+        categoryId:
+          type: string
+          nullable: true
+        reason:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    BulkFailure:
+      type: object
+      required: [ticketId, code, message]
+      properties:
+        ticketId:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+
+    BulkActionResponse:
+      type: object
+      required: [succeeded, failed]
+      properties:
+        succeeded:
+          type: integer
+          minimum: 0
+        failed:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkFailure'
+
+    SearchCommentHit:
+      type: object
+      required: [ticketId, ticketNumber, commentId, snippet]
+      properties:
+        ticketId:
+          type: string
+        ticketNumber:
+          type: string
+        commentId:
+          type: string
+        snippet:
+          type: string
+
+    SearchResponse:
+      type: object
+      required: [tickets, comments]
+      properties:
+        tickets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketSummary'
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchCommentHit'
+
+    StatsOverview:
+      type: object
+      required: [total, open, unassigned, overdue, resolvedToday, avgFirstResponseMinutes, avgResolutionMinutes, slaComplianceRate]
+      properties:
+        total:
+          type: integer
+        open:
+          type: integer
+        unassigned:
+          type: integer
+        overdue:
+          type: integer
+        resolvedToday:
+          type: integer
+        avgFirstResponseMinutes:
+          type: number
+          nullable: true
+        avgResolutionMinutes:
+          type: number
+          nullable: true
+        slaComplianceRate:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    TimeseriesPoint:
+      type: object
+      required: [bucket, created, resolved, backlog]
+      properties:
+        bucket:
+          type: string
+          format: date
+        created:
+          type: integer
+        resolved:
+          type: integer
+        backlog:
+          type: integer
+
+    AgentStats:
+      type: object
+      required: [agent, assigned, open, resolved, slaBreaches]
+      properties:
+        agent:
+          $ref: '#/components/schemas/UserSummary'
+        assigned:
+          type: integer
+        open:
+          type: integer
+        resolved:
+          type: integer
+        avgFirstResponseMinutes:
+          type: number
+          nullable: true
+        avgResolutionMinutes:
+          type: number
+          nullable: true
+        slaBreaches:
+          type: integer
+
+    SlaStats:
+      type: object
+      required: [total, onTrack, atRisk, breached, met, complianceRate]
+      properties:
+        total:
+          type: integer
+        onTrack:
+          type: integer
+        atRisk:
+          type: integer
+        breached:
+          type: integer
+        met:
+          type: integer
+        complianceRate:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    CategoryStats:
+      type: object
+      required: [category, open, resolved, total]
+      properties:
+        category:
+          $ref: '#/components/schemas/CategoryRef'
+        open:
+          type: integer
+        resolved:
+          type: integer
+        total:
+          type: integer
+
+    Category:
+      type: object
+      required: [id, name, slug, isActive, sortOrder]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        sortOrder:
+          type: integer
+
+    CategoryCreateRequest:
+      type: object
+      required: [name]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        slug:
+          type: string
+          maxLength: 80
+          nullable: true
+        parentId:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+          default: true
+        sortOrder:
+          type: integer
+          default: 0
+
+    CategoryUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        slug:
+          type: string
+          maxLength: 80
+        parentId:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        sortOrder:
+          type: integer
+
+    Priority:
+      type: object
+      required: [id, key, label, rank, isDefault]
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+          enum: [urgent, high, normal, low]
+        label:
+          type: string
+        rank:
+          type: integer
+        color:
+          type: string
+          nullable: true
+        isDefault:
+          type: boolean
+
+    PriorityCreateRequest:
+      type: object
+      required: [key, label, rank]
+      additionalProperties: false
+      properties:
+        key:
+          type: string
+          enum: [urgent, high, normal, low]
+        label:
+          type: string
+          minLength: 1
+          maxLength: 40
+        rank:
+          type: integer
+          minimum: 1
+          maximum: 99
+        color:
+          type: string
+          maxLength: 32
+          nullable: true
+        isDefault:
+          type: boolean
+          default: false
+
+    PriorityUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 40
+        rank:
+          type: integer
+          minimum: 1
+          maximum: 99
+        color:
+          type: string
+          maxLength: 32
+          nullable: true
+        isDefault:
+          type: boolean
+
+    SlaPolicy:
+      type: object
+      required: [id, name, firstResponseMinutes, resolutionMinutes, atRiskThresholdPercent, isDefault, isActive]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        priorityId:
+          type: string
+          nullable: true
+        firstResponseMinutes:
+          type: integer
+          minimum: 1
+        resolutionMinutes:
+          type: integer
+          minimum: 1
+        atRiskThresholdPercent:
+          type: integer
+          minimum: 1
+          maximum: 100
+        isDefault:
+          type: boolean
+        isActive:
+          type: boolean
+
+    SlaPolicyCreateRequest:
+      type: object
+      required: [name, firstResponseMinutes, resolutionMinutes]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        priorityId:
+          type: string
+          nullable: true
+        firstResponseMinutes:
+          type: integer
+          minimum: 1
+        resolutionMinutes:
+          type: integer
+          minimum: 1
+        atRiskThresholdPercent:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 80
+        isDefault:
+          type: boolean
+          default: false
+        isActive:
+          type: boolean
+          default: true
+
+    SlaPolicyUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        priorityId:
+          type: string
+          nullable: true
+        firstResponseMinutes:
+          type: integer
+          minimum: 1
+        resolutionMinutes:
+          type: integer
+          minimum: 1
+        atRiskThresholdPercent:
+          type: integer
+          minimum: 1
+          maximum: 100
+        isDefault:
+          type: boolean
+        isActive:
+          type: boolean
+
+    Settings:
+      type: object
+      required: [tenantId, tenantName, timezone, autoCloseResolvedAfterDays, allowRequesterClose, allowRequesterReopenDays, attachmentMaxFiles, attachmentMaxBytes]
+      properties:
+        tenantId:
+          type: string
+        tenantName:
+          type: string
+        timezone:
+          type: string
+        defaultCategoryId:
+          type: string
+          nullable: true
+        defaultPriorityId:
+          type: string
+          nullable: true
+        autoCloseResolvedAfterDays:
+          type: integer
+          minimum: 0
+        allowRequesterClose:
+          type: boolean
+        allowRequesterReopenDays:
+          type: integer
+          minimum: 0
+        attachmentMaxFiles:
+          type: integer
+          minimum: 1
+        attachmentMaxBytes:
+          type: integer
+          minimum: 1
+        internalNotesVisibleToViewers:
+          type: boolean
+
+    SettingsUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        tenantName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        timezone:
+          type: string
+        defaultCategoryId:
+          type: string
+          nullable: true
+        defaultPriorityId:
+          type: string
+          nullable: true
+        autoCloseResolvedAfterDays:
+          type: integer
+          minimum: 0
+        allowRequesterClose:
+          type: boolean
+        allowRequesterReopenDays:
+          type: integer
+          minimum: 0
+        attachmentMaxFiles:
+          type: integer
+          minimum: 1
+          maximum: 20
+        attachmentMaxBytes:
+          type: integer
+          minimum: 1
+        internalNotesVisibleToViewers:
+          type: boolean
+
+    DirectoryUser:
+      type: object
+      required: [id, displayName, email, roles, status]
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+          format: email
+        avatarUrl:
+          type: string
+          nullable: true
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        status:
+          type: string
+          enum: [active, inactive]
+
+    DirectoryUserPage:
+      type: object
+      required: [items, page, pageSize, total, hasNext, hasPrevious]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DirectoryUser'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    AuditEvent:
+      type: object
+      required: [id, action, entityType, createdAt]
+      properties:
+        id:
+          type: string
+        actor:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/UserSummary'
+          nullable: true
+        action:
+          type: string
+          example: ticket.assigned
+        entityType:
+          type: string
+        entityId:
+          type: string
+          nullable: true
+        before:
+          type: object
+          nullable: true
+        after:
+          type: object
+          nullable: true
+        ip:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    AuditEventPage:
+      type: object
+      required: [items, page, pageSize, total, hasNext, hasPrevious]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    Health:
+      type: object
+      required: [status, version]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        version:
+          type: string
+        uptimeSeconds:
+          type: integer

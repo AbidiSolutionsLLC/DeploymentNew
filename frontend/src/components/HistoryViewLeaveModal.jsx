@@ -1,152 +1,177 @@
 import React from "react";
-import {
- FaCalendarAlt,
- FaUser,
- FaEnvelope,
- FaClock,
- FaFileAlt,
-} from "react-icons/fa";
+import { FaCalendarAlt, FaClock, FaEnvelope, FaFileAlt, FaUser } from "react-icons/fa";
 import { Clock } from "lucide-react";
 import { parseISOToLocalDate, formatDisplayDate } from "../utils/dateUtils";
-import GlassModal from "./ui/GlassModal";
-import GlassButton from "./ui/GlassButton";
-import { STATUS_VARIANTS, resolveStatusVariant } from "./StatusBadge";
+import DetailModal, {
+  DetailBadge,
+  DetailField,
+  DetailSectionHeading,
+} from "./ui/DetailModal";
 
-const HistoryViewLeaveModal = ({
- isOpen,
- setIsOpen,
- leaveData,
-}) => {
- const statusBadge = (status) => STATUS_VARIANTS[resolveStatusVariant(status)]?.badge || STATUS_VARIANTS.neutral.badge;
- const statusDot = (status) => STATUS_VARIANTS[resolveStatusVariant(status)]?.dot || STATUS_VARIANTS.neutral.dot;
+const statusTone = (status) => {
+  const value = String(status || "").toLowerCase();
+  if (value === "approved") return "border-success-border bg-success-bg text-success";
+  if (value === "rejected") return "border-danger-border bg-danger-bg text-danger";
+  if (value === "pending") return "border-warning-border bg-warning-bg text-warning";
+  return "border-border-subtle bg-app text-muted";
+};
 
- if (!isOpen || !leaveData) return null;
+const formatDateTime = (value) => {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
 
- return (
- <GlassModal
- isOpen={isOpen}
- onClose={() => setIsOpen(false)}
- title={
- <div className="flex flex-col">
- <span>LEAVE REQUEST DETAILS</span>
- <div className="mt-2">
- <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${statusBadge(leaveData.status)}`}>
- <span className={`w-1.5 h-1.5 rounded-full ${statusDot(leaveData.status)}`} />
- {leaveData.status}
- </span>
- </div>
- </div>
- }
- maxWidth="max-w-4xl"
- footer={
- <GlassButton variant="secondary" onClick={() => setIsOpen(false)} className="w-full">
- Close
- </GlassButton>
- }
- >
- <div className="space-y-6">
- {/* Employee Info */}
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="bg-app border border-border-subtle p-4 rounded-xl">
- <div className="flex items-center gap-3 mb-2">
- <FaUser className="text-muted dark:text-muted" />
- <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Employee</span>
- </div>
- <p className="text-sm font-bold text-heading dark:text-white">{leaveData.employeeName || leaveData.name}</p>
- <p className="text-xs text-muted dark:text-muted mt-1">
- {leaveData.employee?.department || "Department not specified"}
- </p>
- </div>
+const leaveDuration = (leaveData) => {
+  if (leaveData?.duration) return leaveData.duration;
+  const daysCount =
+    Math.ceil(
+      (parseISOToLocalDate(leaveData.endDate) - parseISOToLocalDate(leaveData.startDate)) /
+        (1000 * 60 * 60 * 24)
+    ) + 1;
+  return `${daysCount} day${daysCount === 1 ? "" : "s"}`;
+};
 
- <div className="bg-app border border-border-subtle p-4 rounded-xl">
- <div className="flex items-center gap-3 mb-2">
- <FaEnvelope className="text-muted dark:text-muted" />
- <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Email</span>
- </div>
- <p className="text-sm text-heading dark:text-white truncate">{leaveData.email}</p>
- </div>
- </div>
+const HistoryViewLeaveModal = ({ isOpen, setIsOpen, leaveData }) => {
+  if (!isOpen || !leaveData) return null;
 
- {/* Dates */}
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="bg-app border border-border-subtle p-4 rounded-xl">
- <div className="flex items-center gap-3 mb-2">
- <FaCalendarAlt className="text-muted dark:text-muted" />
- <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Start Date</span>
- </div>
- <p className="text-sm font-medium text-heading dark:text-white">
- {formatDisplayDate(leaveData.startDate)}
- </p>
- </div>
+  const employeeName = leaveData.employeeName || leaveData.name || "Employee";
+  const duration = leaveDuration(leaveData);
 
- <div className="bg-app border border-border-subtle p-4 rounded-xl">
- <div className="flex items-center gap-3 mb-2">
- <FaCalendarAlt className="text-muted dark:text-muted" />
- <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">End Date</span>
- </div>
- <p className="text-sm font-medium text-heading dark:text-white">
- {formatDisplayDate(leaveData.endDate)}
- </p>
- </div>
- </div>
+  return (
+    <DetailModal
+      isOpen={isOpen}
+      onClose={() => setIsOpen(false)}
+      ariaLabel="Leave history details"
+      meta={
+        <>
+          <span className="font-mono font-semibold text-main">
+            #{String(leaveData.id || leaveData._id || "leave").slice(-8).toUpperCase()}
+          </span>
+          <span className="h-1 w-1 rounded-full bg-border" />
+          <span>Applied {formatDateTime(leaveData.appliedAt || leaveData.createdAt)}</span>
+        </>
+      }
+      title={`${leaveData.leaveType || "Leave"} request`}
+      subtitle={`${employeeName}${leaveData.employee?.department ? ` · ${leaveData.employee.department}` : ""}`}
+      badges={
+        <>
+          <DetailBadge tone={statusTone(leaveData.status)}>
+            {leaveData.status || "Pending"}
+          </DetailBadge>
+          <DetailBadge>{duration}</DetailBadge>
+        </>
+      }
+    >
+      <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-6">
+          <section>
+            <DetailSectionHeading
+              icon={<FaCalendarAlt size={13} className="text-muted" />}
+              title="Leave details"
+            />
+            <div className="rounded-xl border border-border-subtle bg-surface p-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="mb-1.5 text-[11px] font-medium text-muted">Start date</p>
+                  <p className="text-[13px] font-medium text-main">
+                    {formatDisplayDate(leaveData.startDate)}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1.5 text-[11px] font-medium text-muted">End date</p>
+                  <p className="text-[13px] font-medium text-main">
+                    {formatDisplayDate(leaveData.endDate)}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1.5 text-[11px] font-medium text-muted">Duration</p>
+                  <p className="text-[13px] font-medium text-main">{duration}</p>
+                </div>
+              </div>
+            </div>
+          </section>
 
- {/* Duration & Type */}
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div className="bg-app border border-border-subtle p-4 rounded-xl">
- <div className="flex items-center gap-3 mb-2">
- <FaClock className="text-muted dark:text-muted" />
- <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Duration</span>
- </div>
- <p className="text-sm font-medium text-heading dark:text-white">
- {leaveData.duration ||
-  (() => {
- const daysCount = Math.ceil((parseISOToLocalDate(leaveData.endDate) - parseISOToLocalDate(leaveData.startDate)) / (1000 * 60 * 60 * 24)) + 1;
- return `${daysCount} day${daysCount === 1 ? '' : 's'}`;
- })()}
- </p>
- </div>
+          <section>
+            <DetailSectionHeading
+              icon={<FaFileAlt size={13} className="text-muted" />}
+              title="Reason"
+            />
+            <div className="rounded-xl border border-border-subtle bg-surface p-4">
+              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-main">
+                {leaveData.reason && leaveData.reason !== "-"
+                  ? leaveData.reason
+                  : "No reason provided."}
+              </p>
+            </div>
+          </section>
 
- <div className="bg-app border border-border-subtle p-4 rounded-xl">
- <div className="flex items-center gap-3 mb-2">
- <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Leave Type</span>
- </div>
- <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border bg-amber-100 text-brand-text border-amber-200 uppercase tracking-wide">
- {leaveData.leaveType}
- </span>
- </div>
- </div>
+          <div className="rounded-xl border border-warning-border bg-warning-bg p-4">
+            <p className="text-[13px] leading-relaxed text-warning">
+              This is a read-only view of the leave request from employee history.
+            </p>
+          </div>
+        </div>
 
- {/* Reason */}
- {leaveData.reason && leaveData.reason !== "-" && (
- <div className="bg-app border border-border-subtle p-4 rounded-xl">
- <div className="flex items-center gap-3 mb-2">
- <FaFileAlt className="text-muted dark:text-muted" />
- <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Reason</span>
- </div>
- <p className="text-sm text-heading dark:text-white whitespace-pre-line">{leaveData.reason}</p>
- </div>
- )}
+        <aside className="min-w-0">
+          <h3 className="mb-2.5 text-sm font-semibold text-heading">Details</h3>
+          <div className="overflow-hidden rounded-xl border border-border-subtle bg-surface">
+            <DetailField label="Employee">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-app text-[11px] font-semibold text-main ring-1 ring-border-subtle">
+                  {employeeName.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-medium text-main">{employeeName}</p>
+                  <p className="truncate text-[11px] text-muted">
+                    {leaveData.employee?.department || "Department not specified"}
+                  </p>
+                </div>
+              </div>
+            </DetailField>
 
- {/* Applied At */}
- <div className="bg-app border border-border-subtle p-4 rounded-xl">
- <div className="flex items-center gap-3 mb-2">
- <Clock size={14} className="text-muted dark:text-muted" />
- <span className="text-[10px] font-black text-muted dark:text-muted uppercase tracking-widest">Applied On</span>
- </div>
- <p className="text-sm text-heading dark:text-white">
- {new Date(leaveData.appliedAt || leaveData.createdAt).toLocaleString()}
- </p>
- </div>
+            <DetailField label="Email">
+              <p className="flex items-center gap-2 truncate text-[13px] font-medium text-main">
+                <FaEnvelope size={12} className="shrink-0 text-muted" />
+                {leaveData.email || "-"}
+              </p>
+            </DetailField>
 
- {/* Read Only Notice */}
- <div className="bg-warning-bg border border-warning-border rounded-xl p-4">
- <p className="text-xs text-warning font-medium text-center">
- This is a read-only view of the leave request from employee history.
- </p>
- </div>
- </div>
- </GlassModal>
- );
+            <DetailField label="Leave type">
+              <p className="truncate text-[13px] font-medium text-main">
+                {leaveData.leaveType || "-"}
+              </p>
+            </DetailField>
+
+            <DetailField label="Duration">
+              <p className="flex items-center gap-2 text-[13px] font-medium text-main">
+                <FaClock size={12} className="text-muted" />
+                {duration}
+              </p>
+            </DetailField>
+
+            <DetailField label="Applied on">
+              <p className="flex items-center gap-2 text-[13px] font-medium text-main">
+                <Clock size={12} className="text-muted" />
+                {formatDateTime(leaveData.appliedAt || leaveData.createdAt)}
+              </p>
+            </DetailField>
+
+            <DetailField label="Status" className="border-b-0">
+              <DetailBadge tone={statusTone(leaveData.status)}>
+                {leaveData.status || "Pending"}
+              </DetailBadge>
+            </DetailField>
+          </div>
+        </aside>
+      </div>
+    </DetailModal>
+  );
 };
 
 export default HistoryViewLeaveModal;

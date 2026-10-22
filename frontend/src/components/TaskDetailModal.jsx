@@ -1,10 +1,9 @@
 import React from 'react';
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
-import Pill, { TASK_STATUS_TONE, PRIORITY_TONE } from "../projectPortal/Pill";
+import { TablePriority, TableStatus } from "./ui/TableCells";
 import Progress from "../projectPortal/Progress";
 import { formatDate, isOverdue, taskProgress, getAssigneeName } from "../projectPortal/helpers";
-import StatusBadge from "./StatusBadge";
 
 /**
  * TaskDetailModal — read-only task detail using design tokens.
@@ -82,11 +81,11 @@ const TaskDetailModal = ({ task, onClose }) => {
         <div className="flex gap-3">
           <div className="flex-1 flex flex-col items-center p-3 bg-card rounded-xl border border-border-subtle">
             <span className="text-[9px] font-black text-muted mb-1 uppercase tracking-widest">Priority</span>
-            <Pill tone={PRIORITY_TONE[task?.priority] || "neutral"}>{task?.priority || "Medium"}</Pill>
+            <TablePriority value={task?.priority || "Medium"} />
           </div>
           <div className="flex-1 flex flex-col items-center p-3 bg-card rounded-xl border border-border-subtle">
             <span className="text-[9px] font-black text-muted mb-1 uppercase tracking-widest">Status</span>
-            <Pill tone={TASK_STATUS_TONE[task?.status] || "neutral"}>{task?.status || "Todo"}</Pill>
+            <TableStatus value={task?.status || "Todo"} />
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import GlassModal from "../ui/GlassModal";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
 import ModernDatePicker from "../ui/ModernDatePicker";
-import Pill, { TASK_STATUS_TONE, PRIORITY_TONE } from "./Pill";
+import { TablePriority, TableStatus } from "../ui/TableCells";
 import Progress from "./Progress";
 import { formatDate, isOverdue, taskProgress, getAssigneeName } from "./helpers";
 
@@ -98,8 +98,8 @@ export default function TaskDetailDrawer({
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-black text-heading">{task?.title}</h3>
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                <Pill tone={TASK_STATUS_TONE[status] || "neutral"}>{STATUS_DISPLAY[status] || status}</Pill>
-                <Pill tone={PRIORITY_TONE[task?.priority] || "neutral"}>{task?.priority || "Medium"}</Pill>
+                <TableStatus value={STATUS_DISPLAY[status] || status} />
+                <TablePriority value={task?.priority || "Medium"} />
               </div>
             </div>
             <ModernSelect

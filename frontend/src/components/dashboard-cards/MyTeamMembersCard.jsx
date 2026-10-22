@@ -1,22 +1,8 @@
 // Components/MyTeamMembersCard.jsx
-import React, { useState, useRef, useEffect } from "react";
-import { FiMoreVertical, FiUsers } from "react-icons/fi";
 import { ArrowRightIcon } from "@heroicons/react/24/solid";
+import { TableAvatar } from "../ui/TableCells";
 
 export default function MyTeamMembersCard({ teamMembers = [] }) {
- const [menuOpen, setMenuOpen] = useState(false);
- const menuRef = useRef();
-
- useEffect(() => {
- const handleClickOutside = (e) => {
- if (menuRef.current && !menuRef.current.contains(e.target)) {
- setMenuOpen(false);
- }
- };
- document.addEventListener("mousedown", handleClickOutside);
- return () => document.removeEventListener("mousedown", handleClickOutside);
- }, []);
-
  return (
  <div className="bg-surface border border-border-subtle rounded-xl shadow-sm p-5 flex flex-col h-full w-full">
  {/* Icon top left */}
@@ -46,11 +32,7 @@ export default function MyTeamMembersCard({ teamMembers = [] }) {
  key={index}
  className="bg-secondary/50 rounded-lg px-4 py-3 flex items-center gap-3 border border-border-subtle"
  >
- <img
- src={member.avatar}
- alt={member.name}
- className="w-10 h-10 rounded-full object-cover border border-border-subtle"
- />
+ <TableAvatar name={member.name} src={member.avatar} size="lg" />
  <div className="min-w-0">
  <span className="font-medium text-heading block truncate">
  {member.name}

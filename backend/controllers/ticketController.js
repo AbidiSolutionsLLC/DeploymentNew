@@ -48,7 +48,7 @@ exports.updateTicketAssignee = catchAsync(async (req, res) => {
 });
 
 exports.addTicketResponse = catchAsync(async (req, res) => {
-  const ticket = await ticketService.addTicketResponse(req.user, req.companyId, req.params.id, req.body);
+  const ticket = await ticketService.addTicketResponse(req.user, req.companyId, req.params.id, req.body, req.files);
   res.status(200).json(ApiResponse.success(ticket, "Response added to ticket"));
 });
 
