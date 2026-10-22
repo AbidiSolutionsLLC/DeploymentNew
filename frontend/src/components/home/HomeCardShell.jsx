@@ -24,13 +24,17 @@ export default function HomeCardShell({
   className = "",
   headerExtra,
   children,
+  dense = false,
 }) {
   return (
     <div
       className={`lm-card h-full w-full flex flex-col ${className}`}
       style={{ "--lm-accent": accent }}
     >
-      <div className="lm-card-head !py-3 !px-4" style={{ zIndex: menuOpen ? 10 : 1 }}>
+      <div
+        className={`lm-card-head ${dense ? "!py-2.5 !px-3.5" : "!py-3 !px-4"}`}
+        style={{ zIndex: menuOpen ? 10 : 1 }}
+      >
         {Icon && (
           <span className="lm-ico-emblem-square !w-8 !h-8">
             <span className="lm-glow" aria-hidden="true" />
@@ -70,7 +74,11 @@ export default function HomeCardShell({
           </div>
         )}
       </div>
-      <div className="p-4 pt-3 flex-1 min-h-0 flex flex-col">{children}</div>
+      <div
+        className={`${dense ? "px-3 pb-3 pt-2.5" : "p-4 pt-3"} flex-1 min-h-0 flex flex-col`}
+      >
+        {children}
+      </div>
     </div>
   );
 }

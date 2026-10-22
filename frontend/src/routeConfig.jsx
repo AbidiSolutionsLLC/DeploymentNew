@@ -69,8 +69,6 @@ export const moduleConfigs = {
     links: [
       { name: "Project DashBoard", path: "/project/projectDashboard", icon: PAGE_ICONS["/project/projectDashboard"], roles: ["All"] },
       { name: "Projects", path: "/project/projects", icon: PAGE_ICONS["/project/projects"], roles: ["All"] },
-      { name: "My Tasks", path: "/project/myTasks", icon: PAGE_ICONS["/project/myTasks"], roles: ["All"] },
-      { name: "Project Groups", path: "/project/projectGroups", icon: PAGE_ICONS["/project/projectGroups"], roles: ["All"] },
     ],
   },
 

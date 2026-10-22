@@ -13,7 +13,6 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
     description: project?.description || "",
     owner: project?.owner?._id || project?.owner || "",
     department: project?.department?._id || project?.department || "",
-    projectGroup: project?.projectGroup?._id || project?.projectGroup || "",
     status: PROJECT_STATUSES.includes(project?.status) ? project.status : "Planning",
     team: (project?.team || []).map((m) => m._id || m),
     startDate: project?.startDate ? String(project.startDate).slice(0, 10) : "",
@@ -27,7 +26,6 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
   const [errors, setErrors] = useState({});
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [projectGroups, setProjectGroups] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [optionsError, setOptionsError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -40,18 +38,15 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
         setLoadingOptions(true);
         setOptionsError("");
         try {
-          const [usersRes, deptsRes, groupsRes] = await Promise.all([
+          const [usersRes, deptsRes] = await Promise.all([
             api.get("/users"),
-            api.get("/departments"),
-            api.get("/project-groups")
+            api.get("/departments")
           ]);
           if (!mounted) return;
           const userList = usersRes.data?.data || usersRes.data || [];
           const deptList = deptsRes.data?.data || deptsRes.data || [];
-          const groupList = groupsRes.data?.data || groupsRes.data || [];
           setUsers(Array.isArray(userList) ? userList : []);
           setDepartments(Array.isArray(deptList) ? deptList : []);
-          setProjectGroups(Array.isArray(groupList) ? groupList : []);
           fetchedRef.current = true;
         } catch {
           if (mounted) setOptionsError("Could not load people & departments. Close and try again.");
@@ -95,7 +90,6 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
         description: form.description.trim(),
         owner: form.owner,
         department: form.department,
-        projectGroup: form.projectGroup || null,
         status: form.status,
         team: form.team,
         startDate: form.startDate || null,
@@ -163,7 +157,6 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <ModernSelect label="Status" name="status" value={form.status} onChange={(e) => set("status", e.target.value)} options={PROJECT_STATUSES.map((s) => ({ value: s, label: s }))} />
-        <ModernSelect label="Project Group (Optional)" name="projectGroup" value={form.projectGroup} onChange={(e) => set("projectGroup", e.target.value)} options={groupOptions} placeholder={loadingOptions ? "Loading groups..." : "Select project group"} />
       </div>
 
       <div>

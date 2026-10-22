@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import GlassButton from "../../components/ui/GlassButton";
 
-const cardOptions = [
+const defaultCardOptions = [
   { id: "feeds", label: "Feeds" },
   { id: "attendance", label: "Attendance" },
   { id: "holidays", label: "Holidays" },
@@ -13,7 +13,17 @@ const cardOptions = [
   { id: "timeoffBalance", label: "Time Off" },
 ];
 
-const AddCardMenu = ({ onAdd, currentCards = [] }) => {
+const AddCardMenu = ({
+  onAdd,
+  currentCards = [],
+  options = defaultCardOptions,
+  heading = "Dashboard cards",
+  buttonLabel = "Add Card",
+  variant = "primary",
+  size = "md",
+  className = "",
+}) => {
+  const cardOptions = options;
   const [open, setOpen] = useState(false);
   const menuRef = useRef();
   const currentCardTypes = currentCards.map((c) => c.type);
@@ -29,21 +39,21 @@ const AddCardMenu = ({ onAdd, currentCards = [] }) => {
   }, []);
 
   return (
-    <div className="relative inline-block text-left" ref={menuRef}>
+    <div className={`relative inline-block text-left ${className}`} ref={menuRef}>
       <GlassButton
-        variant="primary"
-        size="md"
+        variant={variant}
+        size={size}
         icon={PlusIcon}
         onClick={() => setOpen(!open)}
-        className="uppercase tracking-wider"
+        className="uppercase tracking-wider font-bold"
       >
-        Add Card
+        {buttonLabel}
       </GlassButton>
 
       {open && (
         <div className="absolute right-0 mt-2 w-48 rounded-xl shadow-2xl border bg-white dark:bg-slate-800 border-slate-400 dark:border-slate-400 py-2 overflow-hidden z-50">
           <p className="px-4 pb-2 pt-1 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-            Dashboard cards
+            {heading}
           </p>
           <ul className="text-xs text-slate-800 dark:text-slate-200 max-h-64 overflow-y-auto">
             {cardOptions.map((option) => (

@@ -6,6 +6,63 @@ const Department = require("../models/department");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
 const { createNotification } = require('../utils/notificationService');
 
+const PROJECT_DASHBOARD_CARD_TYPES = [
+  "activeProjects",
+  "taskPriorities",
+  "openTasks",
+  "upcomingDeadlines",
+  "teamMembers",
+];
+const LEGACY_PROJECT_DASHBOARD_CARD_TYPES = ["tasksDeadlines"];
+const DEFAULT_PROJECT_DASHBOARD_CARD_TYPES = [
+  "activeProjects",
+  "taskPriorities",
+  "openTasks",
+  "upcomingDeadlines",
+  "teamMembers",
+];
+const DASHBOARD_CARD_ORDER = [
+  "activeProjects",
+  "taskPriorities",
+  "openTasks",
+  "upcomingDeadlines",
+  "teamMembers",
+];
+const DEFAULT_PROJECT_DASHBOARD_CARDS = DEFAULT_PROJECT_DASHBOARD_CARD_TYPES.map((type) => ({
+  type,
+  id: type,
+}));
+
+const normalizeProjectDashboardCards = (cards) => {
+  if (!Array.isArray(cards)) return cards;
+
+  const hasLegacy = cards.some((card) => LEGACY_PROJECT_DASHBOARD_CARD_TYPES.includes(card.type));
+  if (!hasLegacy) return cards;
+
+  const normalized = [];
+
+  cards.forEach((card) => {
+    if (LEGACY_PROJECT_DASHBOARD_CARD_TYPES.includes(card.type)) {
+      if (!normalized.some((item) => item.type === "openTasks")) {
+        normalized.push({ type: "openTasks", id: "openTasks" });
+      }
+      if (!normalized.some((item) => item.type === "upcomingDeadlines")) {
+        normalized.push({ type: "upcomingDeadlines", id: "upcomingDeadlines" });
+      }
+      return;
+    }
+    if (!normalized.some((item) => item.type === card.type)) {
+      normalized.push(card);
+    }
+  });
+
+  return normalized.sort((a, b) => {
+    const aIndex = DASHBOARD_CARD_ORDER.indexOf(a.type);
+    const bIndex = DASHBOARD_CARD_ORDER.indexOf(b.type);
+    return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+  });
+};
+
 class ProjectService {
   async validateCompanyReferences(companyId, { owner, team, department, projectGroup } = {}) {
     const userIds = [owner, ...(team || [])].filter(Boolean);
@@ -402,6 +459,64 @@ class ProjectService {
     });
   }
 
+  async getProjectDashboardCards(userId) {
+    const user = await User.findById(userId).select("projectDashboardCards");
+    if (!user) throw new NotFoundError("User not found");
+
+    if (user.projectDashboardCards === undefined) {
+      return DEFAULT_PROJECT_DASHBOARD_CARDS;
+    }
+
+    const normalized = normalizeProjectDashboardCards(user.projectDashboardCards);
+    if (normalized !== user.projectDashboardCards) {
+      user.projectDashboardCards = normalized;
+      await user.save();
+    }
+    return normalized;
+  }
+
+  async addProjectDashboardCard(userId, type) {
+    if (!PROJECT_DASHBOARD_CARD_TYPES.includes(type)) {
+      throw new BadRequestError("Invalid dashboard card type");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) throw new NotFoundError("User not found");
+
+    const existing = user.projectDashboardCards === undefined
+      ? [...DEFAULT_PROJECT_DASHBOARD_CARDS]
+      : normalizeProjectDashboardCards(user.projectDashboardCards);
+
+    if (existing.some((card) => card.type === type)) {
+      throw new BadRequestError("Card already exists");
+    }
+
+    user.projectDashboardCards = [
+      ...existing,
+      { type, id: `${type}-${Date.now()}` },
+    ];
+    await user.save();
+    return user.projectDashboardCards;
+  }
+
+  async removeProjectDashboardCard(userId, cardId) {
+    const user = await User.findById(userId);
+    if (!user) throw new NotFoundError("User not found");
+
+    const existing = user.projectDashboardCards === undefined
+      ? [...DEFAULT_PROJECT_DASHBOARD_CARDS]
+      : [...normalizeProjectDashboardCards(user.projectDashboardCards)];
+
+    const remaining = existing.filter((card) => card.id !== cardId);
+    if (remaining.length === existing.length) {
+      throw new NotFoundError("Card not found");
+    }
+
+    user.projectDashboardCards = remaining;
+    await user.save();
+    return user.projectDashboardCards;
+  }
+
   async getProjectDashboard(user, companyId) {
     const userId = user.id || user._id;
 
@@ -417,15 +532,22 @@ class ProjectService {
 
     const activeStatusQuery = { $in: ["Active", "Planning", "In Progress", "Open"] };
 
-    const activeProjects = await Project.countDocuments({
-      ...projectScope,
-      status: activeStatusQuery,
-    });
-
-    const completedProjects = await Project.countDocuments({
-      ...projectScope,
-      status: "Completed",
-    });
+    const [totalProjects, activeProjects, completedProjects, delayedProjects] = await Promise.all([
+      Project.countDocuments(projectScope),
+      Project.countDocuments({
+        ...projectScope,
+        status: activeStatusQuery,
+      }),
+      Project.countDocuments({
+        ...projectScope,
+        status: "Completed",
+      }),
+      Project.countDocuments({
+        ...projectScope,
+        status: { $nin: ["Completed", "Cancelled"] },
+        dueDate: { $lt: new Date() },
+      }),
+    ]);
 
     const taskFilter = {
       company: companyId,
@@ -557,8 +679,10 @@ class ProjectService {
     };
 
     return {
+      totalProjects,
       activeProjects,
       completedProjects,
+      delayedProjects,
       openTasks,
       projectGroups,
       recentProjects: recentProjectsWithProgress,

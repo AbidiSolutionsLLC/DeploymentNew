@@ -35,7 +35,7 @@ test.beforeEach(async ({ page }) => {
 test("loads the project dashboard with live seeded data", async ({ page }) => {
   await page.goto("/project/projectDashboard", { waitUntil: "domcontentloaded" });
 
-  await expect(page.locator("body")).toContainText("Project Command Center");
+  await expect(page.locator("body")).toContainText("Project Dashboard");
   await expect(page.locator("body")).toContainText("Portal Test Project A");
   await expect(page.locator("body")).toContainText("Portal Test Task A");
 });

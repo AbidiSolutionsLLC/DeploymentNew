@@ -38,6 +38,21 @@ const getProjectDashboard = async () => {
  return response.data?.data || response.data;
 };
 
+const getProjectDashboardCards = async () => {
+ const response = await api.get(`${API_URL}/dashboard-cards`);
+ return response.data?.data || response.data;
+};
+
+const addProjectDashboardCard = async (type) => {
+ const response = await api.post(`${API_URL}/dashboard-cards/add`, { type });
+ return response.data?.data || response.data;
+};
+
+const removeProjectDashboardCard = async (cardId) => {
+ const response = await api.delete(`${API_URL}/dashboard-cards/${cardId}`);
+ return response.data?.data || response.data;
+};
+
 const projectApi = {
  getProjects,
  getProjectById,
@@ -46,6 +61,9 @@ const projectApi = {
  updateProject,
  deleteProject,
  getProjectDashboard,
+ getProjectDashboardCards,
+ addProjectDashboardCard,
+ removeProjectDashboardCard,
 };
 
 export default projectApi;

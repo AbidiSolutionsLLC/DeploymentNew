@@ -35,7 +35,6 @@ import Ticket from "./pages/tickets/Ticket";
 import AdminTickets from "./pages/tickets/AdminTickets";
 import AdminDashBoard from "./pages/admin/AdminDashBoard";
 import ActivityLogs from "./pages/admin/ActivityLogs";
-import MyTask from "./pages/projects/MyTask";
 import useAutoLogin from "./hooks/useAutoLogin";
 import { TimeLogProvider } from "../src/pages/people/TimeLogContext";
 import Role from "./pages/people/SharedWithRole";
@@ -43,7 +42,6 @@ import UploadDocument from "./pages/people/UploadDocument";
 import FAQs from "./pages/people/FAQ";
 import AssignTicket from "./pages/tickets/AssignTickets";
 import ProjectDetail from "./pages/projects/ProjectDetail";
-import ProjectGroups from "./pages/projects/ProjectGroups";
 import OrgChartPage from "./pages/admin/OrgChart";
 import AssignedTickets from "./pages/people/AssignedTickets";
 import AdminAttendance from "./pages/admin/AdminAttendance";
@@ -204,11 +202,9 @@ function App() {
   <Route index element={<Navigate to="projectDashboard" replace />} />
   <Route path="projectDashboard" element={<ProjectDashBoard />} />
   <Route path="projects" element={<Projects />} />
-  <Route path="projectDetailed/:id" element={<ProjectDetail />} />
-  <Route path="projects/:id" element={<ProjectDetail />} />
-  <Route path="myTasks" element={<MyTask />} />
-  <Route path="projectGroups" element={<ProjectGroups />} />
-  <Route path="*" element={<Navigate to="projectDashboard" replace />} />
+   <Route path="projectDetailed/:id" element={<ProjectDetail />} />
+   <Route path="projects/:id" element={<ProjectDetail />} />
+   <Route path="*" element={<Navigate to="projectDashboard" replace />} />
  </Route>
 
  <Route path="/faq/*">

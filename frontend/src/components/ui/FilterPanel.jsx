@@ -6,14 +6,17 @@ import { Info } from "lucide-react";
  * glass card with a title + subtitle, right aligned action buttons,
  * a divider, a filter row (children) and an optional hint line.
  */
-export default function FilterPanel({ title, subtitle, actions, hint, children }) {
+export default function FilterPanel({ title, subtitle, actions, hint, children, divider, className = "" }) {
+  const hasHeader = Boolean(title || subtitle || actions);
+  const showDivider = divider !== undefined ? divider : hasHeader;
+
   return (
     /* `relative z-30` keeps the panel (and any calendar dropdown opened from
        it) painted above the table that follows it — both are glass cards with
        backdrop-filter, so without an explicit z-index the later table wins
        and the picker renders behind it. */
-    <div className="glass-card relative z-30">
-      {(title || subtitle || actions) && (
+    <div className={`glass-card relative z-30 ${className}`}>
+      {hasHeader && (
         <div className="flex items-start sm:items-center justify-between gap-3">
           <div className="flex items-start gap-2.5 min-w-0">
             {title && (
@@ -39,7 +42,7 @@ export default function FilterPanel({ title, subtitle, actions, hint, children }
       )}
 
       {children && (
-        <div className="mt-3.5 pt-3.5 border-t border-border-subtle">{children}</div>
+        <div className={showDivider ? "mt-3.5 pt-3.5 border-t border-border-subtle" : ""}>{children}</div>
       )}
 
       {hint && (

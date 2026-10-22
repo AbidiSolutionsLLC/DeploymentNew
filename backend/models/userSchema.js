@@ -222,6 +222,25 @@ const userSchema = new mongoose.Schema(
         id: { type: String },
       },
     ],
+    projectDashboardCards: {
+      type: [
+        {
+          type: {
+            type: String,
+            enum: [
+              "activeProjects",
+              "taskPriorities",
+              "tasksDeadlines",
+              "teamMembers",
+              "openTasks",
+              "upcomingDeadlines",
+            ],
+          },
+          id: { type: String },
+        },
+      ],
+      default: undefined,
+    },
   },
   {
     timestamps: true,
