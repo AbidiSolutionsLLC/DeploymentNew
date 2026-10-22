@@ -1,8 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { PlusIcon, PencilIcon, TrashIcon, RectangleStackIcon } from "@heroicons/react/24/outline";
-import { FaClock, FaCheckCircle, FaCalendarAlt, FaChartLine } from "react-icons/fa";
 import NewProjectDrawer from "../../components/NewProjectDrawer";
 import useProjects from "../../hooks/useProjects";
 import projectApi from "../../api/projectApi";
@@ -10,10 +9,13 @@ import api from "../../axios";
 import { toast } from "react-toastify";
 import { useConfirm } from "../../context/ConfirmContext";
 import PageContainer from "../../components/ui/PageContainer";
-import StatCard from "../../components/ui/StatCard";
 import PortalHero from "../../components/ui/PortalHero";
-import PortalToolbar, { ToolbarSelect } from "../../components/projectPortal/PortalToolbar";
 import PortalTable from "../../components/projectPortal/PortalTable";
+import FilterPanel from "../../components/ui/FilterPanel";
+import FilterRow from "../../components/ui/FilterRow";
+import GlassInput from "../../components/ui/GlassInput";
+import ModernSelect from "../../components/ui/ModernSelect";
+import GlassButton from "../../components/ui/GlassButton";
 import {
   TableDate,
   TablePerson,
@@ -29,12 +31,22 @@ import { projectProgress, personName } from "../../components/projectPortal/help
  * Projects — "Command Center" list page (PROJECT_PORTAL_DESIGN.md §9.2).
  * Full list loaded once (GET /projects?limit=1000); search/filter/sort/page client-side.
  */
-const STATUSES = ["All", "Planning", "Active", "On Hold", "Completed", "Cancelled"];
+const STATUS_OPTIONS = [
+  { value: "All", label: "Status" },
+  { value: "Planning", label: "Planning" },
+  { value: "Active", label: "Active" },
+  { value: "On Hold", label: "On Hold" },
+  { value: "Completed", label: "Completed" },
+  { value: "Delayed", label: "Delayed" },
+  { value: "Cancelled", label: "Cancelled" },
+];
 
 const apiError = (err, fallback) => err?.response?.data?.message || err?.message || fallback;
 
 const Projects = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const authStateUser = useSelector((state) => state.auth.user);
   const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
   const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
@@ -46,62 +58,57 @@ const Projects = () => {
 
   const { projects, loading, error, refetch } = useProjects();
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("All");
-  const [projectGroups, setProjectGroups] = useState([]);
-  const [selectedGroup, setSelectedGroup] = useState("All");
+
+  const getInitialStatus = () => {
+    const target = searchParams.get("status") || location.state?.status;
+    if (target && (STATUS_OPTIONS.some((o) => o.value === target) || target === "Delayed")) {
+      return target;
+    }
+    return "All";
+  };
+
+  const [status, setStatus] = useState(getInitialStatus);
   const [sort, setSort] = useState({ key: "createdAt", direction: "desc" });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const confirm = useConfirm();
 
   useEffect(() => {
-    let mounted = true;
-    api.get("/project-groups")
-      .then((res) => {
-        if (!mounted) return;
-        const list = res.data?.data || res.data || [];
-        setProjectGroups(Array.isArray(list) ? list : []);
-      })
-      .catch((err) => console.error("Failed to load project groups", err));
-    return () => { mounted = false; };
-  }, []);
+    const target = searchParams.get("status") || location.state?.status;
+    if (target && (STATUS_OPTIONS.some((o) => o.value === target) || target === "Delayed")) {
+      setStatus(target);
+    }
+  }, [searchParams, location.state]);
+
+  const isDelayedProject = (p) => {
+    if (!p.dueDate) return false;
+    if (p.status === "Completed" || p.status === "Cancelled") return false;
+    return new Date(p.dueDate) < new Date();
+  };
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return projects.filter((p) => {
-      const matchStatus = status === "All" || p.status === status;
-      const groupMatch =
-        selectedGroup === "All" ||
-        (selectedGroup === "None"
-          ? !p.projectGroup
-          : (p.projectGroup?._id || p.projectGroup) === selectedGroup);
-      const groupName = p.projectGroup?.name || "";
+      let matchStatus = true;
+      if (status === "Delayed") {
+        matchStatus = isDelayedProject(p);
+      } else if (status !== "All") {
+        matchStatus = p.status === status;
+      }
+
       const matchQuery =
         !q ||
         (p.title || "").toLowerCase().includes(q) ||
         (p.projectID || "").toLowerCase().includes(q) ||
-        (p.description || "").toLowerCase().includes(q) ||
-        groupName.toLowerCase().includes(q);
-      return matchStatus && groupMatch && matchQuery;
+        (p.description || "").toLowerCase().includes(q);
+      return matchStatus && matchQuery;
     });
-  }, [projects, query, status, selectedGroup]);
+  }, [projects, query, status]);
 
-  const countFor = (s) => (s === "All" ? projects.length : projects.filter((p) => p.status === s).length);
-  const activeCount = projects.filter((p) => p.status === "Active").length;
-  const completedCount = projects.filter((p) => p.status === "Completed").length;
-  const dueSoonCount = projects.filter((p) => {
-    if (!p.dueDate || p.status === "Completed" || p.status === "Cancelled") return false;
-    const due = new Date(p.dueDate).getTime();
-    return due >= Date.now() && due <= Date.now() + 14 * 24 * 60 * 60 * 1000;
-  }).length;
-  const averageProgress = projects.length
-    ? Math.round(projects.reduce((sum, project) => sum + projectProgress(project), 0) / projects.length)
-    : 0;
-
-  const filtersActive = status !== "All" || selectedGroup !== "All";
+  const filtersActive = status !== "All";
   const resetFilters = () => {
     setStatus("All");
-    setSelectedGroup("All");
+    setSearchParams({});
   };
 
   const openNew = () => {
@@ -186,15 +193,6 @@ const Projects = () => {
       ),
     },
     {
-      key: "projectGroup",
-      label: "Group",
-      hideBelow: "lg",
-      render: (v) => {
-        const name = v?.name || (typeof v === "string" ? v : null);
-        return name ? <TablePill>{name}</TablePill> : <TableText value="" />;
-      },
-    },
-    {
       key: "owner",
       label: "Owner",
       hideBelow: "lg",
@@ -262,67 +260,48 @@ const Projects = () => {
       <PortalHero
         label="Projects overview"
         title="Projects"
-        description="Manage delivery, ownership, and progress across every project."
+        compact
       />
 
-      <div className="lm-stagger grid grid-cols-2 xl:grid-cols-4 gap-4">
-        {[
-          { label: "Active projects", value: activeCount, Icon: FaClock, sub: "In progress", tone: "text-sky-600 dark:text-sky-400" },
-          { label: "Completed", value: completedCount, Icon: FaCheckCircle, sub: "Delivered", tone: "text-emerald-600 dark:text-emerald-400" },
-          { label: "Due in 14 days", value: dueSoonCount, Icon: FaCalendarAlt, sub: "Approaching", tone: "text-amber-600 dark:text-amber-400" },
-          { label: "Average progress", value: `${averageProgress}%`, Icon: FaChartLine, sub: "Across all projects", tone: "text-indigo-600 dark:text-indigo-400" },
-        ].map(({ label, value, Icon, sub, tone }) => (
-          <StatCard key={label} title={label} value={value} sub={sub} icon={Icon} tone={tone} />
-        ))}
-      </div>
-
-      {/* Toolbar card — search, filters & actions live here, never in the hero */}
-      <PortalToolbar
-        searchValue={query}
-        onSearchChange={(e) => setQuery(e.target.value)}
-        searchPlaceholder="Search projects..."
-        showing={rows.length}
-        total={projects.length}
-        countLabel="projects"
-        filtersActive={filtersActive}
-        onReset={resetFilters}
-        filters={
-          <>
-            <ToolbarSelect
-              label="Status"
+      {/* Filter Panel - search, status filter & action without top divider line */}
+      <FilterPanel>
+        <FilterRow className="items-center">
+          <GlassInput
+            placeholder="Search projects..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="flex-1 min-w-[220px]"
+          />
+          <div className="min-w-[140px]">
+            <ModernSelect
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              ariaLabel="Filter projects by status"
-              options={STATUSES.map((s) => ({ value: s, label: `${s} (${countFor(s)})` }))}
+              onChange={(e) => {
+                const next = e.target.value;
+                setStatus(next);
+                if (next === "All") {
+                  setSearchParams({});
+                } else {
+                  setSearchParams({ status: next });
+                }
+              }}
+              options={STATUS_OPTIONS}
+              placeholder="Status"
             />
-
-            {projectGroups.length > 0 && (
-              <ToolbarSelect
-                label="Group"
-                value={selectedGroup}
-                onChange={(e) => setSelectedGroup(e.target.value)}
-                ariaLabel="Filter projects by group"
-                options={[
-                  { value: "All", label: "All Groups" },
-                  { value: "None", label: "No Group" },
-                  ...projectGroups.map((g) => ({ value: g._id || g.id, label: g.name })),
-                ]}
-              />
-            )}
-          </>
-        }
-        actions={
-          canCreateProject ? (
-            <button
-              type="button"
-              onClick={openNew}
-              className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
-            >
-              <PlusIcon className="w-4 h-4 mr-2" /> New Project
-            </button>
-          ) : null
-        }
-      />
+          </div>
+          {filtersActive && (
+            <GlassButton variant="ghost" size="sm" onClick={resetFilters}>
+              RESET
+            </GlassButton>
+          )}
+          {canCreateProject && (
+            <div className="ml-auto flex-shrink-0">
+              <GlassButton variant="primary" size="sm" icon={PlusIcon} onClick={openNew}>
+                New Project
+              </GlassButton>
+            </div>
+          )}
+        </FilterRow>
+      </FilterPanel>
 
       <PortalTable
         columns={columns}

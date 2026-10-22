@@ -16,6 +16,9 @@ router
 
 router.get("/dashboard", isLoggedIn, projectController.getProjectDashboard);
 router.get("/user", isLoggedIn, projectController.getUserProjects);
+router.get("/dashboard-cards", isLoggedIn, projectController.getProjectDashboardCards);
+router.post("/dashboard-cards/add", isLoggedIn, projectController.addProjectDashboardCard);
+router.delete("/dashboard-cards/:cardId", isLoggedIn, projectController.removeProjectDashboardCard);
 
 router
   .route("/:id")

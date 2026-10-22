@@ -141,25 +141,20 @@
      the background box, so background-clip:text never crops the glyphs */
   line-height: 1.2;
   padding-bottom: 0.06em;
-  background-image: linear-gradient(135deg, #F7E7B4 0%, #EDBB3E 38%, #D9A21F 62%, #F5D77A 100%);
-  background-size: 260% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  animation: lm-shine 7s linear infinite;
+  color: var(--color-text-heading, #0f172a);
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: currentColor;
 }
 
 .dark .lm-title,
 [data-theme="dark"] .lm-title {
-  background-image: linear-gradient(
-    100deg,
-    var(--color-brand-text) 0%,
-    var(--color-brand-primary) 30%,
-    #f2d98b 48%,
-    var(--color-brand-primary) 66%,
-    var(--color-brand-text) 100%
-  );
+  color: var(--color-text-heading, #f8fafc);
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: currentColor;
 }
 
 .lm-chip {
@@ -272,6 +267,21 @@
 .lm-emblem .lm-emblem-core > svg {
   width: 100%;
   height: 100%;
+}
+
+/* Compact hero emblem: larger ball with generous space around icon */
+.lm-emblem-compact {
+  width: 88px;
+  height: 88px;
+}
+
+.lm-emblem-compact::after {
+  inset: 6px;
+}
+
+.lm-emblem-compact .lm-emblem-core {
+  width: 42px;
+  height: 42px;
 }
 
 /* ==================== TAB BAR ==================== */

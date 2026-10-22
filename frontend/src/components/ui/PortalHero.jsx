@@ -21,6 +21,7 @@ export default function PortalHero({
   description,
   emblem,
   label,
+  compact = false,
 }) {
   const { pathname } = useLocation();
   const Emblem = emblem || pageIcon(pathname);
@@ -36,7 +37,13 @@ export default function PortalHero({
       <span className="lm-orb lm-orb-2" aria-hidden="true" />
       <span className="lm-dots" aria-hidden="true" />
 
-      <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-5 px-5 py-5 sm:px-7 sm:py-6">
+      <div
+        className={`relative z-10 flex flex-col sm:flex-row items-start sm:items-center ${
+          compact
+            ? "gap-4 px-5 py-4 sm:px-6 sm:py-4"
+            : "gap-5 px-5 py-5 sm:px-7 sm:py-6"
+        }`}
+      >
         <div className="min-w-0 flex-1">
           <div className="lm-title-wrap">
             <h1 className="lm-title">{title}</h1>
@@ -51,7 +58,7 @@ export default function PortalHero({
 
         {Emblem && (
           <div
-            className="lm-emblem hidden sm:grid"
+            className={`lm-emblem hidden sm:grid${compact ? " lm-emblem-compact" : ""}`}
             style={{ "--lm-accent": "#D4AF37" }}
             aria-hidden="true"
           >

@@ -20,7 +20,6 @@ const EMPTY_FORM = {
   description: "",
   owner: "",
   department: "",
-  projectGroup: "",
   status: "Planning",
   team: [],
   startDate: "",
@@ -51,18 +50,15 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
       setLoadingOptions(true);
       setOptionsError("");
       try {
-        const [usersRes, deptsRes, groupsRes] = await Promise.all([
+        const [usersRes, deptsRes] = await Promise.all([
           api.get("/users"),
-          api.get("/departments"),
-          api.get("/project-groups")
+          api.get("/departments")
         ]);
         if (!mounted) return;
         const userList = usersRes.data?.data || usersRes.data || [];
         const deptList = deptsRes.data?.data || deptsRes.data || [];
-        const groupList = groupsRes.data?.data || groupsRes.data || [];
         setUsers(Array.isArray(userList) ? userList : []);
         setDepartments(Array.isArray(deptList) ? deptList : []);
-        setProjectGroups(Array.isArray(groupList) ? groupList : []);
         fetchedRef.current = true;
       } catch {
         if (mounted) setOptionsError("Could not load form options. Close and try again.");
@@ -81,13 +77,12 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
     setErrors({});
     setSaving(false);
     if (project) {
-      setForm({
-        title: project.title || "",
-        description: project.description || "",
-        owner: toId(project.owner),
-        department: toId(project.department),
-        projectGroup: toId(project.projectGroup),
-        status: PROJECT_STATUSES.includes(project.status) ? project.status : "Planning",
+setForm({
+          title: project.title || "",
+          description: project.description || "",
+          owner: toId(project.owner),
+          department: toId(project.department),
+          status: PROJECT_STATUSES.includes(project.status) ? project.status : "Planning",
         team: (project.team || []).map((m) => toId(m)),
         startDate: toDateInput(project.startDate),
         dueDate: toDateInput(project.dueDate),
@@ -131,7 +126,6 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
         description: form.description.trim(),
         owner: form.owner,
         department: form.department,
-        projectGroup: form.projectGroup || null,
         status: form.status,
         team: form.team,
         startDate: form.startDate || null,
@@ -231,25 +225,6 @@ const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
             />
             {errors.department && <p className="text-danger text-xs mt-1">{errors.department}</p>}
           </div>
-        </div>
-
-        {/* Status / Project Group */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <ModernSelect
-            label="Status"
-            name="status"
-            value={form.status}
-            onChange={handleChange}
-            options={PROJECT_STATUSES.map((s) => ({ value: s, label: s }))}
-          />
-          <ModernSelect
-            label="Project Group (Optional)"
-            name="projectGroup"
-            value={form.projectGroup}
-            onChange={handleChange}
-            options={groupOptions}
-            placeholder={loadingOptions ? "Loading groups..." : "Select project group"}
-          />
         </div>
 
         {/* Team Members */}

@@ -36,3 +36,24 @@ exports.getProjectDashboard = catchAsync(async (req, res) => {
   const dashboardData = await projectService.getProjectDashboard(req.user, req.companyId);
   res.status(200).json(ApiResponse.success(dashboardData, 'Project dashboard retrieved successfully'));
 });
+
+exports.getProjectDashboardCards = catchAsync(async (req, res) => {
+  const cards = await projectService.getProjectDashboardCards(req.user._id || req.user.id);
+  res.status(200).json(ApiResponse.success(cards, 'Project dashboard cards retrieved successfully'));
+});
+
+exports.addProjectDashboardCard = catchAsync(async (req, res) => {
+  const cards = await projectService.addProjectDashboardCard(
+    req.user._id || req.user.id,
+    req.body.type
+  );
+  res.status(201).json(ApiResponse.success(cards, 'Project dashboard card added successfully'));
+});
+
+exports.removeProjectDashboardCard = catchAsync(async (req, res) => {
+  const cards = await projectService.removeProjectDashboardCard(
+    req.user._id || req.user.id,
+    req.params.cardId
+  );
+  res.status(200).json(ApiResponse.success(cards, 'Project dashboard card removed successfully'));
+});

@@ -76,7 +76,7 @@ export default function TaskCard({
         </div>
       )}
 
-      {/* Footer: Assignee & Date on left, Comments & Progress on right */}
+      {/* Footer: Assignee on left; due date, comments & progress on right */}
       <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-border-subtle/80 mt-2">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {hasAssignee && (
@@ -87,16 +87,15 @@ export default function TaskCard({
               <span className="text-xs truncate max-w-[95px] text-muted font-medium">{assigneeName}</span>
             </div>
           )}
+        </div>
 
+        <div className="flex items-center gap-2 shrink-0">
           {task.dueDate && (
             <div className={`flex items-center text-xs font-medium shrink-0 ${overdue ? "text-danger font-semibold" : "text-muted"}`}>
               <FaCalendar className="w-3 h-3 mr-1 shrink-0 opacity-70" />
               <span>{shortDate(task.dueDate)}</span>
             </div>
           )}
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
           {task.commentsCount > 0 && onOpenComments && (
             <button
               type="button"
