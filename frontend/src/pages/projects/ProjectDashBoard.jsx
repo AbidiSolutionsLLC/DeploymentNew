@@ -403,7 +403,7 @@ const ProjectDashBoard = () => {
         </div>
 
         {/* Dashboard cards deck — dynamic customizable cards */}
-        <div className="flex flex-col gap-4 w-full">
+        <div className="lm-plain-cards flex flex-col gap-4 w-full">
           {cardsLoading ? (
             <div className="glass-card p-10 text-center">
               <Loader size="lg" text="Loading dashboard cards..." />
@@ -427,7 +427,7 @@ const ProjectDashBoard = () => {
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {cards.map((card) => (
                 <DashboardCard
                   key={card.id || card.type}
