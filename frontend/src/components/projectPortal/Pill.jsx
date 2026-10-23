@@ -24,6 +24,7 @@ export const PROJECT_STATUS_TONE = {
 
 /** Task status → tone (models/taskSchema.js enum). */
 export const TASK_STATUS_TONE = {
+  Backlog: "neutral",
   Todo: "neutral",
   "In Progress": "info",
   "In Review": "warning",

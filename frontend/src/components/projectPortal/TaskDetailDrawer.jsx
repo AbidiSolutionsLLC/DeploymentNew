@@ -8,8 +8,9 @@ import { TablePriority, TableStatus } from "../ui/TableCells";
 import Progress from "./Progress";
 import { formatDate, isOverdue, taskProgress, getAssigneeName } from "./helpers";
 
-const STATUS_OPTIONS = ["Todo", "In Progress", "In Review", "Done", "Blocked"];
+const STATUS_OPTIONS = ["Backlog", "Todo", "In Progress", "In Review", "Done", "Blocked"];
 const STATUS_DISPLAY = {
+  Backlog: "Backlog",
   Todo: "To Do",
   "In Progress": "In Progress",
   "In Review": "In Review",

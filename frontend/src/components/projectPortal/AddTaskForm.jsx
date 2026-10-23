@@ -8,6 +8,7 @@ import projectApi from "../../api/projectApi";
 
 const PRIORITIES = ["Low", "Medium", "High"];
 const STATUS_OPTIONS = [
+  { value: "Backlog", label: "Backlog" },
   { value: "Todo", label: "Todo" },
   { value: "In Progress", label: "In Progress" },
   { value: "In Review", label: "In Review" },
@@ -25,7 +26,7 @@ const EMPTY_FORM = {
   dueDate: "",
 };
 
-export default function AddTaskForm({ projectId, project: propProject, onSubmit, onClose }) {
+export default function AddTaskForm({ projectId, project: propProject, onSubmit, onClose, initialStatus = "Todo" }) {
   const { userInfo } = useSelector((state) => state.user || {});
   const authUser = useSelector((state) => state.auth?.user);
   const currentUserId =
@@ -47,6 +48,7 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
   const [form, setForm] = useState(() => ({
     ...EMPTY_FORM,
     project: projectId || "",
+    status: initialStatus || EMPTY_FORM.status,
   }));
   const [errors, setErrors] = useState({});
   const [users, setUsers] = useState([]);
@@ -110,6 +112,13 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
       setForm((prev) => ({ ...prev, project: projectId }));
     }
   }, [projectId]);
+
+  // Sync default status when opened from a specific kanban column
+  useEffect(() => {
+    if (initialStatus) {
+      setForm((prev) => ({ ...prev, status: initialStatus }));
+    }
+  }, [initialStatus]);
 
   // Compute assignees strictly restricted to this project's members (owner + team)
   const projectMembers = useMemo(() => {

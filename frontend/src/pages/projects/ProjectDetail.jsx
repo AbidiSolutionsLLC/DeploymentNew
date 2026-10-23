@@ -10,36 +10,25 @@ import {
   UsersIcon,
   FlagIcon,
   ClockIcon,
-  FolderIcon,
-  ChatBubbleLeftRightIcon,
+  PlusIcon,
   BoltIcon,
   NoSymbolIcon,
   ExclamationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { fetchProjectById, updateProject, deleteProject } from "../../store/projectSlice";
-import { fetchProjectTasks, createTask, updateTaskStatus, updateTask, addTaskComment, fetchTaskComments, fetchProjectActivities } from "../../store/taskSlice";
+import { fetchProjectTasks, createTask, updateTaskStatus, updateTask, addTaskComment, fetchTaskComments } from "../../store/taskSlice";
 import { useConfirm } from "../../context/ConfirmContext";
 import Loader from "../../components/ui/Loader";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
 import Progress from "../../components/projectPortal/Progress";
-import PanelHead from "../../components/projectPortal/PanelHead";
-import EmptyState from "../../components/projectPortal/EmptyState";
-import { formatDate, shortDate, isOverdue, projectProgress, taskProgress, getAssigneeName } from "../../components/projectPortal/helpers";
+import { shortDate, isOverdue, projectProgress } from "../../components/projectPortal/helpers";
 import AddTaskForm from "../../components/projectPortal/AddTaskForm";
 import EditProjectForm from "../../components/projectPortal/EditProjectForm";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
 import TaskCommentsDrawer from "../../components/projectPortal/TaskCommentsDrawer";
 import TaskCard from "../../components/projectPortal/TaskCard";
-import PortalTable from "../../components/projectPortal/PortalTable";
-import {
-  TableDate,
-  TablePriority,
-  TableProgress,
-  TableStatus,
-  TableText,
-  TableTitle,
-} from "../../components/ui/TableCells";
+import { TableStatus } from "../../components/ui/TableCells";
 
 const KANBAN_COLUMNS = [
   { id: "backlog", title: "Backlog" },
@@ -55,9 +44,9 @@ const COLUMN_ACCENTS = {
   "in-review": "bg-warning",
   done: "bg-success",
 };
-const STATUS_DISPLAY = {
+const COLUMN_STATUS = {
   backlog: "Backlog",
-  todo: "To Do",
+  todo: "Todo",
   "in-progress": "In Progress",
   "in-review": "In Review",
   done: "Done",
@@ -81,7 +70,7 @@ const ProjectDetail = () => {
   const dispatch = useDispatch();
   const confirm = useConfirm();
   const { projects, currentProject } = useSelector((state) => state.projects);
-  const { projectTasks, projectTasksLoading, taskComments, projectActivities, projectActivitiesLoading } = useSelector((state) => state.tasks);
+  const { projectTasks, projectTasksLoading, taskComments } = useSelector((state) => state.tasks);
   const { userInfo } = useSelector((state) => state.user || {});
   const currentUserId = userInfo?.user?._id || userInfo?._id || userInfo?.id;
 
@@ -89,8 +78,7 @@ const ProjectDetail = () => {
   const tasks = projectTasks || [];
   const loading = projectTasksLoading;
 
-  const [activeTab, setActiveTab] = useState("board");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [addTaskStatus, setAddTaskStatus] = useState("Todo");
   const [showAddTask, setShowAddTask] = useState(false);
   const [showTaskDetail, setShowTaskDetail] = useState(null);
   const [showComments, setShowComments] = useState(null);
@@ -144,13 +132,8 @@ const ProjectDetail = () => {
     if (id) {
       dispatch(fetchProjectById(id));
       dispatch(fetchProjectTasks(id));
-      dispatch(fetchProjectActivities(id));
     }
   }, [id, dispatch]);
-
-  useEffect(() => {
-    if (id && activeTab === "activity") dispatch(fetchProjectActivities(id));
-  }, [id, activeTab, dispatch]);
 
   // Fetch task comments when task detail opens
   useEffect(() => {
@@ -158,11 +141,6 @@ const ProjectDetail = () => {
       dispatch(fetchTaskComments(showTaskDetail._id));
     }
   }, [showTaskDetail, dispatch]);
-
-  const filteredTasks = tasks?.filter((task) =>
-    task.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
 
   const handleCreateTask = async (taskData) => {
     try {
@@ -237,7 +215,7 @@ const ProjectDetail = () => {
   };
 
   const getTasksByStatus = (status) =>
-    filteredTasks.filter((t) => toColumnId(t.status) === status);
+    tasks.filter((t) => toColumnId(t.status) === status);
 
   if (!project) {
     return loading ? (
@@ -256,100 +234,41 @@ const ProjectDetail = () => {
     blocked: tasks.filter((task) => task.status === "Blocked").length,
   };
 
-  const listColumns = [
-    {
-      key: "title",
-      label: "Task",
-      render: (v, row) => <TableTitle title={v} subtitle={row.description || undefined} maxWidth="max-w-[240px]" />,
-    },
-    {
-      key: "status",
-      label: "Status",
-      hideBelow: "md",
-      render: (v) => <TableStatus value={v} label={STATUS_DISPLAY[v] || v} />,
-    },
-    {
-      key: "assignee",
-      label: "Assignee",
-      hideBelow: "lg",
-      render: (_v, row) => <TableText value={getAssigneeName(row)} />,
-    },
-    {
-      key: "dueDate",
-      label: "Due",
-      hideBelow: "md",
-      render: (v, row) => {
-        const overdue = isOverdue(v, row.status);
-        return <TableDate value={v} tone={overdue ? "danger" : "muted"} subtitle={overdue ? "Overdue" : undefined} />;
-      },
-    },
-    {
-      key: "priority",
-      label: "Priority",
-      hideBelow: "lg",
-      render: (v) => <TablePriority value={v || "Medium"} />,
-    },
-    {
-      key: "progress",
-      label: "Progress",
-      hideBelow: "xl",
-      render: (_v, row) => <TableProgress value={taskProgress(row)} />,
-    },
-  ];
-
-  const listActions = [
-    {
-      title: "Comments",
-      icon: ChatBubbleLeftRightIcon,
-      onClick: (task) => setShowComments(task),
-    },
-  ];
-
-  const tabs = ["board", "list", "comments", "activity"];
-
   return (
     <PageContainer isCard={false}>
       <div className="flex flex-col gap-5 w-full">
         {/* ===== Project hero ===== */}
         <section className="glass-card bg-surface">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-3">
-                <button
-                  onClick={() => navigate("/project/projects")}
-                  className="p-1.5 -ml-1.5 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors"
-                  aria-label="Back to projects"
-                >
-                  <ArrowLeftIcon className="w-5 h-5" />
-                </button>
-                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Project overview</span>
-              </div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-border-accent bg-amber-50 text-brand-text">
-                  <FolderIcon className="w-5 h-5" />
-                </span>
-                <h1 className="text-2xl sm:text-3xl font-black text-heading tracking-tight break-words">{project.title}</h1>
-                <TableStatus value={project.status || "Planning"} />
-              </div>
-              {project.projectGroup && (
-                <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-brand-text border border-border-accent">
-                  <FolderIcon className="w-3.5 h-3.5" />
-                  {project.projectGroup.name || (typeof project.projectGroup === "string" ? project.projectGroup : "Group")}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-row gap-2 shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
               <button
-                onClick={() => setShowEditProject(true)}
-                className="btn btn-secondary py-2.5 px-4 whitespace-nowrap"
+                onClick={() => navigate("/project/projects")}
+                className="p-1.5 -ml-1.5 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors shrink-0"
+                aria-label="Back to projects"
               >
-                <PencilIcon className="w-4 h-4 mr-2" /> Edit project
+                <ArrowLeftIcon className="w-5 h-5" />
+              </button>
+              <h1 className="text-2xl sm:text-3xl font-black text-heading tracking-tight truncate">{project.title}</h1>
+              <TableStatus value={project.status || "Planning"} className="shrink-0" />
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowEditProject(true)}
+                className="grid h-10 w-10 place-items-center rounded-xl border border-border-accent bg-amber-50 text-brand-text hover:bg-amber-100 transition-colors"
+                aria-label="Edit project"
+                title="Edit project"
+              >
+                <PencilIcon className="w-5 h-5" />
               </button>
               <button
+                type="button"
                 onClick={handleDeleteProject}
-                className="btn btn-secondary py-2.5 px-4 whitespace-nowrap text-danger hover:bg-danger-bg"
+                className="grid h-10 w-10 place-items-center rounded-xl border border-border-accent bg-amber-50 text-brand-text hover:bg-danger-bg hover:text-danger transition-colors"
+                aria-label="Delete project"
+                title="Delete project"
               >
-                <TrashIcon className="w-4 h-4 mr-2" /> Delete
+                <TrashIcon className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -362,7 +281,7 @@ const ProjectDetail = () => {
                 <span className="text-3xl font-black text-heading tabular-nums leading-none">{pct}%</span>
                 <span className="text-xs text-muted">{taskCounts.done} of {taskCounts.total} tasks complete</span>
               </div>
-              <Progress value={pct} trackClassName="h-2 rounded-full mt-2.5" />
+              <Progress value={pct} trackClassName="h-2 rounded-full mt-3" />
             </div>
 
             {/* Project health */}
@@ -382,32 +301,36 @@ const ProjectDetail = () => {
             </div>
 
             {/* Stat tiles */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-xl border border-border-subtle bg-card px-3 py-2.5 min-w-[92px]">
-                <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-muted">
-                  <BoltIcon className="w-3.5 h-3.5" /> Active
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="rounded-xl border border-border-subtle bg-card px-3.5 py-3 min-w-[104px]">
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
+                  <BoltIcon className="w-4 h-4" /> Active
                 </div>
-                <p className="text-xl font-black text-heading tabular-nums mt-1">{taskCounts.active}</p>
+                <p className="text-2xl font-black text-heading tabular-nums mt-1.5">{taskCounts.active}</p>
               </div>
-              <div className="rounded-xl border border-border-subtle bg-card px-3 py-2.5 min-w-[92px]">
-                <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-muted">
-                  <NoSymbolIcon className="w-3.5 h-3.5" /> Blocked
+              <div className="rounded-xl border border-border-subtle bg-card px-3.5 py-3 min-w-[104px]">
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
+                  <NoSymbolIcon className="w-4 h-4" /> Blocked
                 </div>
-                <p className={`text-xl font-black tabular-nums mt-1 ${taskCounts.blocked ? "text-danger" : "text-heading"}`}>{taskCounts.blocked}</p>
+                <p className={`text-2xl font-black tabular-nums mt-1.5 ${taskCounts.blocked ? "text-danger" : "text-heading"}`}>{taskCounts.blocked}</p>
               </div>
-              <div className="rounded-xl border border-border-subtle bg-card px-3 py-2.5 min-w-[92px]">
-                <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-muted">
-                  <UsersIcon className="w-3.5 h-3.5" /> Team
+              <div className="rounded-xl border border-border-subtle bg-card px-3.5 py-3 min-w-[104px]">
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
+                  <UsersIcon className="w-4 h-4" /> Team
                 </div>
-                <p className="text-xl font-black text-heading tabular-nums mt-1">{team.length}</p>
+                <p className="text-2xl font-black text-heading tabular-nums mt-1.5">{team.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-5 pt-4 border-t border-border-subtle text-[10px] font-black uppercase tracking-widest text-muted">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 pt-4 border-t border-border-subtle text-[10px] font-black uppercase tracking-widest text-muted">
             <span className="flex items-center gap-1.5"><CalendarDaysIcon className="w-3.5 h-3.5" /> Due {shortDate(project.dueDate)}</span>
-            <span className="flex items-center gap-1.5"><FlagIcon className="w-3.5 h-3.5" /> Priority: {project.priority || "Medium"}</span>
-            <span className="flex items-center gap-1.5"><UsersIcon className="w-3.5 h-3.5" /> {team.length} member{team.length !== 1 ? "s" : ""}</span>
+            <span className="hidden sm:block w-px h-4 bg-border-subtle" />
+            <span className="flex items-center gap-1.5">
+              <FlagIcon className="w-3.5 h-3.5" /> Priority:{" "}
+              <span className="text-brand-text">{project.priority || "Medium"}</span>
+            </span>
+            <span className="hidden sm:block w-px h-4 bg-border-subtle" />
             <span className="flex items-center gap-1.5"><ClockIcon className="w-3.5 h-3.5" /> Started {shortDate(project.startDate)}</span>
           </div>
         </section>
@@ -443,56 +366,7 @@ const ProjectDetail = () => {
         {/* ===== Task workspace ===== */}
         <section className="glass-card bg-surface !p-0 overflow-hidden">
           <div className="p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Task workspace</p>
-                <h2 className="text-lg font-black text-heading uppercase tracking-tight mt-1">
-                  {taskCounts.total} task{taskCounts.total !== 1 ? "s" : ""} in this project
-                </h2>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-                <div className="relative flex-1 sm:w-72">
-                  <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks..."
-                    className="glass-input !pl-9 w-full"
-                  />
-                </div>
-                <button
-                  onClick={() => setShowAddTask(true)}
-                  className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                  New Task
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mt-4 overflow-x-auto">
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
-                    activeTab === tab
-                      ? "bg-brand text-on-brand shadow-[0_4px_15px_rgba(212,175,55,0.25)]"
-                      : "text-muted hover:text-brand-text hover:bg-card-hover"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="px-5 pb-5">
-            {activeTab === "board" && (
-              <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
                 <div className="grid grid-cols-5 gap-4 min-w-[1100px] items-stretch">
                   {KANBAN_COLUMNS.map((col) => {
                     const colTasks = getTasksByStatus(col.id);
@@ -513,9 +387,18 @@ const ProjectDetail = () => {
                             <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${COLUMN_ACCENTS[col.id] || "bg-amber-500"}`} />
                             <h3 className="text-xs font-black uppercase tracking-widest text-heading truncate">{col.title}</h3>
                           </div>
-                          <span className="grid h-6 min-w-6 place-items-center rounded-full border border-border-subtle bg-card px-1.5 text-[11px] font-bold text-muted tabular-nums">
-                            {colTasks.length}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddTaskStatus(COLUMN_STATUS[col.id] || "Todo");
+                              setShowAddTask(true);
+                            }}
+                            className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-border-subtle bg-card text-muted hover:border-border-accent hover:bg-card-hover hover:text-brand-text transition-colors"
+                            aria-label={`Add task to ${col.title}`}
+                            title={`Add task to ${col.title}`}
+                          >
+                            <PlusIcon className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                         <div className="flex-1 space-y-3">
                           {colTasks.map((task) => (
@@ -546,87 +429,7 @@ const ProjectDetail = () => {
                     );
                   })}
                 </div>
-              </div>
-            )}
-
-            {activeTab === "list" && (
-              <PortalTable
-                columns={listColumns}
-                data={filteredTasks}
-                loading={loading}
-                onRowClick={(task) => setShowTaskDetail(task)}
-                actions={listActions}
-                rowsPerPage={10}
-                emptyTitle={tasks.length === 0 ? "No tasks in this project" : "No matching tasks"}
-                emptyHint="Try a different search."
-              />
-            )}
-
-            {activeTab === "comments" && (
-              <div className="rounded-xl border border-border-subtle bg-surface p-4">
-                <PanelHead title="Project Comments" subtitle="All discussions across tasks" />
-                {filteredTasks.length === 0 ? (
-                  <EmptyState title="No tasks yet" hint="Create a task to start a discussion." />
-                ) : (
-                  <div className="space-y-4">
-                    {filteredTasks.map((task) => {
-                      const comments = taskComments[task._id] || [];
-                      return comments.length > 0 ? (
-                        <div key={task._id} className="border-t border-border-subtle pt-4">
-                          <p className="text-sm font-semibold text-heading mb-2">{task.title}</p>
-                          <div className="space-y-3">
-                            {comments.map((c) => (
-                              <div key={c._id || c.id} className="flex gap-3">
-                                <div className="w-8 h-8 rounded-full bg-amber-50 border border-border-accent flex items-center justify-center flex-shrink-0">
-                                  <span className="text-brand-text font-black text-sm">{c.user?.name?.[0] || "U"}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-semibold text-heading">{c.user?.name || "Unknown"}</span>
-                                    <span className="text-[10px] text-muted">{new Date(c.createdAt || c.timestamp).toLocaleDateString()}</span>
-                                  </div>
-                                  <p className="text-sm text-main">{c.content}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null;
-                    })}
-                    {filteredTasks.every((t) => !(taskComments[t._id]?.length)) && (
-                      <EmptyState title="No comments yet" hint="Open a task to add comments." />
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === "activity" && (
-              <div className="rounded-xl border border-border-subtle bg-surface p-4">
-                <PanelHead title="Project Activity" subtitle="Changes and discussions across this project" />
-                {projectActivitiesLoading ? (
-                  <div className="py-10"><Loader text="Loading activity..." size="md" /></div>
-                ) : projectActivities?.length ? (
-                  <div className="divide-y divide-border-subtle">
-                    {projectActivities.map((activity) => (
-                      <div key={activity._id} className="flex items-start gap-3 py-3">
-                        <div className="w-8 h-8 rounded-full bg-amber-50 border border-border-accent flex items-center justify-center shrink-0">
-                          <span className="text-xs font-black text-brand-text">{activity.user?.name?.[0] || "U"}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm text-main">{activity.action}</p>
-                          <p className="text-[10px] uppercase tracking-widest text-muted mt-1">
-                            {activity.user?.name || "User"} · {formatDate(activity.createdAt)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState title="No project activity yet" hint="Updates, comments, and task changes will appear here." />
-                )}
-              </div>
-            )}
+            </div>
           </div>
         </section>
 
@@ -661,7 +464,7 @@ const ProjectDetail = () => {
           description="Create a task in this project"
           maxWidth="max-w-2xl"
         >
-          <AddTaskForm projectId={id} project={project} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} />
+          <AddTaskForm projectId={id} project={project} initialStatus={addTaskStatus} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} />
         </GlassModal>
 
         <GlassModal
