@@ -113,6 +113,11 @@ const AddTaskModal = ({ isOpen, onClose, onSubmit, projectId, project: propProje
 
   const activeProject = propProject || reduxProject || fetchedProject || selectedFromList;
 
+  const projectMaxDate = useMemo(() => {
+    if (!activeProject?.dueDate) return null;
+    return new Date(activeProject.dueDate);
+  }, [activeProject?.dueDate]);
+
   // Compute assignees strictly restricted to this project's members (owner + team)
   const projectMembers = useMemo(() => {
     if (!activeProject && !projectId) {
@@ -180,6 +185,14 @@ const AddTaskModal = ({ isOpen, onClose, onSubmit, projectId, project: propProje
     const targetProject = form.project || projectId;
     if (!targetProject) next.project = "Project is required.";
     if (!form.assignTo) next.assignTo = "Assignee is required.";
+    if (form.dueDate && activeProject?.dueDate) {
+      const taskDue = new Date(form.dueDate);
+      const projectDue = new Date(activeProject.dueDate);
+      if (taskDue.getTime() > projectDue.getTime()) {
+        const formattedProjDue = projectDue.toISOString().split("T")[0];
+        next.dueDate = `Due date cannot be after the project end date (${formattedProjDue}).`;
+      }
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -303,12 +316,17 @@ const AddTaskModal = ({ isOpen, onClose, onSubmit, projectId, project: propProje
                 options={STATUSES.map((s) => ({ value: s, label: s }))}
               />
 
-              <ModernDatePicker
-                label="Due Date"
-                name="dueDate"
-                value={form.dueDate}
-                onChange={(e) => set("dueDate", e.target.value)}
-              />
+              <div>
+                <ModernDatePicker
+                  label="Due Date"
+                  name="dueDate"
+                  value={form.dueDate}
+                  onChange={(e) => set("dueDate", e.target.value)}
+                  maxDate={projectMaxDate}
+                  error={errors.dueDate}
+                />
+                {errors.dueDate && <p className="text-danger text-xs mt-1">{errors.dueDate}</p>}
+              </div>
             </div>
           </>
         ) : (
@@ -360,12 +378,17 @@ const AddTaskModal = ({ isOpen, onClose, onSubmit, projectId, project: propProje
               />
             </div>
 
-            <ModernDatePicker
-              label="Due Date"
-              name="dueDate"
-              value={form.dueDate}
-              onChange={(e) => set("dueDate", e.target.value)}
-            />
+            <div>
+              <ModernDatePicker
+                label="Due Date"
+                name="dueDate"
+                value={form.dueDate}
+                onChange={(e) => set("dueDate", e.target.value)}
+                maxDate={projectMaxDate}
+                error={errors.dueDate}
+              />
+              {errors.dueDate && <p className="text-danger text-xs mt-1">{errors.dueDate}</p>}
+            </div>
           </>
         )}
 

@@ -5,7 +5,8 @@ const API_URL = '/projects';
 const getProjects = async () => {
  // Portal loads the full list once and does search/filter/sort/pagination client-side
  const response = await api.get(`${API_URL}?limit=1000`);
- return response.data?.data || response.data;
+ const raw = response.data?.data || response.data;
+ return Array.isArray(raw) ? raw : (raw?.data && Array.isArray(raw.data) ? raw.data : (Array.isArray(raw?.projects) ? raw.projects : []));
 };
 
 const getProjectById = async (id) => {

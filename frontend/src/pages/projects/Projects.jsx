@@ -47,7 +47,8 @@ const Projects = () => {
   const canCreateProject = isProjectAdmin;
   const canDeleteProject = isProjectAdmin;
 
-  const { projects, loading, error, refetch } = useProjects();
+  const { projects: rawProjects, loading, error, refetch } = useProjects();
+  const projects = useMemo(() => Array.isArray(rawProjects) ? rawProjects : (Array.isArray(rawProjects?.data) ? rawProjects.data : (Array.isArray(rawProjects?.projects) ? rawProjects.projects : [])), [rawProjects]);
   const [query, setQuery] = useState("");
 
   const getInitialStatus = () => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import usePermission from "../../hooks/usePermission";
 import { useSelector } from "react-redux";
 import { FaDownload } from "react-icons/fa";
+import { Link2, ArrowRight, ShieldAlert } from "lucide-react";
 import GlassModal from "../ui/GlassModal";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
@@ -15,6 +16,7 @@ import taskApi from "../../api/taskApi";
 
 const STATUS_OPTIONS = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
 const PRIORITY_OPTIONS = ["Low", "Medium", "High"];
+const toDateInput = (v) => (v ? String(v).slice(0, 10) : "");
 const STATUS_DISPLAY = {
   Backlog: "Backlog",
   Todo: "To Do",
@@ -58,6 +60,7 @@ export default function TaskDetailDrawer({
   const canChangeStatus = hasFullTaskControl || isAssignee;
   const [status, setStatus] = useState(task?.status || "Backlog");
   const [priority, setPriority] = useState(task?.priority || "Medium");
+  const [dueDate, setDueDate] = useState(toDateInput(task?.dueDate));
   const [completionPercent, setCompletionPercent] = useState(task?.completionPercent || 0);
   const [duration, setDuration] = useState(task?.duration ?? "");
   const [workedHours, setWorkedHours] = useState(task?.workedHours ?? "");
@@ -75,6 +78,7 @@ export default function TaskDetailDrawer({
   useEffect(() => {
     setStatus(task?.status || "Backlog");
     setPriority(task?.priority || "Medium");
+    setDueDate(toDateInput(task?.dueDate));
     setCompletionPercent(task?.completionPercent || 0);
     setDuration(task?.duration ?? "");
     setWorkedHours(task?.workedHours ?? "");
@@ -128,6 +132,7 @@ export default function TaskDetailDrawer({
         workedHours: workedHours === "" ? 0 : Number(workedHours),
       };
       if (hasFullTaskControl) {
+        payload.dueDate = dueDate || null;
         payload.priority = priority;
         payload.duration = duration === "" ? null : Number(duration);
         payload.dependencies = dependencies.map((d) => (d?._id || d)?.toString());
@@ -138,12 +143,50 @@ export default function TaskDetailDrawer({
     }
   };
 
-  const overdue = isOverdue(task?.dueDate, task?.status);
+  const overdue = isOverdue(dueDate || task?.dueDate, status || task?.status);
   const pct = taskProgress(task);
 
   // Strictly filter candidates to only tasks in the same project, excluding the current task
   const currentTaskId = (task?._id || task?.id)?.toString();
   const sourceList = loadedProjectTasks.length > 0 ? loadedProjectTasks : (projectTasks || []);
+
+  // Tasks that depend on currentTask (tasks which have currentTask in their dependencies list)
+  const dependentOnMeTasks = sourceList.filter((otherTask) => {
+    const otherId = (otherTask?._id || otherTask?.id)?.toString();
+    if (!otherId || otherId === currentTaskId) return false;
+    const otherDeps = (otherTask?.dependencies || []).map((d) => (d?._id || d)?.toString());
+    return otherDeps.includes(currentTaskId);
+  });
+
+  // Cycle prevention: build map of dependency relations to avoid indirect or direct loops
+  // If candidate transitively depends on currentTaskId, picking candidate would create A -> B -> ... -> A loop!
+  const causesLoop = (candidateIdStr) => {
+    if (!candidateIdStr || !currentTaskId) return false;
+    if (candidateIdStr === currentTaskId) return true;
+
+    // BFS search to see if candidateIdStr leads to currentTaskId through its dependencies
+    const visited = new Set();
+    const queue = [candidateIdStr];
+
+    while (queue.length > 0) {
+      const checkId = queue.shift();
+      if (checkId === currentTaskId) return true;
+      if (visited.has(checkId)) continue;
+      visited.add(checkId);
+
+      const foundNode = sourceList.find((t) => (t?._id || t?.id)?.toString() === checkId);
+      if (foundNode && Array.isArray(foundNode.dependencies)) {
+        for (const parentDep of foundNode.dependencies) {
+          const pId = (parentDep?._id || parentDep)?.toString();
+          if (pId && !visited.has(pId)) {
+            queue.push(pId);
+          }
+        }
+      }
+    }
+    return false;
+  };
+
   const allCandidates = sourceList.filter((candidate) => {
     const candId = (candidate?._id || candidate?.id)?.toString();
     if (!candId || candId === currentTaskId) return false;
@@ -154,6 +197,12 @@ export default function TaskDetailDrawer({
         return false;
       }
     }
+
+    // Exclude tasks that would create a circular dependency loop!
+    if (causesLoop(candId)) {
+      return false;
+    }
+
     return true;
   });
 
@@ -233,12 +282,12 @@ export default function TaskDetailDrawer({
           </div>
 
           <div className="flex flex-wrap gap-4 text-xs text-muted">
-            {task?.dueDate && (
+            {(dueDate || task?.dueDate) && (
               <span className={`flex items-center gap-1 ${overdue ? "text-danger" : ""}`}>
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                Due {formatDate(task.dueDate)}
+                Due {formatDate(dueDate || task?.dueDate)}
                 {overdue && <span className="text-danger">(Overdue)</span>}
               </span>
             )}
@@ -272,20 +321,34 @@ export default function TaskDetailDrawer({
         {/* Delivery details (Editable) */}
         <div className="border-t border-border-subtle pt-4">
           <h4 className="text-xs font-black uppercase tracking-widest text-muted mb-3">Delivery details</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <label className="text-xs text-muted">
-              Completion %
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-end">
+            <div>
+              <ModernDatePicker
+                label="Due Date"
+                name="dueDate"
+                value={dueDate}
+                disabled={!hasFullTaskControl}
+                onChange={(e) => setDueDate(e.target.value)}
+                placeholder="Select Due Date"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest truncate">
+                Completion %
+              </label>
               <input
                 type="number"
                 min="0"
                 max="100"
                 value={completionPercent}
                 onChange={(e) => setCompletionPercent(e.target.value)}
-                className="glass-input mt-1"
+                className="glass-input !py-3 rounded-xl"
               />
-            </label>
-            <label className="text-xs text-muted">
-              Estimated hours {!hasFullTaskControl && <span className="text-[10px] text-muted">(Manager only)</span>}
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest truncate" title={hasFullTaskControl ? "Estimated hours" : "Estimated hours (Manager only)"}>
+                Est. Hours {!hasFullTaskControl && <span className="text-[9px] font-normal lowercase text-muted">(mgr)</span>}
+              </label>
               <input
                 type="number"
                 min="0"
@@ -293,27 +356,64 @@ export default function TaskDetailDrawer({
                 value={duration}
                 disabled={!hasFullTaskControl}
                 onChange={(e) => setDuration(e.target.value)}
-                className="glass-input mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="glass-input !py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
               />
-            </label>
-            <label className="text-xs text-muted">
-              Worked hours
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-muted mb-2 uppercase tracking-widest truncate">
+                Worked Hours
+              </label>
               <input
                 type="number"
                 min="0"
                 step="0.25"
                 value={workedHours}
                 onChange={(e) => setWorkedHours(e.target.value)}
-                className="glass-input mt-1"
+                className="glass-input !py-3 rounded-xl"
               />
-            </label>
+            </div>
           </div>
 
-          {/* Dependencies Section with custom scroll and same-project filter */}
+          {/* Tasks Depending On This Task (Reverse Dependencies indicator) */}
+          {dependentOnMeTasks.length > 0 && (
+            <div className="mt-3 p-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
+              <div className="flex items-center gap-2 mb-2 text-amber-500">
+                <ShieldAlert className="h-4 w-4 shrink-0" />
+                <span className="text-xs font-bold">
+                  {dependentOnMeTasks.length} {dependentOnMeTasks.length === 1 ? "task depends" : "tasks depend"} on this task:
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {dependentOnMeTasks.map((depTask) => {
+                  const depTaskId = depTask._id || depTask.id;
+                  return (
+                    <div
+                      key={depTaskId}
+                      className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-surface/60 border border-amber-500/15 text-xs"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <ArrowRight className="h-3 w-3 text-amber-500 shrink-0" />
+                        <span className="font-semibold text-heading truncate">{depTask.title}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <TableStatus value={depTask.status || "Backlog"} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted mt-2">
+                Note: These tasks cannot be selected as dependencies to prevent circular dependency loops.
+              </p>
+            </div>
+          )}
+
+          {/* Dependencies Section with custom scroll and loop prevention */}
           <div className="mt-3">
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs text-muted flex items-center gap-1.5 font-medium">
-                <span>Dependencies</span>
+                <Link2 className="h-3.5 w-3.5 text-brand" />
+                <span>Prerequisite Dependencies (Must be completed first)</span>
                 {selectedDepIds.length > 0 && (
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-brand/10 text-brand-text border border-brand/20">
                     {selectedDepIds.length} selected
@@ -324,7 +424,6 @@ export default function TaskDetailDrawer({
                 )}
               </label>
             </div>
-
             <div className="rounded-xl border border-border-subtle bg-surface/50 p-2.5">
               {allCandidates.length > 4 && (
                 <input

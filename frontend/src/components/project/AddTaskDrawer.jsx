@@ -3,7 +3,7 @@ import { FaPlus } from "react-icons/fa";
 import GlassModal from "../ui/GlassModal";
 import GlassButton from "../ui/GlassButton";
 
-const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
+const AddTaskDrawer = ({ isOpen, onClose, onSubmit, maxDueDate = "" }) => {
  const [formData, setFormData] = useState({
  title: "",
  description: "",
@@ -107,6 +107,7 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit }) => {
  name="dueDate"
  value={formData.dueDate}
  onChange={handleChange}
+ max={maxDueDate ? maxDueDate.slice(0, 10) : undefined}
  className="glass-input"
  />
  </div>

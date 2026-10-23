@@ -67,6 +67,11 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
 
   const activeProject = propProject || reduxProject || fetchedProject || selectedFromList;
 
+  const projectMaxDate = useMemo(() => {
+    if (!activeProject?.dueDate) return null;
+    return new Date(activeProject.dueDate);
+  }, [activeProject?.dueDate]);
+
   // Load users, projects, and active project if needed
   useEffect(() => {
     let mounted = true;
@@ -184,6 +189,14 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
     const targetProject = form.project || projectId;
     if (!targetProject) next.project = "Project is required.";
     if (!form.assignee) next.assignee = "Assignee is required.";
+    if (form.dueDate && activeProject?.dueDate) {
+      const taskDue = new Date(form.dueDate);
+      const projectDue = new Date(activeProject.dueDate);
+      if (taskDue.getTime() > projectDue.getTime()) {
+        const formattedProjDue = projectDue.toISOString().split("T")[0];
+        next.dueDate = `Due date cannot be after the project end date (${formattedProjDue}).`;
+      }
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -285,12 +298,17 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
               options={STATUS_OPTIONS}
             />
 
-            <ModernDatePicker
-              label="Due Date"
-              name="dueDate"
-              value={form.dueDate}
-              onChange={(e) => set("dueDate", e.target.value)}
-            />
+            <div>
+              <ModernDatePicker
+                label="Due Date"
+                name="dueDate"
+                value={form.dueDate}
+                onChange={(e) => set("dueDate", e.target.value)}
+                maxDate={projectMaxDate}
+                error={errors.dueDate}
+              />
+              {errors.dueDate && <p className="text-danger text-xs mt-1">{errors.dueDate}</p>}
+            </div>
           </div>
         </>
       ) : (
@@ -342,12 +360,17 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
             />
           </div>
 
-          <ModernDatePicker
-            label="Due Date"
-            name="dueDate"
-            value={form.dueDate}
-            onChange={(e) => set("dueDate", e.target.value)}
-          />
+          <div>
+            <ModernDatePicker
+              label="Due Date"
+              name="dueDate"
+              value={form.dueDate}
+              onChange={(e) => set("dueDate", e.target.value)}
+              maxDate={projectMaxDate}
+              error={errors.dueDate}
+            />
+            {errors.dueDate && <p className="text-danger text-xs mt-1">{errors.dueDate}</p>}
+          </div>
         </>
       )}
 

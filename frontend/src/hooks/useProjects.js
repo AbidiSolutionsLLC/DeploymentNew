@@ -9,6 +9,7 @@ import api from "../api/projectApi";
  */
 export default function useProjects({ autoFetch = true } = {}) {
  const [projects, setProjects] = useState([]);
+ const safeArray = (val) => Array.isArray(val) ? val : (Array.isArray(val?.data) ? val.data : (Array.isArray(val?.projects) ? val.projects : []));
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState(null);
 
@@ -17,7 +18,7 @@ export default function useProjects({ autoFetch = true } = {}) {
  setError(null);
  try {
  const res = await api.getProjects();
- setProjects(res || []);
+ setProjects(safeArray(res));
  return res;
  } catch (err) {
  // Normalize error message
@@ -42,7 +43,7 @@ export default function useProjects({ autoFetch = true } = {}) {
  try {
  const res = await api.getProjects();
  if (!mounted) return;
- setProjects(res || []);
+ setProjects(safeArray(res));
  } catch (err) {
  if (!mounted) return;
  const message =

@@ -125,6 +125,28 @@ const taskSlice = createSlice({
     clearProjectTasks: (state) => {
       state.projectTasks = [];
     },
+    addRealtimeTaskComment: (state, action) => {
+      const { taskId, comment } = action.payload || {};
+      if (!taskId || !comment) return;
+      if (!state.taskComments[taskId]) {
+        state.taskComments[taskId] = [];
+      }
+      const commentId = (comment._id || comment.id)?.toString();
+      const exists = state.taskComments[taskId].some(
+        (c) => (c._id || c.id)?.toString() === commentId
+      );
+      if (!exists) {
+        state.taskComments[taskId].push(comment);
+      }
+    },
+    removeRealtimeTaskComment: (state, action) => {
+      const { taskId, commentId } = action.payload || {};
+      if (!taskId || !commentId || !state.taskComments[taskId]) return;
+      const idStr = commentId.toString();
+      state.taskComments[taskId] = state.taskComments[taskId].filter(
+        (c) => (c._id || c.id)?.toString() !== idStr
+      );
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -216,6 +238,6 @@ const taskSlice = createSlice({
   },
 });
 
-export const { clearProjectTasks } = taskSlice.actions;
+export const { clearProjectTasks, addRealtimeTaskComment, removeRealtimeTaskComment } = taskSlice.actions;
 
 export default taskSlice.reducer;

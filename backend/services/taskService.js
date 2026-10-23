@@ -79,6 +79,15 @@ class TaskService {
     const projectExists = await Project.findOne({ _id: project, company: companyId });
     if (!projectExists) throw new NotFoundError("Project");
 
+    if (dueDate && projectExists.dueDate) {
+      const taskDue = new Date(dueDate);
+      const projectDue = new Date(projectExists.dueDate);
+      if (taskDue.getTime() > projectDue.getTime()) {
+        const formattedProjDue = projectDue.toISOString().split("T")[0];
+        throw new BadRequestError(`Task due date cannot be after the project end date (${formattedProjDue}).`);
+      }
+    }
+
     if (userRole === 'project_manager') {
       const isOwner = projectExists.owner && projectExists.owner.toString() === userId.toString();
       const isTeam = projectExists.team && projectExists.team.some(m => m.toString() === userId.toString());
@@ -259,6 +268,15 @@ class TaskService {
         if (teamChanged || priorityChanged || dueChanged || durationChanged || depChanged) {
           throw new ForbiddenError("Team members can only update task status, progress percentage, worked hours, and description.");
         }
+      }
+    }
+
+    if (dueDate && projectDoc && projectDoc.dueDate) {
+      const taskDue = new Date(dueDate);
+      const projectDue = new Date(projectDoc.dueDate);
+      if (taskDue.getTime() > projectDue.getTime()) {
+        const formattedProjDue = projectDue.toISOString().split("T")[0];
+        throw new BadRequestError(`Task due date cannot be after the project end date (${formattedProjDue}).`);
       }
     }
 

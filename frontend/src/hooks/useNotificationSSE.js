@@ -5,6 +5,7 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import { msalConfig, loginRequest, msalInstance } from '../authConfig';
 import axios from '../axios';
 import { syncAzureUser } from '../slices/authSlice';
+import { addRealtimeTaskComment, removeRealtimeTaskComment } from '../store/taskSlice';
 
 
 
@@ -68,6 +69,16 @@ export const useNotificationSSE = (isAuthenticated) => {
    dispatch(syncAzureUser());
    return;
  }
+
+  if (notification.type === 'TASK_COMMENT_ADDED') {
+    dispatch(addRealtimeTaskComment({ taskId: notification.taskId, comment: notification.comment }));
+    return;
+  }
+
+  if (notification.type === 'TASK_COMMENT_DELETED') {
+    dispatch(removeRealtimeTaskComment({ taskId: notification.taskId, commentId: notification.commentId }));
+    return;
+  }
 
  // Ignore system events like CONNECTED confirmation
  if (!notification._id) return;

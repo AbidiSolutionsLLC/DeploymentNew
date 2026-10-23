@@ -105,7 +105,7 @@ export default function TaskComments({
   const reduxTaskComments = useSelector((state) => state.tasks?.taskComments?.[taskId] || []);
 
   // Use props comments if non-empty, otherwise fallback to Redux store
-  const displayComments = Array.isArray(comments) && comments.length > 0 ? comments : reduxTaskComments;
+  const displayComments = Array.isArray(reduxTaskComments) && reduxTaskComments.length > 0 ? reduxTaskComments : (Array.isArray(comments) ? comments : []);
 
   const currentUserId =
     propUserId ||
