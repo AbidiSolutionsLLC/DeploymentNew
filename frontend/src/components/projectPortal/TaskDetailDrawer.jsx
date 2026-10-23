@@ -7,9 +7,9 @@ import GlassModal from "../ui/GlassModal";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
 import ModernDatePicker from "../ui/ModernDatePicker";
-import { TablePriority, TableStatus } from "../ui/TableCells";
+import { TablePriority, TableStatus, TableAvatar } from "../ui/TableCells";
 import Progress from "./Progress";
-import { formatDate, isOverdue, taskProgress, getAssigneeName } from "./helpers";
+import { formatDate, isOverdue, taskProgress, getTaskAssignee, getAssigneeName } from "./helpers";
 import TaskComments from "./TaskComments";
 import { downloadFile } from "../../utils/downloadFile";
 import taskApi from "../../api/taskApi";
@@ -292,14 +292,13 @@ export default function TaskDetailDrawer({
               </span>
             )}
             {(() => {
+              const assignee = getTaskAssignee(task);
               const assigneeName = getAssigneeName(task);
               if (assigneeName === "—") return null;
               return (
-                <span className="flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  {assigneeName}
+                <span className="flex items-center gap-1.5" title={assigneeName}>
+                  <TableAvatar name={assigneeName} src={assignee?.avatar} size="xs" />
+                  <span>{assigneeName}</span>
                 </span>
               );
             })()}
@@ -330,6 +329,7 @@ export default function TaskDetailDrawer({
                 disabled={!hasFullTaskControl}
                 onChange={(e) => setDueDate(e.target.value)}
                 placeholder="Select Due Date"
+                inputClassName="h-11"
               />
             </div>
             <div>
@@ -342,7 +342,7 @@ export default function TaskDetailDrawer({
                 max="100"
                 value={completionPercent}
                 onChange={(e) => setCompletionPercent(e.target.value)}
-                className="glass-input !py-3 rounded-xl"
+                className="glass-input h-11 !py-0 px-4 rounded-xl text-sm font-medium"
               />
             </div>
             <div>
@@ -356,7 +356,7 @@ export default function TaskDetailDrawer({
                 value={duration}
                 disabled={!hasFullTaskControl}
                 onChange={(e) => setDuration(e.target.value)}
-                className="glass-input !py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="glass-input h-11 !py-0 px-4 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
             <div>
@@ -369,7 +369,7 @@ export default function TaskDetailDrawer({
                 step="0.25"
                 value={workedHours}
                 onChange={(e) => setWorkedHours(e.target.value)}
-                className="glass-input !py-3 rounded-xl"
+                className="glass-input h-11 !py-0 px-4 rounded-xl text-sm font-medium"
               />
             </div>
           </div>

@@ -1,6 +1,8 @@
 import React from "react";
 import { FaCalendar, FaComment, FaGripVertical, FaClock } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext"; // Keep this import
+import { TableAvatar } from "../ui/TableCells";
+import { getTaskAssignee, getAssigneeName } from "../projectPortal/helpers";
 
 const TaskCard = ({ task, isDragging }) => {
  const { selectedTheme } = useTheme(); // Keep this import, though colors are now via CSS vars
@@ -11,6 +13,9 @@ const getPriorityColor = (priority) => {
 
  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
  const isDueSoon = task.dueDate && new Date(task.dueDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+ const assignee = getTaskAssignee(task);
+ const assigneeName = getAssigneeName(task);
+ const hasAssignee = assigneeName && assigneeName !== "—";
 
  return (
  <div
@@ -62,17 +67,13 @@ const getPriorityColor = (priority) => {
  {/* Task Footer */}
  <div className="flex items-center justify-between">
  <div className="flex items-center space-x-2">
- {task.assignee && (
- <div className="flex items-center gap-1">
- <img
- src={task.assignee.avatar || "/placeholder.svg"}
- alt={task.assignee.name}
- className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex-shrink-0"
- />
+ {hasAssignee && (
+ <div className="flex items-center gap-1.5" title={assigneeName}>
+ <TableAvatar name={assigneeName} src={assignee?.avatar} size="xs" />
  <span 
  className="text-xs truncate max-w-[60px] sm:max-w-[80px] text-description"
  >
- {task.assignee.name}
+ {assigneeName}
  </span>
  </div>
  )}

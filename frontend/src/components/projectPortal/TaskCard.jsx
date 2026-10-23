@@ -1,6 +1,6 @@
 import { FaCalendar, FaComment, FaClock, FaGripLines } from "react-icons/fa";
-import { TablePriority } from "../ui/TableCells";
-import { shortDate, isOverdue, taskProgress, getAssigneeName } from "./helpers";
+import { TablePriority, TableAvatar } from "../ui/TableCells";
+import { shortDate, isOverdue, taskProgress, getTaskAssignee, getAssigneeName } from "./helpers";
 
 /**
  * TaskCard — relaxed compact card for Kanban columns and list view.
@@ -20,6 +20,7 @@ export default function TaskCard({
   const overdue = isOverdue(task.dueDate, task.status);
   const dueSoon = task.dueDate && new Date(task.dueDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) && !overdue;
   const pct = taskProgress(task);
+  const assignee = getTaskAssignee(task);
   const assigneeName = getAssigneeName(task);
   const hasAssignee = assigneeName && assigneeName !== "—";
 
@@ -81,9 +82,7 @@ export default function TaskCard({
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {hasAssignee && (
             <div className="flex items-center gap-1.5 min-w-0" title={assigneeName}>
-              <div className="w-6 h-6 rounded-full bg-amber-50 border border-border-accent flex items-center justify-center flex-shrink-0 text-brand-text font-black text-xs">
-                {assigneeName[0] || "U"}
-              </div>
+              <TableAvatar name={assigneeName} src={assignee?.avatar} size="xs" />
               <span className="text-xs truncate max-w-[95px] text-muted font-medium">{assigneeName}</span>
             </div>
           )}
