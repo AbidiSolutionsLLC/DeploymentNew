@@ -51,11 +51,11 @@ const AddCardMenu = ({
       </GlassButton>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-48 rounded-xl shadow-2xl border bg-white dark:bg-slate-800 border-slate-400 dark:border-slate-400 py-2 overflow-hidden z-50">
-          <p className="px-4 pb-2 pt-1 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+        <div className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl border bg-surface border-border-subtle py-2 overflow-hidden z-50">
+          <p className="px-4 pb-2 pt-1 text-[10px] font-black text-muted uppercase tracking-widest">
             {heading}
           </p>
-          <ul className="text-xs text-slate-800 dark:text-slate-200 max-h-64 overflow-y-auto">
+          <ul className="text-xs text-heading max-h-64 overflow-y-auto">
             {cardOptions.map((option) => (
               <li
                 key={option.id}
@@ -68,16 +68,26 @@ const AddCardMenu = ({
                 className={`px-4 py-2.5 transition font-semibold tracking-tight flex items-center gap-2.5 ${
                   currentCardTypes.includes(option.id)
                     ? "opacity-60 cursor-not-allowed"
-                    : "cursor-pointer hover:bg-amber-50 dark:hover:bg-slate-700"
+                    : "cursor-pointer hover:bg-card-hover"
                 }`}
               >
-                <span
-                  className={`w-2 h-2 rounded-full shrink-0 ${
-                    currentCardTypes.includes(option.id)
-                      ? "bg-slate-300 dark:bg-slate-600"
-                      : "bg-amber-500"
-                  }`}
-                />
+                {option.icon ? (
+                  <option.icon
+                    className={`w-3.5 h-3.5 shrink-0 ${
+                      currentCardTypes.includes(option.id)
+                        ? "text-muted"
+                        : "text-brand-text"
+                    }`}
+                  />
+                ) : (
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      currentCardTypes.includes(option.id)
+                        ? "bg-muted/40"
+                        : "bg-brand"
+                    }`}
+                  />
+                )}
                 {option.label}
               </li>
             ))}
