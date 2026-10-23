@@ -139,7 +139,7 @@ const ViewAllButton = ({ onClick }) => (
 );
 
 function ActiveProjectsCard({ projects, isEmployee }) {
-  const items = projects.slice(0, 3);
+  const items = projects;
 
   if (items.length === 0) {
     return (
@@ -155,7 +155,7 @@ function ActiveProjectsCard({ projects, isEmployee }) {
   }
 
   return (
-    <ul className="space-y-2.5 flex-1 min-h-0">
+    <ul className="space-y-2.5 flex-1 min-h-0 max-h-[14.5rem] overflow-y-auto overscroll-contain custom-scrollbar-visible pr-1 -mr-1">
       {items.map((p, i) => {
         const pct = projectProgress(p);
         return (
@@ -272,7 +272,7 @@ function TaskPrioritiesCard({ data }) {
 }
 
 function OpenTasksCard({ tasks }) {
-  const items = tasks.slice(0, 3);
+  const items = tasks;
 
   if (items.length === 0) {
     return (
@@ -284,7 +284,7 @@ function OpenTasksCard({ tasks }) {
   }
 
   return (
-    <ul className="space-y-2 flex-1 min-h-0">
+    <ul className="space-y-2 flex-1 min-h-0 max-h-[11rem] overflow-y-auto overscroll-contain custom-scrollbar-visible pr-1 -mr-1">
       {items.map((t, i) => (
         <li
           key={t._id || i}
@@ -307,7 +307,7 @@ function OpenTasksCard({ tasks }) {
 }
 
 function UpcomingDeadlinesCard({ deadlines }) {
-  const items = deadlines.slice(0, 3);
+  const items = deadlines;
 
   if (items.length === 0) {
     return (
@@ -319,7 +319,7 @@ function UpcomingDeadlinesCard({ deadlines }) {
   }
 
   return (
-    <ul className="space-y-2 flex-1 min-h-0">
+    <ul className="space-y-2 flex-1 min-h-0 max-h-[11rem] overflow-y-auto overscroll-contain custom-scrollbar-visible pr-1 -mr-1">
       {items.map((dl, i) => {
         const date = new Date(dl.dueDate);
         const valid = !Number.isNaN(date.getTime());
@@ -351,7 +351,7 @@ function UpcomingDeadlinesCard({ deadlines }) {
 }
 
 function TeamMembersCard({ team }) {
-  const items = team.slice(0, 3);
+  const items = team;
 
   if (items.length === 0) {
     return (
@@ -363,7 +363,7 @@ function TeamMembersCard({ team }) {
   }
 
   return (
-    <ul className="space-y-2 flex-1 min-h-0">
+    <ul className="space-y-2 flex-1 min-h-0 max-h-[11rem] overflow-y-auto overscroll-contain custom-scrollbar-visible pr-1 -mr-1">
       {items.map((member, i) => {
         const name = personName(member);
         return (

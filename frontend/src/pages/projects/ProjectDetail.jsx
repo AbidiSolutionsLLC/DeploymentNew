@@ -10,6 +10,7 @@ import {
   UsersIcon,
   FlagIcon,
   ClockIcon,
+  PlusIcon,
   FolderIcon,
   ChatBubbleLeftRightIcon,
   BoltIcon,
@@ -77,8 +78,18 @@ const STATUS_DISPLAY = {
   "In Progress": "In Progress",
   "In Review": "In Review",
   Done: "Done",
+  Blocked: "Backlog",
   backlog: "Backlog",
   todo: "To Do",
+  "in-progress": "In Progress",
+  "in-review": "In Review",
+  done: "Done",
+  blocked: "Backlog",
+};
+
+const COLUMN_STATUS = {
+  backlog: "Backlog",
+  todo: "Todo",
   "in-progress": "In Progress",
   "in-review": "In Review",
   done: "Done",
@@ -126,6 +137,7 @@ const ProjectDetail = () => {
 
   const [activeTab, setActiveTab] = useState("board");
   const [searchQuery, setSearchQuery] = useState("");
+  const [addTaskStatus, setAddTaskStatus] = useState("Todo");
   const [showAddTask, setShowAddTask] = useState(false);
   const [showTaskDetail, setShowTaskDetail] = useState(null);
   const [showComments, setShowComments] = useState(null);
@@ -203,7 +215,9 @@ const ProjectDetail = () => {
   }, [id, dispatch]);
 
   useEffect(() => {
-    if (id && activeTab === "activity") dispatch(fetchProjectActivities(id));
+    if (id && activeTab === "activity") {
+      dispatch(fetchProjectActivities(id));
+    }
   }, [id, activeTab, dispatch]);
 
   // Fetch task comments when task detail opens
@@ -305,7 +319,7 @@ const ProjectDetail = () => {
   };
 
   const getTasksByStatus = (status) =>
-    filteredTasks.filter((t) => toColumnId(t.status) === status);
+    (searchQuery ? filteredTasks : tasks).filter((t) => toColumnId(t.status) === status);
 
   if (!project) {
     return loading ? (
@@ -321,8 +335,8 @@ const ProjectDetail = () => {
     total: tasks.length,
     done: tasks.filter((task) => task.status === "Done").length,
     active: tasks.filter((task) => ["In Progress", "In Review"].includes(task.status)).length,
-    blocked: tasks.filter((task) => task.status === "Blocked").length,
-    backlog: tasks.filter((task) => task.status === "Backlog").length,
+    blocked: tasks.filter((task) => task.status === "Blocked" || task.status === "blocked").length,
+    backlog: tasks.filter((task) => task.status === "Backlog" || task.status === "backlog").length,
   };
 
   const listColumns = [
@@ -395,54 +409,58 @@ const ProjectDetail = () => {
       <div className="flex flex-col gap-5 w-full">
         {/* ===== Project hero ===== */}
         <section className="glass-card bg-surface">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-3">
-                <button
-                  onClick={() => navigate("/project/projects")}
-                  className="p-1.5 -ml-1.5 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors"
-                  aria-label="Back to projects"
-                >
-                  <ArrowLeftIcon className="w-5 h-5" />
-                </button>
-                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Project overview</span>
-              </div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-border-accent bg-amber-50 text-brand-text">
-                  <FolderIcon className="w-5 h-5" />
-                </span>
-                <h1 className="text-2xl sm:text-3xl font-black text-heading tracking-tight break-words">{project.title}</h1>
-                <TableStatus value={project.status || "Planning"} />
-              </div>
-              {project.projectGroup && (
-                <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-brand-text border border-border-accent">
-                  <FolderIcon className="w-3.5 h-3.5" />
-                  {project.projectGroup.name || (typeof project.projectGroup === "string" ? project.projectGroup : "Group")}
-                </span>
-              )}
-              <p className="text-sm text-main mt-3 max-w-3xl leading-relaxed">
-                {project.description || "No description provided for this project."}
-              </p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <button
+                onClick={() => navigate("/project/projects")}
+                className="p-1.5 -ml-1.5 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors shrink-0"
+                aria-label="Back to projects"
+              >
+                <ArrowLeftIcon className="w-5 h-5" />
+              </button>
+              <h1 className="text-2xl sm:text-3xl font-black text-heading tracking-tight truncate">{project.title}</h1>
+              <TableStatus value={project.status || "Planning"} className="shrink-0" />
             </div>
-            <div className="flex flex-row gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               {canEditProject && (
                 <button
+                  type="button"
                   onClick={() => setShowEditProject(true)}
-                  className="btn btn-secondary py-2.5 px-4 whitespace-nowrap"
+                  className="grid h-10 w-10 place-items-center rounded-xl border border-border-accent bg-amber-50 text-brand-text hover:bg-amber-100 transition-colors"
+                  aria-label="Edit project"
+                  title="Edit project"
                 >
-                  <PencilIcon className="w-4 h-4 mr-2" /> Edit project
+                  <PencilIcon className="w-5 h-5" />
                 </button>
               )}
               {canDeleteProject && (
                 <button
+                  type="button"
                   onClick={handleDeleteProject}
-                  className="btn btn-secondary py-2.5 px-4 whitespace-nowrap text-danger hover:bg-danger-bg"
+                  className="grid h-10 w-10 place-items-center rounded-xl border border-border-accent bg-amber-50 text-brand-text hover:bg-danger-bg hover:text-danger transition-colors"
+                  aria-label="Delete project"
+                  title="Delete project"
                 >
-                  <TrashIcon className="w-4 h-4 mr-2" /> Delete
+                  <TrashIcon className="w-5 h-5" />
                 </button>
               )}
             </div>
           </div>
+          {(project.projectGroup || project.description) && (
+            <div className="mt-3">
+              {project.projectGroup && (
+                <span className="inline-flex items-center gap-1.5 mb-2 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-brand-text border border-border-accent">
+                  <FolderIcon className="w-3.5 h-3.5" />
+                  {project.projectGroup.name || (typeof project.projectGroup === "string" ? project.projectGroup : "Group")}
+                </span>
+              )}
+              {project.description && (
+                <p className="text-sm text-main max-w-3xl leading-relaxed">
+                  {project.description}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr_auto] gap-5 mt-5 pt-5 border-t border-border-subtle">
             {/* Overall progress */}
@@ -452,7 +470,7 @@ const ProjectDetail = () => {
                 <span className="text-3xl font-black text-heading tabular-nums leading-none">{pct}%</span>
                 <span className="text-xs text-muted">{taskCounts.done} of {taskCounts.total} tasks complete</span>
               </div>
-              <Progress value={pct} trackClassName="h-2 rounded-full mt-2.5" />
+              <Progress value={pct} trackClassName="h-2 rounded-full mt-3" />
             </div>
 
             {/* Project health */}
@@ -472,32 +490,36 @@ const ProjectDetail = () => {
             </div>
 
             {/* Stat tiles */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-xl border border-border-subtle bg-card px-3 py-2.5 min-w-[92px]">
-                <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-muted">
-                  <BoltIcon className="w-3.5 h-3.5" /> Active
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="rounded-xl border border-border-subtle bg-card px-3.5 py-3 min-w-[104px]">
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
+                  <BoltIcon className="w-4 h-4" /> Active
                 </div>
-                <p className="text-xl font-black text-heading tabular-nums mt-1">{taskCounts.active}</p>
+                <p className="text-2xl font-black text-heading tabular-nums mt-1.5">{taskCounts.active}</p>
               </div>
-              <div className="rounded-xl border border-border-subtle bg-card px-3 py-2.5 min-w-[92px]">
-                <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-muted">
-                  <NoSymbolIcon className="w-3.5 h-3.5" /> Blocked
+              <div className="rounded-xl border border-border-subtle bg-card px-3.5 py-3 min-w-[104px]">
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
+                  <NoSymbolIcon className="w-4 h-4" /> Blocked
                 </div>
-                <p className={`text-xl font-black tabular-nums mt-1 ${taskCounts.blocked ? "text-danger" : "text-heading"}`}>{taskCounts.blocked}</p>
+                <p className={`text-2xl font-black tabular-nums mt-1.5 ${taskCounts.blocked ? "text-danger" : "text-heading"}`}>{taskCounts.blocked}</p>
               </div>
-              <div className="rounded-xl border border-border-subtle bg-card px-3 py-2.5 min-w-[92px]">
-                <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-muted">
-                  <UsersIcon className="w-3.5 h-3.5" /> Team
+              <div className="rounded-xl border border-border-subtle bg-card px-3.5 py-3 min-w-[104px]">
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
+                  <UsersIcon className="w-4 h-4" /> Team
                 </div>
-                <p className="text-xl font-black text-heading tabular-nums mt-1">{team.length}</p>
+                <p className="text-2xl font-black text-heading tabular-nums mt-1.5">{team.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-5 pt-4 border-t border-border-subtle text-[10px] font-black uppercase tracking-widest text-muted">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 pt-4 border-t border-border-subtle text-[10px] font-black uppercase tracking-widest text-muted">
             <span className="flex items-center gap-1.5"><CalendarDaysIcon className="w-3.5 h-3.5" /> Due {shortDate(project.dueDate)}</span>
-            <span className="flex items-center gap-1.5"><FlagIcon className="w-3.5 h-3.5" /> Priority: {project.priority || "Medium"}</span>
-            <span className="flex items-center gap-1.5"><UsersIcon className="w-3.5 h-3.5" /> {team.length} member{team.length !== 1 ? "s" : ""}</span>
+            <span className="hidden sm:block w-px h-4 bg-border-subtle" />
+            <span className="flex items-center gap-1.5">
+              <FlagIcon className="w-3.5 h-3.5" /> Priority:{" "}
+              <span className="text-brand-text">{project.priority || "Medium"}</span>
+            </span>
+            <span className="hidden sm:block w-px h-4 bg-border-subtle" />
             <span className="flex items-center gap-1.5"><ClockIcon className="w-3.5 h-3.5" /> Started {shortDate(project.startDate)}</span>
           </div>
         </section>
@@ -555,10 +577,13 @@ const ProjectDetail = () => {
                 </div>
                 {canManageTasks && (
                   <button
-                    onClick={() => setShowAddTask(true)}
+                    onClick={() => {
+                      setAddTaskStatus("Todo");
+                      setShowAddTask(true);
+                    }}
                     className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
                   >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                    <PlusIcon className="w-4 h-4 mr-2" />
                     New Task
                   </button>
                 )}
@@ -605,9 +630,18 @@ const ProjectDetail = () => {
                             <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${COLUMN_ACCENTS[col.id] || "bg-amber-500"}`} />
                             <h3 className="text-xs font-black uppercase tracking-widest text-heading truncate">{col.title}</h3>
                           </div>
-                          <span className="grid h-6 min-w-6 place-items-center rounded-full border border-border-subtle bg-card px-1.5 text-[11px] font-bold text-muted tabular-nums">
-                            {colTasks.length}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddTaskStatus(COLUMN_STATUS[col.id] || "Todo");
+                              setShowAddTask(true);
+                            }}
+                            className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-border-subtle bg-card text-muted hover:border-border-accent hover:bg-card-hover hover:text-brand-text transition-colors"
+                            aria-label={`Add task to ${col.title}`}
+                            title={`Add task to ${col.title}`}
+                          >
+                            <PlusIcon className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                         <div className="flex-1 space-y-3">
                           {colTasks.map((task) => (
@@ -759,7 +793,7 @@ const ProjectDetail = () => {
           description="Create a task in this project"
           maxWidth="max-w-2xl"
         >
-          <AddTaskForm projectId={id} project={project} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} />
+          <AddTaskForm projectId={id} project={project} initialStatus={addTaskStatus} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} />
         </GlassModal>
 
         <GlassModal

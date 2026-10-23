@@ -110,10 +110,6 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
     label: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email,
   }));
   const departmentOptions = departments.map((d) => ({ value: d._id || d.id, label: d.name }));
-  const groupOptions = [
-    { value: "", label: "None (No Group)" },
-    ...projectGroups.map((g) => ({ value: g._id || g.id, label: g.name }))
-  ];
 
   const labelCls = "block text-[10px] font-black text-muted mb-1.5 uppercase tracking-widest";
 
