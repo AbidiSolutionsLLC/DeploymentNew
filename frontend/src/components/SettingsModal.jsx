@@ -8,6 +8,7 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
   X, Check, Sun, Moon, Monitor, Bell, Mail, User as UserIcon,
   LogOut, Palette, AlertTriangle, Loader2, FolderKanban, Search,
+  UserPlus, ShieldCheck, Trash2, ChevronDown, HelpCircle
 } from "lucide-react";
 import api from "../axios";
 import settingsApi from "../api/settingsApi";
@@ -16,6 +17,7 @@ import { setUser } from "../slices/userSlice";
 import { useTheme } from "../context/ThemeContext";
 import ToggleSwitch from "./ui/ToggleSwitch";
 import GlassButton from "./ui/GlassButton";
+import ModernSelect from "./ui/ModernSelect";
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -29,21 +31,39 @@ const PROJECT_ROLES = [
   {
     value: "Team Member",
     label: "Team Member",
-    badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    desc: "Task contributor: view assigned projects, update task status, log worked hours, and collaborate.",
+    shortLabel: "Member",
+    badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    activeRing: "ring-emerald-500/40 border-emerald-500/40 bg-emerald-500/5",
+    dot: "bg-emerald-500",
+    desc: "View assigned projects, update tasks, and log time.",
+    fullDesc: "Task contributor: view assigned projects, update task status, log worked hours, and collaborate.",
   },
   {
     value: "Project Manager",
     label: "Project Manager",
-    badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-    desc: "Delivery lead: manage project milestones, create and assign tasks, and oversee project execution.",
+    shortLabel: "Manager",
+    badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    activeRing: "ring-blue-500/40 border-blue-500/40 bg-blue-500/5",
+    dot: "bg-blue-500",
+    desc: "Manage milestones, assign tasks, and track progress.",
+    fullDesc: "Delivery lead: manage project milestones, create and assign tasks, and oversee project execution.",
   },
   {
     value: "Project Administrator",
     label: "Project Administrator",
-    badge: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
-    desc: "Full portfolio administration: create/delete projects, manage groups, portal settings, and all tasks.",
+    shortLabel: "Admin",
+    badge: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    activeRing: "ring-purple-500/40 border-purple-500/40 bg-purple-500/5",
+    dot: "bg-purple-500",
+    desc: "Full access to all projects, portal settings, and teams.",
+    fullDesc: "Full portfolio administration: create/delete projects, manage groups, portal settings, and all tasks.",
   },
+];
+
+const PROJECT_ROLE_SELECT_OPTIONS = [
+  { value: "Team Member", label: "Team Member" },
+  { value: "Project Manager", label: "Project Manager" },
+  { value: "Project Administrator", label: "Project Administrator" },
 ];
 
 const formatProjectRoleDisplay = (role) => {
@@ -129,7 +149,14 @@ export default function SettingsModal({ isOpen, onClose }) {
   const [portalUsers, setPortalUsers] = useState([]);
   const [loadingPortalUsers, setLoadingPortalUsers] = useState(false);
   const [portalSearch, setPortalSearch] = useState('');
-  const [savingPortalAccess, setSavingPortalAccess] = useState(false);
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [showAddPanel, setShowAddPanel] = useState(false);
+  const [showRoleGuide, setShowRoleGuide] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedRole, setSelectedRole] = useState('Team Member');
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [savingUserId, setSavingUserId] = useState(null);
 
   useEffect(() => {
     if (!isOpen || !isAdminOrSuper) return;
@@ -183,6 +210,7 @@ export default function SettingsModal({ isOpen, onClose }) {
       setSelectedUserId('');
       setUserDropdownOpen(false);
       setUserSearchQuery('');
+      setShowAddPanel(false);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to update project portal role');
     } finally {
@@ -340,7 +368,7 @@ export default function SettingsModal({ isOpen, onClose }) {
       />
 
       <div
-        className="relative z-[10000] flex h-[86vh] max-h-[720px] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border shadow-2xl animate-slideInUp"
+        className="relative z-[10000] flex h-[88vh] max-h-[740px] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border shadow-2xl animate-slideInUp"
         style={{ background: "var(--color-bg-primary)", borderColor: "var(--color-border-accent)" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -399,12 +427,12 @@ export default function SettingsModal({ isOpen, onClose }) {
         <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
           {/* Navigation */}
           <nav
-            className="flex shrink-0 gap-2 overflow-x-auto border-b p-3 no-scrollbar sm:w-60 sm:flex-col sm:overflow-visible sm:border-b-0 sm:border-r"
+            className="flex shrink-0 gap-2 overflow-x-auto border-b p-3 no-scrollbar sm:w-56 sm:flex-col sm:overflow-visible sm:border-b-0 sm:border-r"
             style={{ borderColor: "var(--color-border-primary)" }}
           >
             {[
               ...TABS,
-              ...(isAdminOrSuper ? [{ id: "portalAccess", label: "Portal Access", hint: "Project assignment", icon: FolderKanban }] : [])
+              ...(isAdminOrSuper ? [{ id: "portalAccess", label: "Project Access", hint: "Roles & permissions", icon: FolderKanban }] : [])
             ].map((item) => {
               const Icon = item.icon;
               const active = tab === item.id;
@@ -611,408 +639,553 @@ export default function SettingsModal({ isOpen, onClose }) {
                   </div>
                 )}
 
-                      {/* ─── PORTAL ACCESS (SUPER ADMIN & ADMIN ONLY) ─── */}
+                {/* ─── PROJECT PORTAL ACCESS & ROLES (SUPER ADMIN & ADMIN ONLY) ─── */}
                 {tab === "portalAccess" && isAdminOrSuper && (() => {
                   const selectedUser = portalUsers.find(u => (u._id || u.id) === selectedUserId);
                   const isAssigned = (u) => {
-                    const clean = (u.role || '').replace(/\s+/g, '').toLowerCase();
-                    return clean === 'superadmin' || clean === 'admin' || Boolean(u.hasProjectPortalAccess || u.projectRole);
+                    const clean = (u.role || "").replace(/\s+/g, "").toLowerCase();
+                    return clean === "superadmin" || clean === "admin" || Boolean(u.hasProjectPortalAccess || u.projectRole);
                   };
                   const assignedUsers = portalUsers.filter(isAssigned);
 
+                  // Role breakdown metrics
+                  const adminCount = assignedUsers.filter((u) => {
+                    const clean = (u.role || "").toLowerCase();
+                    const isCompanyAdmin = clean === "superadmin" || clean === "admin";
+                    const pRole = formatProjectRoleDisplay(u.projectRole || (isCompanyAdmin ? "Project Administrator" : ""));
+                    return pRole === "Project Administrator";
+                  }).length;
+
+                  const managerCount = assignedUsers.filter((u) => {
+                    const pRole = formatProjectRoleDisplay(u.projectRole || "");
+                    return pRole === "Project Manager";
+                  }).length;
+
+                  const memberCount = assignedUsers.filter((u) => {
+                    const clean = (u.role || "").toLowerCase();
+                    const isCompanyAdmin = clean === "superadmin" || clean === "admin";
+                    if (isCompanyAdmin && !u.projectRole) return false;
+                    const pRole = formatProjectRoleDisplay(u.projectRole || "Team Member");
+                    return pRole === "Team Member";
+                  }).length;
+
+                  // Filtered users for table
+                  const filteredUsers = assignedUsers.filter((u) => {
+                    const clean = (u.role || "").toLowerCase();
+                    const isCompanyAdmin = clean === "superadmin" || clean === "admin";
+                    const currentProjectRole = formatProjectRoleDisplay(
+                      u.projectRole || (isCompanyAdmin ? "Project Administrator" : "Team Member")
+                    );
+
+                    if (roleFilter === "admin" && currentProjectRole !== "Project Administrator") return false;
+                    if (roleFilter === "manager" && currentProjectRole !== "Project Manager") return false;
+                    if (roleFilter === "member" && currentProjectRole !== "Team Member") return false;
+
+                    if (!portalSearch.trim()) return true;
+                    const q = portalSearch.toLowerCase().trim();
+                    const name = (u.name || "").toLowerCase();
+                    const email = (u.email || "").toLowerCase();
+                    const role = (u.role || "").toLowerCase();
+                    const pRole = currentProjectRole.toLowerCase();
+                    return name.includes(q) || email.includes(q) || role.includes(q) || pRole.includes(q);
+                  });
+
                   return (
-                    <div className="space-y-6">
-                      <SectionHeading
-                        icon={FolderKanban}
-                        title="Project Portal Role-Based Access"
-                        subtitle="Assign company members specific roles in the Project Portal. Their People Portal role remains completely unchanged."
-                      />
-
-                      {/* ── Section A: Assign Role via User Selector ── */}
-                      <div
-                        className="rounded-2xl p-4 sm:p-5 border transition-all shadow-sm"
-                        style={{
-                          background: "var(--color-bg-secondary)",
-                          borderColor: "var(--color-border-accent)",
-                        }}
-                      >
-                        <div className="flex items-center gap-2 mb-3">
-                          <span
-                            className="flex h-6 w-6 items-center justify-center rounded-lg"
-                            style={{ background: "var(--gradient-gold-foil)", color: "var(--color-text-on-brand)" }}
-                          >
-                            <Sparkles className="h-3.5 w-3.5" />
-                          </span>
-                          <h4 className="text-sm font-bold" style={{ color: "var(--color-text-heading)" }}>
-                            Assign or Elevate User in Project Portal
-                          </h4>
+                    <div className="space-y-4">
+                      {/* ── Header ── */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--color-border-primary)]">
+                        <div>
+                          <h3 className="text-base font-bold text-heading flex items-center gap-2">
+                            <FolderKanban className="h-4 w-4 text-[var(--color-brand-primary)]" />
+                            Project Access & Roles
+                          </h3>
+                          <p className="mt-0.5 text-xs text-muted">
+                            Control which team members have access to the Project Portal and configure their role permissions.
+                          </p>
                         </div>
-
-                        {/* Searchable Dropdown for User Selection */}
-                        <div className="relative">
-                          <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--color-text-secondary)" }}>
-                            Select Company User
-                          </label>
-
-                          <div
-                            onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                            className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border cursor-pointer transition-colors"
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAddPanel((prev) => !prev);
+                              setSelectedUserId("");
+                              setUserDropdownOpen(false);
+                              setUserSearchQuery("");
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
                             style={{
-                              background: "var(--color-bg-primary)",
-                              borderColor: userDropdownOpen ? "var(--color-brand-primary)" : "var(--color-border-primary)",
+                              background: showAddPanel ? "var(--color-bg-hover)" : "var(--gradient-gold-foil)",
+                              color: showAddPanel ? "var(--color-text-secondary)" : "var(--color-text-on-brand)",
+                              border: "1px solid " + (showAddPanel ? "var(--color-border-primary)" : "transparent"),
                             }}
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <Search className="h-4 w-4 text-muted shrink-0" />
-                              {selectedUser ? (
-                                <div className="flex items-center gap-2 truncate">
-                                  <span className="text-sm font-semibold text-heading truncate">{selectedUser.name}</span>
-                                  <span className="text-[11px] text-muted truncate">({selectedUser.email})</span>
-                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 shrink-0">
-                                    People: {selectedUser.role || "Employee"}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-sm text-muted">Click to select a user from company...</span>
-                              )}
-                            </div>
-                            <ChevronDown className={`h-4 w-4 text-muted transition-transform ${userDropdownOpen ? "rotate-180" : ""}`} />
-                          </div>
+                            {showAddPanel ? (
+                              <>
+                                <X className="h-3.5 w-3.5" />
+                                Cancel
+                              </>
+                            ) : (
+                              <>
+                                <UserPlus className="h-3.5 w-3.5" />
+                                Grant Access
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
 
-                          {/* Dropdown Menu */}
-                          {userDropdownOpen && (
+                      {/* ── Collapsible Add / Grant Access Drawer ── */}
+                      <AnimatePresence>
+                        {showAddPanel && (
+                          <Motion.div
+                            initial={{ opacity: 0, height: 0, y: -6 }}
+                            animate={{ opacity: 1, height: "auto", y: 0 }}
+                            exit={{ opacity: 0, height: 0, y: -6 }}
+                            transition={{ duration: 0.22, ease: EASE }}
+                            className="overflow-hidden"
+                          >
                             <div
-                              className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl border shadow-xl p-2 max-h-60 overflow-y-auto custom-scrollbar-visible animate-fadeIn"
+                              className="rounded-2xl p-4 sm:p-5 border space-y-4 shadow-sm"
                               style={{
-                                background: "var(--color-bg-primary)",
+                                background: "var(--color-bg-secondary)",
                                 borderColor: "var(--color-border-accent)",
                               }}
                             >
-                              <div className="p-1 mb-1.5">
-                                <input
-                                  type="text"
-                                  autoFocus
-                                  value={userSearchQuery}
-                                  onChange={(e) => setUserSearchQuery(e.target.value)}
-                                  placeholder="Type to filter users..."
-                                  className="glass-input !py-1.5 !px-3 !text-xs w-full"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="flex h-6 w-6 items-center justify-center rounded-lg"
+                                    style={{ background: "var(--gradient-gold-foil)", color: "var(--color-text-on-brand)" }}
+                                  >
+                                    <UserPlus className="h-3.5 w-3.5" />
+                                  </span>
+                                  <span className="text-xs font-bold text-heading">Grant Project Portal Access</span>
+                                </div>
+                                {selectedUser && (
+                                  <span className="text-[11px] text-muted">
+                                    Configuring: <strong className="text-heading">{selectedUser.name}</strong>
+                                  </span>
+                                )}
                               </div>
 
-                              <div className="space-y-1">
-                                {portalUsers
-                                  .filter((u) => {
-                                    const q = userSearchQuery.toLowerCase().trim();
-                                    if (!q) return true;
-                                    const name = (u.name || "").toLowerCase();
-                                    const email = (u.email || "").toLowerCase();
-                                    const role = (u.role || "").toLowerCase();
-                                    return name.includes(q) || email.includes(q) || role.includes(q);
-                                  })
-                                  .map((u) => {
-                                    const uId = u._id || u.id;
-                                    const isCurrentSelected = uId === selectedUserId;
-                                    const cleanRole = (u.role || "").replace(/\s+/g, "").toLowerCase();
-                                    const isCompanyAdmin = cleanRole === "superadmin" || cleanRole === "admin";
-                                    const activeProjectRole = u.projectRole 
-                                      ? formatProjectRoleDisplay(u.projectRole) 
-                                      : (isCompanyAdmin ? "Project Administrator" : (u.hasProjectPortalAccess ? "Team Member" : null));
+                              {/* Member Combobox Selector */}
+                              <div className="relative">
+                                <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1.5">
+                                  1. Select Team Member
+                                </label>
+                                <div
+                                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                                  className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border cursor-pointer transition-all hover:border-[var(--color-brand-primary)]"
+                                  style={{
+                                    background: "var(--color-bg-primary)",
+                                    borderColor: userDropdownOpen ? "var(--color-brand-primary)" : "var(--color-border-primary)",
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <Search className="h-4 w-4 text-muted shrink-0" />
+                                    {selectedUser ? (
+                                      <div className="flex items-center gap-2 truncate">
+                                        <div
+                                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                                          style={{ background: "var(--gradient-gold-foil)", color: "var(--color-text-on-brand)" }}
+                                        >
+                                          {selectedUser.avatar ? (
+                                            <img src={selectedUser.avatar} alt="" className="h-full w-full object-cover rounded-full" />
+                                          ) : (
+                                            (selectedUser.name || "U").charAt(0).toUpperCase()
+                                          )}
+                                        </div>
+                                        <span className="text-sm font-semibold text-heading truncate">{selectedUser.name}</span>
+                                        <span className="text-xs text-muted truncate">({selectedUser.email})</span>
+                                        {selectedUser.projectRole && (
+                                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                                            Current: {formatProjectRoleDisplay(selectedUser.projectRole)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-muted">Search team member by name, email, or role...</span>
+                                    )}
+                                  </div>
+                                  <ChevronDown className={"h-4 w-4 text-muted transition-transform duration-200 " + (userDropdownOpen ? "rotate-180" : "")} />
+                                </div>
 
+                                {/* Dropdown Menu */}
+                                {userDropdownOpen && (
+                                  <div
+                                    className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl border shadow-xl p-2 max-h-60 overflow-y-auto custom-scrollbar-visible"
+                                    style={{
+                                      background: "var(--color-bg-primary)",
+                                      borderColor: "var(--color-border-accent)",
+                                    }}
+                                  >
+                                    <div className="p-1 mb-1.5">
+                                      <input
+                                        type="text"
+                                        autoFocus
+                                        value={userSearchQuery}
+                                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                                        placeholder="Type to filter team members..."
+                                        className="glass-input !py-1.5 !px-3 !text-xs w-full rounded-xl"
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      {portalUsers
+                                        .filter((u) => {
+                                          const q = userSearchQuery.toLowerCase().trim();
+                                          if (!q) return true;
+                                          const name = (u.name || "").toLowerCase();
+                                          const email = (u.email || "").toLowerCase();
+                                          const role = (u.role || "").toLowerCase();
+                                          return name.includes(q) || email.includes(q) || role.includes(q);
+                                        })
+                                        .map((u) => {
+                                          const uId = u._id || u.id;
+                                          const isCurrentSelected = uId === selectedUserId;
+                                          const cleanRole = (u.role || "").replace(/\s+/g, "").toLowerCase();
+                                          const isCompanyAdmin = cleanRole === "superadmin" || cleanRole === "admin";
+                                          const activeProjectRole = u.projectRole 
+                                            ? formatProjectRoleDisplay(u.projectRole) 
+                                            : (isCompanyAdmin ? "Project Administrator" : (u.hasProjectPortalAccess ? "Team Member" : null));
+
+                                          return (
+                                            <div
+                                              key={uId}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedUserId(uId);
+                                                setSelectedRole(u.projectRole ? formatProjectRoleDisplay(u.projectRole) : "Team Member");
+                                                setUserDropdownOpen(false);
+                                              }}
+                                              className={"flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors " + (
+                                                isCurrentSelected
+                                                  ? "bg-[var(--color-bg-active)] border border-[var(--color-border-accent)]"
+                                                  : "hover:bg-[var(--color-bg-hover)]"
+                                              )}
+                                            >
+                                              <div className="flex items-center gap-2.5 min-w-0">
+                                                <div
+                                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold"
+                                                  style={{ background: "var(--gradient-gold-foil)", color: "var(--color-text-on-brand)" }}
+                                                >
+                                                  {u.avatar ? (
+                                                    <img src={u.avatar} alt="" className="h-full w-full object-cover rounded-lg" />
+                                                  ) : (
+                                                    (u.name || "U").charAt(0).toUpperCase()
+                                                  )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                  <p className="text-xs font-semibold text-heading truncate">{u.name}</p>
+                                                  <p className="text-[10px] text-muted truncate">{u.email}</p>
+                                                </div>
+                                              </div>
+
+                                              <div className="flex items-center gap-1.5 shrink-0">
+                                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[var(--color-bg-hover)] text-muted border border-[var(--color-border-primary)]">
+                                                  {u.role || "Employee"}
+                                                </span>
+                                                {activeProjectRole ? (
+                                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                                    {activeProjectRole}
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-[10px] text-muted px-1.5">No Access</span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Role Selection Grid */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-2">
+                                  2. Choose Role & Permission Level
+                                </label>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                  {PROJECT_ROLES.map((r) => {
+                                    const isSelected = selectedRole === r.value;
                                     return (
                                       <div
-                                        key={uId}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedUserId(uId);
-                                          setSelectedRole(u.projectRole ? formatProjectRoleDisplay(u.projectRole) : (cleanRole === "manager" ? "Project Manager" : "Team Member"));
-                                          setUserDropdownOpen(false);
-                                        }}
-                                        className={`flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors ${
-                                          isCurrentSelected
-                                            ? "bg-[var(--color-bg-active)] border border-[var(--color-border-accent)]"
-                                            : "hover:bg-[var(--color-bg-hover)]"
-                                        }`}
+                                        key={r.value}
+                                        onClick={() => setSelectedRole(r.value)}
+                                        className={"cursor-pointer rounded-xl p-3 border transition-all flex flex-col justify-between " + (
+                                          isSelected
+                                            ? r.activeRing + " ring-2 shadow-sm"
+                                            : "border-[var(--color-border-primary)] hover:border-[var(--color-border-accent)] bg-[var(--color-bg-primary)]"
+                                        )}
                                       >
-                                        <div className="flex items-center gap-2.5 min-w-0">
-                                          <div
-                                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold"
-                                            style={{ background: "var(--gradient-gold-foil)", color: "var(--color-text-on-brand)" }}
-                                          >
-                                            {u.avatar ? (
-                                              <img src={u.avatar} alt="" className="h-full w-full object-cover rounded-lg" />
-                                            ) : (
-                                              (u.name || "U").charAt(0).toUpperCase()
-                                            )}
+                                        <div>
+                                          <div className="flex items-center justify-between mb-1.5">
+                                            <div className="flex items-center gap-1.5">
+                                              <span className={"h-2 w-2 rounded-full " + r.dot} />
+                                              <span className="text-xs font-bold text-heading">{r.label}</span>
+                                            </div>
+                                            <input
+                                              type="radio"
+                                              name="selectedProjectRole"
+                                              checked={isSelected}
+                                              onChange={() => setSelectedRole(r.value)}
+                                              className="accent-[var(--color-brand-primary)] h-3.5 w-3.5 cursor-pointer"
+                                            />
                                           </div>
-                                          <div className="min-w-0">
-                                            <p className="text-xs font-semibold text-heading truncate">{u.name}</p>
-                                            <p className="text-[10px] text-muted truncate">{u.email}</p>
-                                          </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-1.5 shrink-0">
-                                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                                            People: {u.role || "Employee"}
-                                          </span>
-                                          {activeProjectRole && (
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                                              Project: {activeProjectRole}
-                                            </span>
-                                          )}
+                                          <p className="text-[11px] text-muted leading-relaxed">{r.desc}</p>
                                         </div>
                                       </div>
                                     );
                                   })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* When User is Selected: Show Project Role Picker */}
-                        {selectedUser && (
-                          <div className="mt-4 pt-4 border-t border-[var(--color-border-primary)] space-y-4 animate-fadeIn">
-                            <div className="p-3 rounded-xl bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div
-                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold"
-                                  style={{ background: "var(--gradient-gold-foil)", color: "var(--color-text-on-brand)" }}
-                                >
-                                  {selectedUser.avatar ? (
-                                    <img src={selectedUser.avatar} alt="" className="h-full w-full object-cover rounded-xl" />
-                                  ) : (
-                                    (selectedUser.name || "U").charAt(0).toUpperCase()
-                                  )}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="text-sm font-bold text-heading truncate">{selectedUser.name}</p>
-                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                                      People Portal: {selectedUser.role || "Employee"}
-                                    </span>
-                                  </div>
-                                  <p className="text-[11px] text-muted truncate">{selectedUser.email}</p>
                                 </div>
                               </div>
 
-                              {selectedUser.projectRole && (
-                                <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
-                                  Current: {formatProjectRoleDisplay(selectedUser.projectRole)}
-                                </span>
-                              )}
-                            </div>
-
-                            <div>
-                              <p className="text-xs font-bold mb-2 text-heading">
-                                What role should {selectedUser.name} have in the Project Portal?
-                              </p>
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                {PROJECT_ROLES.map((r) => {
-                                  const isSelected = selectedRole === r.value;
-                                  return (
-                                    <div
-                                      key={r.value}
-                                      onClick={() => setSelectedRole(r.value)}
-                                      className={`cursor-pointer rounded-xl p-3 border transition-all ${
-                                        isSelected
-                                          ? "ring-2 ring-[var(--color-brand-primary)] border-transparent bg-[var(--color-bg-active)]"
-                                          : "border-[var(--color-border-primary)] hover:border-[var(--color-border-accent)] bg-[var(--color-bg-primary)]"
-                                      }`}
-                                    >
-                                      <div className="flex items-center justify-between mb-1">
-                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${r.badge}`}>
-                                          {r.label}
-                                        </span>
-                                        <input
-                                          type="radio"
-                                          name="selectedProjectRole"
-                                          checked={isSelected}
-                                          onChange={() => setSelectedRole(r.value)}
-                                          className="accent-[var(--color-brand-primary)] h-4 w-4"
-                                        />
-                                      </div>
-                                      <p className="text-[11px] text-muted leading-relaxed mt-1.5">{r.desc}</p>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-2">
-                              {selectedUser.hasProjectPortalAccess || selectedUser.projectRole ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRevokeAccess(selectedUser._id || selectedUser.id)}
-                                  disabled={savingUserId === (selectedUser._id || selectedUser.id)}
-                                  className="text-xs font-semibold text-red-500 hover:text-red-600 flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" /> Revoke Project Access
-                                </button>
-                              ) : <span />}
-
-                              <div className="flex items-center gap-2">
+                              {/* Action Footer */}
+                              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--color-border-primary)]">
                                 <GlassButton
                                   variant="secondary"
                                   size="sm"
-                                  onClick={() => { setSelectedUserId(''); setUserDropdownOpen(false); }}
+                                  onClick={() => {
+                                    setShowAddPanel(false);
+                                    setSelectedUserId("");
+                                    setUserDropdownOpen(false);
+                                  }}
                                 >
                                   Cancel
                                 </GlassButton>
                                 <GlassButton
                                   variant="primary"
                                   size="sm"
-                                  isLoading={savingUserId === (selectedUser._id || selectedUser.id)}
-                                  onClick={() => handleAssignUserRole(selectedUser._id || selectedUser.id, selectedRole)}
+                                  disabled={!selectedUserId}
+                                  isLoading={savingUserId === selectedUserId}
+                                  onClick={() => handleAssignUserRole(selectedUserId, selectedRole)}
                                 >
                                   <Check className="h-3.5 w-3.5 mr-1" />
-                                  Confirm & Assign Role
+                                  {selectedUser?.hasProjectPortalAccess ? "Update Access" : "Grant Access"}
                                 </GlassButton>
                               </div>
                             </div>
-                          </div>
+                          </Motion.div>
                         )}
-                      </div>
+                      </AnimatePresence>
 
-                      {/* ── Section B: Active Project Portal Members Table ── */}
-                      <div>
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                          <div>
-                            <h4 className="text-sm font-bold text-heading">
-                              Active Project Portal Users ({assignedUsers.length})
-                            </h4>
-                            <p className="text-xs text-muted">
-                              Users who currently have access to view or manage the Project Portal.
-                            </p>
-                          </div>
-                          <div className="relative w-full sm:w-60">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted" />
-                            <input
-                              type="text"
-                              value={portalSearch}
-                              onChange={(e) => setPortalSearch(e.target.value)}
-                              placeholder="Filter assigned users..."
-                              className="glass-input !pl-8 !py-1.5 !text-xs w-full"
-                            />
-                          </div>
+                      {/* ── Toolbar: Role Filter Pills & Search ── */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
+                        {/* Filter Tabs */}
+                        <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] overflow-x-auto no-scrollbar">
+                          {[
+                            { id: "all", label: "All (" + assignedUsers.length + ")" },
+                            { id: "admin", label: "Admins (" + adminCount + ")" },
+                            { id: "manager", label: "Managers (" + managerCount + ")" },
+                            { id: "member", label: "Members (" + memberCount + ")" },
+                          ].map((f) => {
+                            const active = roleFilter === f.id;
+                            return (
+                              <button
+                                key={f.id}
+                                type="button"
+                                onClick={() => setRoleFilter(f.id)}
+                                className={"px-2.5 py-1 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer " + (
+                                  active
+                                    ? "bg-[var(--color-bg-primary)] text-heading shadow-sm"
+                                    : "text-muted hover:text-heading"
+                                )}
+                                style={active ? { border: "1px solid var(--color-border-accent)" } : {}}
+                              >
+                                {f.label}
+                              </button>
+                            );
+                          })}
                         </div>
 
-                        {loadingPortalUsers ? (
-                          <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted">
-                            <Loader2 className="h-6 w-6 animate-spin text-brand-primary" />
-                            <span className="text-xs">Loading portal users...</span>
-                          </div>
-                        ) : assignedUsers.length === 0 ? (
-                          <div className="p-8 text-center rounded-2xl border border-dashed border-[var(--color-border-primary)] text-muted text-xs">
-                            No users have been assigned to the Project Portal yet. Use the dropdown above to add members.
-                          </div>
-                        ) : (
-                          <div className="space-y-2 max-h-[340px] overflow-y-auto custom-scrollbar-visible pr-1">
-                            {assignedUsers
-                              .filter((u) => {
-                                const q = portalSearch.toLowerCase().trim();
-                                if (!q) return true;
-                                const name = (u.name || "").toLowerCase();
-                                const email = (u.email || "").toLowerCase();
-                                const role = (u.role || "").toLowerCase();
-                                const pRole = (u.projectRole || "").toLowerCase();
-                                return name.includes(q) || email.includes(q) || role.includes(q) || pRole.includes(q);
-                              })
-                              .map((u) => {
-                                const uId = u._id || u.id;
-                                const cleanCompanyRole = (u.role || "").replace(/\s+/g, "").toLowerCase();
-                                const isCompanyAdmin = cleanCompanyRole === "superadmin" || cleanCompanyRole === "admin";
-                                const currentProjectRole = formatProjectRoleDisplay(
-                                  u.projectRole || (isCompanyAdmin ? "Project Administrator" : "Team Member")
-                                );
-                                const isSaving = savingUserId === uId;
+                        {/* Search Bar */}
+                        <div className="relative w-full sm:w-60">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" />
+                          <input
+                            type="text"
+                            value={portalSearch}
+                            onChange={(e) => setPortalSearch(e.target.value)}
+                            placeholder="Filter members..."
+                            className="glass-input !pl-8 !py-1.5 !text-xs w-full rounded-xl"
+                          />
+                          {portalSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setPortalSearch("")}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-heading cursor-pointer"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
 
-                                return (
+                      {/* ── Members List ── */}
+                      {loadingPortalUsers ? (
+                        <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted">
+                          <Loader2 className="h-6 w-6 animate-spin text-[var(--color-brand-primary)]" />
+                          <span className="text-xs">Loading portal users...</span>
+                        </div>
+                      ) : assignedUsers.length === 0 ? (
+                        <div className="p-8 text-center rounded-2xl border border-dashed border-[var(--color-border-primary)] text-muted text-xs space-y-2">
+                          <p className="font-semibold text-heading">No users assigned to Project Portal yet</p>
+                          <p className="text-muted">Click the &quot;Grant Access&quot; button above to assign company members to the Project Portal.</p>
+                        </div>
+                      ) : filteredUsers.length === 0 ? (
+                        <div className="p-6 text-center rounded-2xl border border-dashed border-[var(--color-border-primary)] text-muted text-xs space-y-2">
+                          <p>No project members found matching your search or filter.</p>
+                          <button
+                            type="button"
+                            onClick={() => { setPortalSearch(""); setRoleFilter("all"); }}
+                            className="text-xs font-semibold text-[var(--color-brand-text)] hover:underline cursor-pointer"
+                          >
+                            Reset filters
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5 max-h-[350px] overflow-y-auto custom-scrollbar-visible pr-1">
+                          {/* Table Column Headers */}
+                          <div className="grid grid-cols-12 gap-2 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-muted select-none">
+                            <div className="col-span-5 sm:col-span-5">Team Member</div>
+                            <div className="hidden sm:block sm:col-span-2">People Role</div>
+                            <div className="col-span-6 sm:col-span-4">Project Role</div>
+                            <div className="col-span-1 text-right"></div>
+                          </div>
+
+                          {filteredUsers.map((u) => {
+                            const uId = u._id || u.id;
+                            const cleanCompanyRole = (u.role || "").replace(/\s+/g, "").toLowerCase();
+                            const isCompanyAdmin = cleanCompanyRole === "superadmin" || cleanCompanyRole === "admin";
+                            const currentProjectRole = formatProjectRoleDisplay(
+                              u.projectRole || (isCompanyAdmin ? "Project Administrator" : "Team Member")
+                            );
+                            const isSaving = savingUserId === uId;
+
+                            return (
+                              <div
+                                key={uId}
+                                className="grid grid-cols-12 gap-2 items-center rounded-xl px-3 py-2 border transition-all hover:bg-[var(--color-bg-hover)]/30"
+                                style={{
+                                  background: "var(--color-bg-secondary)",
+                                  borderColor: "var(--color-border-primary)",
+                                }}
+                              >
+                                {/* Col 1: Member Profile */}
+                                <div className="col-span-5 sm:col-span-5 flex items-center gap-2.5 min-w-0">
                                   <div
-                                    key={uId}
-                                    className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 transition-colors border"
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold shadow-sm"
                                     style={{
-                                      background: "var(--color-bg-secondary)",
-                                      borderColor: "var(--color-border-primary)",
+                                      background: "var(--gradient-gold-foil)",
+                                      color: "var(--color-text-on-brand)",
                                     }}
                                   >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      <div
-                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold shadow-sm"
-                                        style={{
-                                          background: "var(--gradient-gold-foil)",
-                                          color: "var(--color-text-on-brand)",
-                                        }}
-                                      >
-                                        {u.avatar ? (
-                                          <img src={u.avatar} alt="" className="h-full w-full object-cover rounded-xl" />
-                                        ) : (
-                                          (u.name || "U").charAt(0).toUpperCase()
-                                        )}
-                                      </div>
-                                      <div className="min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <p className="text-sm font-semibold truncate text-heading">
-                                            {u.name || u.email}
-                                          </p>
-                                          <span className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-[var(--color-bg-hover)] text-muted border border-[var(--color-border-primary)]">
-                                            People: {u.role || "Employee"}
-                                          </span>
-                                        </div>
-                                        <p className="text-[11px] truncate text-muted">{u.email}</p>
-                                      </div>
-                                    </div>
-
-                                    {/* Role Selector & Revoke */}
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      {isCompanyAdmin && !u.projectRole ? (
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/25">
-                                            Project Administrator (Admin)
-                                          </span>
-                                          <select
-                                            disabled={isSaving}
-                                            value={currentProjectRole}
-                                            onChange={(e) => handleAssignUserRole(uId, e.target.value)}
-                                            className="glass-select !text-xs !py-1 !px-2 font-bold rounded-lg border border-[var(--color-border-accent)] bg-[var(--color-bg-primary)] cursor-pointer"
-                                            title="Override default project role"
-                                          >
-                                            <option value="Project Administrator">Project Administrator</option>
-                                            <option value="Project Manager">Project Manager</option>
-                                            <option value="Team Member">Team Member</option>
-                                          </select>
-                                        </div>
-                                      ) : (
-                                        <div className="flex items-center gap-2">
-                                          <select
-                                            disabled={isSaving}
-                                            value={currentProjectRole}
-                                            onChange={(e) => handleAssignUserRole(uId, e.target.value)}
-                                            className="glass-select !text-xs !py-1 !px-2.5 font-bold rounded-lg border border-[var(--color-border-accent)] bg-[var(--color-bg-primary)] cursor-pointer"
-                                          >
-                                            <option value="Team Member">Team Member</option>
-                                            <option value="Project Manager">Project Manager</option>
-                                            <option value="Project Administrator">Project Administrator</option>
-                                          </select>
-
-                                          <button
-                                            type="button"
-                                            disabled={isSaving}
-                                            onClick={() => handleRevokeAccess(uId)}
-                                            title="Revoke Project Portal Access"
-                                            className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
-                                          >
-                                            {isSaving ? (
-                                              <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                              <Trash2 className="h-4 w-4" />
-                                            )}
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
+                                    {u.avatar ? (
+                                      <img src={u.avatar} alt="" className="h-full w-full object-cover rounded-xl" />
+                                    ) : (
+                                      (u.name || "U").charAt(0).toUpperCase()
+                                    )}
                                   </div>
-                                );
-                              })}
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-heading truncate">
+                                      {u.name || u.email}
+                                    </p>
+                                    <p className="text-[10px] text-muted truncate">{u.email}</p>
+                                  </div>
+                                </div>
+
+                                {/* Col 2: People Portal Role */}
+                                <div className="hidden sm:flex sm:col-span-2 items-center min-w-0">
+                                  <span className="truncate rounded-md px-2 py-0.5 text-[10px] font-medium bg-[var(--color-bg-hover)] text-muted border border-[var(--color-border-primary)]">
+                                    {u.role || "Employee"}
+                                  </span>
+                                </div>
+
+                                {/* Col 3: Project Portal Role (Standard Website ModernSelect) */}
+                                <div className="col-span-6 sm:col-span-4 flex items-center min-w-0">
+                                  <div className="flex items-center gap-1.5 w-full">
+                                    <div className="flex-1 min-w-0">
+                                      <ModernSelect
+                                        value={currentProjectRole}
+                                        onChange={(e) => handleAssignUserRole(uId, e.target.value)}
+                                        disabled={isSaving}
+                                        options={PROJECT_ROLE_SELECT_OPTIONS}
+                                        buttonClassName={"!py-1.5 !px-2.5 !text-xs !font-semibold !rounded-xl !min-h-[34px] !h-[34px] transition-colors " + (
+                                          currentProjectRole === "Project Administrator"
+                                            ? "!border-purple-500/30 !bg-purple-500/10 !text-purple-700 dark:!text-purple-300 hover:!border-purple-500/50"
+                                            : currentProjectRole === "Project Manager"
+                                            ? "!border-blue-500/30 !bg-blue-500/10 !text-blue-700 dark:!text-blue-300 hover:!border-blue-500/50"
+                                            : "!border-emerald-500/30 !bg-emerald-500/10 !text-emerald-700 dark:!text-emerald-300 hover:!border-emerald-500/50"
+                                        )}
+                                        className="w-full"
+                                      />
+                                    </div>
+                                    {isSaving && (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--color-brand-primary)] shrink-0" />
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Col 4: Action (Revoke or Root Protection) */}
+                                <div className="col-span-1 flex items-center justify-end">
+                                  {isCompanyAdmin ? (
+                                    <span
+                                      className="p-1 text-muted/60 cursor-default"
+                                      title="Company Administrator has root portal access"
+                                    >
+                                      <ShieldCheck className="h-3.5 w-3.5 text-purple-400" />
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={isSaving}
+                                      onClick={() => handleRevokeAccess(uId)}
+                                      title="Revoke Project Access"
+                                      className="p-1 rounded-lg text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* ── Discreet Role Permissions Reference Guide ── */}
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowRoleGuide(!showRoleGuide)}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted hover:text-heading transition-colors cursor-pointer"
+                        >
+                          <HelpCircle className="h-3 w-3" />
+                          <span>Role permissions guide</span>
+                          <ChevronDown className={"h-3 w-3 transition-transform " + (showRoleGuide ? "rotate-180" : "")} />
+                        </button>
+
+                        {showRoleGuide && (
+                          <div
+                            className="mt-2 p-3 rounded-xl border grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px] animate-fadeIn"
+                            style={{
+                              background: "var(--color-bg-secondary)",
+                              borderColor: "var(--color-border-primary)",
+                            }}
+                          >
+                            <div>
+                              <span className="font-bold text-purple-600 dark:text-purple-400 block mb-0.5">Project Administrator</span>
+                              <p className="text-muted leading-relaxed">Full portfolio control, create & delete projects, configure settings, and manage all tasks.</p>
+                            </div>
+                            <div>
+                              <span className="font-bold text-blue-600 dark:text-blue-400 block mb-0.5">Project Manager</span>
+                              <p className="text-muted leading-relaxed">Oversee project execution, plan milestones, assign tasks, and track team progress.</p>
+                            </div>
+                            <div>
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400 block mb-0.5">Team Member</span>
+                              <p className="text-muted leading-relaxed">Contribute to assigned tasks, log work hours, update status, and collaborate with team.</p>
+                            </div>
                           </div>
                         )}
                       </div>
