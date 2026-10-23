@@ -160,7 +160,7 @@ class ProjectService {
     if (userRole !== 'project_administrator') {
       throw new ForbiddenError("Only Project Administrators can create new projects.");
     }
-    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status, projectGroup, milestones } = data;
+    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status, projectGroup, milestones, customStatuses, statusOrder } = data;
     const owner = dataOwner || user.id || user._id;
     await this.validateCompanyReferences(companyId, { owner, team, department, projectGroup });
 
@@ -177,6 +177,8 @@ class ProjectService {
       startDate,
       dueDate,
       milestones,
+      statusOrder: statusOrder || [],
+      customStatuses: customStatuses || [],
       attachments: this.mapAttachments(files),
       company: companyId,
     });
@@ -376,7 +378,7 @@ class ProjectService {
 
   async updateProject(user, companyId, projectId, data, files) {
     this.ensureProjectPortalAccess(user);
-    const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department, projectGroup, milestones } = data;
+    const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department, projectGroup, milestones, customStatuses, statusOrder } = data;
 
     const project = await Project.findOne({ _id: projectId, company: companyId });
     if (!project) throw new NotFoundError("Project");
@@ -391,8 +393,13 @@ class ProjectService {
     const isProjectAdmin = userRole === 'project_administrator';
     const isAdmin = userRole === 'admin';
     const isOwner = project.owner && project.owner._id ? project.owner._id.toString() === (user.id || user._id).toString() : project.owner?.toString() === (user.id || user._id).toString();
-    
-    if (!isProjectAdmin && !isOwner) {
+    const isTeamMember = Array.isArray(project.team) && project.team.some(member => {
+      const mid = member && member._id ? member._id.toString() : member ? member.toString() : '';
+      return mid === (user.id || user._id).toString();
+    });
+    const isAssignedManager = userRole === 'project_manager' && (isOwner || isTeamMember);
+
+    if (!isProjectAdmin && !isOwner && !isAssignedManager) {
       throw new ForbiddenError("Only project managers or administrators can modify project settings.");
     }
 
@@ -411,6 +418,8 @@ class ProjectService {
     project.owner = owner !== undefined ? owner : project.owner;
     project.department = department !== undefined ? department : project.department;
     project.milestones = milestones !== undefined ? milestones : project.milestones;
+    project.statusOrder = statusOrder !== undefined ? statusOrder : project.statusOrder;
+    project.customStatuses = customStatuses !== undefined ? customStatuses : project.customStatuses;
 
     if (projectGroup !== undefined) {
       const oldGroupId = project.projectGroup ? project.projectGroup.toString() : null;

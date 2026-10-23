@@ -6,6 +6,18 @@ const { getEffectiveProjectRole, hasProjectPortalAccess } = require("../utils/pr
 const { createNotification } = require('../utils/notificationService');
 
 class TaskService {
+  async validateTaskStatus(companyId, projectId, status) {
+    if (!status) return;
+    const BUILTIN_STATUSES = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
+    if (BUILTIN_STATUSES.includes(status)) return;
+    const ProjectModel = require("../models/projectSchema");
+    const proj = await ProjectModel.findOne({ _id: projectId, company: companyId }).select("customStatuses").lean();
+    const customLabels = (proj?.customStatuses || []).map((cs) => cs.label);
+    if (!customLabels.includes(status)) {
+      throw new BadRequestError(`Invalid task status: "${status}"`);
+    }
+  }
+
   ensureProjectPortalAccess(user) {
     if (!hasProjectPortalAccess(user)) {
       throw new ForbiddenError("You do not have access to the Project Portal.");
@@ -96,6 +108,7 @@ class TaskService {
       }
     }
     await this.validateCompanyTeam(companyId, team);
+    await this.validateTaskStatus(companyId, project, status);
     const validDependencies = await this.validateDependencies(companyId, project, null, dependencies);
 
     const task = new Task({
@@ -280,6 +293,9 @@ class TaskService {
       }
     }
 
+    if (status !== undefined) {
+      await this.validateTaskStatus(companyId, task.project, status);
+    }
     if (team !== undefined) {
       await this.validateCompanyTeam(companyId, team);
     }
@@ -303,12 +319,14 @@ class TaskService {
       task.attachments = [...(task.attachments || []), ...this.mapAttachments(files)];
     }
 
-    await task.save();
-
-    const updatedTask = await Task.findById(task._id)
-      .populate("team", "name email avatar")
-      .populate("project", "title")
-      .populate("dependencies", "title status");
+    const updatedTask = await task.save();
+    if (typeof updatedTask.populate === "function") {
+      try {
+        await updatedTask.populate("team", "name email avatar");
+        await updatedTask.populate("project", "title");
+        await updatedTask.populate("dependencies", "title status");
+      } catch (e) {}
+    }
 
     require("./activityLogService").recordActivity({
       actorId: user.id || user._id,
@@ -365,6 +383,7 @@ class TaskService {
       }
     }
 
+    await this.validateTaskStatus(companyId, task.project, status);
     task.status = status;
     await task.save();
 

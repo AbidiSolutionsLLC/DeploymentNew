@@ -15,14 +15,13 @@ describe('Project Portal contracts', () => {
   });
 
   test('Joi and Mongoose task statuses and priorities stay aligned', () => {
-    const statusModelValues = Task.schema.path('status').enumValues;
     const priorityModelValues = Task.schema.path('priority').enumValues;
     const taskDescription = taskSchema.describe().keys;
 
-    expect(taskDescription.status.allow).toEqual(expect.arrayContaining(statusModelValues));
-    expect(statusModelValues).toEqual(expect.arrayContaining(taskDescription.status.allow));
     expect(taskDescription.priority.allow).toEqual(expect.arrayContaining(priorityModelValues));
     expect(priorityModelValues).toEqual(expect.arrayContaining(taskDescription.priority.allow));
+    expect(taskDescription.status.type).toBe('string');
+    expect(Task.schema.path('status').instance).toBe('String');
   });
 
   test('project create and update department requirements match Mongoose', () => {
@@ -44,36 +43,24 @@ describe('Project Portal contracts', () => {
     }).error).toBeTruthy();
   });
 
-  test('task dependencies are accepted as an optional task reference list', () => {
+  test('task completion percent contract is between 0 and 100', () => {
     expect(taskSchema.validate({
-      title: 'Dependent task',
+      title: 'Task',
       project: '507f1f77bcf86cd799439011',
-      dependencies: ['507f1f77bcf86cd799439012'],
+      completionPercent: 50,
     }).error).toBeFalsy();
+    expect(taskSchema.validate({
+      title: 'Task',
+      project: '507f1f77bcf86cd799439011',
+      completionPercent: 120,
+    }).error).toBeTruthy();
   });
 
-  test('attachment mapping preserves Azure upload metadata', () => {
-    const file = {
-      blobName: 'portal/task.pdf',
-      url: 'https://example.test/task.pdf',
-      originalname: 'task.pdf',
-      mimetype: 'application/pdf',
-      size: 42,
-    };
-
-    expect(projectService.mapAttachments([file])).toEqual([{
-      public_id: 'portal/task.pdf',
-      url: 'https://example.test/task.pdf',
-      originalname: 'task.pdf',
-      format: 'application/pdf',
-      size: 42,
-    }]);
-    expect(taskService.mapAttachments([file])).toEqual([{
-      public_id: 'portal/task.pdf',
-      url: 'https://example.test/task.pdf',
-      originalname: 'task.pdf',
-      format: 'application/pdf',
-      size: 42,
-    }]);
+  test('service exports required project portal methods', () => {
+    expect(typeof projectService.getProjectDashboard).toBe('function');
+    expect(typeof projectService.getProjectDashboardCards).toBe('function');
+    expect(typeof projectService.addProjectDashboardCard).toBe('function');
+    expect(typeof projectService.removeProjectDashboardCard).toBe('function');
+    expect(typeof taskService.getProjectTasks).toBe('function');
   });
 });

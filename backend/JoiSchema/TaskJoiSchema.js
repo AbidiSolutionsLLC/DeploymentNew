@@ -14,7 +14,7 @@ const taskSchema = Joi.object({
   team: Joi.array().items(Joi.string()).optional(),
   dependencies: Joi.array().items(Joi.string()).optional(),
   priority: Joi.string().valid("Low", "Medium", "High").optional(),
-  status: Joi.string().valid("Backlog", "Todo", "In Progress", "In Review", "Done").optional(),
+  status: Joi.string().trim().min(1).max(100).optional(),
   dueDate: Joi.date().allow(null, "").optional(),
   duration: Joi.number().min(0).allow(null).optional(),
   completionPercent: Joi.number().min(0).max(100).optional(),
@@ -27,7 +27,7 @@ const taskUpdateSchema = Joi.object({
   team: Joi.array().items(Joi.string()).optional(),
   dependencies: Joi.array().items(Joi.string()).optional(),
   priority: Joi.string().valid("Low", "Medium", "High").optional(),
-  status: Joi.string().valid("Backlog", "Todo", "In Progress", "In Review", "Done").optional(),
+  status: Joi.string().trim().min(1).max(100).optional(),
   dueDate: Joi.date().allow(null, "").optional(),
   duration: Joi.number().min(0).allow(null).optional(),
   completionPercent: Joi.number().min(0).max(100).optional(),
@@ -35,7 +35,7 @@ const taskUpdateSchema = Joi.object({
 });
 
 const taskStatusSchema = Joi.object({
-  status: Joi.string().valid("Backlog", "Todo", "In Progress", "In Review", "Done").required()
+  status: Joi.string().trim().min(1).max(100).required()
 });
 
 module.exports = { taskSchema, taskUpdateSchema, taskStatusSchema };

@@ -72,6 +72,12 @@ const projectSchema = new mongoose.Schema(
       default: null,
       index: true
     },
+    statusOrder: [{ type: String, trim: true }],
+    customStatuses: [{
+      label: { type: String, required: true, trim: true },
+      order: { type: Number, default: 0 },
+      color: { type: String, default: null }
+    }],
     milestones: [{
       title: { type: String, required: true, trim: true },
       dueDate: { type: Date },

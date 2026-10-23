@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import PortalTabBar from "../../components/ui/PortalTabBar";
+import ManageStatusesModal from "../../components/projectPortal/ManageStatusesModal";
+import { Squares2X2Icon, ListBulletIcon, Cog6ToothIcon, Bars3Icon } from "@heroicons/react/24/outline";
+import ListView from "../../components/project/ListView";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import taskApi from "../../api/taskApi";
 import { useDispatch, useSelector } from "react-redux";
@@ -51,12 +55,12 @@ import TaskCommentsDrawer from "../../components/projectPortal/TaskCommentsDrawe
 import TaskCard from "../../components/projectPortal/TaskCard";
 import { TableStatus } from "../../components/ui/TableCells";
 
-const KANBAN_COLUMNS = [
-  { id: "backlog", title: "Backlog" },
-  { id: "todo", title: "To Do" },
-  { id: "in-progress", title: "In Progress" },
-  { id: "in-review", title: "In Review" },
-  { id: "done", title: "Done" },
+const BUILTIN_COLUMNS = [
+  { id: "backlog", title: "Backlog", label: "Backlog", accent: "bg-neutral" },
+  { id: "todo", title: "To Do", label: "Todo", accent: "bg-amber-500" },
+  { id: "in-progress", title: "In Progress", label: "In Progress", accent: "bg-info" },
+  { id: "in-review", title: "In Review", label: "In Review", accent: "bg-warning" },
+  { id: "done", title: "Done", label: "Done", accent: "bg-success" },
 ];
 const COLUMN_ACCENTS = {
   backlog: "bg-neutral",
@@ -65,27 +69,24 @@ const COLUMN_ACCENTS = {
   "in-review": "bg-warning",
   done: "bg-success",
 };
-const COLUMN_STATUS = {
-  backlog: "Backlog",
-  todo: "Todo",
-  "in-progress": "In Progress",
-  "in-review": "In Review",
-  done: "Done",
-  blocked: "Backlog",
-  Blocked: "Backlog",
-};
 
-/** Map backend status to Kanban column ID */
-function toColumnId(status) {
+/** Map backend status string to Kanban column ID, aware of dynamic columns */
+function toColumnId(status, columns) {
   if (!status) return "backlog";
-  const s = String(status).toLowerCase();
-  if (s === "backlog") return "backlog";
+  const s = String(status).toLowerCase().trim();
+  const cols = columns || BUILTIN_COLUMNS;
+  const byId = cols.find((c) => c.id === s);
+  if (byId) return byId.id;
+  const byLabel = cols.find(
+    (c) => (c.label || c.title || "").toLowerCase() === s
+  );
+  if (byLabel) return byLabel.id;
+  if (s === "backlog" || s === "blocked") return "backlog";
   if (s === "todo") return "todo";
   if (s === "in progress") return "in-progress";
   if (s === "in review") return "in-review";
   if (s === "done") return "done";
-  if (s === "blocked") return "backlog";
-  return "backlog";
+  return s.replace(/\s+/g, "-");
 }
 
 const ProjectDetail = () => {
@@ -127,6 +128,107 @@ const ProjectDetail = () => {
   const [showEditProject, setShowEditProject] = useState(false);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
+  const [draggedColumnId, setDraggedColumnId] = useState(null);
+  const [dragOverColumnReorder, setDragOverColumnReorder] = useState(null);
+  const [workspaceView, setWorkspaceView] = useState("board");
+  const [showManageStatuses, setShowManageStatuses] = useState(false);
+
+  // Manage custom statuses visible ONLY to Project Admins OR Project Managers assigned to this project
+  const canManageStatuses = isSuperAdmin || isAdmin || (isManager && (isProjectOwner || isProjectTeamMember));
+
+  // Dynamic Kanban columns from project's customStatuses
+  const customColumns = useMemo(() =>
+    (project?.customStatuses || [])
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((cs) => ({
+        id: cs.label.toLowerCase().trim().replace(/\s+/g, "-"),
+        title: cs.label,
+        label: cs.label,
+        accent: cs.color || "bg-purple-500",
+        isCustom: true,
+      })),
+    [project?.customStatuses]
+  );
+
+  // Reorder columns based on project.statusOrder if defined
+  const KANBAN_COLUMNS = useMemo(() => {
+    const allCols = [...BUILTIN_COLUMNS, ...customColumns];
+    const order = project?.statusOrder;
+    if (!Array.isArray(order) || order.length === 0) {
+      return allCols;
+    }
+    return allCols.slice().sort((a, b) => {
+      const aName = (a.label || a.title || "").toLowerCase();
+      const bName = (b.label || b.title || "").toLowerCase();
+      const aIndex = order.findIndex((o) => o.toLowerCase() === aName || o.toLowerCase() === a.id);
+      const bIndex = order.findIndex((o) => o.toLowerCase() === bName || o.toLowerCase() === b.id);
+      const posA = aIndex === -1 ? 999 : aIndex;
+      const posB = bIndex === -1 ? 999 : bIndex;
+      return posA - posB;
+    });
+  }, [customColumns, project?.statusOrder]);
+
+  const handleColumnDragStart = (e, colId) => {
+    if (!canManageStatuses) return;
+    setDraggedColumnId(colId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("dragType", "column");
+    e.dataTransfer.setData("columnId", colId);
+  };
+
+  const handleColumnDragEnd = () => {
+    setDraggedColumnId(null);
+    setDragOverColumnReorder(null);
+  };
+
+  const handleReorderColumns = async (sourceId, targetId) => {
+    const currentOrder = KANBAN_COLUMNS.map((c) => c.label || c.title);
+    const sourceIndex = KANBAN_COLUMNS.findIndex((c) => c.id === sourceId);
+    const targetIndex = KANBAN_COLUMNS.findIndex((c) => c.id === targetId);
+    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
+
+    const newOrder = [...currentOrder];
+    const [moved] = newOrder.splice(sourceIndex, 1);
+    newOrder.splice(targetIndex, 0, moved);
+
+    const updatedCustomStatuses = (project?.customStatuses || []).map((cs) => {
+      const idx = newOrder.findIndex((label) => label.toLowerCase() === cs.label.toLowerCase());
+      return {
+        label: cs.label,
+        order: idx !== -1 ? idx : (cs.order ?? 0),
+        ...(cs.color ? { color: cs.color } : {}),
+      };
+    });
+
+    try {
+      await dispatch(
+        updateProject({
+          id: project._id,
+          updates: {
+            title: project?.title,
+            statusOrder: newOrder,
+            customStatuses: updatedCustomStatuses,
+          },
+        })
+      ).unwrap();
+      await dispatch(fetchProjectById(id)).unwrap();
+      toast.success("Column order updated");
+    } catch (err) {
+      toast.error(err?.message || "Failed to update column order");
+    }
+  };
+
+  const allStatuses = useMemo(() => [
+    "Backlog",
+    "Todo",
+    "In Progress",
+    "In Review",
+    "Done",
+    ...(project?.customStatuses || []).map((s) => s.label),
+  ], [project?.customStatuses]);
+
+  const getColumnAccent = (colId) => COLUMN_ACCENTS[colId] || "bg-purple-500";
 
   const isTaskAssignee = (task) => {
     return task?.team && task.team.some((member) => {
@@ -144,7 +246,7 @@ const ProjectDetail = () => {
     setDraggedTaskId(task._id);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("taskId", task._id);
-    e.dataTransfer.setData("sourceColumn", toColumnId(task.status));
+    e.dataTransfer.setData("sourceColumn", toColumnId(task.status, KANBAN_COLUMNS));
   };
 
   const handleDragEnd = () => {
@@ -154,21 +256,39 @@ const ProjectDetail = () => {
 
   const handleDragOver = (e, columnId) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setDragOverColumn(columnId);
+    if (draggedColumnId) {
+      e.dataTransfer.dropEffect = "move";
+      setDragOverColumnReorder(columnId);
+    } else {
+      e.dataTransfer.dropEffect = "move";
+      setDragOverColumn(columnId);
+    }
   };
 
   const handleDragLeave = (e, columnId) => {
     if (!e.currentTarget.contains(e.relatedTarget)) {
       if (dragOverColumn === columnId) setDragOverColumn(null);
+      if (dragOverColumnReorder === columnId) setDragOverColumnReorder(null);
     }
   };
 
   const handleDrop = (e, columnId) => {
     e.preventDefault();
+    const dragType = e.dataTransfer.getData("dragType");
+    const colId = e.dataTransfer.getData("columnId") || draggedColumnId;
+
+    if (dragType === "column" || colId) {
+      if (canManageStatuses && colId && colId !== columnId) {
+        handleReorderColumns(colId, columnId);
+      }
+      setDraggedColumnId(null);
+      setDragOverColumnReorder(null);
+      return;
+    }
+
     const taskId = e.dataTransfer.getData("taskId") || draggedTaskId;
     const sourceColumn = e.dataTransfer.getData("sourceColumn") ||
-      toColumnId(tasks.find((task) => task._id === taskId)?.status);
+      toColumnId(tasks.find((task) => task._id === taskId)?.status, KANBAN_COLUMNS);
     const task = tasks.find((t) => t._id === taskId);
     if (task && !canManageTasks && !isTaskAssignee(task)) {
       toast.error("You can only update status for tasks assigned to you.");
@@ -177,12 +297,8 @@ const ProjectDetail = () => {
       return;
     }
     if (taskId && sourceColumn !== columnId) {
-      const newStatus = columnId === "backlog" ? "Backlog"
-        : columnId === "todo" ? "Todo"
-        : columnId === "in-progress" ? "In Progress"
-        : columnId === "in-review" ? "In Review"
-        : columnId === "done" ? "Done"
-        : null;
+      const col = KANBAN_COLUMNS.find((c) => c.id === columnId);
+      const newStatus = col?.label ?? col?.title ?? null;
       if (newStatus) handleUpdateStatus(taskId, newStatus);
     }
     setDraggedTaskId(null);
@@ -244,6 +360,7 @@ const ProjectDetail = () => {
     try {
       await dispatch(updateTaskStatus({ id: taskId, status: newStatus })).unwrap();
       toast.success("Task status updated");
+      dispatch(fetchProjectTasks(id));
     } catch (err) {
       toast.error(err?.message || "Failed to update task status");
     }
@@ -315,6 +432,55 @@ const ProjectDetail = () => {
     });
   };
 
+  const handleSaveStatuses = async (customStatuses) => {
+    try {
+      const existingBuiltIns = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
+      const customLabels = customStatuses.map((c) => c.label);
+      let newStatusOrder;
+      if (Array.isArray(project?.statusOrder) && project.statusOrder.length > 0) {
+        const filtered = project.statusOrder.filter((label) =>
+          existingBuiltIns.includes(label) || customLabels.includes(label)
+        );
+        customLabels.forEach((cl) => {
+          if (!filtered.includes(cl)) {
+            const doneIdx = filtered.indexOf("Done");
+            if (doneIdx !== -1) {
+              filtered.splice(doneIdx, 0, cl);
+            } else {
+              filtered.push(cl);
+            }
+          }
+        });
+        newStatusOrder = filtered;
+      } else {
+        newStatusOrder = ["Backlog", "Todo", "In Progress", "In Review", ...customLabels, "Done"];
+      }
+
+      const sanitizedCustomStatuses = customStatuses.map((c, i) => ({
+        label: c.label,
+        order: c.order ?? i,
+        ...(c.color ? { color: c.color } : {}),
+      }));
+
+      await dispatch(
+        updateProject({
+          id: project._id,
+          updates: {
+            title: project?.title,
+            statusOrder: newStatusOrder,
+            customStatuses: sanitizedCustomStatuses,
+          },
+        })
+      ).unwrap();
+      await dispatch(fetchProjectById(id)).unwrap();
+      await dispatch(fetchProjectTasks(id)).unwrap();
+      toast.success("Statuses updated successfully");
+    } catch (err) {
+      toast.error(err?.message || "Failed to update statuses");
+      throw err;
+    }
+  };
+
   const handleEditProject = async (updates) => {
     try {
       await dispatch(updateProject({ id: project._id, updates })).unwrap();
@@ -327,7 +493,7 @@ const ProjectDetail = () => {
   };
 
   const getTasksByStatus = (status) =>
-    tasks.filter((t) => toColumnId(t.status) === status);
+    tasks.filter((t) => toColumnId(t.status, KANBAN_COLUMNS) === status);
 
   if (!project) {
     return loading ? (
@@ -697,79 +863,139 @@ const ProjectDetail = () => {
 
         {/* ===== Task workspace ===== */}
         <section id="task-workspace" className="glass-card bg-surface !p-0 overflow-hidden">
-          <div className="px-5 pt-5 pb-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Task workspace</p>
+          {/* Tab bar header replacing 'Task workspace' heading */}
+          <div className="px-5 pt-4 pb-0">
+            <PortalTabBar
+              tabs={[
+                { key: "board", title: "Board", icon: Squares2X2Icon },
+                { key: "list", title: "List", icon: ListBulletIcon },
+              ]}
+              activeKey={workspaceView}
+              onChange={setWorkspaceView}
+              layoutId="workspace-tab-pill"
+              ariaLabel="Task workspace views"
+              right={
+                canManageStatuses ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowManageStatuses(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-card text-xs font-bold text-muted hover:border-border-accent hover:text-brand-text transition-colors whitespace-nowrap shrink-0"
+                    title="Add or remove custom Kanban statuses for this project"
+                  >
+                    <Cog6ToothIcon className="w-3.5 h-3.5" />
+                    Manage Statuses
+                  </button>
+                ) : null
+              }
+            />
           </div>
 
-          <div className="px-5 pb-5">
-            <div className="overflow-x-auto">
-              <div className="grid grid-cols-5 gap-4 min-w-[1300px] items-stretch">
-                {KANBAN_COLUMNS.map((col) => {
-                  const colTasks = getTasksByStatus(col.id);
-                  return (
-                    <div
-                      key={col.id}
-                      className={`rounded-xl border bg-surface p-3.5 flex flex-col transition-colors ${
-                        dragOverColumn === col.id
-                          ? "border-border-accent ring-2 ring-border-accent bg-amber-50"
-                          : "border-border-subtle"
-                      }`}
-                      onDragOver={(e) => handleDragOver(e, col.id)}
-                      onDragLeave={(e) => handleDragLeave(e, col.id)}
-                      onDrop={(e) => handleDrop(e, col.id)}
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${COLUMN_ACCENTS[col.id] || "bg-amber-500"}`} />
-                          <h3 className="text-xs font-black uppercase tracking-widest text-heading truncate">{col.title}</h3>
-                        </div>
-                        {canCreateTask && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAddTaskStatus(COLUMN_STATUS[col.id] || "Todo");
-                              setShowAddTask(true);
-                            }}
-                            className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-border-subtle bg-card text-muted hover:border-border-accent hover:bg-card-hover hover:text-brand-text transition-colors"
-                            aria-label={`Add task to ${col.title}`}
-                            title={`Add task to ${col.title}`}
-                          >
-                            <PlusIcon className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex-1 space-y-3 max-h-[calc(100vh-320px)] min-h-[340px] overflow-y-auto pr-1.5 custom-scrollbar-visible">
-                        {colTasks.map((task) => (
-                          <TaskCard
-                            key={task._id}
-                            task={task}
-                            columnId={col.id}
-                            draggable={canManageTasks || isTaskAssignee(task)}
-                            onClick={() => setShowTaskDetail(task)}
-                            onDragStart={handleDragStart}
-                            onDragEnd={handleDragEnd}
-                            onOpenComments={() => setShowComments(task)}
-                            isDragging={draggedTaskId === task._id}
-                          />
-                        ))}
-                        {colTasks.length === 0 && (
-                          <div
-                            className={`flex items-center justify-center min-h-[320px] rounded-xl border border-dashed text-[11px] font-black uppercase tracking-widest transition-colors ${
-                              dragOverColumn === col.id
-                                ? "border-brand text-brand"
-                                : "border-border-subtle text-muted/70"
-                            }`}
-                          >
-                            {dragOverColumn === col.id ? "Drop here" : "No tasks"}
+          {/* Board (Kanban) View */}
+          {workspaceView === "board" && (
+            <div className="px-5 pb-5 pt-4">
+              <div className="overflow-x-auto">
+                <div
+                  className="flex gap-4 items-stretch"
+                  style={{ minWidth: `${Math.max(KANBAN_COLUMNS.length * 240, 1200)}px` }}
+                >
+                  {KANBAN_COLUMNS.map((col) => {
+                    const colTasks = getTasksByStatus(col.id);
+                    const isColDragging = draggedColumnId === col.id;
+                    const isColDropTarget = dragOverColumnReorder === col.id && !isColDragging;
+
+                    return (
+                      <div
+                        key={col.id}
+                        className={`rounded-xl border bg-surface p-3.5 flex flex-col transition-all flex-1 min-w-[220px] ${
+                          isColDragging ? "opacity-30 border-dashed border-brand" : ""
+                        } ${
+                          isColDropTarget
+                            ? "ring-2 ring-brand border-brand scale-[1.01]"
+                            : dragOverColumn === col.id
+                            ? "border-border-accent ring-2 ring-border-accent bg-amber-50"
+                            : "border-border-subtle"
+                        }`}
+                        onDragOver={(e) => handleDragOver(e, col.id)}
+                        onDragLeave={(e) => handleDragLeave(e, col.id)}
+                        onDrop={(e) => handleDrop(e, col.id)}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {canManageStatuses && (
+                              <span
+                                draggable
+                                onDragStart={(e) => {
+                                  e.stopPropagation();
+                                  handleColumnDragStart(e, col.id);
+                                }}
+                                onDragEnd={handleColumnDragEnd}
+                                className="cursor-grab active:cursor-grabbing text-muted/60 hover:text-heading p-0.5 rounded transition-colors shrink-0 hover:bg-card-hover"
+                                title="Drag column to change order"
+                              >
+                                <Bars3Icon className="w-3.5 h-3.5" />
+                              </span>
+                            )}
+                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColumnAccent(col.id)}`} />
+                            <h3 className="text-xs font-black uppercase tracking-widest text-heading truncate">{col.title}</h3>
                           </div>
-                        )}
+                          {canCreateTask && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAddTaskStatus(col.label || col.title);
+                                setShowAddTask(true);
+                              }}
+                              className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-border-subtle bg-card text-muted hover:border-border-accent hover:bg-card-hover hover:text-brand-text transition-colors"
+                              aria-label={`Add task to ${col.title}`}
+                              title={`Add task to ${col.title}`}
+                            >
+                              <PlusIcon className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-3 max-h-[calc(100vh-320px)] min-h-[340px] overflow-y-auto pr-1.5 custom-scrollbar-visible">
+                          {colTasks.map((task) => (
+                            <TaskCard
+                              key={task._id}
+                              task={task}
+                              columnId={col.id}
+                              draggable={canManageTasks || isTaskAssignee(task)}
+                              onClick={() => setShowTaskDetail(task)}
+                              onDragStart={handleDragStart}
+                              onDragEnd={handleDragEnd}
+                              onOpenComments={() => setShowComments(task)}
+                              isDragging={draggedTaskId === task._id}
+                            />
+                          ))}
+                          {colTasks.length === 0 && (
+                            <div
+                              className={`flex items-center justify-center min-h-[320px] rounded-xl border border-dashed text-[11px] font-black uppercase tracking-widest transition-colors ${
+                                dragOverColumn === col.id
+                                  ? "border-brand text-brand"
+                                  : "border-border-subtle text-muted/70"
+                              }`}
+                            >
+                              {dragOverColumn === col.id ? "Drop here" : "No tasks"}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* List View */}
+          {workspaceView === "list" && (
+            <div className="px-5 pb-5 pt-4">
+              <ListView
+                tasks={tasks}
+                onTaskClick={(task) => setShowTaskDetail(task)}
+              />
+            </div>
+          )}
         </section>
 
         {showComments && (
@@ -798,6 +1024,7 @@ const ProjectDetail = () => {
             projectTasks={tasks}
             canManageTasks={canManageTasks}
             onTaskUpdate={(updates) => handleUpdateTask(showTaskDetail._id, updates)}
+            projectStatuses={allStatuses}
           />
         )}
 
@@ -810,7 +1037,7 @@ const ProjectDetail = () => {
             description="Create a task in this project"
             maxWidth="max-w-2xl"
           >
-            <AddTaskForm projectId={id} project={project} initialStatus={addTaskStatus} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} />
+            <AddTaskForm projectId={id} project={project} initialStatus={addTaskStatus} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} projectStatuses={allStatuses} />
           </GlassModal>
         )}
 
@@ -823,6 +1050,16 @@ const ProjectDetail = () => {
         >
           <EditProjectForm project={project} onSubmit={handleEditProject} onClose={() => setShowEditProject(false)} />
         </GlassModal>
+
+        {canManageStatuses && (
+          <ManageStatusesModal
+            project={project}
+            tasks={tasks}
+            open={showManageStatuses}
+            onClose={() => setShowManageStatuses(false)}
+            onSave={handleSaveStatuses}
+          />
+        )}
       </div>
     </PageContainer>
   );

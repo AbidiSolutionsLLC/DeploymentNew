@@ -16,10 +16,10 @@ import taskApi from "../../api/taskApi";
 import projectApi from "../../api/projectApi";
 import api from "../../axios";
 
-const STATUS_OPTIONS = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
+const DEFAULT_STATUS_OPTIONS = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
 const PRIORITY_OPTIONS = ["Low", "Medium", "High"];
 const toDateInput = (v) => (v ? String(v).slice(0, 10) : "");
-const STATUS_DISPLAY = {
+const DEFAULT_STATUS_DISPLAY = {
   Backlog: "Backlog",
   Todo: "To Do",
   "In Progress": "In Progress",
@@ -49,6 +49,7 @@ export default function TaskDetailDrawer({
   onTaskUpdate,
   currentUserId,
   canManageTasks = true,
+  projectStatuses = null,
 }) {
   const { userInfo } = useSelector((state) => state.user || {});
   const authStateUser = useSelector((state) => state.auth.user);
@@ -57,6 +58,11 @@ export default function TaskDetailDrawer({
   const isSuperAdmin = projectRole === 'superadmin';
   const isAdmin = isProjectAdmin;
   const hasFullTaskControl = isProjectAdmin || isProjectManager || canManageTasks;
+  const STATUS_OPTIONS = projectStatuses && projectStatuses.length > 0 ? projectStatuses : DEFAULT_STATUS_OPTIONS;
+  const STATUS_DISPLAY = {
+    ...DEFAULT_STATUS_DISPLAY,
+    ...(projectStatuses || []).reduce((acc, st) => { acc[st] = st; return acc; }, {}),
+  };
 
   const effectiveUserId = (currentUserId || authUser?._id || authUser?.id)?.toString();
   const isAssignee = task?.team && task.team.some(m => (m?._id || m)?.toString() === effectiveUserId);
@@ -433,7 +439,7 @@ export default function TaskDetailDrawer({
                   value={status}
                   disabled={!canChangeStatus}
                   onChange={(e) => setStatus(e.target.value)}
-                  options={STATUS_OPTIONS.map((s) => ({ value: s, label: STATUS_DISPLAY[s] }))}
+                  options={STATUS_OPTIONS.map((s) => ({ value: s, label: STATUS_DISPLAY[s] || s }))}
                   placeholder="Select Status"
                 />
               </div>

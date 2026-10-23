@@ -28,9 +28,19 @@ const projectSchema = Joi.object({
     title: Joi.string().trim().min(1).max(150).required(),
     dueDate: Joi.date().allow(null, "").optional(),
     status: Joi.string().valid("Planned", "In Progress", "Completed").optional()
-  })).optional()
+  }).unknown(true)).optional(),
+  statusOrder: Joi.array().items(Joi.string().trim().min(1).max(50)).optional(),
+  customStatuses: Joi.array().items(
+    Joi.object({
+      _id: Joi.any().optional(),
+      id: Joi.any().optional(),
+      label: Joi.string().trim().min(1).max(50).required(),
+      order: Joi.number().integer().min(0).optional(),
+      color: Joi.string().allow(null, '').optional(),
+    }).unknown(true)
+  ).optional()
 });
 
-const projectUpdateSchema = projectSchema.fork(["department"], schema => schema.optional());
+const projectUpdateSchema = projectSchema.fork(["department", "title"], schema => schema.optional());
 
 module.exports = { projectSchema, projectUpdateSchema };

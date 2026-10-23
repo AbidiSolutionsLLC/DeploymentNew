@@ -63,7 +63,6 @@ const taskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Backlog", "Todo", "In Progress", "In Review", "Done"],
       default: "Backlog",
     },
     comments: [

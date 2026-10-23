@@ -25,7 +25,7 @@ const EMPTY_FORM = {
   dueDate: "",
 };
 
-export default function AddTaskForm({ projectId, project: propProject, onSubmit, onClose, initialStatus = "Todo" }) {
+export default function AddTaskForm({ projectId, project: propProject, onSubmit, onClose, initialStatus = "Todo", projectStatuses = null }) {
   const { userInfo } = useSelector((state) => state.user || {});
   const authUser = useSelector((state) => state.auth?.user);
   const currentUserId =
@@ -66,6 +66,13 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
   }, [form.project, projectId, projects]);
 
   const activeProject = propProject || reduxProject || fetchedProject || selectedFromList;
+
+  const statusOptions = useMemo(() => {
+    if (projectStatuses && projectStatuses.length > 0) {
+      return projectStatuses.map((s) => ({ value: s, label: s }));
+    }
+    return STATUS_OPTIONS;
+  }, [projectStatuses]);
 
   const projectMaxDate = useMemo(() => {
     if (!activeProject?.dueDate) return null;
@@ -295,7 +302,7 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
               name="status"
               value={form.status}
               onChange={(e) => set("status", e.target.value)}
-              options={STATUS_OPTIONS}
+              options={statusOptions}
             />
 
             <div>
@@ -356,7 +363,7 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
               name="status"
               value={form.status}
               onChange={(e) => set("status", e.target.value)}
-              options={STATUS_OPTIONS}
+              options={statusOptions}
             />
           </div>
 
