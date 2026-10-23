@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const projectGroupController = require('../../controllers/projectGroupController');
-const { restrictTo } = require('../../middlewares/authMiddleware');
+const { restrictToProjectRole } = require('../../middlewares/authMiddleware');
 
 router.route('/')
-  .post(restrictTo('Super Admin', 'Admin'), projectGroupController.createGroup)
+  .post(restrictToProjectRole('Project Administrator'), projectGroupController.createGroup)
   .get(projectGroupController.getAllGroups);
 
 router.route('/:id')
   .get(projectGroupController.getGroupById)
   .put(projectGroupController.updateGroup)
-  .delete(restrictTo('Super Admin', 'Admin'), projectGroupController.deleteGroup);
+  .delete(restrictToProjectRole('Project Administrator'), projectGroupController.deleteGroup);
 
 module.exports = router;

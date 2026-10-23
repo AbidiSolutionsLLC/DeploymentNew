@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
   FiFolder,
@@ -13,40 +14,7 @@ import HomeCardShell from "../home/HomeCardShell";
 import EmptyCardState from "../home/EmptyCardState";
 import { getInitials } from "../../utils/tableUtils";
 import { personName, projectProgress, shortDate } from "./helpers";
-
-const CARD_META = {
-  activeProjects: {
-    title: "Active Projects",
-    sub: "Ongoing work & status",
-    icon: FiFolder,
-    accent: "#F59E0B",
-    viewAllPath: "/project/projects",
-  },
-  taskPriorities: {
-    title: "Task Priorities",
-    icon: FiPieChart,
-    accent: "#F43F5E",
-  },
-  openTasks: {
-    title: "Open Tasks",
-    sub: "Assigned to you",
-    icon: FiCheckSquare,
-    accent: "#0EA5E9",
-    viewAllPath: "/project/myTasks",
-  },
-  upcomingDeadlines: {
-    title: "Upcoming Deadlines",
-    sub: "Next tasks due",
-    icon: FiCalendar,
-    accent: "#8B5CF6",
-    className: "xl:col-span-2",
-  },
-  teamMembers: {
-    title: "Team Members",
-    icon: FiUsers,
-    accent: "#10B981",
-  },
-};
+import usePermission from "../../hooks/usePermission";
 
 const STATUS_TONES = {
   backlog: "border-border-accent bg-amber-50 text-brand-text dark:bg-amber-900/30",
@@ -64,10 +32,10 @@ const STATUS_TONES = {
 };
 
 const statusKey = (value) =>
-  String(value || "Backlog").toLowerCase().replace(/[\s_-]+/g, "");
+  String(value || "Todo").toLowerCase().replace(/[\s_-]+/g, "");
 
 const statusLabel = (value) => {
-  const raw = String(value || "Backlog").trim();
+  const raw = String(value || "Todo").trim();
   const key = statusKey(raw);
   if (key === "backlog") return "Backlog";
   if (key === "todo") return "To Do";
@@ -137,7 +105,7 @@ const ViewAllButton = ({ onClick }) => (
   </button>
 );
 
-function ActiveProjectsCard({ projects }) {
+function ActiveProjectsCard({ projects, navigate }) {
   const items = projects;
 
   if (items.length === 0) {
@@ -153,10 +121,16 @@ function ActiveProjectsCard({ projects }) {
     <ul className="space-y-2.5 flex-1 min-h-0 max-h-[14.5rem] overflow-y-auto overscroll-contain custom-scrollbar-visible pr-1 -mr-1">
       {items.map((p, i) => {
         const pct = projectProgress(p);
+        const openProject = () => {
+          if (p._id) navigate(`/project/projects/${p._id}`);
+        };
+
         return (
           <li
             key={p._id || i}
-            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 flex flex-col gap-2 hover:border-amber-500/30 transition-all"
+            onClick={openProject}
+            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 flex flex-col gap-2 hover:border-amber-500/30 transition-all cursor-pointer"
+            title="Open project details"
           >
             <div className="flex items-center gap-2.5">
               <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20">
@@ -266,42 +240,61 @@ function TaskPrioritiesCard({ data }) {
   );
 }
 
-function OpenTasksCard({ tasks }) {
+function OpenTasksCard({ tasks, isEmployee, navigate }) {
   const items = tasks;
 
   if (items.length === 0) {
     return (
       <EmptyCardState
         message="No open tasks"
-        description="Tasks assigned to you will appear here."
+        description={
+          isEmployee
+            ? "Tasks assigned to you will appear here."
+            : "Tasks across projects will appear here."
+        }
       />
     );
   }
 
   return (
     <ul className="space-y-2 flex-1 min-h-0 max-h-[11rem] overflow-y-auto overscroll-contain custom-scrollbar-visible pr-1 -mr-1">
-      {items.map((t, i) => (
-        <li
-          key={t._id || i}
-          className="bg-app rounded-xl p-2.5 border border-border-subtle/60 flex items-center gap-2.5 hover:border-sky-500/30 transition-all"
-        >
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-sky-500/10 text-sky-500 border border-sky-500/20">
-            <FiCheckSquare className="h-3.5 w-3.5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-heading">{t.title}</p>
-            <p className="mt-0.5 truncate text-[9px] font-semibold uppercase tracking-wider text-muted">
-              {t.project?.title || "No project"}
-            </p>
-          </div>
-          <StatusPill value={t.status || "Backlog"} />
-        </li>
-      ))}
+      {items.map((t, i) => {
+        const openTaskProject = () => {
+          const pid = t.project?._id || (typeof t.project === "string" ? t.project : null);
+          if (pid) {
+            navigate(`/project/projects/${pid}`);
+          } else if (isEmployee) {
+            navigate("/project/myTasks");
+          } else {
+            navigate("/project/projects");
+          }
+        };
+
+        return (
+          <li
+            key={t._id || i}
+            onClick={openTaskProject}
+            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 flex items-center gap-2.5 hover:border-sky-500/30 transition-all cursor-pointer"
+            title="Open task project"
+          >
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-sky-500/10 text-sky-500 border border-sky-500/20">
+              <FiCheckSquare className="h-3.5 w-3.5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold text-heading">{t.title}</p>
+              <p className="mt-0.5 truncate text-[9px] font-semibold uppercase tracking-wider text-muted">
+                {t.project?.title || "No project"}
+              </p>
+            </div>
+            <StatusPill value={t.status || "Todo"} />
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
-function UpcomingDeadlinesCard({ deadlines }) {
+function UpcomingDeadlinesCard({ deadlines, navigate }) {
   const items = deadlines;
 
   if (items.length === 0) {
@@ -318,10 +311,17 @@ function UpcomingDeadlinesCard({ deadlines }) {
       {items.map((dl, i) => {
         const date = new Date(dl.dueDate);
         const valid = !Number.isNaN(date.getTime());
+        const openDeadlineProject = () => {
+          const pid = dl.projectId || (dl.project && dl.project._id ? dl.project._id : null);
+          if (pid) navigate(`/project/projects/${pid}`);
+        };
+
         return (
           <li
             key={i}
-            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 flex items-center gap-3 hover:border-violet-500/30 transition-all"
+            onClick={openDeadlineProject}
+            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 flex items-center gap-3 hover:border-violet-500/30 transition-all cursor-pointer"
+            title="View deadline project"
           >
             <div className="flex w-10 shrink-0 flex-col items-center rounded-lg border border-violet-500/20 bg-violet-500/10 py-1">
               <span className="text-[8px] font-bold uppercase tracking-wider text-violet-500 dark:text-violet-300">
@@ -385,7 +385,15 @@ export default function DashboardCard({ card, data, onDelete }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
-  const meta = CARD_META[card?.type];
+
+  // Role resolution
+  const { isProjectAdmin, isProjectManager, isProjectEmployee, projectRole, user: authUser } = usePermission();
+  const authStateUser = useSelector((state) => state.auth.user);
+  const user = authUser || authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
+  const isSuperAdmin = projectRole === "superadmin" || (user?.role || "").replace(/\s+/g, "").toLowerCase() === "superadmin";
+  const isAdmin = isProjectAdmin;
+  const isManager = isProjectManager;
+  const isEmployee = isProjectEmployee && !isSuperAdmin && !isAdmin && !isManager;
 
   // Close card menu when clicking outside
   useEffect(() => {
@@ -398,13 +406,58 @@ export default function DashboardCard({ card, data, onDelete }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  if (!meta) return null;
-
   const tasks = data?.recentTasks || [];
   const deadlines = data?.upcomingDeadlines || [];
   const team = data?.teamMembers || [];
   const priorities = data?.taskPriorities || {};
   const priorityTotal = priorities.total || 0;
+
+  // Compute destination for open tasks
+  const primaryProjectId =
+    tasks[0]?.project?._id ||
+    (typeof tasks[0]?.project === "string" ? tasks[0]?.project : null) ||
+    data?.recentProjects?.[0]?._id;
+
+  const openTasksDestination = isEmployee
+    ? "/project/myTasks"
+    : (primaryProjectId ? `/project/projects/${primaryProjectId}` : "/project/projects");
+
+  const CARD_META = {
+    activeProjects: {
+      title: "Active Projects",
+      sub: "Ongoing work & status",
+      icon: FiFolder,
+      accent: "#F59E0B",
+      viewAllPath: "/project/projects",
+    },
+    taskPriorities: {
+      title: "Task Priorities",
+      icon: FiPieChart,
+      accent: "#F43F5E",
+    },
+    openTasks: {
+      title: "Open Tasks",
+      sub: isEmployee ? "Assigned to you" : "Across all projects",
+      icon: FiCheckSquare,
+      accent: "#0EA5E9",
+      viewAllPath: openTasksDestination,
+    },
+    upcomingDeadlines: {
+      title: "Upcoming Deadlines",
+      sub: "Next tasks due",
+      icon: FiCalendar,
+      accent: "#8B5CF6",
+      className: "xl:col-span-2",
+    },
+    teamMembers: {
+      title: "Team Members",
+      icon: FiUsers,
+      accent: "#10B981",
+    },
+  };
+
+  const meta = CARD_META[card?.type];
+  if (!meta) return null;
 
   let sub = meta.sub;
   if (card?.type === "taskPriorities") {
@@ -416,16 +469,16 @@ export default function DashboardCard({ card, data, onDelete }) {
   let content = null;
   switch (card?.type) {
     case "activeProjects":
-      content = <ActiveProjectsCard projects={data?.recentProjects || []} />;
+      content = <ActiveProjectsCard projects={data?.recentProjects || []} navigate={navigate} />;
       break;
     case "taskPriorities":
       content = <TaskPrioritiesCard data={data || {}} />;
       break;
     case "openTasks":
-      content = <OpenTasksCard tasks={tasks} />;
+      content = <OpenTasksCard tasks={tasks} isEmployee={isEmployee} navigate={navigate} />;
       break;
     case "upcomingDeadlines":
-      content = <UpcomingDeadlinesCard deadlines={deadlines} />;
+      content = <UpcomingDeadlinesCard deadlines={deadlines} navigate={navigate} />;
       break;
     case "teamMembers":
       content = <TeamMembersCard team={team} />;

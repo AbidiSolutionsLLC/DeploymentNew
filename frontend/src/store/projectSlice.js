@@ -138,9 +138,18 @@ const projectSlice = createSlice({
  .addCase(deleteProject.fulfilled, (state, action) => {
  state.projects = state.projects.filter(p => p._id !== action.payload);
  })
- .addCase(fetchProjectDashboard.fulfilled, (state, action) => {
- state.dashboardData = action.payload;
- });
+ .addCase(fetchProjectDashboard.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchProjectDashboard.fulfilled, (state, action) => {
+        state.loading = false;
+        state.dashboardData = action.payload;
+      })
+      .addCase(fetchProjectDashboard.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
  },
 });
 

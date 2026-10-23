@@ -4,6 +4,7 @@ const ProjectGroup = require("../models/projectGroupSchema");
 const User = require("../models/userSchema");
 const Department = require("../models/department");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../utils/ExpressError");
+const { getEffectiveProjectRole, hasProjectPortalAccess } = require("../utils/projectRbac");
 const { createNotification } = require('../utils/notificationService');
 
 const PROJECT_DASHBOARD_CARD_TYPES = [
@@ -65,9 +66,7 @@ const normalizeProjectDashboardCards = (cards) => {
 
 class ProjectService {
   ensureProjectPortalAccess(user) {
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    if (userRole === 'superadmin' || userRole === 'admin') return true;
-    if (!user.hasProjectPortalAccess) {
+    if (!hasProjectPortalAccess(user)) {
       throw new ForbiddenError("You do not have access to the Project Portal.");
     }
   }
@@ -157,9 +156,9 @@ class ProjectService {
 
   async createProject(user, companyId, data, files) {
     this.ensureProjectPortalAccess(user);
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    if (userRole !== 'superadmin' && userRole !== 'admin') {
-      throw new ForbiddenError("Only Super Admins and Admins can create new projects.");
+    const userRole = getEffectiveProjectRole(user);
+    if (userRole !== 'project_administrator') {
+      throw new ForbiddenError("Only Project Administrators can create new projects.");
     }
     const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status, projectGroup, milestones } = data;
     const owner = dataOwner || user.id || user._id;
@@ -199,6 +198,31 @@ class ProjectService {
           message: `A new project "${savedProject.title}" has been created and you are assigned to it.`,
           relatedEntity: { entityType: 'project', entityId: savedProject._id },
         }).catch(err => console.error('Notification failed:', err));
+      });
+    }
+
+    const assignedUserIds = [savedProject.owner, ...(savedProject.team || [])]
+      .filter(Boolean)
+      .map(id => (typeof id === 'object' ? id._id || id.id : id).toString());
+
+    if (assignedUserIds.length > 0) {
+      await User.updateMany(
+        { _id: { $in: assignedUserIds }, company: companyId, hasProjectPortalAccess: { $ne: true } },
+        { $set: { hasProjectPortalAccess: true } }
+      );
+
+      const { sseClients } = require('../utils/sseManager');
+      assignedUserIds.forEach(uid => {
+        const clients = sseClients.get(uid);
+        if (clients) {
+          clients.forEach(client => {
+            try {
+              client.write("data: " + JSON.stringify({ type: "PROJECT_ACCESS_UPDATED" }) + "\n\n");
+            } catch (e) {
+              console.error("Failed to push PROJECT_ACCESS_UPDATED event", e);
+            }
+          });
+        }
       });
     }
 
@@ -262,20 +286,19 @@ class ProjectService {
     this.ensureProjectPortalAccess(user);
     const { page = 1, limit = 20, search = '', status, myProjects, projectGroup } = query;
     const skip = (page - 1) * limit;
-
     const userId = user.id || user._id;
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    const isSuperAdmin = userRole === 'superadmin';
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
     const isAdmin = userRole === 'admin';
     const isGlobalReader = userRole === 'globalreader';
-    const isManager = userRole === 'manager';
+    const isProjectManager = userRole === 'project_manager';
 
     let roleFilter = {};
-    if (isSuperAdmin || isAdmin || isGlobalReader) {
+    if (isProjectAdmin) {
       if (myProjects === 'true') {
         roleFilter = { $or: [{ owner: userId }, { team: userId }] };
       }
-    } else if (isManager) {
+    } else if (isProjectManager) {
       roleFilter = { $or: [{ owner: userId }, { team: userId }] };
     } else {
       roleFilter = { team: userId };
@@ -335,16 +358,16 @@ class ProjectService {
 
     if (!project) throw new NotFoundError("Project");
 
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    const isSuperAdmin = userRole === 'superadmin';
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
     const isAdmin = userRole === 'admin';
-    const isGlobalReader = userRole === 'globalreader';
+    const isGlobalReader = (user.role || '').replace(/\s+/g, '').toLowerCase() === 'globalreader';
     const isOwner = project.owner && project.owner._id ? project.owner._id.toString() === (user.id || user._id).toString() : project.owner?.toString() === (user.id || user._id).toString();
     const isTeamMember = project.team.some(member => {
         return member && member._id ? member._id.toString() === (user.id || user._id).toString() : member.toString() === (user.id || user._id).toString();
     });
     
-    if (!isSuperAdmin && !isAdmin && !isGlobalReader && !isOwner && !isTeamMember) {
+    if (!isProjectAdmin && !isOwner && !isTeamMember) {
       throw new ForbiddenError("You do not have permission to access this project.");
     }
 
@@ -364,12 +387,12 @@ class ProjectService {
       ...(projectGroup ? { projectGroup } : {})
     });
 
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    const isSuperAdmin = userRole === 'superadmin';
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
     const isAdmin = userRole === 'admin';
     const isOwner = project.owner && project.owner._id ? project.owner._id.toString() === (user.id || user._id).toString() : project.owner?.toString() === (user.id || user._id).toString();
     
-    if (!isSuperAdmin && !isAdmin && !isOwner) {
+    if (!isProjectAdmin && !isOwner) {
       throw new ForbiddenError("Only project managers or administrators can modify project settings.");
     }
 
@@ -413,6 +436,31 @@ class ProjectService {
     await updatedProject.populate("owner", "name email avatar");
     await updatedProject.populate("department", "name");
 
+    const assignedUserIds = [updatedProject.owner, ...(updatedProject.team || [])]
+      .filter(Boolean)
+      .map(id => (typeof id === 'object' ? id._id || id.id : id).toString());
+
+    if (assignedUserIds.length > 0) {
+      await User.updateMany(
+        { _id: { $in: assignedUserIds }, company: companyId, hasProjectPortalAccess: { $ne: true } },
+        { $set: { hasProjectPortalAccess: true } }
+      );
+
+      const { sseClients } = require('../utils/sseManager');
+      assignedUserIds.forEach(uid => {
+        const clients = sseClients.get(uid);
+        if (clients) {
+          clients.forEach(client => {
+            try {
+              client.write("data: " + JSON.stringify({ type: "PROJECT_ACCESS_UPDATED" }) + "\n\n");
+            } catch (e) {
+              console.error("Failed to push PROJECT_ACCESS_UPDATED event", e);
+            }
+          });
+        }
+      });
+    }
+
     if (team && team.length > 0) {
       const newMembers = team.filter(id => !previousTeam.includes(id.toString()));
       newMembers.forEach(memberId => {
@@ -455,13 +503,12 @@ class ProjectService {
     this.ensureProjectPortalAccess(user);
     const project = await Project.findOne({ _id: projectId, company: companyId });
     if (!project) throw new NotFoundError("Project");
-
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    const isSuperAdmin = userRole === 'superadmin';
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
     const isAdmin = userRole === 'admin';
     
-    if (!isSuperAdmin && !isAdmin) {
-      throw new ForbiddenError("Only Super Admins and Admins can delete projects.");
+    if (!isProjectAdmin) {
+      throw new ForbiddenError("Only Project Administrators can delete projects.");
     }
 
     const tasksCount = await Task.countDocuments({ project: project._id, company: companyId });
@@ -567,16 +614,15 @@ class ProjectService {
   async getProjectDashboard(user, companyId) {
     this.ensureProjectPortalAccess(user);
     const userId = user.id || user._id;
-
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    const isSuperAdmin = userRole === 'superadmin';
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
     const isAdmin = userRole === 'admin';
-    const isManager = userRole === 'manager';
+    const isProjectManager = userRole === 'project_manager';
 
     let projectScope;
-    if (isSuperAdmin || isAdmin) {
+    if (isProjectAdmin) {
       projectScope = { company: companyId };
-    } else if (isManager) {
+    } else if (isProjectManager) {
       projectScope = { company: companyId, $or: [{ owner: userId }, { team: userId }] };
     } else {
       projectScope = { company: companyId, team: userId };
@@ -602,9 +648,9 @@ class ProjectService {
     ]);
 
     let taskFilter;
-    if (isSuperAdmin || isAdmin) {
+    if (isProjectAdmin) {
       taskFilter = { company: companyId, status: { $ne: "Done" } };
-    } else if (isManager) {
+    } else if (isProjectManager) {
       const managerProjects = await Project.find({ company: companyId, $or: [{ owner: userId }, { team: userId }] }).select('_id');
       const managerProjectIds = managerProjects.map(p => p._id);
       taskFilter = {
@@ -616,12 +662,13 @@ class ProjectService {
       taskFilter = { company: companyId, team: userId, status: { $ne: "Done" } };
     }
 
-    const [openTasks, highTasks, mediumTasks, lowTasks, overdueTasks] = await Promise.all([
+    const [openTasks, highTasks, mediumTasks, lowTasks, overdueTasks, myTasksCount] = await Promise.all([
       Task.countDocuments(taskFilter),
       Task.countDocuments({ ...taskFilter, priority: "High" }),
       Task.countDocuments({ ...taskFilter, priority: "Medium" }),
       Task.countDocuments({ ...taskFilter, priority: { $in: ["Low", null, undefined] } }),
       Task.countDocuments({ ...taskFilter, dueDate: { $lt: new Date() } }),
+      Task.countDocuments({ company: companyId, team: userId, status: { $ne: "Done" } }),
     ]);
 
     const taskPriorities = {
@@ -633,7 +680,7 @@ class ProjectService {
     };
 
     let projectGroups = 0;
-    if (isSuperAdmin || isAdmin) {
+    if (isProjectAdmin) {
       projectGroups = await ProjectGroup.countDocuments({ company: companyId });
     } else {
       const scopedProjects = await Project.find(projectScope).select('projectGroup');
@@ -658,18 +705,15 @@ class ProjectService {
       return project;
     });
 
-    const recentTasks = await Task.find({
-      company: companyId,
-      status: { $ne: "Done" },
-      ...(isPrivileged ? {} : { team: userId }),
-    }).sort({ dueDate: 1 }).limit(5).populate('project', 'title');
+    const recentTasks = await Task.find(taskFilter)
+      .sort({ dueDate: 1 })
+      .limit(5)
+      .populate('project', 'title');
 
     // Fetch upcoming deadlines (tasks and projects)
     const upcomingDeadlines = [];
     const upcomingTasks = await Task.find({
-      company: companyId,
-      status: { $ne: "Done" },
-      ...(isPrivileged ? {} : { team: userId }),
+      ...taskFilter,
       dueDate: { $gte: new Date() }
     }).sort({ dueDate: 1 }).limit(3).populate('project', 'title');
     
@@ -677,6 +721,7 @@ class ProjectService {
       upcomingDeadlines.push({
         task: t.title,
         project: t.project?.title || "N/A",
+        projectId: t.project?._id || t.project,
         dueDate: t.dueDate,
         status: t.status || "Todo",
         completion: t.completionPercent || 0

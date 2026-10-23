@@ -25,6 +25,39 @@ const TABS = [
   { id: "account", label: "Account", hint: "Profile & session", icon: UserIcon },
 ];
 
+const PROJECT_ROLES = [
+  {
+    value: "Team Member",
+    label: "Team Member",
+    badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    desc: "Task contributor: view assigned projects, update task status, log worked hours, and collaborate.",
+  },
+  {
+    value: "Project Manager",
+    label: "Project Manager",
+    badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
+    desc: "Delivery lead: manage project milestones, create and assign tasks, and oversee project execution.",
+  },
+  {
+    value: "Project Administrator",
+    label: "Project Administrator",
+    badge: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
+    desc: "Full portfolio administration: create/delete projects, manage groups, portal settings, and all tasks.",
+  },
+];
+
+const formatProjectRoleDisplay = (role) => {
+  if (!role) return "Team Member";
+  const cleaned = String(role).toLowerCase().replace(/[\s_-]+/g, "");
+  if (cleaned === "projectadministrator" || cleaned === "projectadmin" || cleaned === "superadmin" || cleaned === "admin") {
+    return "Project Administrator";
+  }
+  if (cleaned === "projectmanager" || cleaned === "manager") {
+    return "Project Manager";
+  }
+  return "Team Member";
+};
+
 const THEME_OPTIONS = [
   { id: "light", label: "Light", icon: Sun },
   { id: "dark", label: "Dark", icon: Moon },
@@ -116,36 +149,84 @@ export default function SettingsModal({ isOpen, onClose }) {
     return () => { mounted = false; };
   }, [isOpen, isAdminOrSuper]);
 
-  const handleTogglePortalAccess = (userId) => {
-    setPortalUsers(prev => prev.map(u => {
-      if ((u._id || u.id) === userId) {
-        return { ...u, hasProjectPortalAccess: !u.hasProjectPortalAccess };
-      }
-      return u;
-    }));
-  };
-
-  const handleSavePortalAccess = async () => {
+  const handleAssignUserRole = async (targetUserId, targetRole) => {
+    if (!targetUserId || !targetRole) return;
     try {
-      setSavingPortalAccess(true);
-      const assignedIds = portalUsers
-        .filter(u => u.hasProjectPortalAccess || ['superadmin', 'admin'].includes((u.role || '').replace(/\s+/g, '').toLowerCase()))
-        .map(u => u._id || u.id);
+      setSavingUserId(targetUserId);
+      const res = await api.put('/users/project-portal-access', {
+        userId: targetUserId,
+        projectRole: targetRole,
+        hasProjectPortalAccess: true,
+      });
+      const updatedList = res.data?.data || res.data || [];
+      if (Array.isArray(updatedList)) {
+        setPortalUsers(updatedList);
+      } else {
+        setPortalUsers(prev => prev.map(u => {
+          if ((u._id || u.id) === targetUserId) {
+            return { ...u, hasProjectPortalAccess: true, projectRole: targetRole };
+          }
+          return u;
+        }));
+      }
 
-      await api.put('/users/project-portal-access', { userIds: assignedIds });
-      toast.success('Project Portal access updated successfully');
+      const targetObj = portalUsers.find(u => (u._id || u.id) === targetUserId);
+      toast.success(`Assigned ${targetObj?.name || 'User'} as ${targetRole} in Project Portal`);
 
-      const currentId = user._id || user.id;
-      const currentUserInList = portalUsers.find(u => (u._id || u.id) === currentId);
-      if (currentUserInList) {
-        const updatedAuth = { ...user, hasProjectPortalAccess: currentUserInList.hasProjectPortalAccess };
+      const currentId = user?._id || user?.id;
+      if (currentId === targetUserId) {
+        const updatedAuth = { ...user, hasProjectPortalAccess: true, projectRole: targetRole };
         dispatch(setAuthUser(updatedAuth));
         dispatch(setUser(updatedAuth));
       }
+
+      setSelectedUserId('');
+      setUserDropdownOpen(false);
+      setUserSearchQuery('');
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to update Project Portal access');
+      toast.error(err?.response?.data?.message || 'Failed to update project portal role');
     } finally {
-      setSavingPortalAccess(false);
+      setSavingUserId(null);
+    }
+  };
+
+  const handleRevokeAccess = async (targetUserId) => {
+    if (!targetUserId) return;
+    try {
+      setSavingUserId(targetUserId);
+      const res = await api.put('/users/project-portal-access', {
+        userId: targetUserId,
+        hasProjectPortalAccess: false,
+        projectRole: null,
+      });
+      const updatedList = res.data?.data || res.data || [];
+      if (Array.isArray(updatedList)) {
+        setPortalUsers(updatedList);
+      } else {
+        setPortalUsers(prev => prev.map(u => {
+          if ((u._id || u.id) === targetUserId) {
+            return { ...u, hasProjectPortalAccess: false, projectRole: null };
+          }
+          return u;
+        }));
+      }
+
+      const targetObj = portalUsers.find(u => (u._id || u.id) === targetUserId);
+      toast.info(`Revoked Project Portal access for ${targetObj?.name || 'User'}`);
+
+      const currentId = user?._id || user?.id;
+      if (currentId === targetUserId) {
+        const updatedAuth = { ...user, hasProjectPortalAccess: false, projectRole: null };
+        dispatch(setAuthUser(updatedAuth));
+        dispatch(setUser(updatedAuth));
+      }
+      if (selectedUserId === targetUserId) {
+        setSelectedUserId('');
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to revoke project portal access');
+    } finally {
+      setSavingUserId(null);
     }
   };
 
@@ -530,143 +611,415 @@ export default function SettingsModal({ isOpen, onClose }) {
                   </div>
                 )}
 
-                {/* ─── PORTAL ACCESS (SUPER ADMIN & ADMIN ONLY) ─── */}
-                {tab === "portalAccess" && isAdminOrSuper && (
-                  <div>
-                    <SectionHeading
-                      icon={FolderKanban}
-                      title="Project Portal Access"
-                      subtitle="Assign users who can see the Project Portal icon and access project workspaces."
-                    />
+                      {/* ─── PORTAL ACCESS (SUPER ADMIN & ADMIN ONLY) ─── */}
+                {tab === "portalAccess" && isAdminOrSuper && (() => {
+                  const selectedUser = portalUsers.find(u => (u._id || u.id) === selectedUserId);
+                  const isAssigned = (u) => {
+                    const clean = (u.role || '').replace(/\s+/g, '').toLowerCase();
+                    return clean === 'superadmin' || clean === 'admin' || Boolean(u.hasProjectPortalAccess || u.projectRole);
+                  };
+                  const assignedUsers = portalUsers.filter(isAssigned);
 
-                    {/* Summary bar + search */}
-                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
-                        <input
-                          type="text"
-                          value={portalSearch}
-                          onChange={(e) => setPortalSearch(e.target.value)}
-                          placeholder="Search users by name, email, or role..."
-                          className="glass-input !pl-9 w-full"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span
-                          className="rounded-full px-3 py-1 text-xs font-bold"
-                          style={{
-                            background: "var(--color-bg-hover)",
-                            color: "var(--color-brand-text)",
-                            border: "1px solid var(--color-border-accent)"
-                          }}
-                        >
-                          {portalUsers.filter(u => u.hasProjectPortalAccess || ['superadmin', 'admin'].includes((u.role || '').replace(/\s+/g, '').toLowerCase())).length} of {portalUsers.length} assigned
-                        </span>
-                        <GlassButton
-                          variant="primary"
-                          size="sm"
-                          onClick={handleSavePortalAccess}
-                          isLoading={savingPortalAccess}
-                        >
-                          Save Changes
-                        </GlassButton>
-                      </div>
-                    </div>
+                  return (
+                    <div className="space-y-6">
+                      <SectionHeading
+                        icon={FolderKanban}
+                        title="Project Portal Role-Based Access"
+                        subtitle="Assign company members specific roles in the Project Portal. Their People Portal role remains completely unchanged."
+                      />
 
-                    {/* User list */}
-                    {loadingPortalUsers ? (
-                      <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted">
-                        <Loader2 className="h-6 w-6 animate-spin text-brand-primary" />
-                        <span className="text-xs">Loading users...</span>
-                      </div>
-                    ) : (
-                      <div className="space-y-2 max-h-[360px] overflow-y-auto custom-scrollbar-visible pr-1">
-                        {portalUsers
-                          .filter(u => {
-                            const q = portalSearch.toLowerCase().trim();
-                            if (!q) return true;
-                            const name = (u.name || '').toLowerCase();
-                            const email = (u.email || '').toLowerCase();
-                            const role = (u.role || '').toLowerCase();
-                            const dept = (typeof u.department === 'object' ? u.department?.name : u.department || '').toLowerCase();
-                            return name.includes(q) || email.includes(q) || role.includes(q) || dept.includes(q);
-                          })
-                          .map(u => {
-                            const uId = u._id || u.id;
-                            const cleanRole = (u.role || '').replace(/\s+/g, '').toLowerCase();
-                            const isUserAdmin = cleanRole === 'superadmin' || cleanRole === 'admin';
-                            const isAssigned = isUserAdmin || Boolean(u.hasProjectPortalAccess);
+                      {/* ── Section A: Assign Role via User Selector ── */}
+                      <div
+                        className="rounded-2xl p-4 sm:p-5 border transition-all shadow-sm"
+                        style={{
+                          background: "var(--color-bg-secondary)",
+                          borderColor: "var(--color-border-accent)",
+                        }}
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <span
+                            className="flex h-6 w-6 items-center justify-center rounded-lg"
+                            style={{ background: "var(--gradient-gold-foil)", color: "var(--color-text-on-brand)" }}
+                          >
+                            <Sparkles className="h-3.5 w-3.5" />
+                          </span>
+                          <h4 className="text-sm font-bold" style={{ color: "var(--color-text-heading)" }}>
+                            Assign or Elevate User in Project Portal
+                          </h4>
+                        </div>
 
-                            return (
-                              <div
-                                key={uId}
-                                className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 transition-colors"
-                                style={{
-                                  background: "var(--color-bg-secondary)",
-                                  border: `1px solid ${isAssigned ? "var(--color-border-accent)" : "var(--color-border-primary)"}`
-                                }}
-                              >
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <div
-                                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold shadow-sm"
-                                    style={{
-                                      background: "var(--gradient-gold-foil)",
-                                      color: "var(--color-text-on-brand)"
-                                    }}
-                                  >
-                                    {u.avatar ? (
-                                      <img src={u.avatar} alt="" className="h-full w-full object-cover rounded-xl" />
-                                    ) : (
-                                      (u.name || 'U').charAt(0).toUpperCase()
-                                    )}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>
-                                        {u.name || u.email}
-                                      </p>
-                                      <span
-                                        className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-                                        style={{
-                                          background: "var(--color-bg-hover)",
-                                          color: "var(--color-brand-text)",
-                                          border: "1px solid var(--color-border-accent)"
-                                        }}
-                                      >
-                                        {u.role || "Employee"}
-                                      </span>
-                                    </div>
-                                    <p className="text-[11px] truncate" style={{ color: "var(--color-text-tertiary)" }}>
-                                      {u.email}
-                                    </p>
-                                  </div>
+                        {/* Searchable Dropdown for User Selection */}
+                        <div className="relative">
+                          <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--color-text-secondary)" }}>
+                            Select Company User
+                          </label>
+
+                          <div
+                            onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                            className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border cursor-pointer transition-colors"
+                            style={{
+                              background: "var(--color-bg-primary)",
+                              borderColor: userDropdownOpen ? "var(--color-brand-primary)" : "var(--color-border-primary)",
+                            }}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <Search className="h-4 w-4 text-muted shrink-0" />
+                              {selectedUser ? (
+                                <div className="flex items-center gap-2 truncate">
+                                  <span className="text-sm font-semibold text-heading truncate">{selectedUser.name}</span>
+                                  <span className="text-[11px] text-muted truncate">({selectedUser.email})</span>
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 shrink-0">
+                                    People: {selectedUser.role || "Employee"}
+                                  </span>
                                 </div>
+                              ) : (
+                                <span className="text-sm text-muted">Click to select a user from company...</span>
+                              )}
+                            </div>
+                            <ChevronDown className={`h-4 w-4 text-muted transition-transform ${userDropdownOpen ? "rotate-180" : ""}`} />
+                          </div>
 
-                                <div className="flex items-center gap-2 shrink-0">
-                                  {isUserAdmin ? (
-                                    <span className="text-[11px] font-bold text-amber-500 uppercase tracking-wider px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20">
-                                      Admin (Always On)
-                                    </span>
+                          {/* Dropdown Menu */}
+                          {userDropdownOpen && (
+                            <div
+                              className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl border shadow-xl p-2 max-h-60 overflow-y-auto custom-scrollbar-visible animate-fadeIn"
+                              style={{
+                                background: "var(--color-bg-primary)",
+                                borderColor: "var(--color-border-accent)",
+                              }}
+                            >
+                              <div className="p-1 mb-1.5">
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  value={userSearchQuery}
+                                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                                  placeholder="Type to filter users..."
+                                  className="glass-input !py-1.5 !px-3 !text-xs w-full"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                {portalUsers
+                                  .filter((u) => {
+                                    const q = userSearchQuery.toLowerCase().trim();
+                                    if (!q) return true;
+                                    const name = (u.name || "").toLowerCase();
+                                    const email = (u.email || "").toLowerCase();
+                                    const role = (u.role || "").toLowerCase();
+                                    return name.includes(q) || email.includes(q) || role.includes(q);
+                                  })
+                                  .map((u) => {
+                                    const uId = u._id || u.id;
+                                    const isCurrentSelected = uId === selectedUserId;
+                                    const cleanRole = (u.role || "").replace(/\s+/g, "").toLowerCase();
+                                    const isCompanyAdmin = cleanRole === "superadmin" || cleanRole === "admin";
+                                    const activeProjectRole = u.projectRole 
+                                      ? formatProjectRoleDisplay(u.projectRole) 
+                                      : (isCompanyAdmin ? "Project Administrator" : (u.hasProjectPortalAccess ? "Team Member" : null));
+
+                                    return (
+                                      <div
+                                        key={uId}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedUserId(uId);
+                                          setSelectedRole(u.projectRole ? formatProjectRoleDisplay(u.projectRole) : (cleanRole === "manager" ? "Project Manager" : "Team Member"));
+                                          setUserDropdownOpen(false);
+                                        }}
+                                        className={`flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors ${
+                                          isCurrentSelected
+                                            ? "bg-[var(--color-bg-active)] border border-[var(--color-border-accent)]"
+                                            : "hover:bg-[var(--color-bg-hover)]"
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                          <div
+                                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold"
+                                            style={{ background: "var(--gradient-gold-foil)", color: "var(--color-text-on-brand)" }}
+                                          >
+                                            {u.avatar ? (
+                                              <img src={u.avatar} alt="" className="h-full w-full object-cover rounded-lg" />
+                                            ) : (
+                                              (u.name || "U").charAt(0).toUpperCase()
+                                            )}
+                                          </div>
+                                          <div className="min-w-0">
+                                            <p className="text-xs font-semibold text-heading truncate">{u.name}</p>
+                                            <p className="text-[10px] text-muted truncate">{u.email}</p>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                            People: {u.role || "Employee"}
+                                          </span>
+                                          {activeProjectRole && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                              Project: {activeProjectRole}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* When User is Selected: Show Project Role Picker */}
+                        {selectedUser && (
+                          <div className="mt-4 pt-4 border-t border-[var(--color-border-primary)] space-y-4 animate-fadeIn">
+                            <div className="p-3 rounded-xl bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold"
+                                  style={{ background: "var(--gradient-gold-foil)", color: "var(--color-text-on-brand)" }}
+                                >
+                                  {selectedUser.avatar ? (
+                                    <img src={selectedUser.avatar} alt="" className="h-full w-full object-cover rounded-xl" />
                                   ) : (
-                                    <ToggleSwitch
-                                      id={`portal-assign-${uId}`}
-                                      size="sm"
-                                      checked={Boolean(u.hasProjectPortalAccess)}
-                                      disabled={savingPortalAccess}
-                                      onChange={() => handleTogglePortalAccess(uId)}
-                                      ariaLabel={`Toggle project portal access for ${u.name || u.email}`}
-                                    />
+                                    (selectedUser.name || "U").charAt(0).toUpperCase()
                                   )}
                                 </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="text-sm font-bold text-heading truncate">{selectedUser.name}</p>
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                      People Portal: {selectedUser.role || "Employee"}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-muted truncate">{selectedUser.email}</p>
+                                </div>
                               </div>
-                            );
-                          })}
-                      </div>
-                    )}
-                  </div>
-                )}
 
-                {/* ─── ACCOUNT ─── */}
+                              {selectedUser.projectRole && (
+                                <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                                  Current: {formatProjectRoleDisplay(selectedUser.projectRole)}
+                                </span>
+                              )}
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-bold mb-2 text-heading">
+                                What role should {selectedUser.name} have in the Project Portal?
+                              </p>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                {PROJECT_ROLES.map((r) => {
+                                  const isSelected = selectedRole === r.value;
+                                  return (
+                                    <div
+                                      key={r.value}
+                                      onClick={() => setSelectedRole(r.value)}
+                                      className={`cursor-pointer rounded-xl p-3 border transition-all ${
+                                        isSelected
+                                          ? "ring-2 ring-[var(--color-brand-primary)] border-transparent bg-[var(--color-bg-active)]"
+                                          : "border-[var(--color-border-primary)] hover:border-[var(--color-border-accent)] bg-[var(--color-bg-primary)]"
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between mb-1">
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${r.badge}`}>
+                                          {r.label}
+                                        </span>
+                                        <input
+                                          type="radio"
+                                          name="selectedProjectRole"
+                                          checked={isSelected}
+                                          onChange={() => setSelectedRole(r.value)}
+                                          className="accent-[var(--color-brand-primary)] h-4 w-4"
+                                        />
+                                      </div>
+                                      <p className="text-[11px] text-muted leading-relaxed mt-1.5">{r.desc}</p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2">
+                              {selectedUser.hasProjectPortalAccess || selectedUser.projectRole ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRevokeAccess(selectedUser._id || selectedUser.id)}
+                                  disabled={savingUserId === (selectedUser._id || selectedUser.id)}
+                                  className="text-xs font-semibold text-red-500 hover:text-red-600 flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" /> Revoke Project Access
+                                </button>
+                              ) : <span />}
+
+                              <div className="flex items-center gap-2">
+                                <GlassButton
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => { setSelectedUserId(''); setUserDropdownOpen(false); }}
+                                >
+                                  Cancel
+                                </GlassButton>
+                                <GlassButton
+                                  variant="primary"
+                                  size="sm"
+                                  isLoading={savingUserId === (selectedUser._id || selectedUser.id)}
+                                  onClick={() => handleAssignUserRole(selectedUser._id || selectedUser.id, selectedRole)}
+                                >
+                                  <Check className="h-3.5 w-3.5 mr-1" />
+                                  Confirm & Assign Role
+                                </GlassButton>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── Section B: Active Project Portal Members Table ── */}
+                      <div>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                          <div>
+                            <h4 className="text-sm font-bold text-heading">
+                              Active Project Portal Users ({assignedUsers.length})
+                            </h4>
+                            <p className="text-xs text-muted">
+                              Users who currently have access to view or manage the Project Portal.
+                            </p>
+                          </div>
+                          <div className="relative w-full sm:w-60">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted" />
+                            <input
+                              type="text"
+                              value={portalSearch}
+                              onChange={(e) => setPortalSearch(e.target.value)}
+                              placeholder="Filter assigned users..."
+                              className="glass-input !pl-8 !py-1.5 !text-xs w-full"
+                            />
+                          </div>
+                        </div>
+
+                        {loadingPortalUsers ? (
+                          <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted">
+                            <Loader2 className="h-6 w-6 animate-spin text-brand-primary" />
+                            <span className="text-xs">Loading portal users...</span>
+                          </div>
+                        ) : assignedUsers.length === 0 ? (
+                          <div className="p-8 text-center rounded-2xl border border-dashed border-[var(--color-border-primary)] text-muted text-xs">
+                            No users have been assigned to the Project Portal yet. Use the dropdown above to add members.
+                          </div>
+                        ) : (
+                          <div className="space-y-2 max-h-[340px] overflow-y-auto custom-scrollbar-visible pr-1">
+                            {assignedUsers
+                              .filter((u) => {
+                                const q = portalSearch.toLowerCase().trim();
+                                if (!q) return true;
+                                const name = (u.name || "").toLowerCase();
+                                const email = (u.email || "").toLowerCase();
+                                const role = (u.role || "").toLowerCase();
+                                const pRole = (u.projectRole || "").toLowerCase();
+                                return name.includes(q) || email.includes(q) || role.includes(q) || pRole.includes(q);
+                              })
+                              .map((u) => {
+                                const uId = u._id || u.id;
+                                const cleanCompanyRole = (u.role || "").replace(/\s+/g, "").toLowerCase();
+                                const isCompanyAdmin = cleanCompanyRole === "superadmin" || cleanCompanyRole === "admin";
+                                const currentProjectRole = formatProjectRoleDisplay(
+                                  u.projectRole || (isCompanyAdmin ? "Project Administrator" : "Team Member")
+                                );
+                                const isSaving = savingUserId === uId;
+
+                                return (
+                                  <div
+                                    key={uId}
+                                    className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 transition-colors border"
+                                    style={{
+                                      background: "var(--color-bg-secondary)",
+                                      borderColor: "var(--color-border-primary)",
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold shadow-sm"
+                                        style={{
+                                          background: "var(--gradient-gold-foil)",
+                                          color: "var(--color-text-on-brand)",
+                                        }}
+                                      >
+                                        {u.avatar ? (
+                                          <img src={u.avatar} alt="" className="h-full w-full object-cover rounded-xl" />
+                                        ) : (
+                                          (u.name || "U").charAt(0).toUpperCase()
+                                        )}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <p className="text-sm font-semibold truncate text-heading">
+                                            {u.name || u.email}
+                                          </p>
+                                          <span className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-[var(--color-bg-hover)] text-muted border border-[var(--color-border-primary)]">
+                                            People: {u.role || "Employee"}
+                                          </span>
+                                        </div>
+                                        <p className="text-[11px] truncate text-muted">{u.email}</p>
+                                      </div>
+                                    </div>
+
+                                    {/* Role Selector & Revoke */}
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      {isCompanyAdmin && !u.projectRole ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/25">
+                                            Project Administrator (Admin)
+                                          </span>
+                                          <select
+                                            disabled={isSaving}
+                                            value={currentProjectRole}
+                                            onChange={(e) => handleAssignUserRole(uId, e.target.value)}
+                                            className="glass-select !text-xs !py-1 !px-2 font-bold rounded-lg border border-[var(--color-border-accent)] bg-[var(--color-bg-primary)] cursor-pointer"
+                                            title="Override default project role"
+                                          >
+                                            <option value="Project Administrator">Project Administrator</option>
+                                            <option value="Project Manager">Project Manager</option>
+                                            <option value="Team Member">Team Member</option>
+                                          </select>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-2">
+                                          <select
+                                            disabled={isSaving}
+                                            value={currentProjectRole}
+                                            onChange={(e) => handleAssignUserRole(uId, e.target.value)}
+                                            className="glass-select !text-xs !py-1 !px-2.5 font-bold rounded-lg border border-[var(--color-border-accent)] bg-[var(--color-bg-primary)] cursor-pointer"
+                                          >
+                                            <option value="Team Member">Team Member</option>
+                                            <option value="Project Manager">Project Manager</option>
+                                            <option value="Project Administrator">Project Administrator</option>
+                                          </select>
+
+                                          <button
+                                            type="button"
+                                            disabled={isSaving}
+                                            onClick={() => handleRevokeAccess(uId)}
+                                            title="Revoke Project Portal Access"
+                                            className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
+                                          >
+                                            {isSaving ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <Trash2 className="h-4 w-4" />
+                                            )}
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+{/* ─── ACCOUNT ─── */}
                 {tab === "account" && (
                   <div>
                     <SectionHeading

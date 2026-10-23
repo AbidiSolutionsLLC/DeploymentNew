@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -27,53 +27,13 @@ import DashboardCard from "../../components/projectPortal/DashboardCard";
 import { PROJECT_DASHBOARD_CARD_OPTIONS } from "../../components/projectPortal/dashboardCardOptions";
 import NewProjectDrawer from "../../components/NewProjectDrawer";
 import GlassButton from "../../components/ui/GlassButton";
-
-/**
- * Project Dashboard — 4 Clickable KPI Cards + Consolidated Action Deck:
- * 1. KPI cards row: 4 cards in single row (Total, Active, Completed, My Tasks), fully interactive & redirecting.
- * 2. Consolidated Action Card: Single card combining navigation, "+ Project" (for authorized roles), and "+ Add Card" triggers.
- * 3. Dynamic customizable dashboard cards deck.
- */
-const KPIS = [
-  {
-    label: "Total Projects",
-    key: "totalProjects",
-    Icon: FaFolderOpen,
-    sub: "All portfolio projects",
-    tone: "amber",
-    path: "/project/projects",
-    filterStatus: "All",
-  },
-  {
-    label: "Active Projects",
-    key: "activeProjects",
-    Icon: FaProjectDiagram,
-    sub: "Currently in flight",
-    tone: "sky",
-    path: "/project/projects?status=Active",
-    filterStatus: "Active",
-  },
-  {
-    label: "Completed Projects",
-    key: "completedProjects",
-    Icon: FaCheckCircle,
-    sub: "Delivered to date",
-    tone: "emerald",
-    path: "/project/projects?status=Completed",
-    filterStatus: "Completed",
-  },
-  {
-    label: "My Tasks",
-    key: "myTasks",
-    Icon: FaTasks,
-    sub: "Assigned to you",
-    tone: "violet",
-    path: "/project/myTasks",
-  },
-];
+import usePermission from "../../hooks/usePermission";
 
 /*
  * Explicit colour pairs per KPI tone.
+ * NOTE: these use raw rgba/hex values instead of Tailwind's `amber-*` scale —
+ * that scale is remapped to color-mix() tokens in tailwind.config.js, which
+ * makes `/opacity` dark utilities silently drop out of the build.
  */
 const KPI_TONES = {
   amber: {
@@ -118,14 +78,17 @@ const ProjectDashBoard = () => {
   const navigate = useNavigate();
   const { dashboardData, loading, error } = useSelector((state) => state.projects);
   const { tasks = [] } = useSelector((state) => state.tasks);
+
+  // RBAC resolution
+  const { isProjectAdmin, isProjectManager, isProjectEmployee, projectRole, user: authUser } = usePermission();
   const authStateUser = useSelector((state) => state.auth.user);
-  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
-  const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
-  const isSuperAdmin = userRole === 'superadmin';
-  const isAdmin = userRole === 'admin';
-  const isManager = userRole === 'manager';
-  const isEmployee = !isSuperAdmin && !isAdmin && !isManager;
-  const canCreateProject = isSuperAdmin || isAdmin;
+  const user = authUser || authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
+  const isSuperAdmin = projectRole === "superadmin" || (user?.role || "").replace(/\s+/g, "").toLowerCase() === "superadmin";
+  const isAdmin = isProjectAdmin;
+  const isManager = isProjectManager;
+  const isEmployee = isProjectEmployee && !isSuperAdmin && !isAdmin && !isManager;
+  const canCreateProject = isProjectAdmin;
+
   const [cards, setCards] = useState([]);
   const [cardsLoading, setCardsLoading] = useState(true);
 
@@ -212,7 +175,7 @@ const ProjectDashBoard = () => {
     }
   };
 
-  if (loading) {
+  if (loading && !dashboardData) {
     return (
       <div className="flex justify-center items-center py-20">
         <Loader size="xl" text="Loading Project Dashboard..." />
@@ -220,7 +183,7 @@ const ProjectDashBoard = () => {
     );
   }
 
-  if (error) {
+  if (error && !dashboardData) {
     return (
       <div className="text-sm text-danger bg-danger-bg border border-danger-border rounded-xl px-4 py-3">
         {String(error)}
@@ -230,18 +193,69 @@ const ProjectDashBoard = () => {
 
   const d = dashboardData || {};
 
+  // Destination project for Open Tasks (where tasks were created)
+  const primaryProjectId =
+    d.recentTasks?.[0]?.project?._id ||
+    (typeof d.recentTasks?.[0]?.project === "string" ? d.recentTasks[0].project : null) ||
+    d.recentProjects?.[0]?._id;
+
+  const tasksRedirectPath = isEmployee
+    ? "/project/myTasks"
+    : (primaryProjectId ? `/project/projects/${primaryProjectId}` : "/project/projects");
+
+  // 4 Interactive KPI Cards configured per role
+  const kpis = [
+    {
+      label: isEmployee ? "Assigned Projects" : "Total Projects",
+      key: "totalProjects",
+      Icon: FaFolderOpen,
+      sub: isEmployee ? "Projects assigned to you" : "All portfolio projects",
+      tone: "amber",
+      path: "/project/projects",
+      filterStatus: "All",
+      value:
+        d.totalProjects ??
+        ((d.activeProjects || 0) + (d.completedProjects || 0) + (d.delayedProjects || 0)),
+    },
+    {
+      label: "Active Projects",
+      key: "activeProjects",
+      Icon: FaProjectDiagram,
+      sub: "Currently in flight",
+      tone: "sky",
+      path: "/project/projects?status=Active",
+      filterStatus: "Active",
+      value: d.activeProjects ?? 0,
+    },
+    {
+      label: "Completed Projects",
+      key: "completedProjects",
+      Icon: FaCheckCircle,
+      sub: "Delivered to date",
+      tone: "emerald",
+      path: "/project/projects?status=Completed",
+      filterStatus: "Completed",
+      value: d.completedProjects ?? 0,
+    },
+    {
+      label: isEmployee ? "My Tasks" : "Open Tasks",
+      key: isEmployee ? "myTasks" : "openTasks",
+      Icon: FaTasks,
+      sub: isEmployee ? "Assigned to you" : "Across all projects",
+      tone: "violet",
+      path: tasksRedirectPath,
+      value: isEmployee ? (d.myTasks ?? tasks.length) : (d.openTasks ?? (d.taskPriorities?.total || 0)),
+    },
+  ];
+
   return (
     <PageContainer isCard={false}>
-      <div className="flex flex-col gap-5 w-full">
-        {/* Command header with RBAC-tailored context */}
+      <div className="flex flex-col gap-4 w-full">
+        {/* Dashboard header */}
         <PortalHero
-          label={isEmployee ? "My workspace overview" : "Project command center overview"}
-          title={isEmployee ? "Project Dashboard" : "Project Command Center"}
-          description={
-            isEmployee
-              ? "Live status of your assigned tasks, projects, and upcoming deadlines."
-              : "Live status of your projects, tasks and team."
-          }
+          label={isEmployee ? "My workspace overview" : "Project dashboard overview"}
+          title="Project Dashboard"
+          compact
         />
 
         {/* 1. KPI command deck — 4 Clickable / Redirecting Cards in a single row */}
@@ -257,7 +271,7 @@ const ProjectDashBoard = () => {
 
           <div className="relative z-10">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-              {KPIS.map((kpi, index) => {
+              {kpis.map((kpi, index) => {
                 const Icon = kpi.Icon;
                 const tone = KPI_TONES[kpi.tone] || KPI_TONES.amber;
                 const borders = [
@@ -270,14 +284,7 @@ const ProjectDashBoard = () => {
                   .filter(Boolean)
                   .join(" ");
 
-                const rawVal = kpi.key === "myTasks" ? tasks.length : d[kpi.key];
-                const value =
-                  kpi.key === "totalProjects"
-                    ? (rawVal ?? ((d.activeProjects || 0) + (d.completedProjects || 0) + (d.delayedProjects || 0)))
-                    : (rawVal ?? 0);
-
-                const label = kpi.key === "totalProjects" && isEmployee ? "Assigned Projects" : kpi.label;
-                const sub = kpi.key === "totalProjects" && isEmployee ? "Projects assigned to you" : kpi.sub;
+                const value = kpi.value;
 
                 const openKpi = () =>
                   navigate(kpi.path, kpi.filterStatus ? { state: { status: kpi.filterStatus } } : undefined);
@@ -294,7 +301,7 @@ const ProjectDashBoard = () => {
                         openKpi();
                       }
                     }}
-                    title={`View ${label}${kpi.key === "myTasks" ? "" : " on Projects page"}`}
+                    title={`View ${kpi.label}`}
                     className={`group relative flex items-center gap-3.5 sm:gap-4 overflow-hidden px-5 py-5 text-left cursor-pointer select-none transition-all duration-300 ease-out hover:bg-amber-500/[0.04] dark:hover:bg-white/[0.04] hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${tone.wash} ${borders}`}
                   >
                     <span
@@ -313,13 +320,13 @@ const ProjectDashBoard = () => {
 
                     <div className="relative min-w-0 flex-1">
                       <p className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-muted transition-colors duration-200 group-hover:text-brand-text dark:text-slate-300">
-                        {label}
+                        {kpi.label}
                       </p>
                       <p className={`mt-1.5 text-2xl font-black leading-none text-heading tabular-nums dark:text-white ${tone.value}`}>
                         {value}
                       </p>
                       <p className="mt-1 truncate text-[10px] font-medium text-muted dark:text-slate-400">
-                        {sub}
+                        {kpi.sub}
                       </p>
                     </div>
 
@@ -333,7 +340,7 @@ const ProjectDashBoard = () => {
           </div>
         </section>
 
-        {/* 2. Consolidated Action Card: Single unified action card containing navigation, "+ Project" (if authorized), and "+ Add Card" triggers */}
+        {/* 2. Consolidated Action Cards: Single unified action card containing both "+ Project" and "+ Add Card" triggers */}
         <div className="glass-card relative z-30 !px-4 !py-3 sm:!px-5 sm:!py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
           <div className="flex items-center gap-3 min-w-0">
             <span className="w-1.5 h-6 rounded-full bg-brand flex-shrink-0" aria-hidden="true" />
@@ -353,19 +360,8 @@ const ProjectDashBoard = () => {
             </div>
           </div>
 
-          {/* Right Action Triggers: "My Tasks", "+ Project" (with split-action option for admins), and "+ Add Card" */}
+          {/* Right Action Triggers: "+ Project" (with split-action option for authorized roles) and "+ Add Card" */}
           <div className="flex items-center gap-2.5 flex-shrink-0 self-end sm:self-center">
-            {/* Quick link: My Tasks */}
-            <GlassButton
-              variant={isEmployee ? "primary" : "ghost"}
-              size="sm"
-              onClick={() => navigate("/project/myTasks")}
-              className="font-bold uppercase tracking-wider"
-            >
-              My Tasks
-            </GlassButton>
-
-            {/* Action Trigger 1: + Project with Split-Action option (if permitted) or View Projects */}
             {canCreateProject ? (
               <div className="relative inline-flex" ref={projectMenuRef}>
                 <div className="inline-flex rounded-2xl shadow-sm overflow-hidden">
@@ -479,7 +475,7 @@ const ProjectDashBoard = () => {
           )}
         </div>
 
-        {/* Project creation drawer modal (only for permitted roles) */}
+        {/* Project creation drawer modal (only rendered if authorized) */}
         {canCreateProject && (
           <NewProjectDrawer
             isOpen={drawerOpen}

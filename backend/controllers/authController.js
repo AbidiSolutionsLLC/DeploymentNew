@@ -35,7 +35,7 @@ exports.verifyOtp = catchAsync(async (req, res) => {
   });
 
   res.status(200).json(ApiResponse.success(
-    { token: accessToken, user: { id: user._id, email: user.email, name: user.name, role: user.role, company: user.company } },
+    { token: accessToken, user: { id: user._id, email: user.email, name: user.name, role: user.role, company: user.company, hasProjectPortalAccess: user.hasProjectPortalAccess, projectRole: user.projectRole } },
     "OTP verified"
   ));
 });
@@ -74,7 +74,7 @@ exports.resetPassword = catchAsync(async (req, res) => {
   const { user, newToken } = await authService.resetPassword(token, password);
 
   res.status(200).json(ApiResponse.success(
-    { token: newToken, user: { id: user._id, name: user.name, email: user.email, role: user.role } },
+    { token: newToken, user: { id: user._id, name: user.name, email: user.email, role: user.role, hasProjectPortalAccess: user.hasProjectPortalAccess, projectRole: user.projectRole } },
     "Password reset successful"
   ));
 });

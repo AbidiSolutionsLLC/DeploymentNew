@@ -49,7 +49,7 @@ const { sseClients } = require("../utils/sseManager");
 exports.updateUser = catchAsync(async (req, res) => {
   const updatedUser = await userService.updateUser(req.user, req.params.id, req.body);
   
-  if (req.body.role || req.body.isTechnician !== undefined) {
+  if (req.body.role || req.body.isTechnician !== undefined || req.body.hasProjectPortalAccess !== undefined) {
       const clients = sseClients.get(req.params.id.toString());
       if (clients) {
           clients.forEach(client => {
@@ -149,6 +149,23 @@ exports.updateMySettings = catchAsync(async (req, res) => {
 
 exports.updateProjectPortalAccess = catchAsync(async (req, res) => {
   const users = await userService.updateProjectPortalAccess(req.user, req.body);
+  
+  if (Array.isArray(users)) {
+    users.forEach((u) => {
+      const uid = (u._id || u.id)?.toString();
+      if (uid && sseClients.has(uid)) {
+        const clients = sseClients.get(uid);
+        clients.forEach((client) => {
+          try {
+            client.write(`data: ${JSON.stringify({ type: "PROJECT_ACCESS_UPDATED" })}\n\n`);
+          } catch (e) {
+            console.error("Failed to push PROJECT_ACCESS_UPDATED event", e);
+          }
+        });
+      }
+    });
+  }
+  
   res.status(200).json(ApiResponse.success(users, "Project Portal access updated successfully"));
 });
 

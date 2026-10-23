@@ -25,14 +25,15 @@ const railItemVariants = {
 const NavbarVertical = () => {
   const { isDark } = useTheme();
   const authStateUser = useSelector((state) => state.auth.user);
-  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
+  const user = authStateUser?.user || authStateUser?.data?.user || authStateUser || null;
   const location = useLocation();
   const navigate = useNavigate();
   const unreadCount = useSelector((s) => s.notifications?.unreadCount ?? 0);
 
   const hasRole = (allowedRoles) => {
     if (!user || !user.role) return false;
-    return allowedRoles.includes(user.role);
+    const current = String(user.role).replace(/\s+/g, "").toLowerCase();
+    return allowedRoles.map((r) => String(r).replace(/\s+/g, "").toLowerCase()).includes(current);
   };
 
   const navLinks = [
@@ -41,7 +42,7 @@ const NavbarVertical = () => {
       name: "Project",
       to: "/project",
       icon: SquaresPlusIcon,
-      show: hasRole(["Super Admin", "Admin"]) || Boolean(user?.hasProjectPortalAccess),
+      show: hasRole(["Super Admin", "Admin"]) || Boolean(user?.hasProjectPortalAccess || user?.projectRole),
     },
     {
       name: "Admin",

@@ -142,7 +142,22 @@ setForm({
     }
   };
 
-  const userOptions = users.map((u) => ({
+  const isPortalUser = (u) => {
+    if (!u) return false;
+    const role = (u.role || "").replace(/\s+/g, "").toLowerCase();
+    return role === "superadmin" || role === "admin" || Boolean(u.hasProjectPortalAccess);
+  };
+
+  const portalEligibleUsers = React.useMemo(() => {
+    return users.filter((u) => {
+      const id = String(u._id || u.id);
+      const isCurrentOwner = form.owner && String(form.owner) === id;
+      const isCurrentTeamMember = Array.isArray(form.team) && form.team.some((m) => String(m) === id);
+      return isPortalUser(u) || isCurrentOwner || isCurrentTeamMember;
+    });
+  }, [users, form.owner, form.team]);
+
+  const userOptions = portalEligibleUsers.map((u) => ({
     value: u._id || u.id,
     label: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email,
   }));
@@ -235,10 +250,10 @@ setForm({
             name="team"
             value={form.team}
             onChange={(e) => set("team", e.target.value)}
-            users={users}
+            users={portalEligibleUsers}
             placeholder={loadingOptions ? "Loading people..." : "Assign team members..."}
             searchPlaceholder="Search people by name or email..."
-            helperText="Select members to add to the project. Click the dropdown to see unassigned members."
+            helperText="Select members to add to the project. Only users assigned to the Project Portal are listed."
           />
         </div>
 

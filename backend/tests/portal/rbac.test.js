@@ -4,6 +4,7 @@ const taskService = require('../../services/taskService');
 const projectGroupService = require('../../services/projectGroupService');
 const Project = require('../../models/projectSchema');
 const Task = require('../../models/taskSchema');
+const User = require('../../models/userSchema');
 
 describe('Project Portal RBAC Enforcement', () => {
   afterEach(() => {
@@ -101,7 +102,7 @@ describe('Project Portal RBAC Enforcement', () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Only Super Admins and Admins can create new projects.',
+        message: 'Only Project Administrators can create new projects.',
       });
     });
 
@@ -113,7 +114,7 @@ describe('Project Portal RBAC Enforcement', () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Only Super Admins and Admins can create new projects.',
+        message: 'Only Project Administrators can create new projects.',
       });
     });
   });
@@ -127,7 +128,28 @@ describe('Project Portal RBAC Enforcement', () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Employees cannot create new tasks.',
+        message: 'Team members cannot create new tasks.',
+      });
+    });
+
+    test('blocks Manager from creating a task in a project they do not manage or belong to', async () => {
+      const projectId = new mongoose.Types.ObjectId();
+      const unrelatedManagerId = new mongoose.Types.ObjectId();
+      jest.spyOn(Project, 'findOne').mockResolvedValue({
+        _id: projectId,
+        company: companyId,
+        owner: unrelatedManagerId,
+        team: [],
+      });
+
+      await expect(
+        taskService.createTask(managerUser, companyId, {
+          title: 'Manager Task',
+          project: projectId,
+        })
+      ).rejects.toMatchObject({
+        status: 403,
+        message: 'Project managers can only create tasks in projects they manage or belong to.',
       });
     });
   });
@@ -154,7 +176,7 @@ describe('Project Portal RBAC Enforcement', () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Employees can only update task status, progress percentage, worked hours, and description.',
+        message: 'Team members can only update task status, progress percentage, worked hours, and description.',
       });
     });
 
@@ -180,7 +202,7 @@ describe('Project Portal RBAC Enforcement', () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Employees can only update task status, progress percentage, worked hours, and description.',
+        message: 'Team members can only update task status, progress percentage, worked hours, and description.',
       });
     });
 
@@ -254,7 +276,7 @@ describe('Project Portal RBAC Enforcement', () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Only Super Admins and Admins can create project groups',
+        message: 'Only Project Administrators can create project groups',
       });
     });
 
@@ -291,7 +313,7 @@ describe('Project Portal RBAC Enforcement', () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Only Super Admins and Admins can create new projects.',
+        message: 'Only Project Administrators can create new projects.',
       });
     });
 
@@ -303,7 +325,7 @@ describe('Project Portal RBAC Enforcement', () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Employees cannot create new tasks.',
+        message: 'Team members cannot create new tasks.',
       });
     });
 
@@ -319,7 +341,7 @@ describe('Project Portal RBAC Enforcement', () => {
         taskService.deleteTask(hrUser, companyId, taskId)
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Employees cannot delete tasks.',
+        message: 'Team members cannot delete tasks.',
       });
     });
 
@@ -330,7 +352,7 @@ describe('Project Portal RBAC Enforcement', () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Only Super Admins and Admins can create project groups',
+        message: 'Only Project Administrators can create project groups',
       });
     });
 
@@ -370,7 +392,7 @@ describe('Project Portal RBAC Enforcement', () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message: 'Employees can only update task status, progress percentage, worked hours, and description.',
+        message: 'Team members can only update task status, progress percentage, worked hours, and description.',
       });
     });
 
@@ -433,6 +455,183 @@ describe('Project Portal RBAC Enforcement', () => {
       expect(mockTask.completionPercent).toBe(40);
       expect(mockTask.workedHours).toBe(4);
       expect(mockTask.save).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Custom Project Portal Roles (Decoupled from People Portal Roles)', () => {
+    test('Employee with projectRole = Manager can create tasks for managed projects', async () => {
+      const empManagerId = new mongoose.Types.ObjectId();
+      const empManager = {
+        _id: empManagerId,
+        id: empManagerId.toString(),
+        role: 'Employee', // People Portal role is STILL Employee!
+        projectRole: 'Manager', // Elevated in Project Portal
+        company: companyId,
+        hasProjectPortalAccess: true,
+      };
+
+      const projectId = new mongoose.Types.ObjectId();
+      jest.spyOn(Project, 'findOne').mockResolvedValue({
+        _id: projectId,
+        owner: empManagerId,
+        team: [],
+      });
+      jest.spyOn(Task.prototype, 'save').mockImplementation(function() {
+        return Promise.resolve(this);
+      });
+
+      const task = await taskService.createTask(empManager, companyId, {
+        title: 'Manager Task Created By Elevated Employee',
+        project: projectId,
+      });
+
+      expect(task).toBeDefined();
+      expect(task.title).toBe('Manager Task Created By Elevated Employee');
+      expect(empManager.role).toBe('Employee'); // Confirm company role is unchanged!
+    });
+
+    test('Employee with projectRole = Manager is still blocked from creating projects', async () => {
+      const empManagerId = new mongoose.Types.ObjectId();
+      const empManager = {
+        _id: empManagerId,
+        id: empManagerId.toString(),
+        role: 'Employee',
+        projectRole: 'Manager',
+        company: companyId,
+        hasProjectPortalAccess: true,
+      };
+
+      await expect(
+        projectService.createProject(empManager, companyId, {
+          title: 'Project Creation Should Fail for Manager',
+        })
+      ).rejects.toMatchObject({
+        status: 403,
+        message: 'Only Project Administrators can create new projects.',
+      });
+    });
+
+    test('Employee with projectRole = Admin can create projects', async () => {
+      const empAdminId = new mongoose.Types.ObjectId();
+      const empAdmin = {
+        _id: empAdminId,
+        id: empAdminId.toString(),
+        role: 'Employee', // People Portal role is STILL Employee!
+        projectRole: 'Admin', // Admin in Project Portal
+        company: companyId,
+        hasProjectPortalAccess: true,
+      };
+
+      jest.spyOn(projectService, 'validateCompanyReferences').mockResolvedValue(true);
+      jest.spyOn(Project.prototype, 'save').mockImplementation(function() {
+        return Promise.resolve(this);
+      });
+
+      const newProj = await projectService.createProject(empAdmin, companyId, {
+        title: 'Admin Project Created by Elevated Employee',
+        owner: empAdminId,
+      });
+
+      expect(newProj).toBeDefined();
+      expect(empAdmin.role).toBe('Employee'); // Confirm People Portal role is untouched!
+    });
+
+    test('Manager in People Portal with projectRole = Employee is restricted to employee permissions in Project Portal', async () => {
+      const mgrDemotedId = new mongoose.Types.ObjectId();
+      const mgrDemoted = {
+        _id: mgrDemotedId,
+        id: mgrDemotedId.toString(),
+        role: 'Manager', // People Portal role is Manager
+        projectRole: 'Employee', // But in Project Portal, restricted to Employee
+        company: companyId,
+        hasProjectPortalAccess: true,
+      };
+
+      await expect(
+        taskService.createTask(mgrDemoted, companyId, {
+          title: 'Should be blocked',
+          project: new mongoose.Types.ObjectId(),
+        })
+      ).rejects.toMatchObject({
+        status: 403,
+        message: 'Team members cannot create new tasks.',
+      });
+    });
+
+    test('userService.updateProjectPortalAccess updates projectRole and preserves company role', async () => {
+      const targetUser = {
+        _id: new mongoose.Types.ObjectId(),
+        company: companyId,
+        role: 'Employee',
+        hasProjectPortalAccess: false,
+        projectRole: null,
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+
+      jest.spyOn(User, 'findOne').mockResolvedValue(targetUser);
+      jest.spyOn(User, 'find').mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        populate: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue([]),
+      });
+
+      await require('../../services/userService').updateProjectPortalAccess(superAdmin, {
+        userId: targetUser._id,
+        projectRole: 'Manager',
+        hasProjectPortalAccess: true,
+      });
+
+      expect(targetUser.projectRole).toBe('Project Manager');
+      expect(targetUser.hasProjectPortalAccess).toBe(true);
+      expect(targetUser.role).toBe('Employee'); // Untouched!
+      expect(targetUser.save).toHaveBeenCalledTimes(1);
+    });
+
+    test('Standardized role Project Administrator has full portal powers', async () => {
+      const projAdminId = new mongoose.Types.ObjectId();
+      const projAdmin = {
+        _id: projAdminId,
+        id: projAdminId.toString(),
+        role: 'Employee',
+        projectRole: 'Project Administrator',
+        company: companyId,
+        hasProjectPortalAccess: true,
+      };
+
+      jest.spyOn(projectService, 'validateCompanyReferences').mockResolvedValue(true);
+      jest.spyOn(Project.prototype, 'save').mockImplementation(function() {
+        return Promise.resolve(this);
+      });
+
+      const newProj = await projectService.createProject(projAdmin, companyId, {
+        title: 'Project Admin Created Project',
+        owner: projAdminId,
+      });
+
+      expect(newProj).toBeDefined();
+      expect(projAdmin.role).toBe('Employee');
+    });
+
+    test('Standardized role Team Member is restricted to task execution', async () => {
+      const teamMemberId = new mongoose.Types.ObjectId();
+      const teamMember = {
+        _id: teamMemberId,
+        id: teamMemberId.toString(),
+        role: 'Employee',
+        projectRole: 'Team Member',
+        company: companyId,
+        hasProjectPortalAccess: true,
+      };
+
+      await expect(
+        taskService.createTask(teamMember, companyId, {
+          title: 'Blocked Task',
+          project: new mongoose.Types.ObjectId(),
+        })
+      ).rejects.toMatchObject({
+        status: 403,
+        message: 'Team members cannot create new tasks.',
+      });
     });
   });
 });

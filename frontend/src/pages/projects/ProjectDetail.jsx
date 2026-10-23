@@ -14,8 +14,10 @@ import {
   PlusIcon,
   FolderIcon,
   BoltIcon,
-  NoSymbolIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
   ExclamationCircleIcon,
+  ClipboardDocumentListIcon,
 } from "@heroicons/react/24/outline";
 import { fetchProjectById, updateProject, deleteProject } from "../../store/projectSlice";
 import {
@@ -29,6 +31,7 @@ import {
   fetchProjectActivities,
 } from "../../store/taskSlice";
 import { useConfirm } from "../../context/ConfirmContext";
+import usePermission from "../../hooks/usePermission";
 import Loader from "../../components/ui/Loader";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
@@ -38,6 +41,7 @@ import {
   shortDate,
   isOverdue,
   projectProgress,
+  personName,
 } from "../../components/projectPortal/helpers";
 import AddTaskForm from "../../components/projectPortal/AddTaskForm";
 import EditProjectForm from "../../components/projectPortal/EditProjectForm";
@@ -94,19 +98,26 @@ const ProjectDetail = () => {
   const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
   const { userInfo } = useSelector((state) => state.user || {});
   const currentUserId = (user?._id || user?.id || userInfo?.user?._id || userInfo?._id || userInfo?.id)?.toString();
-  const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
-  const isSuperAdmin = userRole === 'superadmin';
-  const isAdmin = userRole === 'admin';
-  const isManager = userRole === 'manager';
+  const { isProjectAdmin, isProjectManager, isProjectEmployee, projectRole } = usePermission();
+  const isSuperAdmin = projectRole === 'superadmin';
+  const isAdmin = isProjectAdmin;
+  const isManager = isProjectManager;
 
   const project = currentProject?._id === id ? currentProject : projects?.find((p) => p._id === id);
   const tasks = projectTasks || [];
   const loading = projectTasksLoading;
 
   const isProjectOwner = (project?.owner?._id || project?.owner)?.toString() === currentUserId;
+  const isProjectTeamMember = Boolean(
+    project?.team && project.team.some((m) => {
+      const mid = (m?._id || m)?.toString();
+      return mid === currentUserId;
+    })
+  );
   const canEditProject = isSuperAdmin || isAdmin || (isManager && isProjectOwner);
   const canDeleteProject = isSuperAdmin || isAdmin;
   const canManageTasks = isSuperAdmin || isAdmin || isManager;
+  const canCreateTask = isSuperAdmin || isAdmin || (isManager && (isProjectOwner || isProjectTeamMember));
 
   const [addTaskStatus, setAddTaskStatus] = useState("Todo");
   const [showAddTask, setShowAddTask] = useState(false);
@@ -213,6 +224,10 @@ const ProjectDetail = () => {
   }, [showTaskDetail, dispatch]);
 
   const handleCreateTask = async (taskData) => {
+    if (!canCreateTask) {
+      toast.error("You do not have permission to create tasks.");
+      return;
+    }
     try {
       await dispatch(createTask({ ...taskData, project: id })).unwrap();
       toast.success("Task created successfully");
@@ -311,12 +326,112 @@ const ProjectDetail = () => {
 
   const pct = projectProgress(project, tasks);
   const team = project.team || [];
+  const teamNames = team
+    .map((m) => (typeof m === "object" ? (personName(m) || m.name || m.email) : null))
+    .filter(Boolean)
+    .join(", ");
+
   const taskCounts = {
     total: tasks.length,
-    done: tasks.filter((task) => task.status === "Done").length,
-    active: tasks.filter((task) => ["In Progress", "In Review"].includes(task.status)).length,
-    blocked: tasks.filter((task) => task.status === "Blocked" || task.status === "blocked").length,
-    backlog: tasks.filter((task) => task.status === "Backlog" || task.status === "backlog").length,
+    done: tasks.filter((task) => (task.status || "").toLowerCase() === "done").length,
+    active: tasks.filter((task) => {
+      const s = (task.status || "").toLowerCase();
+      return s === "in progress" || s === "in review";
+    }).length,
+    todo: tasks.filter((task) => (task.status || "").toLowerCase() === "todo").length,
+    backlog: tasks.filter((task) => (task.status || "").toLowerCase() === "backlog").length,
+    pending: tasks.filter((task) => {
+      const s = (task.status || "").toLowerCase();
+      return s === "todo" || s === "backlog";
+    }).length,
+  };
+
+  const overdueTasks = tasks.filter((task) => {
+    const s = (task.status || "").toLowerCase();
+    return s !== "done" && task.dueDate && new Date(task.dueDate) < new Date();
+  });
+
+  // Industry-standard real-time project health computation
+  const healthInfo = (() => {
+    const serverHealth = project.health;
+    const isCompleted = project.status === "Completed";
+    const isProjectOverdue = project.dueDate && new Date(project.dueDate) < new Date() && !isCompleted;
+    const daysRemaining = project.dueDate
+      ? Math.ceil((new Date(project.dueDate) - new Date()) / 86400000)
+      : null;
+
+    const reasons = [];
+    if (overdueTasks.length > 0) {
+      reasons.push(`${overdueTasks.length} overdue task${overdueTasks.length === 1 ? "" : "s"}`);
+    }
+    if (isProjectOverdue) {
+      reasons.push("Project deadline passed");
+    }
+    if (!reasons.length && daysRemaining !== null && daysRemaining <= 7 && daysRemaining >= 0 && !isCompleted && pct < 75) {
+      reasons.push(`Due in ${daysRemaining} day${daysRemaining === 1 ? "" : "s"}`);
+    }
+
+    let status = "On Track";
+    if (isCompleted) {
+      status = "On Track";
+    } else if (overdueTasks.length > 0 || isProjectOverdue) {
+      status = "At Risk";
+    } else if (daysRemaining !== null && daysRemaining <= 7 && pct < 75) {
+      status = "Watch";
+    } else if (serverHealth?.status) {
+      status = serverHealth.status;
+    }
+
+    const cleanServerReasons = (serverHealth?.reasons || []).filter(
+      (r) => !r.toLowerCase().includes("blocked")
+    );
+    const combinedReasons = reasons.length > 0 ? reasons : cleanServerReasons;
+
+    return {
+      status,
+      reasons: combinedReasons,
+    };
+  })();
+
+  const currentHealthConfig = {
+    "On Track": {
+      badge: "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      dot: "bg-emerald-500",
+      iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25",
+      title: "Schedule On Track",
+      sub: "All milestones & tasks progressing as planned",
+      Icon: CheckCircleIcon,
+    },
+    Watch: {
+      badge: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      dot: "bg-amber-500",
+      iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25",
+      title: "Needs Monitoring",
+      sub: healthInfo.reasons.join(" · ") || "Upcoming deadline approaching",
+      Icon: ClockIcon,
+    },
+    "At Risk": {
+      badge: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+      dot: "bg-rose-500",
+      iconBg: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25",
+      title: "Schedule At Risk",
+      sub: healthInfo.reasons.join(" · ") || "Schedule delays detected",
+      Icon: ExclamationTriangleIcon,
+    },
+  }[healthInfo.status] || {
+    badge: "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    dot: "bg-emerald-500",
+    iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25",
+    title: "Schedule On Track",
+    sub: "All milestones & tasks progressing as planned",
+    Icon: CheckCircleIcon,
+  };
+
+  const scrollToTasks = () => {
+    const el = document.getElementById("task-workspace");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   return (
@@ -334,7 +449,15 @@ const ProjectDetail = () => {
                 <ArrowLeftIcon className="w-5 h-5" />
               </button>
               <h1 className="text-2xl sm:text-3xl font-black text-heading tracking-tight truncate">{project.title}</h1>
-              <TableStatus value={project.status || "Planning"} className="shrink-0" />
+              <div
+                className="flex items-center gap-1.5 shrink-0"
+                title={`Project Status: ${project.status || "Planning"}`}
+              >
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted hidden sm:inline">
+                  Status
+                </span>
+                <TableStatus value={project.status || "Planning"} className="shrink-0" />
+              </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {canEditProject && (
@@ -389,40 +512,132 @@ const ProjectDetail = () => {
             </div>
 
             {/* Project health */}
-            <div className="lg:border-l lg:border-border-subtle lg:pl-5">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted">Project health</p>
-                <TableStatus value={project.health?.status || "On Track"} />
+            <div className="lg:border-l lg:border-border-subtle lg:pl-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted">Project Health</p>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${currentHealthConfig.badge}`}
+                >
+                  <span className="relative flex h-1.5 w-1.5">
+                    {healthInfo.status === "On Track" && (
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    )}
+                    <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${currentHealthConfig.dot}`} />
+                  </span>
+                  {healthInfo.status}
+                </span>
               </div>
-              {project.health?.reasons?.length > 0 ? (
-                <p className="flex items-start gap-1.5 text-xs font-medium text-danger mt-3">
-                  <ExclamationCircleIcon className="w-4 h-4 shrink-0 mt-px" />
-                  <span>{project.health.reasons.join(" · ")}</span>
-                </p>
-              ) : (
-                <p className="text-xs text-muted mt-3">All tasks are on schedule.</p>
-              )}
+              <div className="flex items-center gap-2.5 mt-2 min-w-0">
+                <span
+                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-transform duration-200 ${currentHealthConfig.iconBg}`}
+                >
+                  <currentHealthConfig.Icon className="w-4 h-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-heading truncate">
+                    {currentHealthConfig.title}
+                  </p>
+                  <p
+                    className="text-[11px] font-medium text-muted truncate mt-0.5"
+                    title={currentHealthConfig.sub}
+                  >
+                    {currentHealthConfig.sub}
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Stat tiles */}
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="rounded-xl border border-border-subtle bg-card px-3.5 py-3 min-w-[104px]">
-                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
-                  <BoltIcon className="w-4 h-4" /> Active
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+              {/* Active Tasks */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={scrollToTasks}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    scrollToTasks();
+                  }
+                }}
+                className="group relative rounded-xl border border-sky-500/25 bg-sky-500/[0.04] dark:border-sky-500/20 dark:bg-sky-500/[0.06] p-3 sm:px-3.5 sm:py-3 min-w-[104px] sm:min-w-[120px] flex flex-col justify-between cursor-pointer select-none transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500/50 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                title="Active Tasks: Tasks currently In Progress or In Review (Click to view in task workspace)"
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30 transition-transform duration-200 group-hover:scale-110">
+                    <BoltIcon className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="truncate text-[10px] font-black uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                    Active Tasks
+                  </span>
                 </div>
-                <p className="text-2xl font-black text-heading tabular-nums mt-1.5">{taskCounts.active}</p>
+                <div className="mt-2">
+                  <p className="text-2xl font-black text-heading tabular-nums leading-none">
+                    {taskCounts.active}
+                  </p>
+                  <p className="mt-1 truncate text-[10px] font-medium text-muted">
+                    In progress & review
+                  </p>
+                </div>
               </div>
-              <div className="rounded-xl border border-border-subtle bg-card px-3.5 py-3 min-w-[104px]">
-                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
-                  <NoSymbolIcon className="w-4 h-4" /> Blocked
+
+              {/* Pending Tasks */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={scrollToTasks}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    scrollToTasks();
+                  }
+                }}
+                className="group relative rounded-xl border border-amber-500/25 bg-amber-500/[0.04] dark:border-amber-500/20 dark:bg-amber-500/[0.06] p-3 sm:px-3.5 sm:py-3 min-w-[104px] sm:min-w-[120px] flex flex-col justify-between cursor-pointer select-none transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/50 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                title="Pending Tasks: Tasks waiting in backlog and to do (Click to view in task workspace)"
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-transform duration-200 group-hover:scale-110">
+                    <ClipboardDocumentListIcon className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="truncate text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                    Pending Tasks
+                  </span>
                 </div>
-                <p className={`text-2xl font-black tabular-nums mt-1.5 ${taskCounts.blocked ? "text-danger" : "text-heading"}`}>{taskCounts.blocked}</p>
+                <div className="mt-2">
+                  <p className="text-2xl font-black text-heading tabular-nums leading-none">
+                    {taskCounts.pending}
+                  </p>
+                  <p className="mt-1 truncate text-[10px] font-medium text-muted">
+                    {taskCounts.todo} to do · {taskCounts.backlog} backlog
+                  </p>
+                </div>
               </div>
-              <div className="rounded-xl border border-border-subtle bg-card px-3.5 py-3 min-w-[104px]">
-                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
-                  <UsersIcon className="w-4 h-4" /> Team
+
+              {/* Team Members */}
+              <div
+                className="group relative rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] dark:border-emerald-500/20 dark:bg-emerald-500/[0.06] p-3 sm:px-3.5 sm:py-3 min-w-[104px] sm:min-w-[120px] flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-500/50 hover:shadow-md"
+                title={
+                  teamNames
+                    ? `Team Members (${team.length}): ${teamNames}`
+                    : "Team Members: No members currently assigned"
+                }
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-transform duration-200 group-hover:scale-110">
+                    <UsersIcon className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="truncate text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                    Team Members
+                  </span>
                 </div>
-                <p className="text-2xl font-black text-heading tabular-nums mt-1.5">{team.length}</p>
+                <div className="mt-2">
+                  <p className="text-2xl font-black text-heading tabular-nums leading-none">
+                    {team.length}
+                  </p>
+                  <p className="mt-1 truncate text-[10px] font-medium text-muted">
+                    {team.length === 1 ? "1 contributor" : `${team.length} contributors`}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -468,7 +683,7 @@ const ProjectDetail = () => {
         )}
 
         {/* ===== Task workspace ===== */}
-        <section className="glass-card bg-surface !p-0 overflow-hidden">
+        <section id="task-workspace" className="glass-card bg-surface !p-0 overflow-hidden">
           <div className="px-5 pt-5 pb-3">
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Task workspace</p>
           </div>
@@ -495,18 +710,20 @@ const ProjectDetail = () => {
                           <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${COLUMN_ACCENTS[col.id] || "bg-amber-500"}`} />
                           <h3 className="text-xs font-black uppercase tracking-widest text-heading truncate">{col.title}</h3>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAddTaskStatus(COLUMN_STATUS[col.id] || "Todo");
-                            setShowAddTask(true);
-                          }}
-                          className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-border-subtle bg-card text-muted hover:border-border-accent hover:bg-card-hover hover:text-brand-text transition-colors"
-                          aria-label={`Add task to ${col.title}`}
-                          title={`Add task to ${col.title}`}
-                        >
-                          <PlusIcon className="h-3.5 w-3.5" />
-                        </button>
+                        {canCreateTask && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddTaskStatus(COLUMN_STATUS[col.id] || "Todo");
+                              setShowAddTask(true);
+                            }}
+                            className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-border-subtle bg-card text-muted hover:border-border-accent hover:bg-card-hover hover:text-brand-text transition-colors"
+                            aria-label={`Add task to ${col.title}`}
+                            title={`Add task to ${col.title}`}
+                          >
+                            <PlusIcon className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                       <div className="flex-1 space-y-3">
                         {colTasks.map((task) => (
@@ -571,15 +788,17 @@ const ProjectDetail = () => {
         )}
 
         {/* Modals */}
-        <GlassModal
-          isOpen={showAddTask}
-          onClose={() => setShowAddTask(false)}
-          title="New Task"
-          description="Create a task in this project"
-          maxWidth="max-w-2xl"
-        >
-          <AddTaskForm projectId={id} project={project} initialStatus={addTaskStatus} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} />
-        </GlassModal>
+        {canCreateTask && (
+          <GlassModal
+            isOpen={showAddTask}
+            onClose={() => setShowAddTask(false)}
+            title="New Task"
+            description="Create a task in this project"
+            maxWidth="max-w-2xl"
+          >
+            <AddTaskForm projectId={id} project={project} initialStatus={addTaskStatus} onSubmit={handleCreateTask} onClose={() => setShowAddTask(false)} />
+          </GlassModal>
+        )}
 
         <GlassModal
           isOpen={showEditProject}

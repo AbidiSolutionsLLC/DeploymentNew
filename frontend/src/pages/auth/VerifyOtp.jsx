@@ -64,13 +64,17 @@ const VerifyOtp = () => {
     setIsSubmitting(true);
     try {
       const res = await api.post("/auth/verify-otp", { email, otp });
-      const userData = res.data?.user;
+      const raw = res.data;
+      const userData = raw?.user || raw?.data?.user;
+      const token = raw?.token || raw?.data?.token;
       
       // Sync with both slices
       dispatch(setAuthUser(userData));
       dispatch(setUser(userData));
       
-      localStorage.setItem("accessToken", res.data?.token);
+      if (token) {
+        localStorage.setItem("accessToken", token);
+      }
       
       toast.success("Login successful!");
       navigate("/people/home", { replace: true });

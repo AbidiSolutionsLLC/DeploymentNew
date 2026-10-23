@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import usePermission from "../../hooks/usePermission";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
 import { fetchMyTasks, updateTask, addTaskComment, fetchTaskComments, deleteTaskComment } from "../../store/taskSlice";
@@ -45,11 +46,11 @@ const MyTask = () => {
   const { tasks, taskComments = {}, loading, error } = useSelector((state) => state.tasks);
   const authStateUser = useSelector((state) => state.auth.user);
   const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
-  const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
-  const isSuperAdmin = userRole === 'superadmin';
-  const isAdmin = userRole === 'admin';
-  const isManager = userRole === 'manager';
-  const canCreateTask = isSuperAdmin || isAdmin || isManager;
+  const { isProjectAdmin, isProjectManager, isProjectEmployee, projectRole } = usePermission();
+  const isSuperAdmin = projectRole === 'superadmin';
+  const isAdmin = isProjectAdmin;
+  const isManager = isProjectManager;
+  const canCreateTask = isProjectAdmin || isProjectManager;
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");

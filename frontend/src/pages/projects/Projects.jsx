@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import usePermission from "../../hooks/usePermission";
 import { PlusIcon, PencilIcon, TrashIcon, RectangleStackIcon } from "@heroicons/react/24/outline";
 import NewProjectDrawer from "../../components/NewProjectDrawer";
 import useProjects from "../../hooks/useProjects";
@@ -39,14 +40,12 @@ const Projects = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const authStateUser = useSelector((state) => state.auth.user);
-  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
-  const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
-  const isSuperAdmin = userRole === 'superadmin';
-  const isAdmin = userRole === 'admin';
-  const isManager = userRole === 'manager';
-  const canCreateProject = isSuperAdmin || isAdmin;
-  const canDeleteProject = isSuperAdmin || isAdmin;
+  const { isProjectAdmin, isProjectManager, isProjectEmployee, projectRole, user } = usePermission();
+  const isSuperAdmin = projectRole === 'superadmin';
+  const isAdmin = isProjectAdmin;
+  const isManager = isProjectManager;
+  const canCreateProject = isProjectAdmin;
+  const canDeleteProject = isProjectAdmin;
 
   const { projects, loading, error, refetch } = useProjects();
   const [query, setQuery] = useState("");

@@ -94,6 +94,20 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    projectRole: {
+      type: String,
+      enum: [
+        "Project Administrator",
+        "Project Manager",
+        "Team Member",
+        "Super Admin",
+        "Admin",
+        "Manager",
+        "Employee",
+        null
+      ],
+      default: null,
+    },
     hourlyWage: {
       type: Number,
       default: 0,

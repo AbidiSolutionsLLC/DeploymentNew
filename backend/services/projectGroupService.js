@@ -2,6 +2,7 @@ const ProjectGroup = require('../models/projectGroupSchema');
 const Project = require('../models/projectSchema');
 const projectService = require('./projectService');
 const { BadRequestError, NotFoundError, ForbiddenError } = require('../utils/ExpressError');
+const { getEffectiveProjectRole, hasProjectPortalAccess } = require('../utils/projectRbac');
 
 class ProjectGroupService {
   async validateProjects(companyId, projects) {
@@ -50,9 +51,9 @@ class ProjectGroupService {
   }
 
   async createGroup(user, companyId, data) {
-    const role = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    if (role !== 'admin' && role !== 'superadmin') {
-      throw new ForbiddenError('Only Super Admins and Admins can create project groups');
+    const role = getEffectiveProjectRole(user);
+    if (role !== 'project_administrator') {
+      throw new ForbiddenError('Only Project Administrators can create project groups');
     }
     const owner = user.id || user._id;
     await this.validateProjects(companyId, data.projects);
@@ -120,9 +121,9 @@ class ProjectGroupService {
     const group = await ProjectGroup.findOne({ _id: groupId, company: companyId });
     if (!group) throw new NotFoundError('ProjectGroup');
     
-    const role = (user.role || '').replace(/\s+/g, '').toLowerCase();
+    const role = getEffectiveProjectRole(user);
     const isOwner = group.owner?.toString() === (user.id || user._id)?.toString();
-    if (role !== 'admin' && role !== 'superadmin' && !isOwner) {
+    if (role !== 'project_administrator' && !isOwner) {
       throw new ForbiddenError('Not authorized to update this group');
     }
 
@@ -160,8 +161,8 @@ class ProjectGroupService {
     const group = await ProjectGroup.findOne({ _id: groupId, company: companyId });
     if (!group) throw new NotFoundError('ProjectGroup');
     
-    const role = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    if (role !== 'admin' && role !== 'superadmin') {
+    const role = getEffectiveProjectRole(user);
+    if (role !== 'project_administrator') {
       throw new ForbiddenError('Not authorized to delete this group');
     }
 

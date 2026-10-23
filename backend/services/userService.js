@@ -8,6 +8,7 @@ const { sendInvitationEmail } = require('../config/emailConfig');
 const { getSearchScope } = require("../utils/rbac");
 const { createNotification } = require('../utils/notificationService');
 const { applyDefaultLeaveQuota } = require("../utils/leaveQuota");
+const { formatDisplayProjectRole, normalizeProjectRole } = require("../utils/projectRbac");
 const {
   getEmailCategoriesForUser,
   resolveEmailPrefs,
@@ -221,6 +222,19 @@ class UserService {
 
     if (status && status !== 'All') query.empStatus = status;
     if (role && role !== 'All') query.role = role;
+
+    if (queryParams.projectPortalOnly === 'true' || queryParams.portalAccess === 'true') {
+      const portalCondition = [
+        { hasProjectPortalAccess: true },
+        { role: { $in: ['Super Admin', 'Admin'] } }
+      ];
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, { $or: portalCondition }];
+        delete query.$or;
+      } else {
+        query.$or = portalCondition;
+      }
+    }
     
     if (search) {
       query.$or = [
@@ -342,7 +356,7 @@ class UserService {
             "name", "email", "timeZone", "reportsTo", "empID", "role", "phoneNumber", 
             "designation", "department", "branch", "empType", "joiningDate", "endDate", "about", 
             "salary", "hourlyWage", "education", "address", "experience", "DOB", "maritalStatus", 
-            "emergencyContact", "addedby", "empStatus", "avalaibleLeaves", "isTechnician", "hasProjectPortalAccess"
+            "emergencyContact", "addedby", "empStatus", "avalaibleLeaves", "isTechnician", "hasProjectPortalAccess", "projectRole"
         ];
     }
 
@@ -644,19 +658,65 @@ class UserService {
     return updatedUser;
   }
 
-  async updateProjectPortalAccess(actor, { userIds, userId, hasProjectPortalAccess }) {
+  async updateProjectPortalAccess(actor, data = {}) {
     const actorRole = (actor.role || '').replace(/\s+/g, '').toLowerCase();
     if (actorRole !== 'superadmin' && actorRole !== 'admin') {
       throw new ForbiddenError("Only Super Admins and Admins can assign Project Portal access.");
     }
 
     const companyId = actor.company;
+    const { userId, projectRole, hasProjectPortalAccess, userIds, assignments } = data;
 
-    if (Array.isArray(userIds)) {
+    const validRoles = [
+      'Project Administrator',
+      'Project Manager',
+      'Team Member',
+      'Super Admin',
+      'Admin',
+      'Manager',
+      'Employee',
+      null
+    ];
+
+    if (userId !== undefined) {
+      const targetUser = await User.findOne({ _id: userId, company: companyId });
+      if (!targetUser) throw new NotFoundError("User not found");
+
+      if (hasProjectPortalAccess === false || projectRole === null) {
+        targetUser.hasProjectPortalAccess = false;
+        targetUser.projectRole = null;
+      } else {
+        const rawAssigned = projectRole || targetUser.projectRole || 'Team Member';
+        if (!validRoles.includes(rawAssigned)) {
+          throw new BadRequestError("Invalid project role. Allowed: Project Administrator, Project Manager, Team Member.");
+        }
+        targetUser.hasProjectPortalAccess = true;
+        targetUser.projectRole = formatDisplayProjectRole(rawAssigned);
+      }
+      await targetUser.save();
+    } else if (Array.isArray(assignments)) {
+      for (const item of assignments) {
+        if (!item.userId) continue;
+        const target = await User.findOne({ _id: item.userId, company: companyId });
+        if (target) {
+          if (item.hasProjectPortalAccess === false || item.projectRole === null) {
+            target.hasProjectPortalAccess = false;
+            target.projectRole = null;
+          } else {
+            const rawAssigned = item.projectRole || target.projectRole || 'Team Member';
+            if (validRoles.includes(rawAssigned)) {
+              target.hasProjectPortalAccess = true;
+              target.projectRole = formatDisplayProjectRole(rawAssigned);
+            }
+          }
+          await target.save();
+        }
+      }
+    } else if (Array.isArray(userIds)) {
       const stringIds = userIds.map(String);
       await User.updateMany(
         { company: companyId, _id: { $in: stringIds } },
-        { $set: { hasProjectPortalAccess: true } }
+        { $set: { hasProjectPortalAccess: true, projectRole: 'Team Member' } }
       );
       await User.updateMany(
         {
@@ -664,21 +724,14 @@ class UserService {
           _id: { $nin: stringIds },
           role: { $nin: ['Super Admin', 'Admin'] }
         },
-        { $set: { hasProjectPortalAccess: false } }
+        { $set: { hasProjectPortalAccess: false, projectRole: null } }
       );
-    } else if (userId !== undefined && hasProjectPortalAccess !== undefined) {
-      const targetUser = await User.findOne({ _id: userId, company: companyId });
-      if (!targetUser) throw new NotFoundError("User not found");
-      targetUser.hasProjectPortalAccess = Boolean(hasProjectPortalAccess);
-      await targetUser.save();
     }
 
     return User.find({ company: companyId })
-      .select('_id name email role avatar department designation hasProjectPortalAccess')
+      .select('_id name email role avatar department designation hasProjectPortalAccess projectRole')
       .populate('department', 'name')
       .lean();
-    if (!updatedUser) throw new NotFoundError("User not found");
-    return updatedUser;
   }
 }
 

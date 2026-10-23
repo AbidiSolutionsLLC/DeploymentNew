@@ -2,13 +2,12 @@ const Task = require("../models/taskSchema");
 const Project = require("../models/projectSchema");
 const User = require("../models/userSchema");
 const { NotFoundError, BadRequestError, ForbiddenError, UnauthorizedError } = require("../utils/ExpressError");
+const { getEffectiveProjectRole, hasProjectPortalAccess } = require("../utils/projectRbac");
 const { createNotification } = require('../utils/notificationService');
 
 class TaskService {
   ensureProjectPortalAccess(user) {
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    if (userRole === 'superadmin' || userRole === 'admin') return true;
-    if (!user.hasProjectPortalAccess) {
+    if (!hasProjectPortalAccess(user)) {
       throw new ForbiddenError("You do not have access to the Project Portal.");
     }
   }
@@ -69,10 +68,10 @@ class TaskService {
   async createTask(user, companyId, data, files) {
     this.ensureProjectPortalAccess(user);
     const userId = user?.id || user?._id;
-    const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
+    const userRole = getEffectiveProjectRole(user);
 
-    if (userRole !== 'superadmin' && userRole !== 'admin' && userRole !== 'manager') {
-      throw new ForbiddenError("Employees cannot create new tasks.");
+    if (userRole !== 'project_administrator' && userRole !== 'project_manager') {
+      throw new ForbiddenError("Team members cannot create new tasks.");
     }
 
     const { title, description, project, team, priority, status, dueDate, duration, completionPercent, workedHours, dependencies } = data;
@@ -80,11 +79,11 @@ class TaskService {
     const projectExists = await Project.findOne({ _id: project, company: companyId });
     if (!projectExists) throw new NotFoundError("Project");
 
-    if (userRole === 'manager') {
+    if (userRole === 'project_manager') {
       const isOwner = projectExists.owner && projectExists.owner.toString() === userId.toString();
       const isTeam = projectExists.team && projectExists.team.some(m => m.toString() === userId.toString());
       if (!isOwner && !isTeam) {
-        throw new ForbiddenError("Managers can only create tasks in projects they manage or belong to.");
+        throw new ForbiddenError("Project managers can only create tasks in projects they manage or belong to.");
       }
     }
     await this.validateCompanyTeam(companyId, team);
@@ -142,18 +141,15 @@ class TaskService {
     this.ensureProjectPortalAccess(user);
     const { page = 1, limit = 20, search = '', project, status, priority, assignee } = query;
     const skip = (page - 1) * limit;
-
     const userId = user.id || user._id;
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    const isSuperAdmin = userRole === 'superadmin';
-    const isAdmin = userRole === 'admin';
-    const isGlobalReader = userRole === 'globalreader';
-    const isManager = userRole === 'manager';
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
+    const isProjectManager = userRole === 'project_manager';
 
     let roleFilter = {};
-    if (isSuperAdmin || isAdmin || isGlobalReader) {
+    if (isProjectAdmin) {
       if (assignee) roleFilter = { team: assignee };
-    } else if (isManager) {
+    } else if (isProjectManager) {
       const managerProjects = await Project.find({ company: companyId, $or: [{ owner: userId }, { team: userId }] }).select('_id');
       const managerProjectIds = managerProjects.map(p => p._id);
       roleFilter = {
@@ -227,10 +223,9 @@ class TaskService {
     if (!task) throw new NotFoundError("Task");
 
     const userId = user.id || user._id;
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    const isSuperAdmin = userRole === 'superadmin';
-    const isAdmin = userRole === 'admin';
-    const isManager = userRole === 'manager';
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
+    const isProjectManager = userRole === 'project_manager';
     const isAssignee = task.team && task.team.some(member => {
         const memberId = (member?._id || member || '').toString();
         return (user._id && memberId === user._id.toString()) || (user.id && memberId === user.id.toString());
@@ -244,8 +239,8 @@ class TaskService {
         (user.id && projectDoc.owner.toString() === user.id.toString())
     );
 
-    if (!isSuperAdmin && !isAdmin) {
-      if (isManager) {
+    if (!isProjectAdmin) {
+      if (isProjectManager) {
         if (!isProjectOwner && !isAssignee) {
           throw new ForbiddenError("You do not have permission to modify this task.");
         }
@@ -262,7 +257,7 @@ class TaskService {
         const depChanged = dependencies !== undefined && JSON.stringify((dependencies || []).map(String)) !== JSON.stringify((task.dependencies || []).map(String));
 
         if (teamChanged || priorityChanged || dueChanged || durationChanged || depChanged) {
-          throw new ForbiddenError("Employees can only update task status, progress percentage, worked hours, and description.");
+          throw new ForbiddenError("Team members can only update task status, progress percentage, worked hours, and description.");
         }
       }
     }
@@ -331,10 +326,9 @@ class TaskService {
     if (!task) throw new NotFoundError("Task");
 
     const userId = user.id || user._id;
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    const isSuperAdmin = userRole === 'superadmin';
-    const isAdmin = userRole === 'admin';
-    const isManager = userRole === 'manager';
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
+    const isProjectManager = userRole === 'project_manager';
     const isAssignee = task.team && task.team.some(member => {
         return member && member._id ? member._id.toString() === userId.toString() : member.toString() === userId.toString();
     });
@@ -367,16 +361,14 @@ class TaskService {
     this.ensureProjectPortalAccess(user);
     const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
-
     const userId = user.id || user._id;
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    const isSuperAdmin = userRole === 'superadmin';
-    const isAdmin = userRole === 'admin';
-    const isManager = userRole === 'manager';
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
+    const isProjectManager = userRole === 'project_manager';
     
-    if (!isSuperAdmin && !isAdmin) {
-      if (!isManager) {
-        throw new ForbiddenError("Employees cannot delete tasks.");
+    if (!isProjectAdmin) {
+      if (!isProjectManager) {
+        throw new ForbiddenError("Team members cannot delete tasks.");
       }
       const Project = require('../models/projectSchema');
       const projectDoc = await Project.findOne({ _id: task.project, company: companyId }).lean();
@@ -485,10 +477,8 @@ class TaskService {
   async getProjectTasks(user, companyId, projectId) {
     this.ensureProjectPortalAccess(user);
     const userId = user.id || user._id;
-    const userRole = (user.role || '').replace(/\s+/g, '').toLowerCase();
-    const isSuperAdmin = userRole === 'superadmin';
-    const isAdmin = userRole === 'admin';
-    const isGlobalReader = userRole === 'globalreader';
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
 
     const projectDoc = await Project.findOne({ _id: projectId, company: companyId }).lean();
     if (!projectDoc) throw new NotFoundError("Project");
@@ -496,7 +486,7 @@ class TaskService {
     const isOwner = projectDoc.owner && projectDoc.owner.toString() === userId.toString();
     const isTeamMember = projectDoc.team && projectDoc.team.some(m => m.toString() === userId.toString());
 
-    if (!isSuperAdmin && !isAdmin && !isGlobalReader && !isOwner && !isTeamMember) {
+    if (!isProjectAdmin && !isOwner && !isTeamMember) {
       throw new ForbiddenError("You do not have access to tasks in this project.");
     }
 
@@ -517,9 +507,8 @@ class TaskService {
 
   async deleteComment(user, companyId, taskId, commentId) {
     const userId = (user.id || user._id).toString();
-    const userRole = (user.role || "").replace(/\s+/g, "").toLowerCase();
-    const isSuperAdmin = userRole === "superadmin";
-    const isAdmin = userRole === "admin";
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === "project_administrator";
 
     const task = await Task.findOne({ _id: taskId, company: companyId });
     if (!task) throw new NotFoundError("Task");
@@ -552,21 +541,14 @@ class TaskService {
   }
 
   async getUserTasks(user, companyId) {
+    this.ensureProjectPortalAccess(user);
     const userId = user.id || user._id;
-    const userRole = (user.role || "").replace(/\s+/g, "").toLowerCase();
-    const isPrivileged =
-      userRole === "superadmin" ||
-      userRole === "admin" ||
-      (userRole === "manager" && user.isTechnician);
 
-    // Privileged roles run the command center and need visibility of every task
-    // in the company. Everyone else sees tasks assigned to or created by them.
-    const filter = isPrivileged
-      ? { company: companyId }
-      : {
-          company: companyId,
-          $or: [{ team: userId }, { createdBy: userId }],
-        };
+    // My Tasks must only return tasks assigned to the user (or created by user)
+    const filter = {
+      company: companyId,
+      $or: [{ team: userId }, { createdBy: userId }],
+    };
 
     return Task.find(filter)
       .populate("team", "name email avatar")

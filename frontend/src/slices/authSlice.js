@@ -11,7 +11,8 @@ export const syncAzureUser = createAsyncThunk(
  
  // Extract the actual user object from the ApiResponse wrapper
  // /auth/me returns { success: true, data: { user: {...} } }
- const userData = response.data?.data?.user || response.data?.data || response.data;
+ const raw = response.data;
+  const userData = raw?.user || raw?.data?.user || raw?.data || raw;
  
  dispatch(setUser(userData));
  

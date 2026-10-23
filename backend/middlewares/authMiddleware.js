@@ -5,15 +5,20 @@ const User = require('../models/userSchema');
 const { UnauthorizedError, ForbiddenError } = require('../utils/ExpressError');
 
 const Company = require('../models/companySchema');
+const { getEffectiveProjectRole, hasProjectPortalAccess, normalizeProjectRole, formatDisplayProjectRole } = require('../utils/projectRbac');
 
 const clients = {};
 
 function attachUserToRequest(req, user) {
+  const hasAccess = hasProjectPortalAccess(user);
+  const effectiveProjectRole = hasAccess ? formatDisplayProjectRole(user.projectRole || user.role) : null;
+
   req.user = {
     id: user.id, _id: user._id, azureId: user.azureId, name: user.name,
     email: user.email, role: user.role, company: user.company,
     department: user.department, isTechnician: user.isTechnician, avatar: user.avatar,
-    hasProjectPortalAccess: ['superadmin', 'admin'].includes((user.role || '').replace(/\s+/g, '').toLowerCase()) ? true : Boolean(user.hasProjectPortalAccess)
+    hasProjectPortalAccess: hasAccess,
+    projectRole: effectiveProjectRole
   };
 }
 
@@ -243,6 +248,22 @@ const isLoggedIn = async (req, res, next) => {
     }
   });
 };
+const restrictToProjectRole = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return next(new ForbiddenError("You do not have permission to perform this action"));
+    }
+
+    const effectiveRole = getEffectiveProjectRole(req.user);
+    const allowedRoles = roles.map(normalizeProjectRole);
+
+    if (!effectiveRole || !allowedRoles.includes(effectiveRole)) {
+      return next(new ForbiddenError("You do not have permission to perform this action in the Project Portal"));
+    }
+    next();
+  };
+};
+
 const restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !req.user.role) {
@@ -275,4 +296,4 @@ const isMasterAdmin = async (req, res, next) => {
   next();
 };
 
-module.exports = { isLoggedIn, restrictTo, isMasterAdmin };
+module.exports = { isLoggedIn, restrictTo, restrictToProjectRole, isMasterAdmin };

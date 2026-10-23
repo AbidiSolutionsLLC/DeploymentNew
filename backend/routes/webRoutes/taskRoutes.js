@@ -10,13 +10,13 @@ const upload = multer({
   fileFilter: commonFileFilter,
 });
 const taskController = require("../../controllers/taskController");
-const { isLoggedIn, restrictTo } = require("../../middlewares/authMiddleware");
+const { isLoggedIn, restrictToProjectRole } = require("../../middlewares/authMiddleware");
 const validate = require("../../middlewares/validationMiddleware");
 const { taskSchema, taskUpdateSchema, taskStatusSchema } = require("../../JoiSchema/TaskJoiSchema");
 
 router
   .route("/")
-  .post(isLoggedIn, restrictTo('Super Admin', 'Admin', 'Manager'), handleUpload(upload.array("attachments", 5)), validate(taskSchema), taskController.createTask)
+  .post(isLoggedIn, restrictToProjectRole('Project Administrator', 'Project Manager'), handleUpload(upload.array("attachments", 5)), validate(taskSchema), taskController.createTask)
   .get(isLoggedIn, taskController.getAllTasks);
 
 router.get("/project/:projectId", isLoggedIn, taskController.getProjectTasks);
@@ -26,7 +26,7 @@ router
   .route("/:id")
   .get(isLoggedIn, taskController.getTaskById)
   .put(isLoggedIn, handleUpload(upload.array("attachments", 5)), validate(taskUpdateSchema), taskController.updateTask)
-  .delete(isLoggedIn, restrictTo('Super Admin', 'Admin', 'Manager'), taskController.deleteTask);
+  .delete(isLoggedIn, restrictToProjectRole('Project Administrator', 'Project Manager'), taskController.deleteTask);
 
 router.post("/:id/comments", isLoggedIn, handleUpload(upload.array("attachments", 5)), taskController.addComment);
 router.get("/:id/comments", isLoggedIn, taskController.getTaskComments);

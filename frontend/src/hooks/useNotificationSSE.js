@@ -43,7 +43,7 @@ export const useNotificationSSE = (isAuthenticated) => {
    token = localStorage.getItem("accessToken");
  }
 
- if (!token) return;
+ if (!token || token === "undefined" || token === "null") return;
 
  // Close any existing connection
  if (sourceRef.current) {
@@ -64,7 +64,7 @@ export const useNotificationSSE = (isAuthenticated) => {
  try {
  const notification = JSON.parse(event.data);
  
- if (notification.type === 'ROLE_UPDATED') {
+ if (notification.type === 'ROLE_UPDATED' || notification.type === 'PROJECT_ACCESS_UPDATED') {
    dispatch(syncAzureUser());
    return;
  }

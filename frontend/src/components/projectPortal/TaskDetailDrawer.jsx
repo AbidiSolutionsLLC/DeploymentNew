@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import usePermission from "../../hooks/usePermission";
 import { useSelector } from "react-redux";
 import { FaDownload } from "react-icons/fa";
 import GlassModal from "../ui/GlassModal";
@@ -47,10 +48,10 @@ export default function TaskDetailDrawer({
   const { userInfo } = useSelector((state) => state.user || {});
   const authStateUser = useSelector((state) => state.auth.user);
   const authUser = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
-  const userRole = (authUser?.role || '').replace(/\s+/g, '').toLowerCase();
-  const isSuperAdmin = userRole === 'superadmin';
-  const isAdmin = userRole === 'admin';
-  const hasFullTaskControl = isSuperAdmin || isAdmin || canManageTasks;
+  const { isProjectAdmin, isProjectManager, isProjectEmployee, projectRole } = usePermission();
+  const isSuperAdmin = projectRole === 'superadmin';
+  const isAdmin = isProjectAdmin;
+  const hasFullTaskControl = isProjectAdmin || isProjectManager || canManageTasks;
 
   const effectiveUserId = (currentUserId || authUser?._id || authUser?.id)?.toString();
   const isAssignee = task?.team && task.team.some(m => (m?._id || m)?.toString() === effectiveUserId);

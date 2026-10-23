@@ -52,18 +52,18 @@ const PERMISSIONS = {
   'tickets:manage_status': ['superadmin', 'admin', 'manager'],
   
   // PROJECTS / TASKS
-  'projects:access':       ['superadmin', 'admin', 'manager', 'employee', 'hr', 'technician', 'globalreader'],
-  'projects:create':       ['superadmin', 'admin'],
-  'projects:edit':         ['superadmin', 'admin', 'manager'],
-  'projects:delete':       ['superadmin', 'admin'],
+  'projects:access':       ['superadmin', 'admin', 'manager', 'employee', 'hr', 'technician', 'globalreader', 'project_administrator', 'project_manager', 'team_member'],
+  'projects:create':       ['superadmin', 'admin', 'project_administrator'],
+  'projects:edit':         ['superadmin', 'admin', 'manager', 'project_administrator', 'project_manager'],
+  'projects:delete':       ['superadmin', 'admin', 'project_administrator'],
   'projects:read:own':     ['*'],
-  'projects:read:all':     ['superadmin', 'admin', 'globalreader'],
-  'projects:manage':       ['superadmin', 'admin', 'manager'],
-  'tasks:create':          ['superadmin', 'admin', 'manager'],
-  'tasks:edit:critical':   ['superadmin', 'admin', 'manager'],
+  'projects:read:all':     ['superadmin', 'admin', 'globalreader', 'project_administrator'],
+  'projects:manage':       ['superadmin', 'admin', 'manager', 'project_administrator', 'project_manager'],
+  'tasks:create':          ['superadmin', 'admin', 'manager', 'project_administrator', 'project_manager'],
+  'tasks:edit:critical':   ['superadmin', 'admin', 'manager', 'project_administrator', 'project_manager'],
   'tasks:edit:uncritical': ['*'],
-  'tasks:delete':          ['superadmin', 'admin', 'manager'],
-  'project_groups:manage': ['superadmin', 'admin'],
+  'tasks:delete':          ['superadmin', 'admin', 'manager', 'project_administrator', 'project_manager'],
+  'project_groups:manage': ['superadmin', 'admin', 'project_administrator'],
   
   // DOCUMENTS / FILES
   'files:read:all':        ['superadmin', 'admin', 'globalreader'],

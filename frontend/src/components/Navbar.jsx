@@ -113,7 +113,11 @@ const Navbar = () => {
   const allowedAdminRoles = ["superadmin", "admin", "hr", "manager", "globalreader"];
   const userRole = (user?.role || "").replace(/\s+/g, "").toLowerCase();
   
+  const hasProjectAccess = ["superadmin", "admin"].includes(userRole) || Boolean(user?.hasProjectPortalAccess || user?.user?.hasProjectPortalAccess);
   const navLinks = baseNavLinks.filter(link => {
+    if (link.name === "Projects" && !hasProjectAccess) {
+      return false;
+    }
     if (link.name === "Admin" && !allowedAdminRoles.includes(userRole)) {
       return false;
     }
