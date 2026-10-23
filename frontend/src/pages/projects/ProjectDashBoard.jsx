@@ -12,12 +12,12 @@ import {
 import {
   FaBolt,
   FaCheckCircle,
-  FaClock,
   FaFolderOpen,
   FaProjectDiagram,
   FaTasks,
 } from "react-icons/fa";
 import { fetchProjectDashboard } from "../../store/projectSlice";
+import { fetchMyTasks } from "../../store/taskSlice";
 import projectApi from "../../api/projectApi";
 import Loader from "../../components/ui/Loader";
 import PageContainer from "../../components/ui/PageContainer";
@@ -30,7 +30,7 @@ import GlassButton from "../../components/ui/GlassButton";
 
 /**
  * Project Dashboard — 4 Clickable KPI Cards + Consolidated Action Deck:
- * 1. KPI cards row: 4 cards in single row (Total, Active, Completed, Delayed), fully interactive & redirecting.
+ * 1. KPI cards row: 4 cards in single row (Total, Active, Completed, My Tasks), fully interactive & redirecting.
  * 2. Consolidated Action Card: Single card combining both "+ Project" and "+ Add Card" triggers.
  */
 const KPIS = [
@@ -62,13 +62,12 @@ const KPIS = [
     filterStatus: "Completed",
   },
   {
-    label: "Delayed Projects",
-    key: "delayedProjects",
-    Icon: FaClock,
-    sub: "Past target date",
-    tone: "rose",
-    path: "/project/projects?status=Delayed",
-    filterStatus: "Delayed",
+    label: "My Tasks",
+    key: "myTasks",
+    Icon: FaTasks,
+    sub: "Assigned to you",
+    tone: "violet",
+    path: "/project/myTasks",
   },
 ];
 
@@ -120,6 +119,7 @@ const ProjectDashBoard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { dashboardData, loading, error } = useSelector((state) => state.projects);
+  const { tasks = [] } = useSelector((state) => state.tasks);
   const [cards, setCards] = useState([]);
   const [cardsLoading, setCardsLoading] = useState(true);
 
@@ -130,6 +130,7 @@ const ProjectDashBoard = () => {
 
   useEffect(() => {
     dispatch(fetchProjectDashboard());
+    dispatch(fetchMyTasks());
   }, [dispatch]);
 
   useEffect(() => {
@@ -259,25 +260,28 @@ const ProjectDashBoard = () => {
                   .filter(Boolean)
                   .join(" ");
 
-                const rawVal = d[kpi.key];
+                const rawVal = kpi.key === "myTasks" ? tasks.length : d[kpi.key];
                 const value =
                   kpi.key === "totalProjects"
                     ? (rawVal ?? ((d.activeProjects || 0) + (d.completedProjects || 0) + (d.delayedProjects || 0)))
                     : (rawVal ?? 0);
+
+                const openKpi = () =>
+                  navigate(kpi.path, kpi.filterStatus ? { state: { status: kpi.filterStatus } } : undefined);
 
                 return (
                   <div
                     key={kpi.key}
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate(kpi.path, { state: { status: kpi.filterStatus } })}
+                    onClick={openKpi}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        navigate(kpi.path, { state: { status: kpi.filterStatus } });
+                        openKpi();
                       }
                     }}
-                    title={`View ${kpi.label} on Projects page`}
+                    title={`View ${kpi.label}${kpi.key === "myTasks" ? "" : " on Projects page"}`}
                     className={`group relative flex items-center gap-3.5 sm:gap-4 overflow-hidden px-5 py-5 text-left cursor-pointer select-none transition-all duration-300 ease-out hover:bg-amber-500/[0.04] dark:hover:bg-white/[0.04] hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${tone.wash} ${borders}`}
                   >
                     <span

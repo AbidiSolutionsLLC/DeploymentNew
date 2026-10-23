@@ -366,8 +366,12 @@ const ProjectDetail = () => {
         {/* ===== Task workspace ===== */}
         <section className="glass-card bg-surface !p-0 overflow-hidden">
           <div className="p-5">
+            <div className="mb-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Task workspace</p>
+              <h2 className="text-base font-black text-heading uppercase tracking-tight mt-1">Board</h2>
+            </div>
             <div className="overflow-x-auto">
-                <div className="grid grid-cols-5 gap-4 min-w-[1100px] items-stretch">
+                <div className="grid grid-cols-5 gap-4 min-w-[1300px] items-stretch">
                   {KANBAN_COLUMNS.map((col) => {
                     const colTasks = getTasksByStatus(col.id);
                     return (
