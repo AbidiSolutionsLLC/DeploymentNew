@@ -333,7 +333,7 @@ class TaskService {
         return member && member._id ? member._id.toString() === userId.toString() : member.toString() === userId.toString();
     });
     
-    if (!isSuperAdmin && !isAdmin && !isAssignee) {
+    if (!isProjectAdmin && !isAssignee) {
       const Project = require('../models/projectSchema');
       const projectDoc = await Project.findOne({ _id: task.project, company: companyId }).lean();
       const isProjectOwner = projectDoc && projectDoc.owner && projectDoc.owner.toString() === userId.toString();
@@ -521,7 +521,7 @@ class TaskService {
     const comment = task.comments[commentIndex];
     const isAuthor = comment.user && comment.user.toString() === userId;
 
-    if (!isSuperAdmin && !isAdmin && !isAuthor) {
+    if (!isProjectAdmin && !isAuthor) {
       throw new ForbiddenError("You are not authorized to delete this comment");
     }
 
