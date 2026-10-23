@@ -22,6 +22,7 @@ import LeaveTracker from "./pages/people/LeaveTracker";
 import LeaveTrackerAdmin from "./pages/people/LeaveTrackerAdmin";
 import FileTabs from "./pages/people/FileTabs";
 import ProjectDashBoard from "./pages/projects/ProjectDashBoard";
+import MyTask from "./pages/projects/MyTask";
 import Projects from "./pages/projects/Projects";
 import Project from "./pages/projects/Project";
 import UserManagement from "./pages/admin/UserManagement";
@@ -200,7 +201,8 @@ function App() {
 
  <Route path="/project/*" element={<PrivateRoute requiredPermission="projects:access"><Outlet /></PrivateRoute>}>
   <Route index element={<Navigate to="projectDashboard" replace />} />
-  <Route path="projectDashboard" element={<ProjectDashBoard />} />
+   <Route path="projectDashboard" element={<ProjectDashBoard />} />
+   <Route path="myTasks" element={<MyTask />} />
   <Route path="projects" element={<Projects />} />
    <Route path="projectDetailed/:id" element={<ProjectDetail />} />
    <Route path="projects/:id" element={<ProjectDetail />} />

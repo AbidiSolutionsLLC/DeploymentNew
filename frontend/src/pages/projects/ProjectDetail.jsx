@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import taskApi from "../../api/taskApi";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import {
@@ -219,6 +220,26 @@ const ProjectDetail = () => {
       dispatch(fetchProjectActivities(id));
     }
   }, [id, activeTab, dispatch]);
+
+  const [searchParams] = useSearchParams();
+  const urlTaskId = searchParams.get("taskId");
+
+  useEffect(() => {
+    if (urlTaskId) {
+      if (tasks && tasks.length > 0) {
+        const found = tasks.find((t) => t._id === urlTaskId || t.taskID === urlTaskId);
+        if (found) {
+          setShowTaskDetail(found);
+          return;
+        }
+      }
+      taskApi.getTaskById(urlTaskId)
+        .then((t) => {
+          if (t) setShowTaskDetail(t);
+        })
+        .catch(() => {});
+    }
+  }, [urlTaskId, tasks]);
 
   // Fetch task comments when task detail opens
   useEffect(() => {
@@ -610,7 +631,7 @@ const ProjectDetail = () => {
           <div className="px-5 pb-5">
             {activeTab === "board" && (
               <div className="overflow-x-auto">
-                <div className="grid grid-cols-5 gap-4 min-w-[1100px] items-stretch">
+                <div className="grid grid-cols-5 gap-4 min-w-[1300px] items-stretch">
                   {KANBAN_COLUMNS.map((col) => {
                     const colTasks = getTasksByStatus(col.id);
                     return (
