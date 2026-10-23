@@ -25,6 +25,7 @@ import {
   createTask,
   updateTaskStatus,
   updateTask,
+  deleteTask,
   addTaskComment,
   fetchTaskComments,
   deleteTaskComment,
@@ -279,6 +280,18 @@ const ProjectDetail = () => {
       setShowTaskDetail((current) => current?._id === taskId ? { ...current, ...updates } : current);
     } catch (err) {
       toast.error(err?.message || "Failed to update task details");
+      throw err;
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await dispatch(deleteTask(taskId)).unwrap();
+      toast.success("Task deleted successfully");
+      setShowTaskDetail(null);
+      await dispatch(fetchProjectTasks(id)).unwrap();
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete task");
       throw err;
     }
   };
@@ -725,7 +738,7 @@ const ProjectDetail = () => {
                           </button>
                         )}
                       </div>
-                      <div className="flex-1 space-y-3">
+                      <div className="flex-1 space-y-3 max-h-[calc(100vh-320px)] min-h-[340px] overflow-y-auto pr-1.5 custom-scrollbar-visible">
                         {colTasks.map((task) => (
                           <TaskCard
                             key={task._id}
@@ -779,6 +792,7 @@ const ProjectDetail = () => {
             onAddComment={(commentData) => handleAddComment(showTaskDetail._id, commentData)}
             onAddcomment={(commentData) => handleAddComment(showTaskDetail._id, commentData)}
             onDeleteComment={(commentId) => handleDeleteComment(showTaskDetail._id, commentId)}
+            onDeleteTask={(taskId) => handleDeleteTask(taskId)}
             comments={taskComments[showTaskDetail._id] || []}
             currentUserId={currentUserId}
             projectTasks={tasks}

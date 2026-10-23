@@ -33,6 +33,11 @@ const updateTaskStatus = async (id, status) => {
   return response.data?.data || response.data;
 };
 
+const deleteTask = async (id) => {
+  const response = await api.delete(`${API_URL}/${id}`);
+  return response.data?.data || response.data;
+};
+
 const getTaskComments = async (taskId) => {
   const response = await api.get(`${API_URL}/${taskId}/comments`);
   return response.data?.data || response.data;
@@ -97,6 +102,7 @@ const taskApi = {
   createTask,
   updateTask,
   updateTaskStatus,
+  deleteTask,
   getTaskComments,
   addTaskComment,
   deleteTaskComment,

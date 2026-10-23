@@ -49,6 +49,18 @@ export const updateTask = createAsyncThunk(
   }
 );
 
+export const deleteTask = createAsyncThunk(
+  'tasks/deleteTask',
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.deleteTask(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 export const fetchProjectActivities = createAsyncThunk(
   'tasks/fetchProjectActivities',
   async (projectId, { rejectWithValue }) => {
@@ -190,6 +202,15 @@ const taskSlice = createSlice({
         const projIndex = state.projectTasks.findIndex(t => t._id === action.payload._id);
         if (projIndex !== -1) {
           state.projectTasks[projIndex] = action.payload;
+        }
+      })
+      // deleteTask
+      .addCase(deleteTask.fulfilled, (state, action) => {
+        const deletedId = action.payload;
+        state.tasks = state.tasks.filter(t => (t._id || t.id) !== deletedId);
+        state.projectTasks = state.projectTasks.filter(t => (t._id || t.id) !== deletedId);
+        if (state.taskComments[deletedId]) {
+          delete state.taskComments[deletedId];
         }
       })
       // fetchProjectActivities

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import usePermission from "../../hooks/usePermission";
 import { useSelector } from "react-redux";
 import { FaDownload } from "react-icons/fa";
-import { Link2, ArrowRight, ShieldAlert } from "lucide-react";
+import { Link2, ArrowRight, ShieldAlert, Trash2, UserPlus, Users } from "lucide-react";
 import GlassModal from "../ui/GlassModal";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
@@ -13,6 +13,8 @@ import { formatDate, isOverdue, taskProgress, getTaskAssignee, getAssigneeName }
 import TaskComments from "./TaskComments";
 import { downloadFile } from "../../utils/downloadFile";
 import taskApi from "../../api/taskApi";
+import projectApi from "../../api/projectApi";
+import api from "../../axios";
 
 const STATUS_OPTIONS = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
 const PRIORITY_OPTIONS = ["Low", "Medium", "High"];
@@ -41,6 +43,7 @@ export default function TaskDetailDrawer({
   onAddcomment,
   onDeleteComment,
   onDeletecomment,
+  onDeleteTask,
   comments = [],
   projectTasks = [],
   onTaskUpdate,
@@ -58,6 +61,12 @@ export default function TaskDetailDrawer({
   const effectiveUserId = (currentUserId || authUser?._id || authUser?.id)?.toString();
   const isAssignee = task?.team && task.team.some(m => (m?._id || m)?.toString() === effectiveUserId);
   const canChangeStatus = hasFullTaskControl || isAssignee;
+  const canEditDescription = hasFullTaskControl || isAssignee;
+  const canReassign = hasFullTaskControl;
+  const canDeleteTask = hasFullTaskControl;
+
+  const [title, setTitle] = useState(task?.title || "");
+  const [description, setDescription] = useState(task?.description || "");
   const [status, setStatus] = useState(task?.status || "Backlog");
   const [priority, setPriority] = useState(task?.priority || "Medium");
   const [dueDate, setDueDate] = useState(toDateInput(task?.dueDate));
@@ -67,7 +76,16 @@ export default function TaskDetailDrawer({
   const [dependencies, setDependencies] = useState(
     (task?.dependencies || []).map((dependency) => dependency._id || dependency)
   );
+  const [selectedTeam, setSelectedTeam] = useState(
+    (task?.team || []).map((m) => (m?._id || m)?.toString())
+  );
   const [savingDetails, setSavingDetails] = useState(false);
+  const [deletingTask, setDeletingTask] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Team members list for reassignment
+  const [projectMembers, setProjectMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
   // Project-filtered dependencies state
   const currentProjectId = (task?.project?._id || task?.project)?.toString();
@@ -76,6 +94,8 @@ export default function TaskDetailDrawer({
   const [depSearch, setDepSearch] = useState("");
 
   useEffect(() => {
+    setTitle(task?.title || "");
+    setDescription(task?.description || "");
     setStatus(task?.status || "Backlog");
     setPriority(task?.priority || "Medium");
     setDueDate(toDateInput(task?.dueDate));
@@ -85,8 +105,74 @@ export default function TaskDetailDrawer({
     setDependencies(
       (task?.dependencies || []).map((dependency) => dependency._id || dependency)
     );
+    setSelectedTeam(
+      (task?.team || []).map((m) => (m?._id || m)?.toString())
+    );
     setDepSearch("");
+    setShowDeleteConfirm(false);
   }, [task]);
+
+  // Load project members for task reassignment
+  useEffect(() => {
+    if (!currentProjectId) {
+      setProjectMembers([]);
+      return;
+    }
+
+    let isMounted = true;
+    setLoadingMembers(true);
+    (async () => {
+      try {
+        const [projRes, usersRes] = await Promise.all([
+          projectApi.getProjectById(currentProjectId).catch(() => null),
+          api.get("/users").catch(() => null),
+        ]);
+
+        if (!isMounted) return;
+
+        const allUsers = usersRes?.data?.data || usersRes?.data || [];
+        const projectDoc = projRes;
+
+        const members = [];
+        const seen = new Set();
+        const addMember = (m) => {
+          if (!m) return;
+          const id = (m._id || m.id || m).toString();
+          if (seen.has(id)) return;
+          seen.add(id);
+
+          if (typeof m === "object" && m.name) {
+            members.push(m);
+          } else {
+            const found = allUsers.find((u) => (u._id || u.id)?.toString() === id);
+            if (found) {
+              members.push(found);
+            } else {
+              members.push({ _id: id, name: "Team Member" });
+            }
+          }
+        };
+
+        if (projectDoc) {
+          if (projectDoc.owner) addMember(projectDoc.owner);
+          if (Array.isArray(projectDoc.team)) {
+            projectDoc.team.forEach(addMember);
+          }
+        }
+
+        // If no members in project, fallback to company users
+        setProjectMembers(members.length > 0 ? members : allUsers);
+      } catch (err) {
+        console.warn("Could not load project members for task reassignment:", err);
+      } finally {
+        if (isMounted) setLoadingMembers(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentProjectId]);
 
   // Load tasks belonging ONLY to this specific project
   useEffect(() => {
@@ -131,15 +217,35 @@ export default function TaskDetailDrawer({
         completionPercent: Number(completionPercent),
         workedHours: workedHours === "" ? 0 : Number(workedHours),
       };
+
+      if (canEditDescription) {
+        payload.description = description;
+      }
+
       if (hasFullTaskControl) {
+        payload.title = title.trim();
         payload.dueDate = dueDate || null;
         payload.priority = priority;
         payload.duration = duration === "" ? null : Number(duration);
         payload.dependencies = dependencies.map((d) => (d?._id || d)?.toString());
+        payload.team = selectedTeam;
       }
+
       await onTaskUpdate(payload);
     } finally {
       setSavingDetails(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDeleteTask || deletingTask) return;
+    setDeletingTask(true);
+    try {
+      await onDeleteTask(task?._id || task?.id);
+      onClose();
+    } finally {
+      setDeletingTask(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -233,27 +339,89 @@ export default function TaskDetailDrawer({
       description={`Task · ${STATUS_DISPLAY[task?.status] || task?.status}`}
       maxWidth="max-w-2xl"
       footer={
-        <div className="flex items-center justify-end gap-2.5 w-full">
-          <GlassButton variant="secondary" onClick={onClose} disabled={savingDetails}>
-            Close
-          </GlassButton>
-          <GlassButton
-            variant="primary"
-            onClick={saveDetails}
-            isLoading={savingDetails}
-            disabled={savingDetails}
-          >
-            Save details
-          </GlassButton>
+        <div className="flex items-center justify-between gap-2.5 w-full">
+          <div>
+            {canDeleteTask && (
+              <GlassButton
+                variant="danger"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={savingDetails || deletingTask}
+                className="!text-xs gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Task</span>
+              </GlassButton>
+            )}
+          </div>
+          <div className="flex items-center gap-2.5">
+            <GlassButton variant="secondary" onClick={onClose} disabled={savingDetails || deletingTask}>
+              Close
+            </GlassButton>
+            <GlassButton
+              variant="primary"
+              onClick={saveDetails}
+              isLoading={savingDetails}
+              disabled={savingDetails || deletingTask}
+            >
+              Save details
+            </GlassButton>
+          </div>
         </div>
       }
     >
       <div className="flex flex-col gap-5">
-        {/* Task header */}
+        {/* Delete Confirmation Warning */}
+        {showDeleteConfirm && (
+          <div className="p-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-danger space-y-2">
+            <div className="flex items-center gap-2 font-bold text-sm">
+              <ShieldAlert className="w-4 h-4 shrink-0 text-red-500" />
+              <span>Are you sure you want to delete this task?</span>
+            </div>
+            <p className="text-xs text-muted">
+              This will permanently delete the task and its logged comments/attachments. This action cannot be undone.
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <GlassButton
+                variant="danger"
+                size="sm"
+                isLoading={deletingTask}
+                onClick={handleDelete}
+              >
+                Yes, Delete
+              </GlassButton>
+              <GlassButton
+                variant="secondary"
+                size="sm"
+                disabled={deletingTask}
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </GlassButton>
+            </div>
+          </div>
+        )}
+
+        {/* Task header & Title Edit */}
         <div className="flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-black text-heading">{task?.title}</h3>
+              {hasFullTaskControl ? (
+                <div>
+                  <label className="block text-[10px] font-black text-muted mb-1 uppercase tracking-widest">
+                    Task Title
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Task Title"
+                    className="glass-input w-full text-base font-bold text-heading px-3 py-1.5 rounded-lg"
+                  />
+                </div>
+              ) : (
+                <h3 className="text-lg font-black text-heading">{task?.title}</h3>
+              )}
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <TableStatus value={STATUS_DISPLAY[status] || status} />
                 <TablePriority value={priority} />
@@ -309,13 +477,57 @@ export default function TaskDetailDrawer({
           </div>
         </div>
 
-        {/* Description */}
-        {task?.description && (
+        {/* Task Assignee / Reassignment Section */}
+        {hasFullTaskControl && (
           <div className="border-t border-border-subtle pt-4">
-            <h4 className="text-xs font-black uppercase tracking-widest text-muted mb-2">Description</h4>
-            <p className="text-sm text-main whitespace-pre-wrap">{task.description}</p>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-black uppercase tracking-widest text-muted flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-brand" />
+                <span>Assigned Team Member</span>
+              </label>
+              <span className="text-[10px] text-muted">Reassign task to any project contributor</span>
+            </div>
+            <div className="w-full sm:w-80">
+              <ModernSelect
+                value={selectedTeam[0] || ""}
+                disabled={loadingMembers}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedTeam(val ? [val] : []);
+                }}
+                options={[
+                  { value: "", label: "Unassigned" },
+                  ...projectMembers.map((m) => ({
+                    value: (m._id || m.id).toString(),
+                    label: m.name ? `${m.name}${m.email ? ` (${m.email})` : ""}` : m.email || "Member",
+                  })),
+                ]}
+                placeholder="Assign to..."
+              />
+            </div>
           </div>
         )}
+
+        {/* Description (Editable for Assignee and Admins/Managers) */}
+        <div className="border-t border-border-subtle pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-black uppercase tracking-widest text-muted">Description</h4>
+            {!canEditDescription && (
+              <span className="text-[10px] text-muted">(Read only)</span>
+            )}
+          </div>
+          {canEditDescription ? (
+            <textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add or update task description, notes, or requirements..."
+              className="glass-input w-full p-3 rounded-xl text-sm leading-relaxed text-main focus:ring-1 focus:ring-brand"
+            />
+          ) : (
+            <p className="text-sm text-main whitespace-pre-wrap">{task?.description || "No description provided."}</p>
+          )}
+        </div>
 
         {/* Delivery details (Editable) */}
         <div className="border-t border-border-subtle pt-4">

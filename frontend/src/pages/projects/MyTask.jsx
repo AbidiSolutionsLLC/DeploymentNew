@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import usePermission from "../../hooks/usePermission";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
-import { fetchMyTasks, updateTask, addTaskComment, fetchTaskComments, deleteTaskComment } from "../../store/taskSlice";
+import { fetchMyTasks, updateTask, deleteTask, addTaskComment, fetchTaskComments, deleteTaskComment } from "../../store/taskSlice";
 import { toast } from "react-toastify";
 import PageContainer from "../../components/ui/PageContainer";
 import PortalHero from "../../components/ui/PortalHero";
@@ -146,6 +146,17 @@ const MyTask = () => {
     }
   };
 
+  const handleDeleteTask = async (id) => {
+    try {
+      await dispatch(deleteTask(id)).unwrap();
+      toast.success("Task deleted successfully");
+      setDetailTask(null);
+      dispatch(fetchMyTasks());
+    } catch (err) {
+      toast.error(apiError(err, "Failed to delete task"));
+    }
+  };
+
   const columns = [
     {
       key: "_index",
@@ -284,6 +295,7 @@ const MyTask = () => {
           onAddComment={(commentData) => handleAddComment(detailTask?._id, commentData)}
           onAddcomment={(commentData) => handleAddComment(detailTask?._id, commentData)}
           onDeleteComment={(commentId) => handleDeleteComment(detailTask?._id, commentId)}
+          onDeleteTask={(taskId) => handleDeleteTask(taskId)}
           comments={taskComments[detailTask?._id] || []}
           projectTasks={tasks}
           onTaskUpdate={(updates) => handleUpdateTask(detailTask?._id, updates)}

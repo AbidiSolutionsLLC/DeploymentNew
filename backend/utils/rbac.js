@@ -21,6 +21,13 @@ exports.getSearchScope = async (currentUser, type) => {
     return {}; // God Mode: See everything across all modules
   }
 
+  // --- 1.5 PROJECT ADMINISTRATOR: Full user visibility when managing projects / users ---
+  const { getEffectiveProjectRole, ROLE_PROJECT_ADMINISTRATOR } = require('./projectRbac');
+  const effectiveProjectRole = getEffectiveProjectRole(currentUser);
+  if (effectiveProjectRole === ROLE_PROJECT_ADMINISTRATOR && type === 'usermanagement') {
+    return {}; // Project Administrators can view all users to assign owners and team members
+  }
+
   // --- 2. EXPENSE SCOPE (New Requirement) ---
   if (type === 'expense') {
     if (roleKey === 'admin' || roleKey === 'manager') {

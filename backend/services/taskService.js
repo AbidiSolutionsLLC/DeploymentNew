@@ -289,21 +289,26 @@ class TaskService {
 
     const previousTeam = task.team.map(id => id.toString());
     
-    task.title = title || task.title;
-    task.description = description || task.description;
-    task.team = team || task.team;
-    task.priority = priority || task.priority;
-    task.dueDate = dueDate || task.dueDate;
-    task.duration = duration || task.duration;
+    task.title = title !== undefined ? title : task.title;
+    task.description = description !== undefined ? description : task.description;
+    task.team = team !== undefined ? team : task.team;
+    task.priority = priority !== undefined ? priority : task.priority;
+    task.dueDate = dueDate !== undefined ? dueDate : task.dueDate;
+    task.duration = duration !== undefined ? duration : task.duration;
     task.completionPercent = completionPercent !== undefined ? completionPercent : task.completionPercent;
     task.workedHours = workedHours !== undefined ? workedHours : task.workedHours;
-    task.status = status || task.status;
+    task.status = status !== undefined ? status : task.status;
     task.dependencies = validDependencies;
     if (files?.length) {
       task.attachments = [...(task.attachments || []), ...this.mapAttachments(files)];
     }
 
-    const updatedTask = await task.save();
+    await task.save();
+
+    const updatedTask = await Task.findById(task._id)
+      .populate("team", "name email avatar")
+      .populate("project", "title")
+      .populate("dependencies", "title status");
 
     require("./activityLogService").recordActivity({
       actorId: user.id || user._id,

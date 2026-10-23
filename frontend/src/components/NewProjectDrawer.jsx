@@ -145,7 +145,9 @@ setForm({
   const isPortalUser = (u) => {
     if (!u) return false;
     const role = (u.role || "").replace(/\s+/g, "").toLowerCase();
-    return role === "superadmin" || role === "admin" || Boolean(u.hasProjectPortalAccess);
+    const projRole = (u.projectRole || "").replace(/[\s_-]+/g, "").toLowerCase();
+    const isProjAdminOrManager = projRole === "projectadministrator" || projRole === "projectadmin" || projRole === "projectmanager";
+    return role === "superadmin" || role === "admin" || Boolean(u.hasProjectPortalAccess) || Boolean(u.projectRole) || isProjAdminOrManager;
   };
 
   const portalEligibleUsers = React.useMemo(() => {

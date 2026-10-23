@@ -116,7 +116,7 @@ const KanbanBoard = ({ tasks, onDragEnd, loading }) => {
  </span>
  </div>
  
- <div className="min-h-[300px] sm:min-h-[400px] transition-all duration-200 rounded-lg">
+ <div className="min-h-[300px] sm:min-h-[400px] max-h-[calc(100vh-320px)] overflow-y-auto pr-1.5 custom-scrollbar-visible space-y-3 transition-all duration-200 rounded-lg">
  {getTasksByStatus(column.id).map((task, index) => (
  <div
  key={task.id}
