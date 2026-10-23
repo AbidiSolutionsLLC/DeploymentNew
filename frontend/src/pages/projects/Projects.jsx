@@ -14,7 +14,7 @@ import PortalTable from "../../components/projectPortal/PortalTable";
 import FilterPanel from "../../components/ui/FilterPanel";
 import FilterRow from "../../components/ui/FilterRow";
 import GlassInput from "../../components/ui/GlassInput";
-import ModernSelect from "../../components/ui/ModernSelect";
+import ProjectStatusFilter, { PROJECT_STATUS_OPTIONS } from "../../components/projectPortal/ProjectStatusFilter";
 import GlassButton from "../../components/ui/GlassButton";
 import {
   TableDate,
@@ -31,15 +31,7 @@ import { projectProgress, personName } from "../../components/projectPortal/help
  * Projects — "Command Center" list page (PROJECT_PORTAL_DESIGN.md §9.2).
  * Full list loaded once (GET /projects?limit=1000); search/filter/sort/page client-side.
  */
-const STATUS_OPTIONS = [
-  { value: "All", label: "Status" },
-  { value: "Planning", label: "Planning" },
-  { value: "Active", label: "Active" },
-  { value: "On Hold", label: "On Hold" },
-  { value: "Completed", label: "Completed" },
-  { value: "Delayed", label: "Delayed" },
-  { value: "Cancelled", label: "Cancelled" },
-];
+const STATUS_OPTIONS = PROJECT_STATUS_OPTIONS;
 
 const apiError = (err, fallback) => err?.response?.data?.message || err?.message || fallback;
 
@@ -104,6 +96,27 @@ const Projects = () => {
       return matchStatus && matchQuery;
     });
   }, [projects, query, status]);
+
+  const statusCounts = useMemo(() => {
+    const counts = {
+      All: projects.length,
+      Planning: 0,
+      Active: 0,
+      "On Hold": 0,
+      Completed: 0,
+      Delayed: 0,
+      Cancelled: 0,
+    };
+    projects.forEach((p) => {
+      if (counts[p.status] !== undefined) {
+        counts[p.status] += 1;
+      }
+      if (isDelayedProject(p)) {
+        counts.Delayed += 1;
+      }
+    });
+    return counts;
+  }, [projects]);
 
   const filtersActive = status !== "All";
   const resetFilters = () => {
@@ -272,22 +285,18 @@ const Projects = () => {
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1 min-w-[220px]"
           />
-          <div className="min-w-[140px]">
-            <ModernSelect
-              value={status}
-              onChange={(e) => {
-                const next = e.target.value;
-                setStatus(next);
-                if (next === "All") {
-                  setSearchParams({});
-                } else {
-                  setSearchParams({ status: next });
-                }
-              }}
-              options={STATUS_OPTIONS}
-              placeholder="Status"
-            />
-          </div>
+          <ProjectStatusFilter
+            value={status}
+            onChange={(next) => {
+              setStatus(next);
+              if (next === "All") {
+                setSearchParams({});
+              } else {
+                setSearchParams({ status: next });
+              }
+            }}
+            counts={statusCounts}
+          />
           {filtersActive && (
             <GlassButton variant="ghost" size="sm" onClick={resetFilters}>
               RESET

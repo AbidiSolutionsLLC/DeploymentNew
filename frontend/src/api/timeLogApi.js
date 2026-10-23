@@ -17,17 +17,22 @@ const getEmployeeTimeLogs = async (date = null, userId = null) => {
 };
 
 const createTimeLog = async (timeLogData) => {
- const config = {
+ const config = timeLogData instanceof FormData ? {
  headers: {
  'Content-Type': 'multipart/form-data'
  }
- };
+ } : {};
  const response = await api.post(API_URL, timeLogData, config);
  return response.data.data || response.data;
 };
 
 const updateTimeLog = async (id, updates) => {
- const response = await api.put(`${API_URL}/${id}`, updates);
+ const config = updates instanceof FormData ? {
+ headers: {
+ 'Content-Type': 'multipart/form-data'
+ }
+ } : {};
+ const response = await api.put(`${API_URL}/${id}`, updates, config);
  return response.data.data || response.data;
 };
 
@@ -41,7 +46,7 @@ const downloadAttachment = async (logId, attachmentId) => {
  responseType: 'blob'
  });
  return response.data;
-}
+};
 
 const timeLogApi = {
  getEmployeeTimeLogs,

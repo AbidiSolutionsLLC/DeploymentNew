@@ -54,6 +54,16 @@ const timeLogSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Timesheet",
     },
+    task: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Task",
+      default: null,
+    },
+    project: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -61,6 +71,7 @@ const timeLogSchema = new mongoose.Schema(
 );
 
 timeLogSchema.index({ employee: 1, date: 1 });
+timeLogSchema.index({ task: 1 });
 
 const TimeLog =
   mongoose.models.TimeLog || mongoose.model("TimeLog", timeLogSchema);

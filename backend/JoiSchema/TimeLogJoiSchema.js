@@ -17,14 +17,24 @@ const createTimeLogSchema = Joi.object({
     'any.required': 'Hours worked is required.'
   }),
   description: Joi.string().trim().allow("", null),
-  employeeId: Joi.string().allow(null, "").optional()
+  employeeId: Joi.string().allow(null, "").optional(),
+  taskId: Joi.string().allow(null, "").optional(),
+  task: Joi.string().allow(null, "").optional(),
+  projectId: Joi.string().allow(null, "").optional(),
+  project: Joi.string().allow(null, "").optional(),
+  markAsDone: Joi.boolean().allow(null, "").optional(),
 });
 
 const updateTimeLogSchema = Joi.object({
   job: Joi.string().trim().min(1).max(150).optional(),
   date: Joi.date().max('now').optional(),
   hours: Joi.number().min(0.1).max(24).optional(),
-  description: Joi.string().trim().allow("", null).optional()
+  description: Joi.string().trim().allow("", null).optional(),
+  taskId: Joi.string().allow(null, "").optional(),
+  task: Joi.string().allow(null, "").optional(),
+  projectId: Joi.string().allow(null, "").optional(),
+  project: Joi.string().allow(null, "").optional(),
+  markAsDone: Joi.boolean().allow(null, "").optional(),
 });
 
 module.exports = { createTimeLogSchema, updateTimeLogSchema };

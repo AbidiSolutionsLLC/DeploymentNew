@@ -8,6 +8,11 @@ const getMyTasks = async () => {
   return response.data?.data || response.data;
 };
 
+const getTaskById = async (taskId) => {
+  const response = await api.get(`${API_URL}/${taskId}`);
+  return response.data?.data || response.data;
+};
+
 const getProjectTasks = async (projectId) => {
   const response = await api.get(`${API_URL}/project/${projectId}`);
   return response.data?.data || response.data;
@@ -87,6 +92,7 @@ const getProjectActivities = async (projectId) => {
 
 const taskApi = {
   getMyTasks,
+  getTaskById,
   getProjectTasks,
   createTask,
   updateTask,

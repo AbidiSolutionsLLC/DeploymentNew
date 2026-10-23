@@ -62,6 +62,7 @@ export const PAGE_ICONS = {
   // ── Project module ──
   "/project/projectDashboard": ChartPieIcon,
   "/project/projects": RectangleStackIcon,
+  "/project/myTasks": ClipboardDocumentListIcon,
 };
 
 /**

@@ -41,7 +41,7 @@ app.use(
 app.use(mongoSanitize());
 
 const corsOptions = {
-  origin: ['https://abidipro.abidisolutions.com', 'http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000', "http://localhost:5174","http://localhost:5175", "http://127.0.0.1:4173", "http://127.0.0.1:4174", "http://192.168.100.91:5173"],
+  origin: ['https://abidipro.abidisolutions.com', 'https://4982-59-103-167-242.ngrok-free.app','http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000', "http://localhost:5174","http://localhost:5175", "http://127.0.0.1:4173", "http://127.0.0.1:4174", "http://192.168.100.91:5173"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], 
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Timezone', 'x-timezone', 'x-test-auth-secret', 'x-test-user-id', 'x-test-user-email', '_islogoutrequest', '_skipAuth'],

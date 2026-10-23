@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
 import ModernSelect from "./ui/ModernSelect";
+import ModernMultiSelect from "./ui/ModernMultiSelect";
 import ModernDatePicker from "./ui/ModernDatePicker";
 import api from "../axios";
 
@@ -27,7 +28,7 @@ const EMPTY_FORM = {
   milestones: [],
 };
 
-const toId = (v) => (v && typeof v === "object" ? v._id || "" : v || "");
+const toId = (v) => (v && typeof v === "object" ? String(v._id || v.id || "") : String(v || ""));
 const toDateInput = (v) => (v ? String(v).slice(0, 10) : "");
 
 const NewProjectDrawer = ({ isOpen, onClose, onSubmit, project = null }) => {
@@ -83,7 +84,7 @@ setForm({
           owner: toId(project.owner),
           department: toId(project.department),
           status: PROJECT_STATUSES.includes(project.status) ? project.status : "Planning",
-        team: (project.team || []).map((m) => toId(m)),
+        team: (project.team || []).map(toId).filter(Boolean),
         startDate: toDateInput(project.startDate),
         dueDate: toDateInput(project.dueDate),
         milestones: (project.milestones || []).map((milestone) => ({
@@ -229,28 +230,16 @@ setForm({
 
         {/* Team Members */}
         <div>
-          <label htmlFor="project-team" className={labelCls}>
-            Team Members
-          </label>
-          <select
-            id="project-team"
-            multiple
+          <ModernMultiSelect
+            label="Team Members"
+            name="team"
             value={form.team}
-            onChange={(e) =>
-              set(
-                "team",
-                Array.from(e.target.selectedOptions, (o) => o.value)
-              )
-            }
-            className="glass-input h-24 custom-scrollbar-visible"
-          >
-            {users.map((u) => (
-              <option key={u._id || u.id} value={u._id || u.id}>
-                {u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email}
-              </option>
-            ))}
-          </select>
-          <p className="text-[10px] text-muted mt-1">Hold Ctrl/Cmd to select multiple</p>
+            onChange={(e) => set("team", e.target.value)}
+            users={users}
+            placeholder={loadingOptions ? "Loading people..." : "Assign team members..."}
+            searchPlaceholder="Search people by name or email..."
+            helperText="Select members to add to the project. Click the dropdown to see unassigned members."
+          />
         </div>
 
         {/* Dates */}

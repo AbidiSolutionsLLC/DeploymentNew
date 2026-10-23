@@ -1,3 +1,4 @@
+import React from "react";
 import GlobalTable from "../ui/GlobalTable";
 
 /**
@@ -53,11 +54,25 @@ export default function PortalTable({
 
   const mappedActions = (actions || []).map((act) => {
     const Icon = act.icon;
+    let renderedIcon = null;
+    if (React.isValidElement(Icon)) {
+      renderedIcon = Icon;
+    } else if (
+      typeof Icon === "function" ||
+      (Icon && typeof Icon === "object" && (Icon.$$typeof || Icon.render))
+    ) {
+      renderedIcon = <Icon className="w-4 h-4" />;
+    } else {
+      renderedIcon = Icon;
+    }
+
     return {
+      ...act,
       title: act.title,
       onClick: act.onClick,
-      className: act.danger ? DANGER_ACTION : undefined,
-      icon: <Icon className="w-4 h-4" />,
+      disabled: act.disabled,
+      className: act.className || (act.danger ? DANGER_ACTION : undefined),
+      icon: renderedIcon,
     };
   });
 

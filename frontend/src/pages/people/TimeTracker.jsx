@@ -274,35 +274,70 @@ const TimeTracker = () => {
  };
 
 
- const timeLogColumns = [
- {
- key: "jobTitle",
- label: "Job Title",
- sortable: true,
- render: (value, row) => <TableText value={row.jobTitle || row.job} />
- },
- {
- key: "date",
- label: "Date",
- sortable: true,
- render: (value, row) => <TableText value={formatBackendDate(row.date)} muted />
- },
- {
- key: "description",
- label: "Description",
- sortable: false,
- render: (value, row) => (
- <TableText value={row.description} muted truncate maxWidth="max-w-xs" />
- )
- },
- {
- key: "totalHours",
- label: "Hours",
- sortable: true,
- render: (value, row) => <TableNumber value={row.totalHours || row.hours} />
- }
- ];
-
+  const timeLogColumns = [
+    {
+      key: "jobTitle",
+      label: "Job / Task",
+      sortable: true,
+      render: (value, row) => {
+        const task = row.task && typeof row.task === 'object' ? row.task : null;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-heading text-xs">
+              {row.jobTitle || row.job}
+            </span>
+            {task && (
+              <div className="flex items-center gap-1.5 text-[11px] text-muted">
+                {task.taskID && (
+                  <span className="font-mono text-brand-primary font-bold">{task.taskID}</span>
+                )}
+                <span className="truncate max-w-[180px]">{task.title}</span>
+                {task.status && (
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-app border border-border-subtle uppercase">
+                    {task.status}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      key: "date",
+      label: "Date",
+      sortable: true,
+      render: (value, row) => <TableText value={formatBackendDate(row.date)} muted />
+    },
+    {
+      key: "description",
+      label: "Description",
+      sortable: false,
+      render: (value, row) => (
+        <TableText value={row.description} muted truncate maxWidth="max-w-xs" />
+      )
+    },
+    {
+      key: "status",
+      label: "Timesheet Status",
+      sortable: true,
+      render: (value, row) => (
+        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+          row.isAddedToTimesheet
+            ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+            : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
+        }`}>
+          {row.isAddedToTimesheet ? "In Timesheet" : "Unsubmitted"}
+        </span>
+      )
+    },
+    {
+      key: "totalHours",
+      label: "Hours",
+      sortable: true,
+      render: (value, row) => <TableNumber value={row.totalHours || row.hours} />
+    }
+  ];
 // Define actions for Time Logs
   const timeLogActions = [
   {

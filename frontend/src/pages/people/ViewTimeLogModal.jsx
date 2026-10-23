@@ -1,5 +1,5 @@
 import React from "react";
-import { FaCalendarDay, FaClock, FaDownload, FaFileAlt, FaPaperclip } from "react-icons/fa";
+import { FaCalendarDay, FaClock, FaDownload, FaFileAlt, FaPaperclip, FaExternalLinkAlt, FaTasks } from "react-icons/fa";
 import { downloadFile } from "../../utils/downloadFile";
 import DetailModal, {
   DetailBadge,
@@ -16,11 +16,32 @@ const formatDate = (value) => {
   });
 };
 
+const statusTone = (status) => {
+  const value = String(status || "").toLowerCase();
+  if (value === "done" || value === "completed") return "border-success-border bg-success-bg text-success";
+  if (value === "in progress") return "border-info-border bg-info-bg text-info";
+  if (value === "in review") return "border-warning-border bg-warning-bg text-warning";
+  return "border-border-subtle bg-app text-muted";
+};
+
 const ViewTimeLogModal = ({ log, onClose }) => {
   if (!log) return null;
 
   const attachments = log.attachments || [];
   const attachment = attachments[0];
+  const task = log.task && typeof log.task === 'object' ? log.task : null;
+  const project = task?.project && typeof task.project === 'object' 
+    ? task.project 
+    : (log.project && typeof log.project === 'object' ? log.project : null);
+
+  const projectId = project?._id || task?.project;
+  const taskId = task?._id;
+
+  const handleOpenTask = () => {
+    if (projectId && taskId) {
+      window.open(`/project/projects/${projectId}?taskId=${taskId}`, "_blank", "noopener,noreferrer");
+    }
+  };
 
   return (
     <DetailModal
@@ -36,15 +57,61 @@ const ViewTimeLogModal = ({ log, onClose }) => {
           <span>Logged {formatDate(log.date)}</span>
         </>
       }
-      title={log.jobTitle || "Time log"}
+      title={log.jobTitle || log.job || "Time log"}
       badges={
         <DetailBadge tone="border-success-border bg-success-bg text-success">
-          {log.totalHours || 0} hours
+          {log.totalHours || log.hours || 0} hours
         </DetailBadge>
       }
     >
       <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-6">
+          
+          {/* LINKED TASK CARD */}
+          {task && (
+            <section>
+              <DetailSectionHeading
+                icon={<FaTasks size={13} className="text-muted" />}
+                title="Assigned Task"
+              />
+              <div className="p-4 rounded-xl border border-border-subtle bg-surface flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      {task.taskID && (
+                        <span className="font-mono text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded">
+                          {task.taskID}
+                        </span>
+                      )}
+                      <h4 className="text-sm font-bold text-heading">{task.title}</h4>
+                    </div>
+                    {project?.title && (
+                      <p className="text-xs text-muted mt-1">
+                        Project: <span className="text-main font-medium">{project.title}</span>
+                      </p>
+                    )}
+                  </div>
+                  <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${statusTone(task.status)}`}>
+                    {task.status || "Todo"}
+                  </span>
+                </div>
+
+                {projectId && taskId && (
+                  <div className="pt-2 border-t border-border-subtle flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleOpenTask}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-brand-primary hover:bg-brand-primary/10 border border-brand-primary/30 transition-all cursor-pointer"
+                    >
+                      <FaExternalLinkAlt size={10} />
+                      View Task in Project
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           <section>
             <DetailSectionHeading
               icon={<FaFileAlt size={13} className="text-muted" />}
@@ -121,7 +188,29 @@ const ViewTimeLogModal = ({ log, onClose }) => {
             <DetailField label="Total hours">
               <p className="flex items-center gap-2 text-[13px] font-medium text-main">
                 <FaClock size={12} className="text-muted" />
-                {log.totalHours || 0} hours
+                {log.totalHours || log.hours || 0} hours
+              </p>
+            </DetailField>
+
+            <DetailField label="Linked Task">
+              <p className="truncate text-[13px] font-medium text-main">
+                {task ? (
+                  <span>
+                    {task.taskID ? `${task.taskID}: ` : ""}{task.title}
+                  </span>
+                ) : (
+                  <span className="text-muted font-normal">None (General)</span>
+                )}
+              </p>
+            </DetailField>
+
+            <DetailField label="Timesheet Status">
+              <p className="text-[13px] font-medium">
+                {log.isAddedToTimesheet ? (
+                  <span className="text-emerald-600 font-semibold">Submitted in Timesheet</span>
+                ) : (
+                  <span className="text-amber-600 font-semibold">Unsubmitted (Editable)</span>
+                )}
               </p>
             </DetailField>
 

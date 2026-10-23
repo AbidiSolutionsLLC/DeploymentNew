@@ -1,12 +1,25 @@
 const TimeLog = require("../models/timeLogsSchema");
+const Task = require("../models/taskSchema");
 const { BadRequestError, NotFoundError } = require("../utils/ExpressError");
 const { moment, TIMEZONE } = require("../utils/dateUtils");
 const { normalizeRole } = require("../utils/rbacUtils");
 const { getSearchScope } = require("../utils/rbac");
 
+const POPULATE_CONFIG = [
+  {
+    path: "task",
+    select: "title taskID status priority project completionPercent workedHours",
+    populate: { path: "project", select: "title projectID" }
+  },
+  {
+    path: "project",
+    select: "title projectID"
+  }
+];
+
 class TimeLogService {
   async createTimeLog(user, companyId, data, files) {
-    const { job, date, description, hours, employeeId } = data;
+    const { job, date, description, hours, employeeId, taskId, task, projectId, project, markAsDone } = data;
     const role = normalizeRole(user.role);
     const employee = (employeeId && ['superadmin', 'admin'].includes(role)) ? employeeId : user.id || user._id;
 
@@ -28,6 +41,27 @@ class TimeLogService {
       size: file.size
     })) || [];
 
+    let linkedTask = null;
+    let linkedProject = null;
+    const targetTaskId = taskId || task;
+
+    if (targetTaskId) {
+      const taskDoc = await Task.findOne({ _id: targetTaskId, company: companyId });
+      if (taskDoc) {
+        linkedTask = taskDoc._id;
+        linkedProject = taskDoc.project;
+
+        // If employee marked task as done on completion of work
+        if (markAsDone === true || markAsDone === 'true') {
+          taskDoc.status = "Done";
+          taskDoc.completionPercent = 100;
+          await taskDoc.save();
+        }
+      }
+    } else if (projectId || project) {
+      linkedProject = projectId || project;
+    }
+
     const timeLog = new TimeLog({
       employee,
       company: companyId,
@@ -35,10 +69,13 @@ class TimeLogService {
       date: estDate, 
       description,
       hours,
-      attachments
+      attachments,
+      task: linkedTask,
+      project: linkedProject,
     });
 
-    return timeLog.save();
+    const saved = await timeLog.save();
+    return TimeLog.findById(saved._id).populate(POPULATE_CONFIG);
   }
 
   async getEmployeeTimeLogs(user, companyId, query) {
@@ -72,11 +109,13 @@ class TimeLogService {
       dbQuery.date = { $gte: startDate, $lte: endDate };
     }
 
-    return TimeLog.find(dbQuery).sort({ date: 1 });
+    return TimeLog.find(dbQuery)
+      .populate(POPULATE_CONFIG)
+      .sort({ date: 1 });
   }
 
   async updateTimeLog(user, companyId, timeLogId, data, files) {
-    const { job, date, description, hours } = data;
+    const { job, date, description, hours, taskId, task, projectId, project, markAsDone } = data;
     const scope = await getSearchScope(user, 'timelog');
 
     const timeLog = await TimeLog.findOne({ _id: timeLogId, company: companyId, ...scope });
@@ -96,12 +135,37 @@ class TimeLogService {
       }));
     }
 
-    timeLog.job = job;
-    timeLog.date = moment.tz(date, TIMEZONE).startOf('day').toDate();
-    timeLog.description = description;
-    timeLog.hours = hours;
+    if (job !== undefined) timeLog.job = job;
+    if (date !== undefined) timeLog.date = moment.tz(date, TIMEZONE).startOf('day').toDate();
+    if (description !== undefined) timeLog.description = description;
+    if (hours !== undefined) timeLog.hours = hours;
 
-    return timeLog.save();
+    // Handle task link update/detach
+    if (taskId !== undefined || task !== undefined) {
+      const targetTaskId = taskId !== undefined ? taskId : task;
+      if (targetTaskId) {
+        const taskDoc = await Task.findOne({ _id: targetTaskId, company: companyId });
+        if (taskDoc) {
+          timeLog.task = taskDoc._id;
+          timeLog.project = taskDoc.project;
+
+          if (markAsDone === true || markAsDone === 'true') {
+            taskDoc.status = "Done";
+            taskDoc.completionPercent = 100;
+            await taskDoc.save();
+          }
+        }
+      } else {
+        timeLog.task = null;
+        timeLog.project = null;
+      }
+    } else if (projectId !== undefined || project !== undefined) {
+      const targetProjectId = projectId !== undefined ? projectId : project;
+      timeLog.project = targetProjectId || null;
+    }
+
+    const saved = await timeLog.save();
+    return TimeLog.findById(saved._id).populate(POPULATE_CONFIG);
   }
 
   async deleteTimeLog(user, companyId, timeLogId) {

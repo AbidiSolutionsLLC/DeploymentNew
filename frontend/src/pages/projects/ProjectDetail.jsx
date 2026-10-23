@@ -13,7 +13,6 @@ import {
   ClockIcon,
   PlusIcon,
   FolderIcon,
-  ChatBubbleLeftRightIcon,
   BoltIcon,
   NoSymbolIcon,
   ExclamationCircleIcon,
@@ -34,30 +33,18 @@ import Loader from "../../components/ui/Loader";
 import PageContainer from "../../components/ui/PageContainer";
 import GlassModal from "../../components/ui/GlassModal";
 import Progress from "../../components/projectPortal/Progress";
-import PanelHead from "../../components/projectPortal/PanelHead";
-import EmptyState from "../../components/projectPortal/EmptyState";
 import {
   formatDate,
   shortDate,
   isOverdue,
   projectProgress,
-  taskProgress,
-  getAssigneeName,
 } from "../../components/projectPortal/helpers";
 import AddTaskForm from "../../components/projectPortal/AddTaskForm";
 import EditProjectForm from "../../components/projectPortal/EditProjectForm";
 import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
 import TaskCommentsDrawer from "../../components/projectPortal/TaskCommentsDrawer";
 import TaskCard from "../../components/projectPortal/TaskCard";
-import PortalTable from "../../components/projectPortal/PortalTable";
-import {
-  TableDate,
-  TablePriority,
-  TableProgress,
-  TableStatus,
-  TableText,
-  TableTitle,
-} from "../../components/ui/TableCells";
+import { TableStatus } from "../../components/ui/TableCells";
 
 const KANBAN_COLUMNS = [
   { id: "backlog", title: "Backlog" },
@@ -73,21 +60,6 @@ const COLUMN_ACCENTS = {
   "in-review": "bg-warning",
   done: "bg-success",
 };
-const STATUS_DISPLAY = {
-  Backlog: "Backlog",
-  Todo: "To Do",
-  "In Progress": "In Progress",
-  "In Review": "In Review",
-  Done: "Done",
-  Blocked: "Backlog",
-  backlog: "Backlog",
-  todo: "To Do",
-  "in-progress": "In Progress",
-  "in-review": "In Review",
-  done: "Done",
-  blocked: "Backlog",
-};
-
 const COLUMN_STATUS = {
   backlog: "Backlog",
   todo: "Todo",
@@ -136,8 +108,6 @@ const ProjectDetail = () => {
   const canDeleteProject = isSuperAdmin || isAdmin;
   const canManageTasks = isSuperAdmin || isAdmin || isManager;
 
-  const [activeTab, setActiveTab] = useState("board");
-  const [searchQuery, setSearchQuery] = useState("");
   const [addTaskStatus, setAddTaskStatus] = useState("Todo");
   const [showAddTask, setShowAddTask] = useState(false);
   const [showTaskDetail, setShowTaskDetail] = useState(null);
@@ -215,12 +185,6 @@ const ProjectDetail = () => {
     }
   }, [id, dispatch]);
 
-  useEffect(() => {
-    if (id && activeTab === "activity") {
-      dispatch(fetchProjectActivities(id));
-    }
-  }, [id, activeTab, dispatch]);
-
   const [searchParams] = useSearchParams();
   const urlTaskId = searchParams.get("taskId");
 
@@ -247,11 +211,6 @@ const ProjectDetail = () => {
       dispatch(fetchTaskComments(showTaskDetail._id));
     }
   }, [showTaskDetail, dispatch]);
-
-  const filteredTasks = tasks?.filter((task) =>
-    task.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
 
   const handleCreateTask = async (taskData) => {
     try {
@@ -340,7 +299,7 @@ const ProjectDetail = () => {
   };
 
   const getTasksByStatus = (status) =>
-    (searchQuery ? filteredTasks : tasks).filter((t) => toColumnId(t.status) === status);
+    tasks.filter((t) => toColumnId(t.status) === status);
 
   if (!project) {
     return loading ? (
@@ -359,71 +318,6 @@ const ProjectDetail = () => {
     blocked: tasks.filter((task) => task.status === "Blocked" || task.status === "blocked").length,
     backlog: tasks.filter((task) => task.status === "Backlog" || task.status === "backlog").length,
   };
-
-  const listColumns = [
-    {
-      key: "_index",
-      label: "#",
-      type: "index",
-      sortable: false,
-      width: 56,
-      hideBelow: "sm",
-    },
-    {
-      key: "taskID",
-      label: "ID",
-      hideBelow: "xl",
-      render: (v) => <TableText value={v} muted />,
-    },
-    {
-      key: "title",
-      label: "Task",
-      render: (v, row) => (
-        <TableTitle
-          title={v}
-          subtitle={row.description || undefined}
-          maxWidth="max-w-[240px]"
-        />
-      ),
-    },
-    {
-      key: "status",
-      label: "Status",
-      render: (v) => <TableStatus value={STATUS_DISPLAY[v] || v || "Todo"} />,
-    },
-    {
-      key: "priority",
-      label: "Priority",
-      render: (v) => <TablePriority value={v || "Medium"} />,
-    },
-    {
-      key: "dueDate",
-      label: "Due Date",
-      hideBelow: "md",
-      render: (v, row) => <TableDate value={v} isOverdue={isOverdue(v, row.status)} />,
-    },
-    {
-      key: "progress",
-      label: "Progress",
-      render: (_v, row) => <TableProgress value={taskProgress(row)} />,
-    },
-    {
-      key: "team",
-      label: "Assignees",
-      hideBelow: "lg",
-      render: (v) => <TableText value={getAssigneeName(v)} />,
-    },
-  ];
-
-  const listActions = [
-    {
-      title: "Comments",
-      icon: ChatBubbleLeftRightIcon,
-      onClick: (task) => setShowComments(task),
-    },
-  ];
-
-  const tabs = ["board", "list", "comments", "activity"];
 
   return (
     <PageContainer isCard={false}>
@@ -575,206 +469,76 @@ const ProjectDetail = () => {
 
         {/* ===== Task workspace ===== */}
         <section className="glass-card bg-surface !p-0 overflow-hidden">
-          <div className="p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Task workspace</p>
-                <h2 className="text-lg font-black text-heading uppercase tracking-tight mt-1">
-                  {taskCounts.total} task{taskCounts.total !== 1 ? "s" : ""} in this project
-                </h2>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-                <div className="relative flex-1 sm:w-72">
-                  <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks..."
-                    className="glass-input !pl-9 w-full"
-                  />
-                </div>
-                {canManageTasks && (
-                  <button
-                    onClick={() => {
-                      setAddTaskStatus("Todo");
-                      setShowAddTask(true);
-                    }}
-                    className="btn btn-primary py-2.5 px-4 whitespace-nowrap"
-                  >
-                    <PlusIcon className="w-4 h-4 mr-2" />
-                    New Task
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mt-4 overflow-x-auto">
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
-                    activeTab === tab
-                      ? "bg-brand text-on-brand shadow-[0_4px_15px_rgba(212,175,55,0.25)]"
-                      : "text-muted hover:text-brand-text hover:bg-card-hover"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
+          <div className="px-5 pt-5 pb-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-text">Task workspace</p>
           </div>
 
           <div className="px-5 pb-5">
-            {activeTab === "board" && (
-              <div className="overflow-x-auto">
-                <div className="grid grid-cols-5 gap-4 min-w-[1300px] items-stretch">
-                  {KANBAN_COLUMNS.map((col) => {
-                    const colTasks = getTasksByStatus(col.id);
-                    return (
-                      <div
-                        key={col.id}
-                        className={`rounded-xl border bg-surface p-3.5 flex flex-col transition-colors ${
-                          dragOverColumn === col.id
-                            ? "border-border-accent ring-2 ring-border-accent bg-amber-50"
-                            : "border-border-subtle"
-                        }`}
-                        onDragOver={(e) => handleDragOver(e, col.id)}
-                        onDragLeave={(e) => handleDragLeave(e, col.id)}
-                        onDrop={(e) => handleDrop(e, col.id)}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${COLUMN_ACCENTS[col.id] || "bg-amber-500"}`} />
-                            <h3 className="text-xs font-black uppercase tracking-widest text-heading truncate">{col.title}</h3>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAddTaskStatus(COLUMN_STATUS[col.id] || "Todo");
-                              setShowAddTask(true);
-                            }}
-                            className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-border-subtle bg-card text-muted hover:border-border-accent hover:bg-card-hover hover:text-brand-text transition-colors"
-                            aria-label={`Add task to ${col.title}`}
-                            title={`Add task to ${col.title}`}
+            <div className="overflow-x-auto">
+              <div className="grid grid-cols-5 gap-4 min-w-[1300px] items-stretch">
+                {KANBAN_COLUMNS.map((col) => {
+                  const colTasks = getTasksByStatus(col.id);
+                  return (
+                    <div
+                      key={col.id}
+                      className={`rounded-xl border bg-surface p-3.5 flex flex-col transition-colors ${
+                        dragOverColumn === col.id
+                          ? "border-border-accent ring-2 ring-border-accent bg-amber-50"
+                          : "border-border-subtle"
+                      }`}
+                      onDragOver={(e) => handleDragOver(e, col.id)}
+                      onDragLeave={(e) => handleDragLeave(e, col.id)}
+                      onDrop={(e) => handleDrop(e, col.id)}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${COLUMN_ACCENTS[col.id] || "bg-amber-500"}`} />
+                          <h3 className="text-xs font-black uppercase tracking-widest text-heading truncate">{col.title}</h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddTaskStatus(COLUMN_STATUS[col.id] || "Todo");
+                            setShowAddTask(true);
+                          }}
+                          className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-border-subtle bg-card text-muted hover:border-border-accent hover:bg-card-hover hover:text-brand-text transition-colors"
+                          aria-label={`Add task to ${col.title}`}
+                          title={`Add task to ${col.title}`}
+                        >
+                          <PlusIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        {colTasks.map((task) => (
+                          <TaskCard
+                            key={task._id}
+                            task={task}
+                            columnId={col.id}
+                            draggable={canManageTasks || isTaskAssignee(task)}
+                            onClick={() => setShowTaskDetail(task)}
+                            onDragStart={handleDragStart}
+                            onDragEnd={handleDragEnd}
+                            onOpenComments={() => setShowComments(task)}
+                            isDragging={draggedTaskId === task._id}
+                          />
+                        ))}
+                        {colTasks.length === 0 && (
+                          <div
+                            className={`flex items-center justify-center min-h-[320px] rounded-xl border border-dashed text-[11px] font-black uppercase tracking-widest transition-colors ${
+                              dragOverColumn === col.id
+                                ? "border-brand text-brand"
+                                : "border-border-subtle text-muted/70"
+                            }`}
                           >
-                            <PlusIcon className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                        <div className="flex-1 space-y-3">
-                          {colTasks.map((task) => (
-                            <TaskCard
-                              key={task._id}
-                              task={task}
-                              columnId={col.id}
-                              draggable={canManageTasks || isTaskAssignee(task)}
-                              onClick={() => setShowTaskDetail(task)}
-                              onDragStart={handleDragStart}
-                              onDragEnd={handleDragEnd}
-                              onOpenComments={() => setShowComments(task)}
-                              isDragging={draggedTaskId === task._id}
-                            />
-                          ))}
-                          {colTasks.length === 0 && (
-                            <div
-                              className={`flex items-center justify-center min-h-[320px] rounded-xl border border-dashed text-[11px] font-black uppercase tracking-widest transition-colors ${
-                                dragOverColumn === col.id
-                                  ? "border-brand text-brand"
-                                  : "border-border-subtle text-muted/70"
-                              }`}
-                            >
-                              {dragOverColumn === col.id ? "Drop here" : "No tasks"}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {activeTab === "list" && (
-              <PortalTable
-                columns={listColumns}
-                data={filteredTasks}
-                loading={loading}
-                onRowClick={(task) => setShowTaskDetail(task)}
-                actions={listActions}
-                rowsPerPage={10}
-                emptyTitle={tasks.length === 0 ? "No tasks in this project" : "No matching tasks"}
-                emptyHint="Try a different search."
-              />
-            )}
-
-            {activeTab === "comments" && (
-              <div className="rounded-xl border border-border-subtle bg-surface p-4">
-                <PanelHead title="Project Comments" subtitle="All discussions across tasks" />
-                {filteredTasks.length === 0 ? (
-                  <EmptyState title="No tasks yet" hint="Create a task to start a discussion." />
-                ) : (
-                  <div className="space-y-4">
-                    {filteredTasks.map((task) => {
-                      const comments = taskComments[task._id] || [];
-                      return comments.length > 0 ? (
-                        <div key={task._id} className="border-t border-border-subtle pt-4">
-                          <p className="text-sm font-semibold text-heading mb-2">{task.title}</p>
-                          <div className="space-y-3">
-                            {comments.map((c) => (
-                              <div key={c._id || c.id} className="flex gap-3">
-                                <div className="w-8 h-8 rounded-full bg-amber-50 border border-border-accent flex items-center justify-center flex-shrink-0">
-                                  <span className="text-brand-text font-black text-sm">{c.user?.name?.[0] || "U"}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-semibold text-heading">{c.user?.name || "Unknown"}</span>
-                                    <span className="text-[10px] text-muted">{new Date(c.createdAt || c.timestamp).toLocaleDateString()}</span>
-                                  </div>
-                                  <p className="text-sm text-main">{c.text || c.content}</p>
-                                </div>
-                              </div>
-                            ))}
+                            {dragOverColumn === col.id ? "Drop here" : "No tasks"}
                           </div>
-                        </div>
-                      ) : null;
-                    })}
-                    {filteredTasks.every((t) => !(taskComments[t._id]?.length)) && (
-                      <EmptyState title="No comments yet" hint="Open a task to add comments." />
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === "activity" && (
-              <div className="rounded-xl border border-border-subtle bg-surface p-4">
-                <PanelHead title="Project Activity" subtitle="Changes and discussions across this project" />
-                {projectActivitiesLoading ? (
-                  <div className="py-10"><Loader text="Loading activity..." size="md" /></div>
-                ) : projectActivities?.length ? (
-                  <div className="divide-y divide-border-subtle">
-                    {projectActivities.map((activity) => (
-                      <div key={activity._id} className="flex items-start gap-3 py-3">
-                        <div className="w-8 h-8 rounded-full bg-amber-50 border border-border-accent flex items-center justify-center shrink-0">
-                          <span className="text-xs font-black text-brand-text">{activity.user?.name?.[0] || "U"}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm text-main">{activity.action}</p>
-                          <p className="text-[10px] uppercase tracking-widest text-muted mt-1">
-                            {activity.user?.name || "User"} · {formatDate(activity.createdAt)}
-                          </p>
-                        </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState title="No project activity yet" hint="Updates, comments, and task changes will appear here." />
-                )}
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
           </div>
         </section>
 

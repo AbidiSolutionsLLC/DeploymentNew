@@ -409,25 +409,48 @@ export default function GlobalTable({
                   {actions.length > 0 && (
                     <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {actions.map((action, aIdx) => (
-                          <button
-                            key={aIdx}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              action.onClick(row);
-                            }}
-                            className={`p-2 rounded-lg transition-all hover:-translate-y-0.5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 ${
-                              typeof action.className === "function"
-                                ? action.className(row)
-                                : action.className ||
-                                  "text-muted bg-surface border border-border-subtle hover:text-brand-text hover:border-border-accent hover:shadow-sm"
-                            }`}
-                            title={action.title}
-                            aria-label={action.title}
-                          >
-                            {action.icon}
-                          </button>
-                        ))}
+                        {actions.map((action, aIdx) => {
+                          const isDisabled =
+                            typeof action.disabled === "function"
+                              ? action.disabled(row)
+                              : Boolean(action.disabled);
+                          const Icon = action.icon;
+                          const iconContent = React.isValidElement(Icon) ? (
+                            Icon
+                          ) : typeof Icon === "function" ||
+                            (Icon && typeof Icon === "object" && (Icon.$$typeof || Icon.render)) ? (
+                            <Icon className="w-4 h-4" />
+                          ) : (
+                            Icon
+                          );
+
+                          return (
+                            <button
+                              key={aIdx}
+                              disabled={isDisabled}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isDisabled && action.onClick) {
+                                  action.onClick(row);
+                                }
+                              }}
+                              className={`p-2 rounded-lg transition-all ${
+                                isDisabled
+                                  ? "opacity-40 cursor-not-allowed text-muted bg-surface border border-border-subtle"
+                                  : "hover:-translate-y-0.5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+                              } ${
+                                typeof action.className === "function"
+                                  ? action.className(row)
+                                  : action.className ||
+                                    "text-muted bg-surface border border-border-subtle hover:text-brand-text hover:border-border-accent hover:shadow-sm"
+                              }`}
+                              title={action.title}
+                              aria-label={action.title}
+                            >
+                              {iconContent}
+                            </button>
+                          );
+                        })}
                       </div>
                     </td>
                   )}
@@ -441,7 +464,18 @@ export default function GlobalTable({
                 >
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="p-4 rounded-2xl bg-app border border-border-subtle shadow-sm">
-                      {emptyIcon || <FaInbox className="w-7 h-7 text-muted" />}
+                      {emptyIcon ? (
+                        React.isValidElement(emptyIcon) ? (
+                          emptyIcon
+                        ) : typeof emptyIcon === "function" ||
+                          (emptyIcon && typeof emptyIcon === "object" && (emptyIcon.$$typeof || emptyIcon.render)) ? (
+                          React.createElement(emptyIcon, { className: "w-7 h-7 text-muted" })
+                        ) : (
+                          emptyIcon
+                        )
+                      ) : (
+                        <FaInbox className="w-7 h-7 text-muted" />
+                      )}
                     </div>
                     <p className="text-sm font-bold text-heading tracking-tight">{emptyMessage}</p>
                     <p className="text-xs text-muted -mt-1">

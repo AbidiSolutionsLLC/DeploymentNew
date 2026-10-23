@@ -307,19 +307,37 @@ export default function CreateTimesheetModal({ open, onClose, onTimesheetCreated
  </div>
  ) : (
  <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
- {logs.map((log) => (
- <div key={log._id} className="p-3 bg-surface/50 border border-border-subtle rounded-xl text-xs">
- <div className="flex justify-between items-center mb-1">
- <span className="font-bold text-heading uppercase tracking-tight">
- {log.job || log.jobTitle}
- </span>
- <span className="font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">
- {log.hours} HRS
- </span>
- </div>
- <p className="text-muted line-clamp-1">{log.description}</p>
- </div>
- ))}
+                {logs.map((log) => {
+                  const task = log.task && typeof log.task === 'object' ? log.task : null;
+                  return (
+                    <div key={log._id} className="p-3 bg-surface/50 border border-border-subtle rounded-xl text-xs">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-bold text-heading uppercase tracking-tight truncate max-w-[260px]">
+                          {log.job || log.jobTitle}
+                        </span>
+                        <span className="font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full shrink-0">
+                          {log.hours} HRS
+                        </span>
+                      </div>
+                      {task && (
+                        <div className="flex items-center gap-1.5 mb-1 text-[11px] text-muted">
+                          {task.taskID && (
+                            <span className="font-mono text-brand-primary font-bold">{task.taskID}</span>
+                          )}
+                          <span className="truncate max-w-[200px]">{task.title}</span>
+                          {task.status && (
+                            <span className={`text-[9px] px-1.5 py-0.2 rounded uppercase ${
+                              task.status === "Done" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-app border border-border-subtle"
+                            }`}>
+                              {task.status}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-muted line-clamp-1">{log.description}</p>
+                    </div>
+                  );
+                })}
  </div>
  )}
  </div>

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 /**
  * ModernSelect — themed select component using design tokens only.
  * Uses CSS variables (--color-*) for full theme support (light/dark).
+ * Supports `variant="badge"` for compact table-field status badges.
  */
 const ModernSelect = ({
   label,
@@ -16,15 +17,25 @@ const ModernSelect = ({
   placeholder = "Select Option",
   required = false,
   className = "",
+  buttonClassName = "",
   error = null,
   disabled = false,
+  variant = "default",
 }) => {
+  const isBadge = variant === "badge";
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
   const dropdownRef = useRef(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
-  const selectedOption = (options || []).find((opt) => opt.value === value);
+  const selectedOption = (options || []).find(
+    (opt) =>
+      opt.value === value ||
+      (typeof opt.value === "string" &&
+        typeof value === "string" &&
+        opt.value.toLowerCase().replace(/[\s_-]+/g, "") ===
+          value.toLowerCase().replace(/[\s_-]+/g, ""))
+  );
 
   const updatePosition = useCallback(() => {
     if (disabled) return;
@@ -99,7 +110,7 @@ const ModernSelect = ({
           ...(dropdownPosition.top !== undefined ? { top: `${dropdownPosition.top}px` } : {}),
           ...(dropdownPosition.bottom !== undefined ? { bottom: `${dropdownPosition.bottom}px` } : {}),
           left: `${dropdownPosition.left}px`,
-          width: `${dropdownPosition.width}px`,
+          width: isBadge ? `${Math.max(dropdownPosition.width, 130)}px` : `${dropdownPosition.width}px`,
         }}
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
@@ -144,7 +155,7 @@ const ModernSelect = ({
   return (
     <>
       <div
-        className={`w-full ${className}`}
+        className={`${isBadge ? "w-fit" : "w-full"} ${className}`}
         ref={containerRef}
         onClick={(e) => e.stopPropagation()}
       >
@@ -165,7 +176,12 @@ const ModernSelect = ({
               if (onClick) onClick(e);
               if (!disabled) setIsOpen(!isOpen);
             }}
-            className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium outline-none flex justify-between items-center transition-all shadow-sm text-left
+            className={
+              isBadge
+                ? `lm-success-badge cursor-pointer transition-all hover:opacity-90 outline-none inline-flex items-center justify-between gap-1.5 ${
+                    disabled ? "opacity-60 cursor-not-allowed" : ""
+                  } ${isOpen ? "ring-2 ring-emerald-400/40" : ""} ${buttonClassName}`
+                : `w-full rounded-lg px-4 py-2.5 text-sm font-medium outline-none flex justify-between items-center transition-all shadow-sm text-left
               bg-white dark:bg-slate-800
               ${disabled
                 ? "border-border-subtle opacity-60 cursor-not-allowed bg-muted/10 text-muted"
@@ -177,15 +193,23 @@ const ModernSelect = ({
               }
               border
               ${!selectedOption && !disabled ? "text-muted" : ""}
-            `}
+              ${buttonClassName}
+            `
+            }
           >
             <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
             <FiChevronDown
-              className={`w-4 h-4 transition-transform duration-200 flex-shrink-0 ml-2
+              className={`${
+                isBadge ? "w-2.5 h-2.5 opacity-60 ml-1" : "w-4 h-4 ml-2"
+              } transition-transform duration-200 flex-shrink-0
                 ${disabled
                   ? "text-muted/50"
                   : isOpen
-                  ? "rotate-180 text-amber-500"
+                  ? isBadge
+                    ? "rotate-180 text-current"
+                    : "rotate-180 text-amber-500"
+                  : isBadge
+                  ? "text-current"
                   : "text-muted"
                 }`}
             />

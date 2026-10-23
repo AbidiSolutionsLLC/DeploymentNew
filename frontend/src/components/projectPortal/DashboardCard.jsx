@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect } from "react";
-import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
   FiFolder,
@@ -138,18 +137,14 @@ const ViewAllButton = ({ onClick }) => (
   </button>
 );
 
-function ActiveProjectsCard({ projects, isEmployee }) {
+function ActiveProjectsCard({ projects }) {
   const items = projects;
 
   if (items.length === 0) {
     return (
       <EmptyCardState
-        message={isEmployee ? "No assigned projects" : "No active projects yet"}
-        description={
-          isEmployee
-            ? "Projects you are assigned to as a team member will appear here."
-            : "Your ongoing projects will appear here."
-        }
+        message="No active projects yet"
+        description="Your ongoing projects will appear here."
       />
     );
   }
@@ -386,16 +381,8 @@ function TeamMembersCard({ team }) {
   );
 }
 
-export default function DashboardCard({ card, data, isEmployee: propIsEmployee, onDelete }) {
+export default function DashboardCard({ card, data, onDelete }) {
   const navigate = useNavigate();
-  const authStateUser = useSelector((state) => state.auth?.user);
-  const user = authStateUser?.data?.user || authStateUser?.user || authStateUser || null;
-  const userRole = (user?.role || '').replace(/\s+/g, '').toLowerCase();
-  const isSuperAdmin = userRole === 'superadmin';
-  const isAdmin = userRole === 'admin';
-  const isManager = userRole === 'manager';
-  const isEmployee = typeof propIsEmployee === "boolean" ? propIsEmployee : (!isSuperAdmin && !isAdmin && !isManager);
-
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
   const meta = CARD_META[card?.type];
@@ -419,12 +406,8 @@ export default function DashboardCard({ card, data, isEmployee: propIsEmployee, 
   const priorities = data?.taskPriorities || {};
   const priorityTotal = priorities.total || 0;
 
-  let title = meta.title;
   let sub = meta.sub;
-  if (card?.type === "activeProjects" && isEmployee) {
-    title = "Assigned Projects";
-    sub = "Your assigned projects";
-  } else if (card?.type === "taskPriorities") {
+  if (card?.type === "taskPriorities") {
     sub = `${priorities.high || 0} high · ${priorityTotal} open`;
   } else if (card?.type === "teamMembers") {
     sub = `${team.length} people across your projects`;
@@ -433,7 +416,7 @@ export default function DashboardCard({ card, data, isEmployee: propIsEmployee, 
   let content = null;
   switch (card?.type) {
     case "activeProjects":
-      content = <ActiveProjectsCard projects={data?.recentProjects || []} isEmployee={isEmployee} />;
+      content = <ActiveProjectsCard projects={data?.recentProjects || []} />;
       break;
     case "taskPriorities":
       content = <TaskPrioritiesCard data={data || {}} />;
@@ -453,7 +436,7 @@ export default function DashboardCard({ card, data, isEmployee: propIsEmployee, 
 
   return (
     <HomeCardShell
-      title={title}
+      title={meta.title}
       sub={sub}
       icon={meta.icon}
       accent={meta.accent}

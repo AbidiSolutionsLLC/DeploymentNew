@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import timeLogApi from "../../api/timeLogApi";
+import taskApi from "../../api/taskApi";
 import { toast } from "react-toastify";
 import { moment, TIMEZONE } from "../../utils/dateUtils";
 import { getApiError } from "../../utils/validationUtils";
@@ -15,50 +16,90 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
  const [newAttachment, setNewAttachment] = useState(null);
  const [isLoading, setIsLoading] = useState(false);
  const [errors, setErrors] = useState({});
+
+ // Task state
+ const [availableTasks, setAvailableTasks] = useState([]);
+ const [loadingTasks, setLoadingTasks] = useState(false);
+ const [selectedTaskId, setSelectedTaskId] = useState("");
+ const [markAsDone, setMarkAsDone] = useState(false);
+
  const modalRef = useRef(null);
 
- // Validate hours field
  const validateHours = (value) => {
  if (!value && value !== 0) return "Hours worked is required.";
- 
  const valueStr = String(value).trim();
  if (valueStr && isNaN(valueStr)) {
  return "Please enter a valid number";
  }
- 
  const num = parseFloat(valueStr);
- 
  if (!isNaN(num) && num < 0) {
  return "Hours cannot be negative";
  }
- 
  if (!isNaN(num) && num < 0.5) {
  return "Hours must be at least 0.5.";
  }
- 
  if (!isNaN(num) && num > 24) {
  return "Hours cannot exceed 24.";
  }
- 
  return null;
  };
 
  useEffect(() => {
+ if (isOpen) {
+   loadMyTasks();
+ }
+ }, [isOpen]);
+
+ const loadMyTasks = async () => {
+   try {
+     setLoadingTasks(true);
+     const res = await taskApi.getMyTasks();
+     const tasksList = Array.isArray(res) ? res : res?.data || [];
+     setAvailableTasks(tasksList);
+   } catch (err) {
+     console.error("Failed to load user tasks", err);
+   } finally {
+     setLoadingTasks(false);
+   }
+ };
+
+ useEffect(() => {
  if (initialData) {
- // FIX: Ensure date is formatted as YYYY-MM-DD string for the input
  const formattedDate = moment(initialData.date).tz(TIMEZONE).format('YYYY-MM-DD');
  setDate(formattedDate || "");
  setJobTitle(initialData.job || initialData.jobTitle || "");
  setHours(initialData.hours || initialData.totalHours || "");
  setDescription(initialData.description || "");
  setAttachmentName(initialData.attachments?.[0]?.originalname || initialData.attachmentName || "");
+ const taskId = initialData.task?._id || initialData.task || "";
+ setSelectedTaskId(taskId ? String(taskId) : "");
+ setMarkAsDone(false);
+ setNewAttachment(null);
+ setErrors({});
  }
  }, [initialData]);
 
  if (!isOpen) return null;
 
- const handleBackdropClick = (e) => {
- if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
+ const handleTaskChange = (e) => {
+   const taskId = e.target.value;
+   setSelectedTaskId(taskId);
+   if (!taskId) {
+     setMarkAsDone(false);
+     return;
+   }
+   const task = availableTasks.find((t) => t._id === taskId);
+   if (task) {
+     if (!jobTitle || jobTitle.includes("[TSK-") || jobTitle.toLowerCase().includes("task")) {
+       const prefix = task.taskID ? `[${task.taskID}] ` : "";
+       setJobTitle(`${prefix}${task.title}`);
+     }
+     if (task.status !== "Done") {
+       setMarkAsDone(true);
+     } else {
+       setMarkAsDone(false);
+     }
+   }
  };
 
  const isCurrentInputValid = Boolean(date) && 
@@ -69,7 +110,6 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
  const handleSave = async (e) => {
  e.preventDefault();
  
- // Validate before saving
  const hoursError = validateHours(hours);
  if (hoursError || !isCurrentInputValid || !timeLogId) {
  setErrors({ hours: hoursError });
@@ -80,9 +120,13 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
  try {
  const formData = new FormData();
  formData.append('job', jobTitle);
- formData.append('date', date); // Send raw string
+ formData.append('date', date);
  formData.append('hours', hours);
  formData.append('description', description);
+ formData.append('taskId', selectedTaskId || "");
+ if (markAsDone) {
+   formData.append('markAsDone', 'true');
+ }
  if (newAttachment) formData.append('attachments', newAttachment);
 
  await timeLogApi.updateTimeLog(timeLogId, formData);
@@ -114,11 +158,72 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
  </>
  );
 
+ const selectedTaskObj = availableTasks.find((t) => t._id === selectedTaskId) || (initialData?.task && typeof initialData.task === 'object' ? initialData.task : null);
+
  return (
  <GlassModal isOpen={isOpen} onClose={onClose} title="Edit Time Log" footer={footer}>
- <form id="editLogForm" onSubmit={handleSave} className="space-y-6">
+ <form id="editLogForm" onSubmit={handleSave} className="space-y-5">
+ 
+ {/* TASK LINKING SECTION */}
  <div>
- <label className="block text-xs font-bold text-muted mb-2 uppercase">Job Title</label>
+   <label className="block text-xs font-bold text-muted mb-2 uppercase flex items-center justify-between">
+     <span>Linked Task <span className="text-[10px] lowercase text-muted font-normal">(optional)</span></span>
+     {loadingTasks && <span className="text-[10px] text-brand-primary lowercase">Loading tasks...</span>}
+   </label>
+   <select
+     value={selectedTaskId}
+     onChange={handleTaskChange}
+     className="w-full bg-surface/50 border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all cursor-pointer"
+   >
+     <option value="">-- No specific task (General Time Log) --</option>
+     {availableTasks.map((t) => (
+       <option key={t._id} value={t._id}>
+         {t.taskID ? `[${t.taskID}] ` : ""}{t.title} — {t.project?.title || "Project"} ({t.status || "Todo"})
+       </option>
+     ))}
+     {selectedTaskObj && !availableTasks.some((t) => t._id === selectedTaskObj._id) && (
+       <option value={selectedTaskObj._id}>
+         {selectedTaskObj.taskID ? `[${selectedTaskObj.taskID}] ` : ""}{selectedTaskObj.title}
+       </option>
+     )}
+   </select>
+
+   {selectedTaskObj && (
+     <div className="mt-2.5 p-3 rounded-xl bg-app border border-border-subtle flex flex-col gap-2">
+       <div className="flex items-center justify-between gap-2">
+         <span className="text-xs font-bold text-heading truncate">
+           {selectedTaskObj.taskID && (
+             <span className="font-mono text-brand-primary mr-1.5">{selectedTaskObj.taskID}:</span>
+           )}
+           {selectedTaskObj.title}
+         </span>
+         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+           selectedTaskObj.status === "Done"
+             ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+             : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
+         }`}>
+           {selectedTaskObj.status || "Todo"}
+         </span>
+       </div>
+       {selectedTaskObj.status !== "Done" && (
+         <label className="flex items-center gap-2 mt-1 cursor-pointer select-none">
+           <input
+             type="checkbox"
+             checked={markAsDone}
+             onChange={(e) => setMarkAsDone(e.target.checked)}
+             className="rounded border-border text-brand-primary focus:ring-brand-primary w-4 h-4 cursor-pointer"
+           />
+           <span className="text-xs font-medium text-main">
+             Mark task as <strong>Completed (Done)</strong> on update
+           </span>
+         </label>
+       )}
+     </div>
+   )}
+ </div>
+
+ <div>
+ <label className="block text-xs font-bold text-muted mb-2 uppercase">Log Title</label>
  <input
  type="text"
  value={jobTitle}
@@ -172,8 +277,8 @@ const EditTimeLogModal = ({ isOpen, onClose, initialData, timeLogId, onTimeLogUp
  <div className="flex flex-col gap-2">
  <label className="block text-xs font-bold text-muted uppercase">Attachment</label>
  <div className="flex items-center justify-center w-full">
- <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-border-subtle border-dashed rounded-xl cursor-pointer bg-surface hover:bg-surface/80 transition-colors">
- <div className="flex flex-col items-center justify-center pt-5 pb-6">
+ <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-border-subtle border-dashed rounded-xl cursor-pointer bg-surface hover:bg-surface/80 transition-colors">
+ <div className="flex flex-col items-center justify-center pt-3 pb-3">
  <p className="text-xs text-muted font-bold uppercase tracking-tight">
  {newAttachment ? newAttachment.name : "click to replace file"}
  </p>

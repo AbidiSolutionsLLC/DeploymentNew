@@ -409,6 +409,9 @@ class ProjectService {
 
     const updatedProject = await project.save();
     await updatedProject.populate("projectGroup", "name description");
+    await updatedProject.populate("team", "name email avatar");
+    await updatedProject.populate("owner", "name email avatar");
+    await updatedProject.populate("department", "name");
 
     if (team && team.length > 0) {
       const newMembers = team.filter(id => !previousTeam.includes(id.toString()));

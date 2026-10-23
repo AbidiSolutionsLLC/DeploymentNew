@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import timeLogApi from "../../api/timeLogApi";
+import taskApi from "../../api/taskApi";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
  validateDescription,
  validateText,
- validateNumeric,
  sanitizeText,
  getApiError,
 } from "../../utils/validationUtils";
@@ -24,6 +24,12 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  const [isLoading, setIsLoading] = useState(false);
  const [errors, setErrors] = useState({});
 
+ // Task integration state
+ const [availableTasks, setAvailableTasks] = useState([]);
+ const [loadingTasks, setLoadingTasks] = useState(false);
+ const [selectedTaskId, setSelectedTaskId] = useState("");
+ const [markAsDone, setMarkAsDone] = useState(false);
+
  const modalRef = useRef(null);
  const fileInputRef = useRef(null);
  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB limit
@@ -37,28 +43,37 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  setAttachments([]);
  setLogs([]);
  setErrors({});
+ setSelectedTaskId("");
+ setMarkAsDone(false);
  };
 
  useEffect(() => {
- if (!isOpen) {
- resetForm();
+ if (isOpen) {
+   loadMyTasks();
+ } else {
+   resetForm();
  }
  }, [isOpen]);
 
+ const loadMyTasks = async () => {
+   try {
+     setLoadingTasks(true);
+     const res = await taskApi.getMyTasks();
+     const tasksList = Array.isArray(res) ? res : res?.data || [];
+     setAvailableTasks(tasksList);
+   } catch (err) {
+     console.error("Failed to load user tasks", err);
+   } finally {
+     setLoadingTasks(false);
+   }
+ };
+
  if (!isOpen) return null;
 
- // Helper: Format Date to YYYY-MM-DD for API
  const formatDateForApi = (d) => {
  return formatDateForAPI(d);
  };
 
- const handleBackdropClick = (e) => {
- if (modalRef.current && !modalRef.current.contains(e.target)) {
- onClose();
- }
- };
-
- // Validate a single field, returns error string or null
  const validateField = (name, value) => {
  switch (name) {
  case "jobTitle":
@@ -67,30 +82,20 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  return value ? null : "Please select a valid date.";
  case "hours": {
  if (!value && value !== 0) return "Hours worked is required.";
- 
- // Check for text/letters input
  const valueStr = String(value).trim();
  if (valueStr && isNaN(valueStr)) {
  return "Please enter a valid number";
  }
- 
  const num = parseFloat(valueStr);
- 
- // Check for negative numbers
  if (!isNaN(num) && num < 0) {
  return "Hours cannot be negative";
  }
- 
- // Check for zero or too small
  if (!isNaN(num) && num < 0.5) {
  return "Hours must be at least 0.5.";
  }
- 
- // Check for too large
  if (!isNaN(num) && num > 24) {
  return "Hours cannot exceed 24.";
  }
- 
  return null;
  }
  case "description":
@@ -117,15 +122,35 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  !validateField("hours", hours) &&
  !validateField("description", description);
 
+ const handleTaskChange = (e) => {
+   const taskId = e.target.value;
+   setSelectedTaskId(taskId);
+   if (!taskId) {
+     setMarkAsDone(false);
+     return;
+   }
+   const task = availableTasks.find((t) => t._id === taskId);
+   if (task) {
+     // Auto-populate job title with task ID and Title
+     const prefix = task.taskID ? `[${task.taskID}] ` : "";
+     setJobTitle(`${prefix}${task.title}`);
+     setErrors((prev) => ({ ...prev, jobTitle: null }));
+     // If task is not already done, default check to mark as done
+     if (task.status !== "Done") {
+       setMarkAsDone(true);
+     } else {
+       setMarkAsDone(false);
+     }
+   }
+ };
+
  const handleFileChange = (e) => {
  const files = Array.from(e.target.files);
  const validFiles = [];
  const duplicates = [];
  const oversized = [];
 
- // Check each file
  for (const file of files) {
- // Check for duplicates
  const isDuplicate = attachments.some(
  existing => existing.name === file.name && existing.size === file.size
  );
@@ -133,17 +158,13 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  duplicates.push(file.name);
  continue;
  }
-
- // Check file size
  if (file.size > MAX_FILE_SIZE) {
  oversized.push(file.name);
  continue;
  }
-
  validFiles.push(file);
  }
 
- // Check total file count
  if (attachments.length + validFiles.length > MAX_FILES) {
  setErrors(prev => ({
  ...prev,
@@ -152,7 +173,6 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  return;
  }
 
- // Show errors
  if (duplicates.length > 0) {
  setErrors(prev => ({
  ...prev,
@@ -168,20 +188,15 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  setErrors(prev => ({ ...prev, attachments: null }));
  }
 
- // Add valid files to attachments
  if (validFiles.length > 0) {
  setAttachments(prev => [...prev, ...validFiles]);
  }
-
- // Clear the file input
  e.target.value = null;
  };
 
  const removeAttachment = (index) => {
  setAttachments(prev => prev.filter((_, i) => i !== index));
  setErrors(prev => ({ ...prev, attachments: null }));
- 
- // Clear the file input to allow re-selecting the same file
  if (fileInputRef.current) {
  fileInputRef.current.value = null;
  }
@@ -189,6 +204,7 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
 
  const handleAddAnother = () => {
  if (!validateAll()) return;
+ const selectedTask = availableTasks.find((t) => t._id === selectedTaskId);
  const newLog = {
  jobTitle: sanitizeText(jobTitle),
  date: formatDateForApi(date),
@@ -196,6 +212,10 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  description: sanitizeText(description),
  attachmentNames: attachments.map(f => f.name),
  attachmentFiles: attachments,
+ taskId: selectedTaskId || null,
+ taskTitle: selectedTask?.title || null,
+ taskID: selectedTask?.taskID || null,
+ markAsDone: markAsDone,
  };
  setLogs([...logs, newLog]);
  setJobTitle("");
@@ -204,9 +224,11 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  setDescription("");
  setAttachments([]);
  setErrors({});
+ setSelectedTaskId("");
+ setMarkAsDone(false);
  };
 
-  const handleSave = async () => {
+ const handleSave = async () => {
  const isFormPartiallyFilled = jobTitle || date || hours || description || attachments.length > 0;
  
  if (logs.length === 0) {
@@ -219,12 +241,15 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  try {
  const logsToSubmit = [...logs];
  if (isCurrentInputValid || (logs.length === 0 && validateAll())) {
+ const selectedTask = availableTasks.find((t) => t._id === selectedTaskId);
  logsToSubmit.push({
  jobTitle: sanitizeText(jobTitle),
  date: formatDateForApi(date),
  hours: parseFloat(hours),
  description: sanitizeText(description),
  attachmentFiles: attachments,
+ taskId: selectedTaskId || null,
+ markAsDone: markAsDone,
  });
  }
 
@@ -234,6 +259,12 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  formData.append("date", log.date);
  formData.append("hours", log.hours);
  formData.append("description", log.description);
+ if (log.taskId) {
+   formData.append("taskId", log.taskId);
+ }
+ if (log.markAsDone) {
+   formData.append("markAsDone", "true");
+ }
  if (log.attachmentFiles && log.attachmentFiles.length > 0) {
  log.attachmentFiles.forEach(file => {
  formData.append("attachments", file);
@@ -274,15 +305,78 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  </>
  );
 
+ const selectedTaskObj = availableTasks.find((t) => t._id === selectedTaskId);
+
  return (
  <GlassModal isOpen={isOpen} onClose={onClose} title="Add Time Log" footer={footer}>
- <div className="space-y-6">
- {/* JOB TITLE INPUT */}
+ <div className="space-y-5">
+ 
+ {/* LINK ASSIGNED TASK SECTION */}
+ <div>
+   <label className="block text-xs font-bold text-muted mb-2 uppercase flex items-center justify-between">
+     <span>Link Assigned / Completed Task <span className="text-[10px] lowercase text-muted font-normal">(optional)</span></span>
+     {loadingTasks && <span className="text-[10px] text-brand-primary lowercase">Loading tasks...</span>}
+   </label>
+   <select
+     value={selectedTaskId}
+     onChange={handleTaskChange}
+     className="w-full bg-surface/50 border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all cursor-pointer"
+   >
+     <option value="">-- No specific task (General Time Log) --</option>
+     {availableTasks.map((t) => (
+       <option key={t._id} value={t._id}>
+         {t.taskID ? `[${t.taskID}] ` : ""}{t.title} — {t.project?.title || "Project"} ({t.status || "Todo"})
+       </option>
+     ))}
+   </select>
+
+   {/* Linked Task Details Pill */}
+   {selectedTaskObj && (
+     <div className="mt-2.5 p-3 rounded-xl bg-app border border-border-subtle flex flex-col gap-2">
+       <div className="flex items-center justify-between gap-2">
+         <span className="text-xs font-bold text-heading truncate">
+           {selectedTaskObj.taskID && (
+             <span className="font-mono text-brand-primary mr-1.5">{selectedTaskObj.taskID}:</span>
+           )}
+           {selectedTaskObj.title}
+         </span>
+         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+           selectedTaskObj.status === "Done"
+             ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+             : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
+         }`}>
+           {selectedTaskObj.status || "Todo"}
+         </span>
+       </div>
+       {selectedTaskObj.project?.title && (
+         <div className="text-[11px] text-muted flex items-center gap-1.5">
+           <span>Project:</span>
+           <span className="font-medium text-main">{selectedTaskObj.project.title}</span>
+         </div>
+       )}
+       {selectedTaskObj.status !== "Done" && (
+         <label className="flex items-center gap-2 mt-1 cursor-pointer select-none">
+           <input
+             type="checkbox"
+             checked={markAsDone}
+             onChange={(e) => setMarkAsDone(e.target.checked)}
+             className="rounded border-border text-brand-primary focus:ring-brand-primary w-4 h-4 cursor-pointer"
+           />
+           <span className="text-xs font-medium text-main">
+             Mark task as <strong>Completed (Done)</strong> on log creation
+           </span>
+         </label>
+       )}
+     </div>
+   )}
+ </div>
+
+ {/* LOG TITLE INPUT */}
  <div>
  <label className="block text-xs font-bold text-muted mb-2 uppercase">Log Title*</label>
  <input
  type="text"
- placeholder="e.g. Frontend Development"
+ placeholder="e.g. Frontend Development or Task Summary"
  value={jobTitle}
  onChange={(e) => {
  setJobTitle(e.target.value);
@@ -370,8 +464,8 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  Attachment {attachments.length > 0 && `(${attachments.length}/${MAX_FILES})`}
  </label>
  <div className="flex items-center justify-center w-full">
- <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-border-subtle border-dashed rounded-xl cursor-pointer bg-surface hover:bg-surface/80 transition-colors">
- <div className="flex flex-col items-center justify-center pt-5 pb-6">
+ <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-border-subtle border-dashed rounded-xl cursor-pointer bg-surface hover:bg-surface/80 transition-colors">
+ <div className="flex flex-col items-center justify-center pt-3 pb-3">
  <p className="text-xs text-muted font-bold uppercase tracking-tight">
  {attachments.length > 0 ? `${attachments.length} file(s) selected` : "click to upload file(s)"}
  </p>
@@ -427,10 +521,20 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
  key={idx}
  className="p-3 bg-brand-primary/5 rounded-xl border border-brand-primary/10 text-xs font-medium text-brand-primary flex justify-between items-center"
  >
- <span>
- {log.jobTitle} • {log.hours}h
- </span>
- <span className="opacity-70">{log.date}</span>
+ <div>
+   <div className="font-semibold text-heading">
+     {log.jobTitle}
+   </div>
+   {log.taskTitle && (
+     <div className="text-[10px] text-muted font-normal mt-0.5">
+       Task: {log.taskID ? `[${log.taskID}] ` : ""}{log.taskTitle}
+     </div>
+   )}
+ </div>
+ <div className="text-right">
+   <div className="font-bold">{log.hours}h</div>
+   <div className="text-[10px] opacity-70">{log.date}</div>
+ </div>
  </div>
  ))}
  </div>

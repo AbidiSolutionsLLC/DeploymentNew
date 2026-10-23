@@ -22,6 +22,7 @@ import { toast } from "react-toastify";
 import { useConfirm } from "../../context/ConfirmContext";
 import usePermission from "../../hooks/usePermission";
 import GlassModal from "../../components/ui/GlassModal";
+import ModernMultiSelect from "../../components/ui/ModernMultiSelect";
 import GlassButton from "../../components/ui/GlassButton";
 import PortalHero from "../../components/ui/PortalHero";
 import PortalToolbar, { ToolbarSelect } from "../../components/projectPortal/PortalToolbar";
@@ -528,30 +529,20 @@ const ProjectGroups = () => {
           </div>
 
           <div>
-            <label
-              htmlFor="group-projects"
-              className="block text-[10px] font-black text-muted mb-1.5 uppercase tracking-widest"
-            >
-              Assigned Projects ({selectedProjects.length} selected)
-            </label>
-            <select
-              id="group-projects"
-              multiple
+            <ModernMultiSelect
+              label="Assigned Projects"
+              name="projects"
               value={selectedProjects}
-              onChange={(e) =>
-                setSelectedProjects(Array.from(e.target.selectedOptions, (o) => o.value))
-              }
-              className="glass-input h-32 custom-scrollbar-visible"
-            >
-              {allProjects.map((p) => (
-                <option key={p._id || p.id} value={p._id || p.id}>
-                  {p.title} ({p.status || "Planning"})
-                </option>
-              ))}
-            </select>
-            <p className="text-[10px] text-muted mt-1">
-              Hold Ctrl/Cmd to select or deselect multiple projects.
-            </p>
+              onChange={(e) => setSelectedProjects(e.target.value)}
+              options={allProjects.map((p) => ({
+                value: p._id || p.id,
+                label: p.title,
+                subtitle: `Status: ${p.status || "Planning"}`,
+              }))}
+              placeholder="Select projects to assign to this group..."
+              searchPlaceholder="Search projects by name..."
+              helperText="Assigned projects will be tracked together as a strategic portfolio initiative."
+            />
           </div>
         </form>
       </GlassModal>

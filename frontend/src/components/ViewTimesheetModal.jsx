@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaCommentDots, FaDownload, FaFileAlt, FaPaperclip, FaPaperPlane, FaRegClock } from "react-icons/fa";
+import { FaCommentDots, FaDownload, FaFileAlt, FaPaperclip, FaPaperPlane, FaRegClock, FaExternalLinkAlt } from "react-icons/fa";
 import { downloadFile } from "../utils/downloadFile";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
@@ -124,23 +124,73 @@ const ViewTimesheetModal = ({ timesheet: initialTimesheet, onClose, onCommentAdd
             <div className="overflow-hidden rounded-xl border border-border-subtle bg-surface">
               {timeLogs.length > 0 ? (
                 <div className="divide-y divide-border-subtle">
-                  {timeLogs.map((log) => (
-                    <div key={log._id} className="px-4 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="min-w-0 truncate text-[13px] font-semibold text-heading">
-                          {log.job || log.jobTitle || "Unknown job"}
-                        </span>
-                        <span className="shrink-0 rounded-full border border-border-subtle bg-app px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                          {log.hours || 0} hrs
-                        </span>
+                  {timeLogs.map((log) => {
+                    const task = log.task && typeof log.task === 'object' ? log.task : null;
+                    const project = task?.project && typeof task.project === 'object'
+                      ? task.project
+                      : (log.project && typeof log.project === 'object' ? log.project : null);
+                    const projectId = project?._id || task?.project;
+                    const taskId = task?._id;
+
+                    return (
+                      <div key={log._id} className="px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="min-w-0 truncate text-[13px] font-semibold text-heading">
+                            {log.job || log.jobTitle || "Unknown job"}
+                          </span>
+                          <span className="shrink-0 rounded-full border border-border-subtle bg-app px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                            {log.hours || 0} hrs
+                          </span>
+                        </div>
+
+                        {/* LINKED TASK CARD / BADGE */}
+                        {task && (
+                          <div className="mt-2 p-2.5 rounded-lg border border-border-subtle bg-app flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {task.taskID && (
+                                <span className="font-mono text-[11px] font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded shrink-0">
+                                  {task.taskID}
+                                </span>
+                              )}
+                              <span className="text-xs font-semibold text-heading truncate">
+                                {task.title}
+                              </span>
+                              {project?.title && (
+                                <span className="text-[11px] text-muted truncate">
+                                  • {project.title}
+                                </span>
+                              )}
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+                                task.status === "Done"
+                                  ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                                  : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
+                              }`}>
+                                {task.status || "Todo"}
+                              </span>
+                            </div>
+
+                            {projectId && taskId && (
+                              <button
+                                type="button"
+                                onClick={() => window.open(`/project/projects/${projectId}?taskId=${taskId}`, "_blank", "noopener,noreferrer")}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold text-brand-primary hover:bg-brand-primary/10 border border-brand-primary/30 transition-all cursor-pointer shrink-0"
+                                title="Open and view task in project portal (opens in new tab)"
+                              >
+                                <FaExternalLinkAlt size={9} />
+                                View Task
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {log.description && (
+                          <p className="mt-1.5 whitespace-pre-wrap text-[13px] leading-relaxed text-main">
+                            {log.description}
+                          </p>
+                        )}
                       </div>
-                      {log.description && (
-                        <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-main">
-                          {log.description}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="px-4 py-6 text-center text-xs text-muted">No time logs</p>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../axios";
+import taskApi from "../api/taskApi";
 import { toast } from "react-toastify";
 import ModernSelect from "./ui/ModernSelect";
 import ModernDatePicker from "./ui/ModernDatePicker";
@@ -18,6 +19,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  const confirm = useConfirm();
  const [formData, setFormData] = useState({
  employeeId: "",
+ taskId: "",
  job: "",
  date: formatDateForAPI(new Date()),
  description: "",
@@ -25,22 +27,39 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  });
  const [errors, setErrors] = useState({});
  const [loading, setLoading] = useState(false);
+ const [allCompanyTasks, setAllCompanyTasks] = useState([]);
+ const [loadingTasks, setLoadingTasks] = useState(false);
 
  useEffect(() => {
  if (open) {
  setFormData({
  employeeId: "",
+ taskId: "",
  job: "",
  date: formatDateForAPI(new Date()),
  description: "",
  hours: "",
  });
  setErrors({});
+ loadTasks();
  }
  }, [open]);
 
+ const loadTasks = async () => {
+   try {
+     setLoadingTasks(true);
+     const res = await taskApi.getMyTasks();
+     const list = Array.isArray(res) ? res : res?.data || [];
+     setAllCompanyTasks(list);
+   } catch (err) {
+     console.error("Failed to load company tasks", err);
+   } finally {
+     setLoadingTasks(false);
+   }
+ };
+
  const handleCancel = async () => {
- const isDirty = formData.employeeId || formData.job || formData.description || formData.hours;
+ const isDirty = formData.employeeId || formData.job || formData.description || formData.hours || formData.taskId;
  if (isDirty) {
  const isConfirmed = await confirm({ title: "Unsaved Changes", message: "Are you sure? Unsaved data will be lost." });
  if (isConfirmed) onClose();
@@ -103,6 +122,22 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
  };
 
+ const handleTaskSelect = (e) => {
+   const taskId = e.target.value;
+   const selectedTask = allCompanyTasks.find((t) => t._id === taskId);
+   let newJob = formData.job;
+   if (selectedTask) {
+     const prefix = selectedTask.taskID ? `[${selectedTask.taskID}] ` : "";
+     newJob = `${prefix}${selectedTask.title}`.slice(0, 50);
+   }
+   setFormData((prev) => ({
+     ...prev,
+     taskId,
+     job: newJob,
+   }));
+   setErrors((prev) => ({ ...prev, job: validateField("job", newJob) }));
+ };
+
  const handleSubmit = async (e) => {
  if (e) e.preventDefault();
  if (!validateAll()) {
@@ -114,6 +149,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  try {
  await api.post("/time-logs", {
  employeeId: formData.employeeId,
+ taskId: formData.taskId || undefined,
  job: sanitizeText(formData.job),
  date: formData.date,
  description: sanitizeText(formData.description),
@@ -128,6 +164,13 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  setLoading(false);
  }
  };
+
+ // Filter tasks for selected employee (if any selected), or show all company tasks
+ const employeeTasks = formData.employeeId
+   ? allCompanyTasks.filter((t) =>
+       t.team?.some((m) => (m?._id || m)?.toString() === formData.employeeId.toString())
+     )
+   : allCompanyTasks;
 
  return (
  <GlassModal
@@ -151,14 +194,17 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  </>
  }
  >
- <form onSubmit={handleSubmit} className="space-y-6">
+ <form onSubmit={handleSubmit} className="space-y-5">
  {/* Employee Select */}
- <div className="relative z-50">
+ <div>
  <ModernSelect
  label="Select Employee"
  name="employeeId"
  value={formData.employeeId}
- onChange={(e) => handleChange("employeeId", e.target.value)}
+ onChange={(e) => {
+   handleChange("employeeId", e.target.value);
+   setFormData((prev) => ({ ...prev, taskId: "" }));
+ }}
  required
  placeholder="Select Employee"
  options={[
@@ -173,8 +219,31 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  )}
  </div>
 
+ {/* Link Task (Optional) */}
+ <div>
+   <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest flex items-center justify-between">
+     <span>LINK ASSIGNED TASK (OPTIONAL)</span>
+     {loadingTasks && <span className="text-[10px] text-brand-primary lowercase font-normal">Loading tasks...</span>}
+   </label>
+   <select
+     value={formData.taskId}
+     onChange={handleTaskSelect}
+     className="w-full bg-surface/50 border border-border-subtle rounded-xl px-4 py-3 text-sm text-heading outline-none focus:ring-2 focus:ring-brand-primary/30 transition-all cursor-pointer"
+   >
+     <option value="">-- No specific task (General work) --</option>
+     {employeeTasks.map((t) => (
+       <option key={t._id} value={t._id}>
+         {t.taskID ? `[${t.taskID}] ` : ""}{t.title} — {t.project?.title || "Project"} ({t.status || "Todo"})
+       </option>
+     ))}
+     {formData.employeeId && employeeTasks.length === 0 && (
+       <option disabled value="none">No tasks assigned to this employee</option>
+     )}
+   </select>
+ </div>
+
  {/* Job/Task Name */}
- <div className="relative z-40">
+ <div>
  <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">
  TASK/JOB NAME*
  </label>
@@ -192,7 +261,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  </div>
 
  {/* Date */}
- <div className="relative z-30">
+ <div>
  <ModernDatePicker
  label="DATE"
  name="date"
@@ -205,7 +274,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  </div>
 
  {/* Hours */}
- <div className="relative z-20">
+ <div>
  <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">
  HOURS WORKED*
  </label>
@@ -224,7 +293,7 @@ export default function AdminAddTimeLogModal({ open, onClose, onSuccess, allUser
  </div>
 
  {/* Description */}
- <div className="relative z-10">
+ <div>
  <label className="block text-[10px] font-black text-muted dark:text-muted mb-2 uppercase tracking-widest">
  DESCRIPTION* <span className="normal-case font-normal text-muted dark:text-muted">(min 10, max 300 chars)</span>
  </label>

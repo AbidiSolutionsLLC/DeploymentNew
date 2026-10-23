@@ -9,6 +9,22 @@ const { getSearchScope, getApprovalScope } = require("../utils/rbac");
 const { sendNotificationEmail } = require('../utils/emailNotificationService');
 const emailTemplates = require('../utils/emailTemplates');
 const { generateActionUrl } = require('../utils/urlGenerator');
+
+const TIME_LOGS_POPULATE = {
+  path: "timeLogs",
+  populate: [
+    {
+      path: "task",
+      select: "title taskID status priority project completionPercent workedHours",
+      populate: { path: "project", select: "title projectID" }
+    },
+    {
+      path: "project",
+      select: "title projectID"
+    }
+  ]
+};
+
 class TimesheetService {
   async createTimesheet(user, companyId, data) {
     let { name, description, timeLogs, date, employeeId } = data;
@@ -167,7 +183,7 @@ class TimesheetService {
     }
 
     const timesheets = await Timesheet.find(dbQuery)
-      .populate("timeLogs")
+      .populate(TIME_LOGS_POPULATE)
       .populate("employee", "name email role") 
       .sort({ date: 1 });
 
@@ -221,7 +237,7 @@ class TimesheetService {
 
     const [data, total] = await Promise.all([
       Timesheet.find(query)
-        .populate("timeLogs")
+        .populate(TIME_LOGS_POPULATE)
         .populate("employee", "name email role avatar")
         .skip(skip)
         .limit(Number(limit))
@@ -242,7 +258,9 @@ class TimesheetService {
 
   async getTimesheetById(user, companyId, id) {
     const scope = await getSearchScope(user, 'timesheet');
-    const timesheet = await Timesheet.findOne({ _id: id, company: companyId, ...scope }).populate("timeLogs");
+    const timesheet = await Timesheet.findOne({ _id: id, company: companyId, ...scope })
+      .populate(TIME_LOGS_POPULATE)
+      .populate("employee", "name email role avatar");
     if (!timesheet) throw new NotFoundError("Timesheet or you do not have permission to view it");
     return timesheet;
   }
@@ -282,7 +300,9 @@ class TimesheetService {
   async updateTimesheetStatus(user, companyId, id, data) {
     const { status, approvedHours, comment } = data;
     const scope = await getSearchScope(user, 'timesheet');
-    const timesheet = await Timesheet.findOne({ _id: id, company: companyId, ...scope }).populate('employee', 'name email role');
+    const timesheet = await Timesheet.findOne({ _id: id, company: companyId, ...scope })
+      .populate('employee', 'name email role')
+      .populate(TIME_LOGS_POPULATE);
     if (!timesheet) throw new NotFoundError("Timesheet or you do not have permission to modify it");
 
     const currentUserId = (user.id || user._id).toString();
@@ -304,6 +324,24 @@ class TimesheetService {
     }
     
     const updatedTimesheet = await timesheet.save();
+
+    // If approved, update workedHours on linked tasks
+    if (status === 'Approved' && timesheet.timeLogs && timesheet.timeLogs.length > 0) {
+      try {
+        const Task = require('../models/taskSchema');
+        for (const log of timesheet.timeLogs) {
+          if (log && log.task) {
+            const taskId = log.task._id || log.task;
+            const logHours = log.hours || 0;
+            if (taskId && logHours > 0) {
+              await Task.updateOne({ _id: taskId }, { $inc: { workedHours: logHours } });
+            }
+          }
+        }
+      } catch (taskErr) {
+        console.error('[Timesheet Approval] Task worked hours update error:', taskErr.message);
+      }
+    }
 
     try {
       await createNotification({

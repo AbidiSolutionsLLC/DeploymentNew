@@ -1,28 +1,32 @@
 import React, { useState, useEffect, useRef } from "react";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
+import ModernMultiSelect from "../ui/ModernMultiSelect";
 import ModernDatePicker from "../ui/ModernDatePicker";
 import api from "../../axios";
 
 const PROJECT_STATUSES = ["Planning", "Active", "On Hold", "Completed", "Cancelled"];
 
-export default function EditProjectForm({ project, onSubmit, onClose }) {
+const toId = (v) => (v && typeof v === "object" ? String(v._id || v.id || "") : String(v || ""));
+const toDateInput = (v) => (v ? String(v).slice(0, 10) : "");
 
+export default function EditProjectForm({ project, onSubmit, onClose }) {
   const [form, setForm] = useState({
     title: project?.title || "",
     description: project?.description || "",
-    owner: project?.owner?._id || project?.owner || "",
-    department: project?.department?._id || project?.department || "",
+    owner: toId(project?.owner),
+    department: toId(project?.department),
     status: PROJECT_STATUSES.includes(project?.status) ? project.status : "Planning",
-    team: (project?.team || []).map((m) => m._id || m),
-    startDate: project?.startDate ? String(project.startDate).slice(0, 10) : "",
-    dueDate: project?.dueDate ? String(project.dueDate).slice(0, 10) : "",
+    team: (project?.team || []).map(toId).filter(Boolean),
+    startDate: toDateInput(project?.startDate),
+    dueDate: toDateInput(project?.dueDate),
     milestones: (project?.milestones || []).map((milestone) => ({
       title: milestone.title || "",
-      dueDate: milestone.dueDate ? String(milestone.dueDate).slice(0, 10) : "",
+      dueDate: toDateInput(milestone.dueDate),
       status: milestone.status || "Planned",
     })),
   });
+
   const [errors, setErrors] = useState({});
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -30,6 +34,28 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
   const [optionsError, setOptionsError] = useState("");
   const [saving, setSaving] = useState(false);
   const fetchedRef = useRef(false);
+
+  // Sync state if project prop changes or re-renders
+  useEffect(() => {
+    if (project) {
+      setForm({
+        title: project.title || "",
+        description: project.description || "",
+        owner: toId(project.owner),
+        department: toId(project.department),
+        status: PROJECT_STATUSES.includes(project.status) ? project.status : "Planning",
+        team: (project.team || []).map(toId).filter(Boolean),
+        startDate: toDateInput(project.startDate),
+        dueDate: toDateInput(project.dueDate),
+        milestones: (project.milestones || []).map((milestone) => ({
+          title: milestone.title || "",
+          dueDate: toDateInput(milestone.dueDate),
+          status: milestone.status || "Planned",
+        })),
+      });
+      setErrors({});
+    }
+  }, [project]);
 
   useEffect(() => {
     if (!fetchedRef.current) {
@@ -156,11 +182,16 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
       </div>
 
       <div>
-        <label htmlFor="project-team" className={labelCls}>Team Members</label>
-        <select id="project-team" multiple value={form.team} onChange={(e) => set("team", Array.from(e.target.selectedOptions, (o) => o.value))} className="glass-input h-24 custom-scrollbar-visible">
-          {users.map((u) => (<option key={u._id || u.id} value={u._id || u.id}>{u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email}</option>))}
-        </select>
-        <p className="text-[10px] text-muted mt-1">Hold Ctrl/Cmd to select multiple</p>
+        <ModernMultiSelect
+          label="Team Members"
+          name="team"
+          value={form.team}
+          onChange={(e) => set("team", e.target.value)}
+          users={users}
+          placeholder={loadingOptions ? "Loading people..." : "Assign team members..."}
+          searchPlaceholder="Search people by name or email..."
+          helperText="Select members to add to the project. Click the dropdown to see unassigned members."
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

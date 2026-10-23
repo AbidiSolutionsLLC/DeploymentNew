@@ -127,11 +127,14 @@ const projectSlice = createSlice({
  state.projects.push(action.payload);
  })
  .addCase(updateProject.fulfilled, (state, action) => {
- const index = state.projects.findIndex(p => p._id === action.payload._id);
- if (index !== -1) {
- state.projects[index] = action.payload;
- }
- })
+        const index = state.projects.findIndex(p => p._id === action.payload._id);
+        if (index !== -1) {
+          state.projects[index] = action.payload;
+        }
+        if (state.currentProject && (state.currentProject._id === action.payload._id || state.currentProject.id === action.payload.id)) {
+          state.currentProject = { ...state.currentProject, ...action.payload };
+        }
+      })
  .addCase(deleteProject.fulfilled, (state, action) => {
  state.projects = state.projects.filter(p => p._id !== action.payload);
  })
