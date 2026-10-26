@@ -110,6 +110,7 @@ setForm({
     if (!form.title.trim()) next.title = "Project name is required.";
     if (!form.owner) next.owner = "Project owner is required.";
     if (!form.department) next.department = "Department is required.";
+    if (!form.status) next.status = "Status is required.";
     if (form.startDate && form.dueDate && form.dueDate < form.startDate) {
       next.dueDate = "End date can't be before start date.";
     }
@@ -243,6 +244,24 @@ setForm({
             />
             {errors.department && <p className="text-danger text-xs mt-1">{errors.department}</p>}
           </div>
+        </div>
+
+        {/* Status */}
+        <div>
+          <label htmlFor="project-status" className={labelCls}>
+            Status*
+          </label>
+          <ModernSelect
+            id="project-status"
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            options={PROJECT_STATUSES.map((s) => ({ value: s, label: s }))}
+            placeholder="Select status"
+            required
+            error={errors.status}
+          />
+          {errors.status && <p className="text-danger text-xs mt-1">{errors.status}</p>}
         </div>
 
         {/* Team Members */}

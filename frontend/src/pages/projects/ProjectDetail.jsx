@@ -703,13 +703,13 @@ const ProjectDetail = () => {
 
           <div className="px-5 pb-5">
             <div className="overflow-x-auto">
-              <div className="grid grid-cols-5 gap-4 min-w-[1300px] items-stretch">
+              <div className="grid grid-cols-5 gap-5 min-w-[1500px] items-stretch">
                 {KANBAN_COLUMNS.map((col) => {
                   const colTasks = getTasksByStatus(col.id);
                   return (
                     <div
                       key={col.id}
-                      className={`rounded-xl border bg-surface p-3.5 flex flex-col transition-colors ${
+                      className={`rounded-xl border bg-surface p-4 flex flex-col transition-colors min-w-[280px] ${
                         dragOverColumn === col.id
                           ? "border-border-accent ring-2 ring-border-accent bg-amber-50"
                           : "border-border-subtle"
@@ -738,7 +738,7 @@ const ProjectDetail = () => {
                           </button>
                         )}
                       </div>
-                      <div className="flex-1 space-y-3 max-h-[calc(100vh-320px)] min-h-[340px] overflow-y-auto pr-1.5 custom-scrollbar-visible">
+                      <div className="flex-1 space-y-3 max-h-[calc(100vh-280px)] min-h-[400px] overflow-y-auto pr-1.5 custom-scrollbar-visible">
                         {colTasks.map((task) => (
                           <TaskCard
                             key={task._id}
@@ -754,7 +754,7 @@ const ProjectDetail = () => {
                         ))}
                         {colTasks.length === 0 && (
                           <div
-                            className={`flex items-center justify-center min-h-[320px] rounded-xl border border-dashed text-[11px] font-black uppercase tracking-widest transition-colors ${
+                            className={`flex items-center justify-center min-h-[380px] rounded-xl border border-dashed text-[11px] font-black uppercase tracking-widest transition-colors ${
                               dragOverColumn === col.id
                                 ? "border-brand text-brand"
                                 : "border-border-subtle text-muted/70"

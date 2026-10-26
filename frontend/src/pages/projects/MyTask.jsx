@@ -176,7 +176,6 @@ const MyTask = () => {
     {
       key: "project",
       label: "Project",
-      hideBelow: "md",
       render: (v) => <TableText value={v?.title} />,
     },
     {

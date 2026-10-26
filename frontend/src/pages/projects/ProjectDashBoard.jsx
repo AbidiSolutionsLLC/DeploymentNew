@@ -28,6 +28,7 @@ import { PROJECT_DASHBOARD_CARD_OPTIONS } from "../../components/projectPortal/d
 import NewProjectDrawer from "../../components/NewProjectDrawer";
 import GlassButton from "../../components/ui/GlassButton";
 import usePermission from "../../hooks/usePermission";
+import "../../styles/adminPortal.css";
 
 /*
  * Explicit colour pairs per KPI tone.
@@ -39,34 +40,44 @@ const KPI_TONES = {
   amber: {
     wash: "bg-[rgba(232,213,160,0.25)] dark:bg-[rgba(251,191,36,0.09)]",
     tile: "border-accent bg-[linear-gradient(135deg,#E8D5A0,#C5B588)] text-brand-text dark:border-[rgba(251,191,36,0.45)] dark:bg-[linear-gradient(135deg,rgba(251,191,36,0.30),rgba(245,158,11,0.10))] dark:text-[#FFE7A3] dark:shadow-[0_0_26px_-6px_rgba(251,191,36,0.65)]",
+    accent: "#F59E0B",
+    grad: "linear-gradient(135deg, #FBBF24 0%, #F97316 100%)",
     rail: "via-[rgba(251,191,36,0.8)]",
     glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(251,191,36,0.16),transparent_62%)]",
     value: "dark:[text-shadow:0_0_24px_rgba(251,191,36,0.4)]",
   },
   emerald: {
     wash: "dark:hover:bg-[rgba(16,185,129,0.05)]",
-    tile: "border-border-subtle bg-app text-muted group-hover:border-border-accent group-hover:text-brand-text dark:border-[rgba(52,211,153,0.4)] dark:bg-[rgba(16,185,129,0.16)] dark:text-[#6EE7B7] dark:shadow-[0_0_24px_-8px_rgba(16,185,129,0.75)]",
+    tile: "border-border-subtle bg-app text-muted dark:border-[rgba(52,211,153,0.4)] dark:bg-[rgba(16,185,129,0.16)] dark:text-[#6EE7B7] dark:shadow-[0_0_24px_-8px_rgba(16,185,129,0.75)]",
+    accent: "#10B981",
+    grad: "linear-gradient(135deg, #34D399 0%, #059669 100%)",
     rail: "via-[rgba(52,211,153,0.75)]",
     glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(16,185,129,0.14),transparent_62%)]",
     value: "dark:[text-shadow:0_0_24px_rgba(16,185,129,0.35)]",
   },
   sky: {
     wash: "dark:hover:bg-[rgba(56,189,248,0.05)]",
-    tile: "border-border-subtle bg-app text-muted group-hover:border-border-accent group-hover:text-brand-text dark:border-[rgba(56,189,248,0.4)] dark:bg-[rgba(56,189,248,0.16)] dark:text-[#7DD3FC] dark:shadow-[0_0_24px_-8px_rgba(56,189,248,0.75)]",
+    tile: "border-border-subtle bg-app text-muted dark:border-[rgba(56,189,248,0.4)] dark:bg-[rgba(56,189,248,0.16)] dark:text-[#7DD3FC] dark:shadow-[0_0_24px_-8px_rgba(56,189,248,0.75)]",
+    accent: "#0EA5E9",
+    grad: "linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)",
     rail: "via-[rgba(56,189,248,0.75)]",
     glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(56,189,248,0.14),transparent_62%)]",
     value: "dark:[text-shadow:0_0_24px_rgba(56,189,248,0.35)]",
   },
   rose: {
     wash: "dark:hover:bg-[rgba(244,63,94,0.05)]",
-    tile: "border-border-subtle bg-app text-muted group-hover:border-border-accent group-hover:text-brand-text dark:border-[rgba(244,63,94,0.4)] dark:bg-[rgba(244,63,94,0.16)] dark:text-[#FDA4AF] dark:shadow-[0_0_24px_-8px_rgba(244,63,94,0.75)]",
+    tile: "border-border-subtle bg-app text-muted dark:border-[rgba(244,63,94,0.4)] dark:bg-[rgba(244,63,94,0.16)] dark:text-[#FDA4AF] dark:shadow-[0_0_24px_-8px_rgba(244,63,94,0.75)]",
+    accent: "#F43F5E",
+    grad: "linear-gradient(135deg, #FB7185 0%, #E11D48 100%)",
     rail: "via-[rgba(244,63,94,0.75)]",
     glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(244,63,94,0.14),transparent_62%)]",
     value: "dark:[text-shadow:0_0_24px_rgba(244,63,94,0.35)]",
   },
   violet: {
     wash: "dark:hover:bg-[rgba(167,139,250,0.05)]",
-    tile: "border-border-subtle bg-app text-muted group-hover:border-border-accent group-hover:text-brand-text dark:border-[rgba(167,139,250,0.4)] dark:bg-[rgba(167,139,250,0.16)] dark:text-[#C4B5FD] dark:shadow-[0_0_24px_-8px_rgba(167,139,250,0.75)]",
+    tile: "border-border-subtle bg-app text-muted dark:border-[rgba(167,139,250,0.4)] dark:bg-[rgba(167,139,250,0.16)] dark:text-[#C4B5FD] dark:shadow-[0_0_24px_-8px_rgba(167,139,250,0.75)]",
+    accent: "#8B5CF6",
+    grad: "linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)",
     rail: "via-[rgba(167,139,250,0.75)]",
     glow: "dark:bg-[radial-gradient(circle_at_18%_0%,rgba(167,139,250,0.14),transparent_62%)]",
     value: "dark:[text-shadow:0_0_24px_rgba(167,139,250,0.35)]",
@@ -259,7 +270,7 @@ const ProjectDashBoard = () => {
         />
 
         {/* 1. KPI command deck — 4 Clickable / Redirecting Cards in a single row */}
-        <section className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-[0_4px_20px_0_rgba(15,23,42,0.06)] backdrop-blur-[16px] dark:border-white/10 dark:bg-[linear-gradient(145deg,#1e293b_0%,#1a2436_55%,#162031_100%)] dark:shadow-[0_22px_60px_-24px_rgba(0,0,0,0.85)]">
+        <section className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-[0_4px_20px_0_rgba(15,23,42,0.06)] backdrop-blur-[16px] dark:border-[#FFD700]/20 dark:bg-[linear-gradient(145deg,#1e293b_0%,#1a2436_55%,#162031_100%)] dark:shadow-[0_22px_60px_-24px_rgba(0,0,0,0.85)]">
           <span
             className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[rgba(232,213,160,0.7)] blur-3xl dark:bg-[rgba(251,191,36,0.16)]"
             aria-hidden="true"
@@ -275,10 +286,10 @@ const ProjectDashBoard = () => {
                 const Icon = kpi.Icon;
                 const tone = KPI_TONES[kpi.tone] || KPI_TONES.amber;
                 const borders = [
-                  index > 0 ? "border-t border-border-subtle dark:border-white/10" : "",
-                  index % 2 === 1 ? "sm:border-l sm:border-border-subtle sm:dark:border-white/10" : "sm:border-l-0",
-                  index >= 2 ? "sm:border-t sm:border-border-subtle sm:dark:border-white/10" : "sm:border-t-0",
-                  index > 0 ? "lg:border-l lg:border-border-subtle lg:dark:border-white/10" : "lg:border-l-0",
+                  index > 0 ? "border-t border-border-subtle dark:border-[#FFD700]/20" : "",
+                  index % 2 === 1 ? "sm:border-l sm:border-border-subtle sm:dark:border-[#FFD700]/20" : "sm:border-l-0",
+                  index >= 2 ? "sm:border-t sm:border-border-subtle sm:dark:border-[#FFD700]/20" : "sm:border-t-0",
+                  index > 0 ? "lg:border-l lg:border-border-subtle lg:dark:border-[#FFD700]/20" : "lg:border-l-0",
                   "lg:border-t-0",
                 ]
                   .filter(Boolean)
@@ -313,9 +324,14 @@ const ProjectDashBoard = () => {
                       aria-hidden="true"
                     />
                     <span
-                      className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl border shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-0.5 ${tone.tile}`}
+                      className="lm-kpi-icon"
+                      style={{
+                        "--lm-accent": tone.accent,
+                        "--lm-grad": tone.grad,
+                      }}
                     >
-                      <Icon size={18} />
+                      <span className="lm-glow" aria-hidden="true" />
+                      <Icon size={18} style={{ color: "#fff" }} />
                     </span>
 
                     <div className="relative min-w-0 flex-1">
@@ -364,20 +380,20 @@ const ProjectDashBoard = () => {
           <div className="flex items-center gap-2.5 flex-shrink-0 self-end sm:self-center">
             {canCreateProject ? (
               <div className="relative inline-flex" ref={projectMenuRef}>
-                <div className="inline-flex rounded-2xl shadow-sm overflow-hidden">
+                <div className="inline-flex rounded-2xl shadow-sm overflow-hidden group">
                   <GlassButton
                     variant="primary"
                     size="sm"
                     icon={PlusIcon}
                     onClick={openNewProjectDrawer}
-                    className="!rounded-r-none font-bold uppercase tracking-wider"
+                    className="!rounded-r-none font-bold uppercase tracking-wider group-hover:-translate-y-1 group-active:translate-y-0"
                   >
                     Project
                   </GlassButton>
                   <button
                     type="button"
                     onClick={() => setProjectMenuOpen((prev) => !prev)}
-                    className="inline-flex items-center px-2 py-2 text-xs font-bold bg-[linear-gradient(135deg,#F7E7B4_0%,#EDBB3E_38%,#D9A21F_62%,#F5D77A_100%)] text-black border-l border-amber-700/20 hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                    className="inline-flex items-center px-2 py-2 text-xs font-bold bg-[linear-gradient(135deg,#F7E7B4_0%,#EDBB3E_38%,#D9A21F_62%,#F5D77A_100%)] text-black border-l border-amber-700/20 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                     title="Project options"
                     aria-label="Project options"
                   >

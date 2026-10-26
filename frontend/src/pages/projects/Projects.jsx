@@ -323,6 +323,7 @@ const Projects = () => {
         actions={tableActions}
         rowsPerPage={10}
         countLabel="projects"
+        stickyColumnKey={["_index", "title"]}
         emptyTitle={projects.length === 0 ? "No projects yet" : "No matching projects"}
         emptyHint={
           projects.length === 0

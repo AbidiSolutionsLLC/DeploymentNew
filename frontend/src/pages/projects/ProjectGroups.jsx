@@ -328,7 +328,7 @@ const ProjectGroups = () => {
       />
 
       {/* Summary KPIs */}
-      <section className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-[0_4px_20px_0_rgba(15,23,42,0.06)] backdrop-blur-[16px] dark:border-white/10 dark:bg-[linear-gradient(145deg,#1e293b_0%,#1a2436_55%,#162031_100%)] dark:shadow-[0_22px_60px_-24px_rgba(0,0,0,0.85)]">
+      <section className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-[0_4px_20px_0_rgba(15,23,42,0.06)] backdrop-blur-[16px] dark:border-[#FFD700]/20 dark:bg-[linear-gradient(145deg,#1e293b_0%,#1a2436_55%,#162031_100%)] dark:shadow-[0_22px_60px_-24px_rgba(0,0,0,0.85)]">
         <span
           className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[rgba(232,213,160,0.7)] blur-3xl dark:bg-[rgba(251,191,36,0.16)]"
           aria-hidden="true"
@@ -344,10 +344,10 @@ const ProjectGroups = () => {
               const Icon = kpi.Icon;
               const tone = KPI_TONES[kpi.tone];
               const borders = [
-                index > 0 ? "border-t border-border-subtle dark:border-white/10" : "",
-                index % 2 === 1 ? "sm:border-l sm:border-border-subtle sm:dark:border-white/10" : "",
+                index > 0 ? "border-t border-border-subtle dark:border-[#FFD700]/20" : "",
+                index % 2 === 1 ? "sm:border-l sm:border-border-subtle sm:dark:border-[#FFD700]/20" : "",
                 index < 2 ? "sm:border-t-0" : "",
-                index > 0 ? "lg:border-l lg:border-border-subtle lg:dark:border-white/10" : "",
+                index > 0 ? "lg:border-l lg:border-border-subtle lg:dark:border-[#FFD700]/20" : "",
                 "lg:border-t-0",
               ]
                 .filter(Boolean)

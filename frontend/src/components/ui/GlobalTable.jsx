@@ -208,13 +208,12 @@ export default function GlobalTable({
 
   const cellClass = (col) => {
     const align = ALIGN_CLASS[col.align || (col.group ? "center" : "left")];
-    const stickyCls = isSticky(col.key) ? "bg-surface group-hover:bg-surface-hover" : "";
     const base = col.group
-      ? `px-3 sm:px-4 py-3.5 whitespace-nowrap tabular-nums ${align} ${GROUP_TINT} group-hover:bg-card-hover ${
+      ? `px-3 sm:px-4 py-3.5 whitespace-nowrap tabular-nums ${align} ${GROUP_TINT} ${
           dividerKeys.has(col.key) ? "border-l border-border-subtle" : ""
-        } ${stickyCls}`
-      : `px-3 sm:px-4 py-3.5 ${align} tabular-nums ${stickyCls}`;
-    return `${base} ${col.className || ""} ${responsiveCls(col)}`;
+        }`
+      : `px-3 sm:px-4 py-3.5 ${align} tabular-nums`;
+    return `${base} bg-surface group-hover:bg-surface-hover ${col.className || ""} ${responsiveCls(col)}`;
   };
 
   const rowKey = (row, idx) =>
@@ -260,7 +259,7 @@ export default function GlobalTable({
                   sortConfig.key === cell.col.key ? "text-brand-text" : "text-muted hover:text-heading"
                 } ${cell.hideBelow ? `hidden ${cell.hideBelow}:table-cell` : ""} ${responsiveCls(
                   cell.col
-                )} ${isSticky(cell.col.key) ? "bg-surface" : ""} ${cell.col.headerClassName || ""}`
+                )} bg-surface ${cell.col.headerClassName || ""}`
               )}
               style={cellStyle(cell.col, stickyStyle(cell.col.key, { header: true }))}
               {...firstStickyAttr(cell.col.key)}
@@ -296,7 +295,7 @@ export default function GlobalTable({
                   isSortable(col) ? "cursor-pointer" : ""
                 } ${sortConfig.key === col.key ? "text-brand-text" : "text-muted hover:text-heading"} ${responsiveCls(
                   col
-                )} ${isSticky(col.key) ? "bg-surface" : ""} ${col.headerClassName || ""}`
+                )} bg-surface ${col.headerClassName || ""}`
               )}
               style={cellStyle(col, stickyStyle(col.key, { header: true }))}
               {...firstStickyAttr(col.key)}
@@ -407,7 +406,7 @@ export default function GlobalTable({
                     </td>
                   ))}
                   {actions.length > 0 && (
-                    <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap text-right">
+                    <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap text-right bg-surface group-hover:bg-surface-hover">
                       <div className="flex items-center justify-end gap-1.5">
                         {actions.map((action, aIdx) => {
                           const isDisabled =

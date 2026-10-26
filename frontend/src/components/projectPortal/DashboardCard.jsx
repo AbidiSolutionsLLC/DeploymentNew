@@ -77,18 +77,9 @@ const progressTone = (status) => {
   return "bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500";
 };
 
-const AVATAR_TONES = [
-  "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25",
-  "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25",
-  "bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/25",
-  "bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/25",
-];
-
-const MemberAvatar = ({ name, index = 0 }) => (
+const MemberAvatar = ({ name }) => (
   <span
-    className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-black ${
-      AVATAR_TONES[index % AVATAR_TONES.length]
-    }`}
+    className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-[10px] font-bold text-amber-700 dark:text-amber-300 shrink-0"
   >
     {getInitials(name)}
   </span>
@@ -129,7 +120,7 @@ function ActiveProjectsCard({ projects, navigate }) {
           <li
             key={p._id || i}
             onClick={openProject}
-            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 flex flex-col gap-2 hover:border-amber-500/30 transition-all cursor-pointer"
+            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 dark:border-[#FFD700]/30 flex flex-col gap-2 hover:border-amber-500/30 transition-all cursor-pointer"
             title="Open project details"
           >
             <div className="flex items-center gap-2.5">
@@ -143,7 +134,7 @@ function ActiveProjectsCard({ projects, navigate }) {
             </div>
 
             <div className="flex items-center gap-2.5 pl-9">
-              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface border border-border-subtle/50">
+              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface border border-border-subtle/50 dark:border-[#FFD700]/30">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${progressTone(p.status)}`}
                   style={{ width: `${Math.max(Math.min(pct, 100), 2)}%` }}
@@ -152,7 +143,7 @@ function ActiveProjectsCard({ projects, navigate }) {
               <span className="w-8 shrink-0 text-right text-[10px] font-bold text-muted tabular-nums">
                 {pct}%
               </span>
-              <span className="shrink-0 whitespace-nowrap border-l border-border-subtle pl-2.5 text-[10px] font-semibold text-muted">
+              <span className="shrink-0 whitespace-nowrap border-l border-border-subtle dark:border-[#FFD700]/30 pl-2.5 text-[10px] font-semibold text-muted">
                 Due {shortDate(p.dueDate)}
               </span>
             </div>
@@ -186,7 +177,7 @@ function PriorityDonut({ rows, total }) {
       role="img"
       aria-label="Task priority distribution"
     >
-      <div className="absolute inset-[13px] rounded-full bg-app flex flex-col items-center justify-center border border-border-subtle/50 shadow-inner">
+      <div className="absolute inset-[13px] rounded-full bg-app flex flex-col items-center justify-center border border-border-subtle/50 dark:border-[#FFD700]/30 shadow-inner">
         <span className="text-lg font-black leading-none text-heading tabular-nums">
           {total}
         </span>
@@ -215,14 +206,14 @@ function TaskPrioritiesCard({ data }) {
   ];
 
   return (
-    <div className="bg-app rounded-xl p-3 border border-border-subtle/60 flex flex-1 items-center gap-4">
+    <div className="bg-app rounded-xl p-3 border border-border-subtle/60 dark:border-[#FFD700]/30 flex flex-1 items-center gap-4">
       <PriorityDonut rows={rows} total={total} />
 
       <ul className="min-w-0 flex-1 space-y-2">
         {rows.map((row) => (
           <li
             key={row.key}
-            className="flex items-center justify-between gap-2 bg-surface/70 rounded-lg px-2.5 py-1.5 border border-border-subtle/40"
+            className="flex items-center justify-between gap-2 bg-surface/70 rounded-lg px-2.5 py-1.5 border border-border-subtle/40 dark:border-[#FFD700]/30"
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${row.dot}`} />
@@ -230,7 +221,7 @@ function TaskPrioritiesCard({ data }) {
                 {row.label}
               </span>
             </div>
-            <span className="shrink-0 text-xs font-bold text-heading tabular-nums px-1.5 py-0.5 rounded bg-app border border-border-subtle/40">
+            <span className="shrink-0 text-xs font-bold text-heading tabular-nums px-1.5 py-0.5 rounded bg-app border border-border-subtle/40 dark:border-[#FFD700]/30">
               {row.count}
             </span>
           </li>
@@ -274,7 +265,7 @@ function OpenTasksCard({ tasks, isEmployee, navigate }) {
           <li
             key={t._id || i}
             onClick={openTaskProject}
-            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 flex items-center gap-2.5 hover:border-sky-500/30 transition-all cursor-pointer"
+            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 dark:border-[#FFD700]/30 flex items-center gap-2.5 hover:border-sky-500/30 transition-all cursor-pointer"
             title="Open task project"
           >
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-sky-500/10 text-sky-500 border border-sky-500/20">
@@ -320,7 +311,7 @@ function UpcomingDeadlinesCard({ deadlines, navigate }) {
           <li
             key={i}
             onClick={openDeadlineProject}
-            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 flex items-center gap-3 hover:border-violet-500/30 transition-all cursor-pointer"
+            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 dark:border-[#FFD700]/30 flex items-center gap-3 hover:border-violet-500/30 transition-all cursor-pointer"
             title="View deadline project"
           >
             <div className="flex w-10 shrink-0 flex-col items-center rounded-lg border border-violet-500/20 bg-violet-500/10 py-1">
@@ -364,16 +355,15 @@ function TeamMembersCard({ team }) {
         return (
           <li
             key={member._id || i}
-            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 flex items-center gap-2.5 hover:border-emerald-500/30 transition-all"
+            className="bg-app rounded-xl p-2.5 border border-border-subtle/60 dark:border-[#FFD700]/30 flex items-center gap-2.5 hover:border-emerald-500/30 transition-all"
           >
-            <MemberAvatar name={name} index={i} />
+            <MemberAvatar name={name} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-bold text-heading">{name}</p>
               <p className="mt-0.5 truncate text-[9px] font-semibold uppercase tracking-wider text-muted">
                 {member.role || "Member"}
               </p>
             </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Active" />
           </li>
         );
       })}

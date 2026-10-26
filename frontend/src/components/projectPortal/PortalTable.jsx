@@ -33,6 +33,7 @@ export default function PortalTable({
   onRowClick,
   actions,
   rowsPerPage = 10,
+  stickyColumnKey,
   rowsPerPageOptions = [10, 20, 50, 100],
   countLabel = "records",
   emptyTitle = "Nothing here yet",
@@ -90,6 +91,7 @@ export default function PortalTable({
       defaultSort={defaultSort || sort || { key: null, direction: "asc" }}
       sort={sort}
       onSortChange={onSortChange}
+      stickyColumnKey={stickyColumnKey}
       emptyMessage={emptyTitle}
       emptyHint={emptyHint}
     />
