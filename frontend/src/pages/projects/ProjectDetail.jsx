@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PortalTabBar from "../../components/ui/PortalTabBar";
 import ManageStatusesModal from "../../components/projectPortal/ManageStatusesModal";
-import { Squares2X2Icon, ListBulletIcon, Cog6ToothIcon, Bars3Icon } from "@heroicons/react/24/outline";
+import { ViewColumnsIcon, Squares2X2Icon, ListBulletIcon, Cog6ToothIcon, Bars3Icon } from "@heroicons/react/24/outline";
 import ListView from "../../components/project/ListView";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import taskApi from "../../api/taskApi";
@@ -862,141 +862,178 @@ const ProjectDetail = () => {
         )}
 
         {/* ===== Task workspace ===== */}
-        <section id="task-workspace" className="glass-card bg-surface !p-0 overflow-hidden">
-          {/* Tab bar header replacing 'Task workspace' heading */}
-          <div className="px-5 pt-4 pb-0">
-            <PortalTabBar
-              tabs={[
-                { key: "board", title: "Board", icon: Squares2X2Icon },
-                { key: "list", title: "List", icon: ListBulletIcon },
-              ]}
-              activeKey={workspaceView}
-              onChange={setWorkspaceView}
-              layoutId="workspace-tab-pill"
-              ariaLabel="Task workspace views"
-              right={
-                canManageStatuses ? (
+        <div id="task-workspace" className="space-y-3.5">
+          <PortalTabBar
+            tabs={[
+              {
+                key: "board",
+                title: "Board",
+                icon: ViewColumnsIcon,
+                badge: tasks?.length ?? 0,
+                hint: "Kanban board view",
+              },
+              {
+                key: "list",
+                title: "List",
+                icon: ListBulletIcon,
+                badge: tasks?.length ?? 0,
+                hint: "Table list view",
+              },
+            ]}
+            activeKey={workspaceView}
+            onChange={setWorkspaceView}
+            layoutId="workspace-tab-pill"
+            ariaLabel="Task workspace views"
+            right={
+              <div className="flex items-center gap-2.5">
+                {canManageStatuses && (
+                  <>
+                    {project?.customStatuses?.length > 0 && (
+                      <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-purple-500/25 bg-purple-500/10 text-[11px] font-bold text-purple-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                        {project.customStatuses.length} Custom {project.customStatuses.length === 1 ? "Status" : "Statuses"}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowManageStatuses(true)}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border-subtle bg-card hover:bg-card-hover hover:border-border-accent text-xs font-bold text-heading hover:text-brand-text shadow-sm transition-all duration-200 group whitespace-nowrap shrink-0"
+                      title="Add, remove or reorder Kanban statuses for this project"
+                    >
+                      <Cog6ToothIcon className="w-4 h-4 text-muted group-hover:text-brand-text group-hover:rotate-90 transition-all duration-300" />
+                      <span>Manage Statuses</span>
+                    </button>
+                  </>
+                )}
+                {canCreateTask && (
                   <button
                     type="button"
-                    onClick={() => setShowManageStatuses(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-subtle bg-card text-xs font-bold text-muted hover:border-border-accent hover:text-brand-text transition-colors whitespace-nowrap shrink-0"
-                    title="Add or remove custom Kanban statuses for this project"
+                    onClick={() => {
+                      setAddTaskStatus("Todo");
+                      setShowAddTask(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 text-xs font-black shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap shrink-0"
+                    title="Create a new task in this project"
                   >
-                    <Cog6ToothIcon className="w-3.5 h-3.5" />
-                    Manage Statuses
+                    <PlusIcon className="w-4 h-4 stroke-[2.5]" />
+                    <span>New Task</span>
                   </button>
-                ) : null
-              }
-            />
-          </div>
+                )}
+              </div>
+            }
+          />
 
           {/* Board (Kanban) View */}
           {workspaceView === "board" && (
-            <div className="px-5 pb-5 pt-4">
-              <div className="overflow-x-auto">
-                <div
-                  className="flex gap-4 items-stretch"
-                  style={{ minWidth: `${Math.max(KANBAN_COLUMNS.length * 240, 1200)}px` }}
-                >
-                  {KANBAN_COLUMNS.map((col) => {
-                    const colTasks = getTasksByStatus(col.id);
-                    const isColDragging = draggedColumnId === col.id;
-                    const isColDropTarget = dragOverColumnReorder === col.id && !isColDragging;
+            <section className="glass-card bg-surface !p-0 overflow-hidden">
+              <div className="p-5">
+                <div className="overflow-x-auto">
+                  <div
+                    className="flex gap-4 items-stretch"
+                    style={{ minWidth: `${Math.max(KANBAN_COLUMNS.length * 240, 1200)}px` }}
+                  >
+                    {KANBAN_COLUMNS.map((col) => {
+                      const colTasks = getTasksByStatus(col.id);
+                      const isColDragging = draggedColumnId === col.id;
+                      const isColDropTarget = dragOverColumnReorder === col.id && !isColDragging;
 
-                    return (
-                      <div
-                        key={col.id}
-                        className={`rounded-xl border bg-surface p-3.5 flex flex-col transition-all flex-1 min-w-[220px] ${
-                          isColDragging ? "opacity-30 border-dashed border-brand" : ""
-                        } ${
-                          isColDropTarget
-                            ? "ring-2 ring-brand border-brand scale-[1.01]"
-                            : dragOverColumn === col.id
-                            ? "border-border-accent ring-2 ring-border-accent bg-amber-50"
-                            : "border-border-subtle"
-                        }`}
-                        onDragOver={(e) => handleDragOver(e, col.id)}
-                        onDragLeave={(e) => handleDragLeave(e, col.id)}
-                        onDrop={(e) => handleDrop(e, col.id)}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {canManageStatuses && (
-                              <span
-                                draggable
-                                onDragStart={(e) => {
-                                  e.stopPropagation();
-                                  handleColumnDragStart(e, col.id);
-                                }}
-                                onDragEnd={handleColumnDragEnd}
-                                className="cursor-grab active:cursor-grabbing text-muted/60 hover:text-heading p-0.5 rounded transition-colors shrink-0 hover:bg-card-hover"
-                                title="Drag column to change order"
-                              >
-                                <Bars3Icon className="w-3.5 h-3.5" />
-                              </span>
-                            )}
-                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColumnAccent(col.id)}`} />
-                            <h3 className="text-xs font-black uppercase tracking-widest text-heading truncate">{col.title}</h3>
-                          </div>
-                          {canCreateTask && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAddTaskStatus(col.label || col.title);
-                                setShowAddTask(true);
-                              }}
-                              className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-border-subtle bg-card text-muted hover:border-border-accent hover:bg-card-hover hover:text-brand-text transition-colors"
-                              aria-label={`Add task to ${col.title}`}
-                              title={`Add task to ${col.title}`}
-                            >
-                              <PlusIcon className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex-1 space-y-3 max-h-[calc(100vh-320px)] min-h-[340px] overflow-y-auto pr-1.5 custom-scrollbar-visible">
-                          {colTasks.map((task) => (
-                            <TaskCard
-                              key={task._id}
-                              task={task}
-                              columnId={col.id}
-                              draggable={canManageTasks || isTaskAssignee(task)}
-                              onClick={() => setShowTaskDetail(task)}
-                              onDragStart={handleDragStart}
-                              onDragEnd={handleDragEnd}
-                              onOpenComments={() => setShowComments(task)}
-                              isDragging={draggedTaskId === task._id}
-                            />
-                          ))}
-                          {colTasks.length === 0 && (
-                            <div
-                              className={`flex items-center justify-center min-h-[320px] rounded-xl border border-dashed text-[11px] font-black uppercase tracking-widest transition-colors ${
-                                dragOverColumn === col.id
-                                  ? "border-brand text-brand"
-                                  : "border-border-subtle text-muted/70"
-                              }`}
-                            >
-                              {dragOverColumn === col.id ? "Drop here" : "No tasks"}
+                      return (
+                        <div
+                          key={col.id}
+                          className={`rounded-xl border bg-surface p-3.5 flex flex-col transition-all flex-1 min-w-[220px] ${
+                            isColDragging ? "opacity-30 border-dashed border-brand" : ""
+                          } ${
+                            isColDropTarget
+                              ? "ring-2 ring-brand border-brand scale-[1.01]"
+                              : dragOverColumn === col.id
+                              ? "border-border-accent ring-2 ring-border-accent bg-amber-50"
+                              : "border-border-subtle"
+                          }`}
+                          onDragOver={(e) => handleDragOver(e, col.id)}
+                          onDragLeave={(e) => handleDragLeave(e, col.id)}
+                          onDrop={(e) => handleDrop(e, col.id)}
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {canManageStatuses && (
+                                <span
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.stopPropagation();
+                                    handleColumnDragStart(e, col.id);
+                                  }}
+                                  onDragEnd={handleColumnDragEnd}
+                                  className="grid h-5 w-5 place-items-center rounded text-muted hover:text-heading cursor-grab active:cursor-grabbing hover:bg-card-hover transition-colors"
+                                  title="Drag to reorder this status column"
+                                >
+                                  <Bars3Icon className="w-3.5 h-3.5" />
+                                </span>
+                              )}
+                              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColumnAccent(col.id)}`} />
+                              <h3 className="text-xs font-black uppercase tracking-widest text-heading truncate">{col.title}</h3>
                             </div>
-                          )}
+                            {canCreateTask && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAddTaskStatus(col.label || col.title);
+                                  setShowAddTask(true);
+                                }}
+                                className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-border-subtle bg-card text-muted hover:border-border-accent hover:bg-card-hover hover:text-brand-text transition-colors"
+                                aria-label={`Add task to ${col.title}`}
+                                title={`Add task to ${col.title}`}
+                              >
+                                <PlusIcon className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-3 max-h-[calc(100vh-320px)] min-h-[340px] overflow-y-auto pr-1.5 custom-scrollbar-visible">
+                            {colTasks.map((task) => (
+                              <TaskCard
+                                key={task._id}
+                                task={task}
+                                columnId={col.id}
+                                draggable={canManageTasks || isTaskAssignee(task)}
+                                onClick={() => setShowTaskDetail(task)}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                                onOpenComments={() => setShowComments(task)}
+                                isDragging={draggedTaskId === task._id}
+                              />
+                            ))}
+                            {colTasks.length === 0 && (
+                              <div
+                                className={`flex items-center justify-center min-h-[320px] rounded-xl border border-dashed text-[11px] font-black uppercase tracking-widest transition-colors ${
+                                  dragOverColumn === col.id
+                                    ? "border-brand text-brand"
+                                    : "border-border-subtle text-muted/70"
+                                }`}
+                              >
+                                {dragOverColumn === col.id ? "Drop here" : "No tasks"}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
+            </section>
           )}
 
           {/* List View */}
           {workspaceView === "list" && (
-            <div className="px-5 pb-5 pt-4">
-              <ListView
-                tasks={tasks}
-                onTaskClick={(task) => setShowTaskDetail(task)}
-              />
-            </div>
+            <section className="glass-card bg-surface !p-0 overflow-hidden">
+              <div className="p-5">
+                <ListView
+                  tasks={tasks}
+                  onTaskClick={(task) => setShowTaskDetail(task)}
+                />
+              </div>
+            </section>
           )}
-        </section>
+        </div>
 
         {showComments && (
           <TaskCommentsDrawer

@@ -147,7 +147,7 @@ function App() {
  </GlassModal>
 
  <Routes>
- <Route path="/" element={<Navigate to="/auth/login" />} />
+ <Route path="/" element={<Navigate to="/people/home" replace />} />
 
  <Route
           path="/auth"

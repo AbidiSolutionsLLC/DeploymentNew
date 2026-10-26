@@ -7,7 +7,9 @@ const PrivateRoute = ({ children, requiredPermission }) => {
   const { isAuthenticated, loading } = useSelector((state) => state.auth);
   const { hasPermission } = usePermission();
 
-  if (loading) {
+  // Only show full-page blocking loader during cold initial boot before auth status is resolved.
+  // Once the user is already authenticated, background revalidations must not disrupt or unmount active pages.
+  if (loading && !isAuthenticated) {
     return <Loader fullPage text="Checking session..." />;
   }
 

@@ -208,24 +208,32 @@ class ProjectService {
       .map(id => (typeof id === 'object' ? id._id || id.id : id).toString());
 
     if (assignedUserIds.length > 0) {
-      await User.updateMany(
+      const usersToGrant = await User.find(
         { _id: { $in: assignedUserIds }, company: companyId, hasProjectPortalAccess: { $ne: true } },
-        { $set: { hasProjectPortalAccess: true } }
-      );
+        { _id: 1 }
+      ).lean();
 
-      const { sseClients } = require('../utils/sseManager');
-      assignedUserIds.forEach(uid => {
-        const clients = sseClients.get(uid);
-        if (clients) {
-          clients.forEach(client => {
-            try {
-              client.write("data: " + JSON.stringify({ type: "PROJECT_ACCESS_UPDATED" }) + "\n\n");
-            } catch (e) {
-              console.error("Failed to push PROJECT_ACCESS_UPDATED event", e);
-            }
-          });
-        }
-      });
+      if (usersToGrant.length > 0) {
+        const newlyGrantedIds = usersToGrant.map(u => u._id.toString());
+        await User.updateMany(
+          { _id: { $in: newlyGrantedIds }, company: companyId },
+          { $set: { hasProjectPortalAccess: true } }
+        );
+
+        const { sseClients } = require('../utils/sseManager');
+        newlyGrantedIds.forEach(uid => {
+          const clients = sseClients.get(uid);
+          if (clients) {
+            clients.forEach(client => {
+              try {
+                client.write("data: " + JSON.stringify({ type: "PROJECT_ACCESS_UPDATED" }) + "\n\n");
+              } catch (e) {
+                console.error("Failed to push PROJECT_ACCESS_UPDATED event", e);
+              }
+            });
+          }
+        });
+      }
     }
 
     require("./activityLogService").recordActivity({
@@ -450,24 +458,32 @@ class ProjectService {
       .map(id => (typeof id === 'object' ? id._id || id.id : id).toString());
 
     if (assignedUserIds.length > 0) {
-      await User.updateMany(
+      const usersToGrant = await User.find(
         { _id: { $in: assignedUserIds }, company: companyId, hasProjectPortalAccess: { $ne: true } },
-        { $set: { hasProjectPortalAccess: true } }
-      );
+        { _id: 1 }
+      ).lean();
 
-      const { sseClients } = require('../utils/sseManager');
-      assignedUserIds.forEach(uid => {
-        const clients = sseClients.get(uid);
-        if (clients) {
-          clients.forEach(client => {
-            try {
-              client.write("data: " + JSON.stringify({ type: "PROJECT_ACCESS_UPDATED" }) + "\n\n");
-            } catch (e) {
-              console.error("Failed to push PROJECT_ACCESS_UPDATED event", e);
-            }
-          });
-        }
-      });
+      if (usersToGrant.length > 0) {
+        const newlyGrantedIds = usersToGrant.map(u => u._id.toString());
+        await User.updateMany(
+          { _id: { $in: newlyGrantedIds }, company: companyId },
+          { $set: { hasProjectPortalAccess: true } }
+        );
+
+        const { sseClients } = require('../utils/sseManager');
+        newlyGrantedIds.forEach(uid => {
+          const clients = sseClients.get(uid);
+          if (clients) {
+            clients.forEach(client => {
+              try {
+                client.write("data: " + JSON.stringify({ type: "PROJECT_ACCESS_UPDATED" }) + "\n\n");
+              } catch (e) {
+                console.error("Failed to push PROJECT_ACCESS_UPDATED event", e);
+              }
+            });
+          }
+        });
+      }
     }
 
     if (team && team.length > 0) {

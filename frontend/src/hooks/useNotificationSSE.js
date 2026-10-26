@@ -23,25 +23,23 @@ export const useNotificationSSE = (isAuthenticated) => {
 
  const connect = async () => {
  try {
+ let token = localStorage.getItem("accessToken");
 
- const accounts = msalInstance.getAllAccounts();
- const activeAccount = msalInstance.getActiveAccount() || accounts[0];
- let token = null;
+ if (!token || token === "undefined" || token === "null") {
+   const accounts = msalInstance.getAllAccounts();
+   const activeAccount = msalInstance.getActiveAccount() || accounts[0];
 
- if (activeAccount) {
-   try {
-     const tokenResponse = await msalInstance.acquireTokenSilent({
-       ...loginRequest,
-       account: activeAccount,
-     });
-     token = tokenResponse.idToken;
-   } catch (error) {
-     console.error("MSAL token acquire error", error);
+   if (activeAccount) {
+     try {
+       const tokenResponse = await msalInstance.acquireTokenSilent({
+         ...loginRequest,
+         account: activeAccount,
+       });
+       token = tokenResponse.idToken;
+     } catch (error) {
+       console.warn("[SSE] MSAL token acquire warning", error);
+     }
    }
- }
-
- if (!token) {
-   token = localStorage.getItem("accessToken");
  }
 
  if (!token || token === "undefined" || token === "null") return;

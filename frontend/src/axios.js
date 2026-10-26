@@ -1,91 +1,133 @@
 import axios from "axios";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { msalConfig, loginRequest, msalInstance } from "./authConfig";
-import { toast } from "react-toastify"; // Import toast
+import { toast } from "react-toastify";
 import { TIMEZONE } from "./utils/dateUtils";
 
 let store;
-function clearAllCookies() {
-  const cookies = document.cookie.split(";");
-
-  for (let i = 0; i < cookies.length; i++) {
-    const cookie = cookies[i];
-    const eqPos = cookie.indexOf("=");
-    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-
-    // Set expiration date to past to delete the cookie
-    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-
-    // Also clear with domain if needed
-    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
-
-    // Clear for all subdomains
-    const domainParts = window.location.hostname.split('.');
-    while (domainParts.length > 1) {
-      const domain = domainParts.join('.');
-      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + domain;
-      domainParts.shift();
-    }
-  }
-}
 export const injectStore = (_store) => {
   store = _store;
 };
 
 const api = axios.create({
-  baseURL: "http://localhost:4000/api/v1",
+  baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api/v1",
   timeout: 15000,
-  withCredentials: true
+  withCredentials: true,
 });
 
 api.interceptors.request.use(
   async (config) => {
-    config.headers['X-Timezone'] = TIMEZONE;
+    config.headers["X-Timezone"] = TIMEZONE;
+
+    // Test environment header injection
     if (
       import.meta.env.MODE === "test" &&
       import.meta.env.VITE_TEST_AUTH_SECRET &&
       import.meta.env.VITE_TEST_USER_EMAIL &&
       localStorage.getItem("portalTestAuth") === "true"
     ) {
-      config.headers['x-test-auth-secret'] = import.meta.env.VITE_TEST_AUTH_SECRET;
-      config.headers['x-test-user-email'] = import.meta.env.VITE_TEST_USER_EMAIL;
+      config.headers["x-test-auth-secret"] = import.meta.env.VITE_TEST_AUTH_SECRET;
+      config.headers["x-test-user-email"] = import.meta.env.VITE_TEST_USER_EMAIL;
+      return config;
     }
+
+    if (config.headers._skipAuth) {
+      delete config.headers._skipAuth;
+      return config;
+    }
+
     try {
+      const localToken = localStorage.getItem("accessToken");
+
+      // 1. Prioritize local token if present
+      if (localToken && localToken !== "undefined" && localToken !== "null") {
+        config.headers.Authorization = `Bearer ${localToken}`;
+        return config;
+      }
+
+      // 2. Otherwise check for active MSAL session
       const accounts = msalInstance.getAllAccounts();
-      const activeAccount = msalInstance.getActiveAccount() || accounts[0];
+      const activeAccount = msalInstance.getActiveAccount() || (accounts.length > 0 ? accounts[0] : null);
 
       if (activeAccount) {
         try {
           const response = await msalInstance.acquireTokenSilent({
             ...loginRequest,
-            account: activeAccount
+            account: activeAccount,
           });
-          config.headers.Authorization = `Bearer ${response.idToken}`;
+          if (response?.idToken) {
+            config.headers.Authorization = `Bearer ${response.idToken}`;
+          }
         } catch (error) {
-          console.error("Silent token acquisition failed:", error);
-        }
-      } else {
-        // Local Auth Fallback
-        const localToken = localStorage.getItem("accessToken");
-        if (localToken) {
-          config.headers.Authorization = `Bearer ${localToken}`;
+          console.warn("[AXIOS] MSAL silent token acquisition warning:", error?.message || error);
         }
       }
     } catch (error) {
-      console.error("MSAL initialization error:", error);
+      console.error("[AXIOS] Auth header preparation error:", error);
     }
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 let isRedirecting = false;
 
-// --- UPDATED RESPONSE INTERCEPTOR ---
+const performLogout = async () => {
+  if (isRedirecting) return;
+  isRedirecting = true;
+
+  console.warn("[AXIOS] Session could not be refreshed. Logging out.");
+
+  try {
+    localStorage.removeItem("accessToken");
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (
+        key &&
+        (key.startsWith("msal.") ||
+          key.includes("login.microsoftonline.com") ||
+          key === "accessToken")
+      ) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+    sessionStorage.clear();
+  } catch (e) {
+    console.error("[AXIOS] Cleanup failed:", e);
+  }
+
+  if (store) {
+    store.dispatch({ type: "auth/logout" });
+  }
+
+  if (!window.location.pathname.startsWith("/auth/login")) {
+    setTimeout(() => {
+      window.location.replace("/auth/login");
+    }, 150);
+  }
+};
+
 api.interceptors.response.use(
   (response) => {
     // Automatically unwrap the backend's ApiResponse wrapper on success
-    if (response.data && response.data.success === true && 'data' in response.data) {
+    if (response.data && response.data.success === true && "data" in response.data) {
       if (response.data.pagination) {
         response.pagination = response.data.pagination;
       }
@@ -94,71 +136,107 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
-    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network Error')) {
+    const originalRequest = error.config;
+
+    if (
+      error.code === "ECONNABORTED" ||
+      error.message?.includes("timeout") ||
+      error.message?.includes("Network Error")
+    ) {
       toast.error("Network issue. Request timed out, try again");
       return Promise.reject(error);
     }
 
     const status = error.response?.status;
-    const ignoreAuthRedirect = error.config?.ignoreAuthRedirect;
+    const ignoreAuthRedirect = originalRequest?.ignoreAuthRedirect;
 
-    if (status === 401 && !ignoreAuthRedirect) {
-      if (isRedirecting) {
+    // Handle 401 Unauthorized
+    if (status === 401 && !ignoreAuthRedirect && originalRequest) {
+      // If the 401 is already from the refresh-token endpoint, or login endpoint, fail immediately
+      if (
+        originalRequest.url?.includes("/auth/refresh-token") ||
+        originalRequest.url?.includes("/auth/login") ||
+        originalRequest._retry
+      ) {
+        await performLogout();
         return Promise.reject(error);
       }
 
-      console.warn("[AXIOS] 401 Unauthorized — logging out");
+      // If another refresh is already running, wait in queue
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
-        localStorage.removeItem("accessToken");
-        // Clear MSAL / auth keys from localStorage without wiping user settings & seen release notes
+        // Attempt 1: Try refreshing local JWT using httpOnly refreshToken cookie
+        let refreshedToken = null;
         try {
-          const keysToRemove = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (
-              key &&
-              (key.startsWith("msal.") ||
-                key.includes("login.microsoftonline.com") ||
-                key === "accessToken")
-            ) {
-              keysToRemove.push(key);
+          const refreshRes = await axios.get(
+            `${api.defaults.baseURL}/auth/refresh-token`,
+            {
+              withCredentials: true,
+              headers: { _skipAuth: "true" },
+            }
+          );
+          const raw = refreshRes.data?.data || refreshRes.data;
+          refreshedToken = raw?.accessToken || raw?.token;
+
+          if (refreshedToken) {
+            localStorage.setItem("accessToken", refreshedToken);
+            if (store && raw?.user) {
+              store.dispatch({ type: "auth/setAuthUser", payload: raw.user });
             }
           }
-          keysToRemove.forEach((k) => localStorage.removeItem(k));
-        } catch (_) { }
+        } catch (localRefreshErr) {
+          // If local refresh endpoint failed, attempt MSAL silent refresh if account exists
+          const accounts = msalInstance.getAllAccounts();
+          const activeAccount = msalInstance.getActiveAccount() || (accounts.length > 0 ? accounts[0] : null);
 
-        sessionStorage.clear();
-        clearAllCookies();
-
-        // Clear IndexedDB (safe)
-        if (window.indexedDB?.databases) {
-          const databases = await window.indexedDB.databases();
-          databases.forEach((db) => {
-            if (db.name) window.indexedDB.deleteDatabase(db.name);
-          });
+          if (activeAccount) {
+            try {
+              const msalRes = await msalInstance.acquireTokenSilent({
+                ...loginRequest,
+                account: activeAccount,
+                forceRefresh: true,
+              });
+              refreshedToken = msalRes?.idToken;
+            } catch (msalRefreshErr) {
+              console.warn("[AXIOS] MSAL force silent refresh failed:", msalRefreshErr?.message || msalRefreshErr);
+            }
+          }
         }
-      } catch (e) {
-        console.error("Cleanup failed:", e);
-      }
 
-      // Prevent redirect loop
-      if (!window.location.pathname.startsWith("/auth/login")) {
-        isRedirecting = true;
-        if (store) {
-          store.dispatch({ type: 'auth/logout' });
+        if (refreshedToken) {
+          processQueue(null, refreshedToken);
+          originalRequest.headers.Authorization = `Bearer ${refreshedToken}`;
+          return api(originalRequest);
+        } else {
+          // Could not refresh with either method
+          processQueue(new Error("Unable to refresh session"), null);
+          await performLogout();
+          return Promise.reject(error);
         }
-        setTimeout(() => {
-          window.location.replace("/auth/login");
-        }, 150);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        await performLogout();
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
       }
-
-      return Promise.reject(error);
     }
 
     return Promise.reject(error);
   }
 );
-
 
 export default api;
