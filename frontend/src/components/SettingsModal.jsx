@@ -67,7 +67,7 @@ const PROJECT_ROLE_SELECT_OPTIONS = [
 ];
 
 const formatProjectRoleDisplay = (role) => {
-  if (!role) return "Team Member";
+  if (!role) return null;
   const cleaned = String(role).toLowerCase().replace(/[\s_-]+/g, "");
   if (cleaned === "projectadministrator" || cleaned === "projectadmin" || cleaned === "superadmin" || cleaned === "admin") {
     return "Project Administrator";
@@ -649,33 +649,15 @@ export default function SettingsModal({ isOpen, onClose }) {
                   const assignedUsers = portalUsers.filter(isAssigned);
 
                   // Role breakdown metrics
-                  const adminCount = assignedUsers.filter((u) => {
-                    const clean = (u.role || "").toLowerCase();
-                    const isCompanyAdmin = clean === "superadmin" || clean === "admin";
-                    const pRole = formatProjectRoleDisplay(u.projectRole || (isCompanyAdmin ? "Project Administrator" : ""));
-                    return pRole === "Project Administrator";
-                  }).length;
+                  const adminCount = assignedUsers.filter((u) => formatProjectRoleDisplay(u.projectRole) === "Project Administrator").length;
 
-                  const managerCount = assignedUsers.filter((u) => {
-                    const pRole = formatProjectRoleDisplay(u.projectRole || "");
-                    return pRole === "Project Manager";
-                  }).length;
+                  const managerCount = assignedUsers.filter((u) => formatProjectRoleDisplay(u.projectRole) === "Project Manager").length;
 
-                  const memberCount = assignedUsers.filter((u) => {
-                    const clean = (u.role || "").toLowerCase();
-                    const isCompanyAdmin = clean === "superadmin" || clean === "admin";
-                    if (isCompanyAdmin && !u.projectRole) return false;
-                    const pRole = formatProjectRoleDisplay(u.projectRole || "Team Member");
-                    return pRole === "Team Member";
-                  }).length;
+                  const memberCount = assignedUsers.filter((u) => formatProjectRoleDisplay(u.projectRole) === "Team Member").length;
 
                   // Filtered users for table
                   const filteredUsers = assignedUsers.filter((u) => {
-                    const clean = (u.role || "").toLowerCase();
-                    const isCompanyAdmin = clean === "superadmin" || clean === "admin";
-                    const currentProjectRole = formatProjectRoleDisplay(
-                      u.projectRole || (isCompanyAdmin ? "Project Administrator" : "Team Member")
-                    );
+                    const currentProjectRole = formatProjectRoleDisplay(u.projectRole);
 
                     if (roleFilter === "admin" && currentProjectRole !== "Project Administrator") return false;
                     if (roleFilter === "manager" && currentProjectRole !== "Project Manager") return false;
@@ -686,7 +668,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                     const name = (u.name || "").toLowerCase();
                     const email = (u.email || "").toLowerCase();
                     const role = (u.role || "").toLowerCase();
-                    const pRole = currentProjectRole.toLowerCase();
+                    const pRole = currentProjectRole ? currentProjectRole.toLowerCase() : "";
                     return name.includes(q) || email.includes(q) || role.includes(q) || pRole.includes(q);
                   });
 
@@ -1058,9 +1040,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                             const uId = u._id || u.id;
                             const cleanCompanyRole = (u.role || "").replace(/\s+/g, "").toLowerCase();
                             const isCompanyAdmin = cleanCompanyRole === "superadmin" || cleanCompanyRole === "admin";
-                            const currentProjectRole = formatProjectRoleDisplay(
-                              u.projectRole || (isCompanyAdmin ? "Project Administrator" : "Team Member")
-                            );
+                            const currentProjectRole = formatProjectRoleDisplay(u.projectRole) || "Team Member";
                             const isSaving = savingUserId === uId;
 
                             return (
