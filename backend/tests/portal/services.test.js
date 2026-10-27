@@ -196,4 +196,106 @@ describe('Project Portal service guards', () => {
       expect(deleteOne).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('Project Status CRUD & Task Dependencies', () => {
+    test('validateTaskStatus validates against project.statuses when defined', async () => {
+      const mockProject = {
+        _id: 'proj-1',
+        company: 'company-1',
+        statuses: [
+          { id: 'icebox', label: 'Icebox', category: 'backlog' },
+          { id: 'in-dev', label: 'In Dev', category: 'in_progress' },
+          { id: 'shipped', label: 'Shipped', category: 'done' },
+        ],
+      };
+      jest.spyOn(Project, 'findOne').mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(mockProject),
+        }),
+      });
+
+      // Allowed project status
+      await expect(
+        taskService.validateTaskStatus('company-1', 'proj-1', 'Icebox')
+      ).resolves.toBeUndefined();
+
+      await expect(
+        taskService.validateTaskStatus('company-1', 'proj-1', 'Shipped')
+      ).resolves.toBeUndefined();
+
+      // Disallowed status (even if historically builtin)
+      await expect(
+        taskService.validateTaskStatus('company-1', 'proj-1', 'Done')
+      ).rejects.toMatchObject({
+        status: 400,
+        message: 'Invalid task status: "Done"',
+      });
+    });
+
+    test('updateProject migrates tasks when status is renamed or reassignTasks is provided', async () => {
+      const mongoose = require('mongoose');
+      const companyId = new mongoose.Types.ObjectId();
+      const adminId = new mongoose.Types.ObjectId();
+      const projectId = new mongoose.Types.ObjectId();
+
+      const updateManySpy = jest.spyOn(Task, 'updateMany').mockResolvedValue({ modifiedCount: 3 });
+      jest.spyOn(User, 'find').mockReturnValue({ lean: jest.fn().mockResolvedValue([]) });
+
+      const projectDoc = {
+        _id: projectId,
+        company: companyId,
+        title: 'Project 1',
+        team: [],
+        owner: adminId,
+        statuses: [{ id: 's1', label: 'In Review' }],
+        save: jest.fn().mockImplementation(function() {
+          return Promise.resolve(Object.assign(this, { populate: jest.fn().mockResolvedValue(this) }));
+        }),
+      };
+      jest.spyOn(Project, 'findOne').mockResolvedValue(projectDoc);
+      jest.spyOn(projectService, 'validateCompanyReferences').mockResolvedValue(undefined);
+
+      const adminUser = { id: adminId.toString(), role: 'Super Admin', projectRole: 'project_administrator' };
+
+      await projectService.updateProject(adminUser, companyId, projectId, {
+        statuses: [
+          { id: 's1', label: 'QA Testing', order: 0 },
+          { id: 's2', label: 'Done', order: 1 }
+        ],
+        reassignTasks: [{ fromStatus: 'Archived', toStatus: 'Done' }]
+      });
+
+      expect(updateManySpy).toHaveBeenCalledWith(
+        { project: projectId, company: companyId, status: 'Archived' },
+        { $set: { status: 'Done' } }
+      );
+      expect(updateManySpy).toHaveBeenCalledWith(
+        { project: projectId, company: companyId, status: 'In Review' },
+        { $set: { status: 'QA Testing' } }
+      );
+    });
+
+    test('deleteTask removes task from dependencies array of other tasks', async () => {
+      const updateManySpy = jest.spyOn(Task, 'updateMany').mockResolvedValue({ modifiedCount: 2 });
+      const deleteOneMock = jest.fn().mockResolvedValue(undefined);
+      const mockTask = {
+        _id: 'task-1',
+        title: 'Task 1',
+        project: 'proj-1',
+        company: 'company-1',
+        team: [],
+        deleteOne: deleteOneMock,
+      };
+      jest.spyOn(Task, 'findOne').mockResolvedValue(mockTask);
+      const adminUser = { id: 'user-admin', role: 'Super Admin', projectRole: 'project_administrator' };
+
+      await taskService.deleteTask(adminUser, 'company-1', 'task-1');
+
+      expect(updateManySpy).toHaveBeenCalledWith(
+        { project: 'proj-1', company: 'company-1', dependencies: 'task-1' },
+        { $pull: { dependencies: 'task-1' } }
+      );
+      expect(deleteOneMock).toHaveBeenCalledTimes(1);
+    });
+  });
 });

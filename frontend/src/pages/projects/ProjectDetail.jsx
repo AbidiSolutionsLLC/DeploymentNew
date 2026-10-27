@@ -54,6 +54,7 @@ import TaskDetailDrawer from "../../components/projectPortal/TaskDetailDrawer";
 import TaskCommentsDrawer from "../../components/projectPortal/TaskCommentsDrawer";
 import TaskCard from "../../components/projectPortal/TaskCard";
 import { TableStatus } from "../../components/ui/TableCells";
+import { getUnresolvedPrerequisites, isStatusDone } from "../../utils/taskHierarchy";
 
 const BUILTIN_COLUMNS = [
   { id: "backlog", title: "Backlog", label: "Backlog", accent: "bg-neutral" },
@@ -72,9 +73,9 @@ const COLUMN_ACCENTS = {
 
 /** Map backend status string to Kanban column ID, aware of dynamic columns */
 function toColumnId(status, columns) {
-  if (!status) return "backlog";
-  const s = String(status).toLowerCase().trim();
   const cols = columns || BUILTIN_COLUMNS;
+  if (!status) return (cols && cols[0]?.id) || "backlog";
+  const s = String(status).toLowerCase().trim();
   const byId = cols.find((c) => c.id === s);
   if (byId) return byId.id;
   const byLabel = cols.find(
@@ -132,8 +133,24 @@ const ProjectDetail = () => {
   const [dragOverColumnReorder, setDragOverColumnReorder] = useState(null);
   const [workspaceView, setWorkspaceView] = useState("board");
   const [showManageStatuses, setShowManageStatuses] = useState(false);
+  const [highlightedTaskId, setHighlightedTaskId] = useState(null);
 
-  // Manage custom statuses visible ONLY to Project Admins OR Project Managers assigned to this project
+  // Locate task on Kanban board (scroll and flash highlight)
+  const handleLocateTask = (taskId) => {
+    setHighlightedTaskId(taskId);
+    setWorkspaceView("board");
+    setTimeout(() => {
+      const el = document.getElementById(`kanban-task-${taskId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      }
+    }, 150);
+    setTimeout(() => {
+      setHighlightedTaskId((prev) => (prev === taskId ? null : prev));
+    }, 3500);
+  };
+
+  // Manage statuses visible to Project Admins OR Project Managers assigned to this project
   const canManageStatuses = isSuperAdmin || isAdmin || (isManager && (isProjectOwner || isProjectTeamMember));
 
   // Dynamic Kanban columns from project's customStatuses
@@ -146,13 +163,29 @@ const ProjectDetail = () => {
         title: cs.label,
         label: cs.label,
         accent: cs.color || "bg-purple-500",
+        hexColor: cs.color || null,
         isCustom: true,
       })),
     [project?.customStatuses]
   );
 
-  // Reorder columns based on project.statusOrder if defined
+  // Reorder columns based on project.statuses or project.statusOrder if defined
   const KANBAN_COLUMNS = useMemo(() => {
+    if (Array.isArray(project?.statuses) && project.statuses.length > 0) {
+      return project.statuses
+        .slice()
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((s) => ({
+          id: s.id || s.label.toLowerCase().trim().replace(/\s+/g, "-"),
+          title: s.label,
+          label: s.label,
+          accent: s.color || COLUMN_ACCENTS[s.label.toLowerCase()] || "bg-purple-500",
+          hexColor: s.color || null,
+          category: s.category || "todo",
+          isCustom: true,
+        }));
+    }
+
     const allCols = [...BUILTIN_COLUMNS, ...customColumns];
     const order = project?.statusOrder;
     if (!Array.isArray(order) || order.length === 0) {
@@ -167,7 +200,7 @@ const ProjectDetail = () => {
       const posB = bIndex === -1 ? 999 : bIndex;
       return posA - posB;
     });
-  }, [customColumns, project?.statusOrder]);
+  }, [project?.statuses, customColumns, project?.statusOrder]);
 
   const handleColumnDragStart = (e, colId) => {
     if (!canManageStatuses) return;
@@ -192,6 +225,17 @@ const ProjectDetail = () => {
     const [moved] = newOrder.splice(sourceIndex, 1);
     newOrder.splice(targetIndex, 0, moved);
 
+    let updatedStatuses = [];
+    if (Array.isArray(project?.statuses) && project.statuses.length > 0) {
+      updatedStatuses = project.statuses.map((s) => {
+        const idx = newOrder.findIndex((lbl) => lbl.toLowerCase() === s.label.toLowerCase());
+        return {
+          ...s,
+          order: idx !== -1 ? idx : (s.order ?? 0),
+        };
+      });
+    }
+
     const updatedCustomStatuses = (project?.customStatuses || []).map((cs) => {
       const idx = newOrder.findIndex((label) => label.toLowerCase() === cs.label.toLowerCase());
       return {
@@ -208,6 +252,7 @@ const ProjectDetail = () => {
           updates: {
             title: project?.title,
             statusOrder: newOrder,
+            ...(updatedStatuses.length > 0 ? { statuses: updatedStatuses } : {}),
             customStatuses: updatedCustomStatuses,
           },
         })
@@ -219,16 +264,24 @@ const ProjectDetail = () => {
     }
   };
 
-  const allStatuses = useMemo(() => [
-    "Backlog",
-    "Todo",
-    "In Progress",
-    "In Review",
-    "Done",
-    ...(project?.customStatuses || []).map((s) => s.label),
-  ], [project?.customStatuses]);
+  const allStatuses = useMemo(() => {
+    if (Array.isArray(project?.statuses) && project.statuses.length > 0) {
+      return project.statuses.map((s) => s.label);
+    }
+    return [
+      "Backlog",
+      "Todo",
+      "In Progress",
+      "In Review",
+      "Done",
+      ...(project?.customStatuses || []).map((s) => s.label),
+    ];
+  }, [project?.statuses, project?.customStatuses]);
 
-  const getColumnAccent = (colId) => COLUMN_ACCENTS[colId] || "bg-purple-500";
+  const getColumnAccent = (colId) => {
+    const col = KANBAN_COLUMNS.find((c) => c.id === colId);
+    return col?.accent || COLUMN_ACCENTS[colId] || "bg-purple-500";
+  };
 
   const isTaskAssignee = (task) => {
     return task?.team && task.team.some((member) => {
@@ -299,7 +352,35 @@ const ProjectDetail = () => {
     if (taskId && sourceColumn !== columnId) {
       const col = KANBAN_COLUMNS.find((c) => c.id === columnId);
       const newStatus = col?.label ?? col?.title ?? null;
-      if (newStatus) handleUpdateStatus(taskId, newStatus);
+      if (newStatus) {
+        // Dependency safeguard: check if moving to active/done column while prerequisites are incomplete
+        const isDoneOrActive =
+          isStatusDone(newStatus) ||
+          String(newStatus).toLowerCase().includes("progress") ||
+          String(newStatus).toLowerCase().includes("dev") ||
+          String(newStatus).toLowerCase().includes("review");
+        const unresolvedPrereqs = getUnresolvedPrerequisites(task, tasks);
+
+        if (isDoneOrActive && unresolvedPrereqs.length > 0) {
+          const prereqNames = unresolvedPrereqs
+            .map((p) => `"${p.title}" (${p.status || "Todo"})`)
+            .join(", ");
+          confirm({
+            title: "Unresolved Dependency Warning",
+            message: `This task depends on ${prereqNames}, which ${
+              unresolvedPrereqs.length === 1 ? "is" : "are"
+            } not completed yet. Are you sure you want to move it to "${newStatus}"?`,
+            confirmLabel: "Move Anyway",
+            cancelLabel: "Keep In Current Column",
+            confirmVariant: "danger",
+            onConfirm: () => {
+              handleUpdateStatus(taskId, newStatus);
+            },
+          });
+        } else {
+          handleUpdateStatus(taskId, newStatus);
+        }
+      }
     }
     setDraggedTaskId(null);
     setDragOverColumn(null);
@@ -432,31 +513,13 @@ const ProjectDetail = () => {
     });
   };
 
-  const handleSaveStatuses = async (customStatuses) => {
+  const handleSaveStatuses = async (saveData) => {
     try {
-      const existingBuiltIns = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
-      const customLabels = customStatuses.map((c) => c.label);
-      let newStatusOrder;
-      if (Array.isArray(project?.statusOrder) && project.statusOrder.length > 0) {
-        const filtered = project.statusOrder.filter((label) =>
-          existingBuiltIns.includes(label) || customLabels.includes(label)
-        );
-        customLabels.forEach((cl) => {
-          if (!filtered.includes(cl)) {
-            const doneIdx = filtered.indexOf("Done");
-            if (doneIdx !== -1) {
-              filtered.splice(doneIdx, 0, cl);
-            } else {
-              filtered.push(cl);
-            }
-          }
-        });
-        newStatusOrder = filtered;
-      } else {
-        newStatusOrder = ["Backlog", "Todo", "In Progress", "In Review", ...customLabels, "Done"];
-      }
+      const statusesList = Array.isArray(saveData) ? saveData : (saveData?.statuses || []);
+      const reassignTasks = Array.isArray(saveData?.reassignTasks) ? saveData.reassignTasks : [];
 
-      const sanitizedCustomStatuses = customStatuses.map((c, i) => ({
+      const newStatusOrder = statusesList.map((s) => s.label);
+      const sanitizedCustomStatuses = statusesList.map((c, i) => ({
         label: c.label,
         order: c.order ?? i,
         ...(c.color ? { color: c.color } : {}),
@@ -467,8 +530,10 @@ const ProjectDetail = () => {
           id: project._id,
           updates: {
             title: project?.title,
+            statuses: statusesList,
             statusOrder: newStatusOrder,
             customStatuses: sanitizedCustomStatuses,
+            reassignTasks,
           },
         })
       ).unwrap();
@@ -888,10 +953,10 @@ const ProjectDetail = () => {
               <div className="flex items-center gap-2.5">
                 {canManageStatuses && (
                   <>
-                    {project?.customStatuses?.length > 0 && (
+                    {KANBAN_COLUMNS?.length > 0 && (
                       <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-purple-500/25 bg-purple-500/10 text-[11px] font-bold text-purple-400">
                         <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                        {project.customStatuses.length} Custom {project.customStatuses.length === 1 ? "Status" : "Statuses"}
+                        {KANBAN_COLUMNS.length} {KANBAN_COLUMNS.length === 1 ? "Status" : "Statuses"}
                       </span>
                     )}
                     <button
@@ -915,8 +980,8 @@ const ProjectDetail = () => {
               <div className="p-5">
                 <div className="overflow-x-auto">
                   <div
-                    className="flex gap-4 items-stretch"
-                    style={{ minWidth: `${Math.max(KANBAN_COLUMNS.length * 240, 1200)}px` }}
+                    className="flex gap-4 items-stretch pb-2"
+                    style={{ minWidth: `${Math.max(KANBAN_COLUMNS.length * 330, 1200)}px` }}
                   >
                     {KANBAN_COLUMNS.map((col) => {
                       const colTasks = getTasksByStatus(col.id);
@@ -926,7 +991,7 @@ const ProjectDetail = () => {
                       return (
                         <div
                           key={col.id}
-                          className={`rounded-xl border bg-surface p-3.5 flex flex-col transition-all flex-1 min-w-[220px] ${
+                          className={`rounded-2xl border bg-surface p-4 flex flex-col transition-all flex-1 min-w-[310px] max-w-[380px] shadow-sm ${
                             isColDragging ? "opacity-30 border-dashed border-brand" : ""
                           } ${
                             isColDropTarget
@@ -939,7 +1004,7 @@ const ProjectDetail = () => {
                           onDragLeave={(e) => handleDragLeave(e, col.id)}
                           onDrop={(e) => handleDrop(e, col.id)}
                         >
-                          <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center justify-between gap-2 mb-3.5 pb-2.5 border-b border-border-subtle/70">
                             <div className="flex items-center gap-2 min-w-0">
                               {canManageStatuses && (
                                 <span
@@ -949,14 +1014,28 @@ const ProjectDetail = () => {
                                     handleColumnDragStart(e, col.id);
                                   }}
                                   onDragEnd={handleColumnDragEnd}
-                                  className="grid h-5 w-5 place-items-center rounded text-muted hover:text-heading cursor-grab active:cursor-grabbing hover:bg-card-hover transition-colors"
+                                  className="grid h-6 w-6 place-items-center rounded-lg text-muted hover:text-heading cursor-grab active:cursor-grabbing hover:bg-card-hover transition-colors"
                                   title="Drag to reorder this status column"
                                 >
-                                  <Bars3Icon className="w-3.5 h-3.5" />
+                                  <Bars3Icon className="w-4 h-4" />
                                 </span>
                               )}
-                              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColumnAccent(col.id)}`} />
-                              <h3 className="text-xs font-black uppercase tracking-widest text-heading truncate">{col.title}</h3>
+                              <span
+                                className={`w-3 h-3 rounded-full shrink-0 shadow-sm ${
+                                  col.accent && col.accent.startsWith("bg-") ? col.accent : ""
+                                }`}
+                                style={
+                                  col.hexColor
+                                    ? { backgroundColor: col.hexColor }
+                                    : col.accent && !col.accent.startsWith("bg-")
+                                    ? { backgroundColor: col.accent }
+                                    : undefined
+                                }
+                              />
+                              <h3 className="text-xs font-black uppercase tracking-wider text-heading truncate">{col.title}</h3>
+                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-card border border-border-subtle text-muted tabular-nums ml-1">
+                                {colTasks.length}
+                              </span>
                             </div>
                             {canCreateTask && (
                               <button
@@ -973,7 +1052,7 @@ const ProjectDetail = () => {
                               </button>
                             )}
                           </div>
-                          <div className="flex-1 space-y-3 max-h-[calc(100vh-320px)] min-h-[340px] overflow-y-auto pr-1.5 custom-scrollbar-visible">
+                          <div className="flex-1 space-y-3.5 max-h-[calc(100vh-320px)] min-h-[360px] overflow-y-auto pr-1 custom-scrollbar-visible">
                             {colTasks.map((task) => (
                               <TaskCard
                                 key={task._id}
@@ -985,11 +1064,14 @@ const ProjectDetail = () => {
                                 onDragEnd={handleDragEnd}
                                 onOpenComments={() => setShowComments(task)}
                                 isDragging={draggedTaskId === task._id}
+                                isHighlighted={highlightedTaskId === task._id}
+                                allTasks={tasks}
+                                onLocateTask={handleLocateTask}
                               />
                             ))}
                             {colTasks.length === 0 && (
                               <div
-                                className={`flex items-center justify-center min-h-[320px] rounded-xl border border-dashed text-[11px] font-black uppercase tracking-widest transition-colors ${
+                                className={`flex items-center justify-center min-h-[340px] rounded-2xl border border-dashed text-[11px] font-black uppercase tracking-widest transition-colors ${
                                   dragOverColumn === col.id
                                     ? "border-brand text-brand"
                                     : "border-border-subtle text-muted/70"
@@ -1015,6 +1097,7 @@ const ProjectDetail = () => {
                 <ListView
                   tasks={tasks}
                   onTaskClick={(task) => setShowTaskDetail(task)}
+                  projectStatuses={allStatuses}
                 />
               </div>
             </section>

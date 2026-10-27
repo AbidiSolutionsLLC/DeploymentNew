@@ -8,12 +8,27 @@ const { createNotification } = require('../utils/notificationService');
 class TaskService {
   async validateTaskStatus(companyId, projectId, status) {
     if (!status) return;
-    const BUILTIN_STATUSES = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
-    if (BUILTIN_STATUSES.includes(status)) return;
     const ProjectModel = require("../models/projectSchema");
-    const proj = await ProjectModel.findOne({ _id: projectId, company: companyId }).select("customStatuses").lean();
-    const customLabels = (proj?.customStatuses || []).map((cs) => cs.label);
-    if (!customLabels.includes(status)) {
+    const query = ProjectModel.findOne({ _id: projectId, company: companyId });
+    const proj = typeof query?.select === "function"
+      ? await query.select("statuses customStatuses").lean()
+      : typeof query?.lean === "function"
+      ? await query.lean()
+      : await query;
+    if (!proj) return;
+
+    if (Array.isArray(proj.statuses) && proj.statuses.length > 0) {
+      const allowedLabels = proj.statuses.map((s) => (s.label || "").toLowerCase());
+      if (!allowedLabels.includes(String(status).toLowerCase())) {
+        throw new BadRequestError(`Invalid task status: "${status}"`);
+      }
+      return;
+    }
+
+    const BUILTIN_STATUSES = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
+    if (BUILTIN_STATUSES.map((b) => b.toLowerCase()).includes(String(status).toLowerCase())) return;
+    const customLabels = (proj?.customStatuses || []).map((cs) => (cs.label || "").toLowerCase());
+    if (!customLabels.includes(String(status).toLowerCase())) {
       throw new BadRequestError(`Invalid task status: "${status}"`);
     }
   }
@@ -440,6 +455,12 @@ class TaskService {
       companyId,
       level: "warning",
     }).catch(() => {});
+
+    // Clean up dependencies references in other tasks
+    await Task.updateMany(
+      { project: task.project, company: companyId, dependencies: task._id },
+      { $pull: { dependencies: task._id } }
+    );
 
     await task.deleteOne();
   }

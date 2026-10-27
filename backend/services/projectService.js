@@ -160,7 +160,7 @@ class ProjectService {
     if (userRole !== 'project_administrator') {
       throw new ForbiddenError("Only Project Administrators can create new projects.");
     }
-    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status, projectGroup, milestones, customStatuses, statusOrder } = data;
+    const { title, description, team, strict, isPublic, startDate, dueDate, owner: dataOwner, department, status, projectGroup, milestones, customStatuses, statusOrder, statuses } = data;
     const owner = dataOwner || user.id || user._id;
     await this.validateCompanyReferences(companyId, { owner, team, department, projectGroup });
 
@@ -179,6 +179,7 @@ class ProjectService {
       milestones,
       statusOrder: statusOrder || [],
       customStatuses: customStatuses || [],
+      statuses: statuses || [],
       attachments: this.mapAttachments(files),
       company: companyId,
     });
@@ -386,7 +387,7 @@ class ProjectService {
 
   async updateProject(user, companyId, projectId, data, files) {
     this.ensureProjectPortalAccess(user);
-    const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department, projectGroup, milestones, customStatuses, statusOrder } = data;
+    const { title, description, team, status, strict, isPublic, startDate, dueDate, owner, department, projectGroup, milestones, customStatuses, statusOrder, statuses, reassignTasks } = data;
 
     const project = await Project.findOne({ _id: projectId, company: companyId });
     if (!project) throw new NotFoundError("Project");
@@ -426,8 +427,43 @@ class ProjectService {
     project.owner = owner !== undefined ? owner : project.owner;
     project.department = department !== undefined ? department : project.department;
     project.milestones = milestones !== undefined ? milestones : project.milestones;
-    project.statusOrder = statusOrder !== undefined ? statusOrder : project.statusOrder;
-    project.customStatuses = customStatuses !== undefined ? customStatuses : project.customStatuses;
+    if (Array.isArray(reassignTasks) && reassignTasks.length > 0) {
+      const TaskModel = require("../models/taskSchema");
+      for (const reassign of reassignTasks) {
+        if (reassign?.fromStatus && reassign?.toStatus && reassign.fromStatus !== reassign.toStatus) {
+          await TaskModel.updateMany(
+            { project: projectId, company: companyId, status: reassign.fromStatus },
+            { $set: { status: reassign.toStatus } }
+          );
+        }
+      }
+    }
+
+    if (Array.isArray(statuses)) {
+      const TaskModel = require("../models/taskSchema");
+      const prevStatuses = project.statuses || [];
+      for (const newS of statuses) {
+        if (newS.id) {
+          const oldS = prevStatuses.find((p) => p.id === newS.id);
+          if (oldS && oldS.label && oldS.label !== newS.label) {
+            await TaskModel.updateMany(
+              { project: projectId, company: companyId, status: oldS.label },
+              { $set: { status: newS.label } }
+            );
+          }
+        }
+      }
+      project.statuses = statuses;
+      project.statusOrder = statuses.map((s) => s.label);
+      project.customStatuses = statuses.map((s, idx) => ({
+        label: s.label,
+        order: s.order !== undefined ? s.order : idx,
+        color: s.color || null,
+      }));
+    } else {
+      project.statusOrder = statusOrder !== undefined ? statusOrder : project.statusOrder;
+      project.customStatuses = customStatuses !== undefined ? customStatuses : project.customStatuses;
+    }
 
     if (projectGroup !== undefined) {
       const oldGroupId = project.projectGroup ? project.projectGroup.toString() : null;

@@ -73,6 +73,18 @@ const projectSchema = new mongoose.Schema(
       index: true
     },
     statusOrder: [{ type: String, trim: true }],
+    statuses: [{
+      id: { type: String, trim: true },
+      label: { type: String, required: true, trim: true },
+      color: { type: String, default: null },
+      order: { type: Number, default: 0 },
+      category: {
+        type: String,
+        enum: ["backlog", "todo", "in_progress", "in_review", "done"],
+        default: "todo"
+      },
+      isDefault: { type: Boolean, default: false }
+    }],
     customStatuses: [{
       label: { type: String, required: true, trim: true },
       order: { type: Number, default: 0 },
