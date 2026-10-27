@@ -31,8 +31,6 @@ import useStickyColumns from "./useStickyColumns";
  *     render?:    (value, row, index) => node
  *   }
  */
-const GROUP_TINT = "bg-slate-50 dark:bg-slate-800/50";
-
 const ALIGN_CLASS = {
   left: "text-left",
   center: "text-center",
@@ -208,13 +206,12 @@ export default function GlobalTable({
 
   const cellClass = (col) => {
     const align = ALIGN_CLASS[col.align || (col.group ? "center" : "left")];
-    const stickyCls = isSticky(col.key) ? "bg-surface group-hover:bg-surface-hover" : "";
     const base = col.group
-      ? `px-3 sm:px-4 py-3.5 whitespace-nowrap tabular-nums ${align} ${GROUP_TINT} group-hover:bg-card-hover ${
+      ? `px-3 sm:px-4 py-3.5 whitespace-nowrap tabular-nums ${align} ${
           dividerKeys.has(col.key) ? "border-l border-border-subtle" : ""
-        } ${stickyCls}`
-      : `px-3 sm:px-4 py-3.5 ${align} tabular-nums ${stickyCls}`;
-    return `${base} ${col.className || ""} ${responsiveCls(col)}`;
+        }`
+      : `px-3 sm:px-4 py-3.5 ${align} tabular-nums`;
+    return `${base} bg-app group-hover:bg-card-hover ${col.className || ""} ${responsiveCls(col)}`;
   };
 
   const rowKey = (row, idx) =>
@@ -234,7 +231,7 @@ export default function GlobalTable({
               key={cell.key}
               colSpan={cell.colSpan}
               className={headerThClass(
-                `text-center align-bottom text-heading ${GROUP_TINT} ${
+                `text-center align-bottom text-heading bg-app ${
                   cell.divider ? "border-l border-border-subtle" : ""
                 } ${cell.hideBelow ? "hidden " + cell.hideBelow + ":table-cell" : ""}`
               )}
@@ -260,7 +257,7 @@ export default function GlobalTable({
                   sortConfig.key === cell.col.key ? "text-brand-text" : "text-muted hover:text-heading"
                 } ${cell.hideBelow ? `hidden ${cell.hideBelow}:table-cell` : ""} ${responsiveCls(
                   cell.col
-                )} ${isSticky(cell.col.key) ? "bg-surface" : ""} ${cell.col.headerClassName || ""}`
+                )} bg-app ${cell.col.headerClassName || ""}`
               )}
               style={cellStyle(cell.col, stickyStyle(cell.col.key, { header: true }))}
               {...firstStickyAttr(cell.col.key)}
@@ -275,7 +272,7 @@ export default function GlobalTable({
         {actions.length > 0 && (
           <th
             rowSpan={hasGroups ? 2 : 1}
-            className={headerThClass("text-right align-bottom text-muted")}
+            className={headerThClass(`text-right align-bottom text-muted bg-app`)}
           >
             Actions
           </th>
@@ -290,13 +287,13 @@ export default function GlobalTable({
               key={`${col.group}-${col.key}`}
               onClick={() => isSortable(col) && handleSort(col.key)}
               className={headerThClass(
-                `transition-colors ${ALIGN_CLASS[col.align || "center"]} ${GROUP_TINT} ${
+                `transition-colors ${ALIGN_CLASS[col.align || "center"]} ${
                   dividerKeys.has(col.key) ? "border-l border-border-subtle" : ""
                 } ${
                   isSortable(col) ? "cursor-pointer" : ""
                 } ${sortConfig.key === col.key ? "text-brand-text" : "text-muted hover:text-heading"} ${responsiveCls(
                   col
-                )} ${isSticky(col.key) ? "bg-surface" : ""} ${col.headerClassName || ""}`
+                )} bg-app ${col.headerClassName || ""}`
               )}
               style={cellStyle(col, stickyStyle(col.key, { header: true }))}
               {...firstStickyAttr(col.key)}
@@ -323,14 +320,14 @@ export default function GlobalTable({
             style={{ "--sticky-col-1-width": "60px" }}
           >
             {theadNode}
-            <tbody className="divide-y divide-border-subtle bg-surface">
+            <tbody className="divide-y divide-border-subtle bg-app">
               {Array.from({ length: Math.min(rowsPerPage, 6) }).map((_, rIdx) => (
                 <tr key={`sk-${rIdx}`}>
                   {columns.map((col, cIdx) => (
                     <td
                       key={col.key}
                       className={`px-3 sm:px-4 py-3.5 ${responsiveCls(col)} ${
-                        isSticky(col.key) ? "bg-surface" : ""
+                        isSticky(col.key) ? "bg-app" : ""
                       }`}
                       style={cellStyle(col, stickyStyle(col.key))}
                     >
@@ -373,12 +370,12 @@ export default function GlobalTable({
           style={{ "--sticky-col-1-width": "60px" }}
         >
           {theadNode}
-          <tbody className="divide-y divide-border-subtle bg-surface">
+          <tbody className="divide-y divide-border-subtle bg-app">
             {pageRows.length > 0 ? (
               pageRows.map((row, idx) => (
                 <tr
                   key={rowKey(row, idx)}
-                  className={`group row-in transition-colors duration-200 hover:bg-card-hover ${
+                  className={`group row-in transition-colors duration-200 ${
                     onRowClick ? "cursor-pointer" : ""
                   } ${typeof rowClassName === "function" ? rowClassName(row) || "" : ""}`}
                   style={{ animationDelay: `${Math.min(idx, 12) * 35}ms`, zIndex: 1 }}
@@ -407,7 +404,7 @@ export default function GlobalTable({
                     </td>
                   ))}
                   {actions.length > 0 && (
-                    <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap text-right">
+                    <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap text-right bg-app group-hover:bg-card-hover">
                       <div className="flex items-center justify-end gap-1.5">
                         {actions.map((action, aIdx) => {
                           const isDisabled =

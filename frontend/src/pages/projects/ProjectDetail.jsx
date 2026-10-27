@@ -905,20 +905,6 @@ const ProjectDetail = () => {
                     </button>
                   </>
                 )}
-                {canCreateTask && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddTaskStatus("Todo");
-                      setShowAddTask(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 text-xs font-black shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap shrink-0"
-                    title="Create a new task in this project"
-                  >
-                    <PlusIcon className="w-4 h-4 stroke-[2.5]" />
-                    <span>New Task</span>
-                  </button>
-                )}
               </div>
             }
           />

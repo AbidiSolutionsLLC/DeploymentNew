@@ -5,7 +5,6 @@ import {
   ChevronDownIcon,
   CheckIcon,
   XMarkIcon,
-  Squares2X2Icon,
 } from "@heroicons/react/24/outline";
 
 /**
@@ -294,17 +293,6 @@ export default function ProjectStatusFilter({
                 `}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  {opt.value === "All" ? (
-                    <span className="grid h-4 w-4 shrink-0 place-items-center rounded-md bg-muted/10 text-muted group-hover:text-amber-500 transition-colors">
-                      <Squares2X2Icon className="h-3 w-3" />
-                    </span>
-                  ) : (
-                    <span
-                      className={`h-2.5 w-2.5 shrink-0 rounded-full ring-2 ${opt.dotClass} ${opt.ringClass} ${
-                        isSelected ? opt.glowClass : ""
-                      }`}
-                    />
-                  )}
                   <span className="truncate">{opt.label}</span>
                 </div>
 
@@ -362,14 +350,10 @@ export default function ProjectStatusFilter({
             }
           `}
         >
-          {/* Left section: Filter icon or Status indicator dot + text */}
+          {/* Left section: Filter icon or Status indicator text */}
           <div className="flex items-center gap-2 min-w-0">
             {isFiltered ? (
               <>
-                <span
-                  className={`h-2.5 w-2.5 shrink-0 rounded-full ring-2 ${selectedDef.dotClass} ${selectedDef.ringClass} ${selectedDef.glowClass}`}
-                  aria-hidden="true"
-                />
                 <div className="flex items-center gap-1 min-w-0">
                   <span className="text-xs font-semibold text-muted">Status:</span>
                   <span className="text-xs font-bold text-heading truncate">

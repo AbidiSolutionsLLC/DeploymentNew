@@ -1,5 +1,6 @@
 const ProjectGroup = require('../../models/projectGroupSchema');
 const Project = require('../../models/projectSchema');
+const Task = require('../../models/taskSchema');
 const User = require('../../models/userSchema');
 const Department = require('../../models/department');
 const projectGroupService = require('../../services/projectGroupService');
@@ -98,6 +99,101 @@ describe('Project Portal service guards', () => {
     ).rejects.toMatchObject({
       status: 400,
       message: 'A task cannot depend on itself',
+    });
+  });
+
+  describe('deleteProject status restrictions', () => {
+    const adminUser = { id: 'admin-1', role: 'Super Admin', hasProjectPortalAccess: true };
+
+    test('rejects deleting an Active project', async () => {
+      const activeProject = {
+        _id: 'proj-1',
+        company: 'company-1',
+        title: 'Active Proj',
+        status: 'Active',
+        team: [],
+        owner: 'user-1',
+      };
+      jest.spyOn(Project, 'findOne').mockResolvedValue(activeProject);
+
+      await expect(
+        projectService.deleteProject(adminUser, 'company-1', 'proj-1')
+      ).rejects.toMatchObject({
+        status: 400,
+        message: 'Cannot delete project: Project status is "Active". It must be marked as "Completed" or "Cancelled" before deletion.',
+      });
+    });
+
+    test('rejects deleting a Completed project if incomplete tasks exist', async () => {
+      const completedProject = {
+        _id: 'proj-1',
+        company: 'company-1',
+        title: 'Completed Proj',
+        status: 'Completed',
+        team: [],
+        owner: 'user-1',
+      };
+      jest.spyOn(Project, 'findOne').mockResolvedValue(completedProject);
+      jest.spyOn(Task, 'find').mockReturnValue({
+        select: jest.fn().mockResolvedValue([{ title: 'Task 1', status: 'Todo' }]),
+      });
+
+      await expect(
+        projectService.deleteProject(adminUser, 'company-1', 'proj-1')
+      ).rejects.toMatchObject({
+        status: 400,
+        message: expect.stringContaining('task(s) are not completed'),
+      });
+    });
+
+    test('allows deleting a Cancelled project even if tasks are incomplete', async () => {
+      const deleteOne = jest.fn().mockResolvedValue(undefined);
+      const cancelledProject = {
+        _id: 'proj-1',
+        company: 'company-1',
+        title: 'Cancelled Proj',
+        status: 'Cancelled',
+        team: [],
+        owner: 'user-1',
+        deleteOne,
+      };
+      jest.spyOn(Project, 'findOne').mockResolvedValue(cancelledProject);
+      jest.spyOn(Task, 'find').mockReturnValue({
+        select: jest.fn().mockResolvedValue([{ title: 'Incomplete Task', status: 'In Progress' }]),
+      });
+      const deleteManyTasks = jest.spyOn(Task, 'deleteMany').mockResolvedValue({ deletedCount: 1 });
+      jest.spyOn(ProjectGroup, 'findByIdAndUpdate').mockResolvedValue(null);
+      jest.spyOn(ProjectGroup, 'updateMany').mockResolvedValue({ modifiedCount: 0 });
+
+      await projectService.deleteProject(adminUser, 'company-1', 'proj-1');
+
+      expect(deleteManyTasks).toHaveBeenCalledWith({ project: 'proj-1', company: 'company-1' });
+      expect(deleteOne).toHaveBeenCalledTimes(1);
+    });
+
+    test('allows deleting a Completed project when all tasks are Done', async () => {
+      const deleteOne = jest.fn().mockResolvedValue(undefined);
+      const completedProject = {
+        _id: 'proj-1',
+        company: 'company-1',
+        title: 'Completed Proj',
+        status: 'Completed',
+        team: [],
+        owner: 'user-1',
+        deleteOne,
+      };
+      jest.spyOn(Project, 'findOne').mockResolvedValue(completedProject);
+      jest.spyOn(Task, 'find').mockReturnValue({
+        select: jest.fn().mockResolvedValue([{ title: 'Done Task', status: 'Done' }]),
+      });
+      const deleteManyTasks = jest.spyOn(Task, 'deleteMany').mockResolvedValue({ deletedCount: 1 });
+      jest.spyOn(ProjectGroup, 'findByIdAndUpdate').mockResolvedValue(null);
+      jest.spyOn(ProjectGroup, 'updateMany').mockResolvedValue({ modifiedCount: 0 });
+
+      await projectService.deleteProject(adminUser, 'company-1', 'proj-1');
+
+      expect(deleteManyTasks).toHaveBeenCalledWith({ project: 'proj-1', company: 'company-1' });
+      expect(deleteOne).toHaveBeenCalledTimes(1);
     });
   });
 });

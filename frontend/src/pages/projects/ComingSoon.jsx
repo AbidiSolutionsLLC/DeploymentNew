@@ -19,7 +19,7 @@ const ComingSoon = () => {
       icon={SquaresPlusIcon}
       isCard={false}
     >
-      <div className="relative overflow-hidden rounded-[2rem] bg-surface dark:bg-slate-900/60 border border-border-primary dark:border-white/10 p-6 sm:p-10 lg:p-14 shadow-[0_8px_32px_rgba(0,0,0,0.06)] text-center">
+      <div className="relative overflow-hidden rounded-[2rem] bg-surface dark:bg-slate-900/60 border border-border-primary dark:border-[#FFD700]/20 p-6 sm:p-10 lg:p-14 shadow-[0_8px_32px_rgba(0,0,0,0.06)] text-center">
         {/* Ambient background glow accents */}
         <div
           aria-hidden="true"
@@ -84,7 +84,7 @@ const ComingSoon = () => {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold rounded-2xl border border-border-primary dark:border-white/10 text-secondary hover:bg-hover hover:border-border-accent transition-all duration-200"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold rounded-2xl border border-border-primary dark:border-[#FFD700]/20 text-secondary hover:bg-hover hover:border-border-accent transition-all duration-200"
             >
               <ArrowLeftIcon className="w-4 h-4" />
               Go Back

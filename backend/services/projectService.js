@@ -536,29 +536,32 @@ class ProjectService {
       throw new ForbiddenError("Only Project Administrators can delete projects.");
     }
 
-    // A project can only be deleted if its status is Completed and all its tasks are in Done status
-    if (project.status !== "Completed") {
-      throw new BadRequestError(`Cannot delete project: Project status is "${project.status}". It must be marked as "Completed" before deletion.`);
+    // A project can only be deleted if its status is Completed or Cancelled
+    if (project.status !== "Completed" && project.status !== "Cancelled") {
+      throw new BadRequestError(`Cannot delete project: Project status is "${project.status}". It must be marked as "Completed" or "Cancelled" before deletion.`);
     }
 
     const tasks = await Task.find({ project: project._id, company: companyId }).select("title status");
-    const incompleteTasks = tasks.filter((t) => t.status !== "Done");
 
-    if (incompleteTasks.length > 0) {
-      const statusCounts = {};
-      incompleteTasks.forEach((t) => {
-        const s = t.status || "Unknown";
-        statusCounts[s] = (statusCounts[s] || 0) + 1;
-      });
-      const breakdown = Object.entries(statusCounts)
-        .map(([st, cnt]) => `${cnt} in ${st}`)
-        .join(", ");
-      throw new BadRequestError(
-        `Cannot delete project: ${incompleteTasks.length} task(s) are not completed (${breakdown}). All tasks must be in "Done" status before deleting the project.`
-      );
+    if (project.status === "Completed") {
+      const incompleteTasks = tasks.filter((t) => t.status !== "Done");
+
+      if (incompleteTasks.length > 0) {
+        const statusCounts = {};
+        incompleteTasks.forEach((t) => {
+          const s = t.status || "Unknown";
+          statusCounts[s] = (statusCounts[s] || 0) + 1;
+        });
+        const breakdown = Object.entries(statusCounts)
+          .map(([st, cnt]) => `${cnt} in ${st}`)
+          .join(", ");
+        throw new BadRequestError(
+          `Cannot delete project: ${incompleteTasks.length} task(s) are not completed (${breakdown}). All tasks must be in "Done" status before deleting the project.`
+        );
+      }
     }
 
-    // Clean up associated Done tasks
+    // Clean up associated tasks
     if (tasks.length > 0) {
       await Task.deleteMany({ project: project._id, company: companyId });
     }

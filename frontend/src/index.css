@@ -744,7 +744,7 @@ textarea.glass-input {
   --color-text-on-brand: #1a1205;         /* dark text on bright gold */
 
   /* Border Colors */
-  --color-border-primary: rgba(255, 255, 255, 0.14);
+  --color-border-primary: rgba(251, 191, 36, 0.14);
   --color-border-secondary: rgba(255, 255, 255, 0.08);
   --color-border-accent: rgba(251, 191, 36, 0.4);
 

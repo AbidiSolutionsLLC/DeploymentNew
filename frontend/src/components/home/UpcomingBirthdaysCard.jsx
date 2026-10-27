@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import EmptyCardState from "./EmptyCardState";
 import Loader from "../ui/Loader";
 import HomeCardShell from "./HomeCardShell";
+import { getInitials } from "../../utils/tableUtils";
 
 const UpcomingBirthdaysCard = ({ onDelete }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -61,7 +62,7 @@ const UpcomingBirthdaysCard = ({ onDelete }) => {
                   className="bg-app rounded-lg p-2 flex items-center gap-2"
                 >
                   <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-[10px] font-bold text-amber-700 dark:text-amber-300 shrink-0">
-                    {b.name?.[0] || "?"}
+                    {getInitials(b.name) || "?"}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-main truncate">{b.name || "Unknown"}</div>
