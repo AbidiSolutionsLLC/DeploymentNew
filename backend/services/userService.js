@@ -288,7 +288,7 @@ class UserService {
     const user = await User.findById(id);
     if (!user) throw new NotFoundError("User not found");
 
-    const taskCount = await Task.countDocuments({ assignee: id, company: companyId, status: { $ne: 'Done' } });
+    const taskCount = await Task.countDocuments({ company: companyId, status: { $ne: 'Done' }, $or: [{ team: id }, { assignee: id }] });
     const leavesTaken = user.bookedLeaves || 0;
     
     const timeLogs = await TimeLog.find({ user: id, company: companyId });

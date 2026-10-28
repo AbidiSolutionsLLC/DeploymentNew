@@ -1,9 +1,9 @@
 import React from 'react';
 import GlassModal from "./ui/GlassModal";
 import GlassButton from "./ui/GlassButton";
-import { TablePriority, TableStatus } from "./ui/TableCells";
+import { TablePriority, TableStatus, TableAvatar } from "./ui/TableCells";
 import Progress from "../projectPortal/Progress";
-import { formatDate, isOverdue, taskProgress, getAssigneeName } from "../projectPortal/helpers";
+import { formatDate, isOverdue, taskProgress, getTaskAssignees, personName } from "../projectPortal/helpers";
 
 /**
  * TaskDetailModal — read-only task detail using design tokens.
@@ -13,6 +13,7 @@ const TaskDetailModal = ({ task, onClose }) => {
   if (!task) return null;
 
   const overdue = isOverdue(task?.dueDate, task?.status);
+  const assignees = getTaskAssignees(task);
 
   return (
     <GlassModal
@@ -65,16 +66,26 @@ const TaskDetailModal = ({ task, onClose }) => {
 
         {/* Assignment Info */}
         <div className="space-y-3">
-          {(() => {
-            const assigneeName = getAssigneeName(task);
-            if (!assigneeName || assigneeName === "—") return null;
-            return (
-              <div className="flex items-center justify-between py-2 border-b border-border-subtle">
-                <span className="text-[10px] font-black text-muted uppercase tracking-widest">Assigned To</span>
-                <span className="text-sm font-semibold text-heading">{assigneeName}</span>
+          {assignees.length > 0 ? (
+            <div className="flex items-start justify-between py-2 border-b border-border-subtle">
+              <span className="text-[10px] font-black text-muted uppercase tracking-widest pt-1">
+                Assigned To {assignees.length > 1 ? `(${assignees.length})` : ""}
+              </span>
+              <div className="flex flex-col items-end gap-2">
+                {assignees.map((m, idx) => (
+                  <div key={m?._id || m?.id || idx} className="flex items-center gap-2">
+                    <TableAvatar name={personName(m)} src={m?.avatar} size="xs" />
+                    <span className="text-sm font-semibold text-heading">{personName(m)}</span>
+                  </div>
+                ))}
               </div>
-            );
-          })()}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between py-2 border-b border-border-subtle">
+              <span className="text-[10px] font-black text-muted uppercase tracking-widest">Assigned To</span>
+              <span className="text-sm text-muted">Unassigned</span>
+            </div>
+          )}
         </div>
 
         {/* Status and Priority */}

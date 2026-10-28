@@ -3,7 +3,7 @@ const Project = require("../models/projectSchema");
 const User = require("../models/userSchema");
 const { NotFoundError, BadRequestError, ForbiddenError, UnauthorizedError } = require("../utils/ExpressError");
 const { getEffectiveProjectRole, hasProjectPortalAccess } = require("../utils/projectRbac");
-const { createNotification } = require('../utils/notificationService');
+const notificationService = require('../utils/notificationService');
 
 class TaskService {
   async validateTaskStatus(companyId, projectId, status) {
@@ -41,8 +41,10 @@ class TaskService {
 
   async validateCompanyTeam(companyId, team) {
     if (!team || !team.length) return;
-    const count = await User.countDocuments({ _id: { $in: team }, company: companyId });
-    if (count !== new Set(team.map(String)).size) {
+    const cleanTeam = [...new Set(team.filter(Boolean).map(String))];
+    if (!cleanTeam.length) return;
+    const count = await User.countDocuments({ _id: { $in: cleanTeam }, company: companyId });
+    if (count !== cleanTeam.length) {
       throw new BadRequestError("All task team members must belong to the task company");
     }
   }
@@ -101,7 +103,14 @@ class TaskService {
       throw new ForbiddenError("Team members cannot create new tasks.");
     }
 
-    const { title, description, project, team, priority, status, dueDate, duration, completionPercent, workedHours, dependencies } = data;
+    const { title, description, project, priority, status, dueDate, duration, completionPercent, workedHours, dependencies } = data;
+    const rawTeam = data.team !== undefined ? data.team : (data.assignees !== undefined ? data.assignees : data.assignee);
+    let team = [];
+    if (Array.isArray(rawTeam)) {
+      team = [...new Set(rawTeam.filter(Boolean).map(String))];
+    } else if (rawTeam) {
+      team = [String(rawTeam)];
+    }
 
     const projectExists = await Project.findOne({ _id: project, company: companyId });
     if (!projectExists) throw new NotFoundError("Project");
@@ -157,7 +166,7 @@ class TaskService {
     if (savedTask.team && savedTask.team.length > 0) {
       try {
         const notifPromises = savedTask.team.map(memberId =>
-          createNotification({
+          notificationService.createNotification({
             recipient: memberId,
             type: 'TASK_ASSIGNED',
             title: 'New Task Assigned',
@@ -251,9 +260,20 @@ class TaskService {
 
   async updateTask(user, companyId, taskId, data, files) {
     const {
-      title, description, team, priority, dueDate, duration,
+      title, description, priority, dueDate, duration,
       completionPercent,       workedHours, status, dependencies
     } = data;
+    const rawTeam = data.team !== undefined ? data.team : (data.assignees !== undefined ? data.assignees : data.assignee);
+    let team = undefined;
+    if (rawTeam !== undefined) {
+      if (Array.isArray(rawTeam)) {
+        team = [...new Set(rawTeam.filter(Boolean).map(String))];
+      } else if (rawTeam) {
+        team = [String(rawTeam)];
+      } else {
+        team = [];
+      }
+    }
 
     this.ensureProjectPortalAccess(user);
     const task = await Task.findOne({ _id: taskId, company: companyId });
@@ -287,7 +307,11 @@ class TaskService {
           throw new ForbiddenError("You can only modify tasks assigned to you.");
         }
         // Critical fields check: Employee cannot alter team, priority, dueDate, duration, dependencies, project
-        const teamChanged = team !== undefined && JSON.stringify(team.map(String)) !== JSON.stringify(task.team.map(String));
+        const currentTeamIds = (task.team || []).map(m => (m?._id || m || '').toString());
+        const teamChanged = team !== undefined && (
+          team.length !== currentTeamIds.length ||
+          team.some(id => !currentTeamIds.includes(String(id)))
+        );
         const priorityChanged = priority !== undefined && priority !== task.priority;
         const dueChanged = dueDate !== undefined && (new Date(dueDate).getTime() !== (task.dueDate ? new Date(task.dueDate).getTime() : null));
         const durationChanged = duration !== undefined && Number(duration) !== Number(task.duration);
@@ -318,7 +342,7 @@ class TaskService {
       ? await this.validateDependencies(companyId, task.project, taskId, dependencies)
       : task.dependencies;
 
-    const previousTeam = task.team.map(id => id.toString());
+    const previousTeam = (task.team || []).map(id => (id?._id || id || '').toString());
     
     task.title = title !== undefined ? title : task.title;
     task.description = description !== undefined ? description : task.description;
@@ -358,7 +382,7 @@ class TaskService {
         const projectDoc = await Project.findOne({ _id: updatedTask.project, company: companyId }).select('title').lean();
         try {
           const notifPromises = newMembers.map(memberId =>
-            createNotification({
+            notificationService.createNotification({
               recipient: memberId,
               type: 'TASK_ASSIGNED',
               title: 'New Task Assigned',
@@ -437,7 +461,7 @@ class TaskService {
 
     if (task.team && task.team.length > 0) {
       task.team.forEach(memberId => {
-        createNotification({
+        notificationService.createNotification({
           recipient: memberId,
           type: 'TASK_DELETED',
           title: 'Task Removed',

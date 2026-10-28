@@ -3,6 +3,8 @@ import { useSelector } from "react-redux";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
 import ModernDatePicker from "../ui/ModernDatePicker";
+import { TableAvatar } from "../ui/TableCells";
+import { X, Users } from "lucide-react";
 import api from "../../axios";
 import projectApi from "../../api/projectApi";
 
@@ -19,7 +21,7 @@ const EMPTY_FORM = {
   title: "",
   description: "",
   project: "",
-  assignee: "",
+  assignees: [],
   priority: "Medium",
   status: "Backlog",
   dueDate: "",
@@ -167,23 +169,27 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
     return members;
   }, [activeProject, projectId, users]);
 
-  // Automatically select assignee from project members
+  // Automatically select default assignee from project members
   useEffect(() => {
     if (!projectMembers.length) return;
 
-    const isCurrentValid = form.assignee && projectMembers.some((m) => String(m._id || m.id) === String(form.assignee));
+    const validAssignees = (form.assignees || []).filter((id) =>
+      projectMembers.some((m) => String(m._id || m.id) === String(id))
+    );
 
-    if (!isCurrentValid) {
+    if (validAssignees.length === 0) {
       // Prefer current user if in project, otherwise first project member
       const currentUserMember = projectMembers.find((m) => String(m._id || m.id) === String(currentUserId));
       const defaultMember = currentUserMember || projectMembers[0];
       if (defaultMember) {
-        const defaultId = defaultMember._id || defaultMember.id;
-        setForm((prev) => ({ ...prev, assignee: defaultId }));
-        setErrors((prev) => ({ ...prev, assignee: null }));
+        const defaultId = String(defaultMember._id || defaultMember.id);
+        setForm((prev) => ({ ...prev, assignees: [defaultId] }));
+        setErrors((prev) => ({ ...prev, assignees: null }));
       }
+    } else if (validAssignees.length !== (form.assignees || []).length) {
+      setForm((prev) => ({ ...prev, assignees: validAssignees }));
     }
-  }, [projectMembers, currentUserId, form.assignee]);
+  }, [projectMembers, currentUserId]);
 
   const set = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -195,7 +201,9 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
     if (!form.title.trim()) next.title = "Task name is required.";
     const targetProject = form.project || projectId;
     if (!targetProject) next.project = "Project is required.";
-    if (!form.assignee) next.assignee = "Assignee is required.";
+    if (!form.assignees || form.assignees.length === 0) {
+      next.assignees = "At least one assignee is required.";
+    }
     if (form.dueDate && activeProject?.dueDate) {
       const taskDue = new Date(form.dueDate);
       const projectDue = new Date(activeProject.dueDate);
@@ -216,7 +224,8 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
       await onSubmit({
         title: form.title.trim(),
         project: form.project || projectId,
-        team: [form.assignee],
+        team: form.assignees,
+        assignees: form.assignees,
         priority: form.priority,
         status: form.status,
         dueDate: form.dueDate || null,
@@ -260,33 +269,96 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
 
       {isProjectFixed ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Assignee field: Only shows users included in that project */}
+          <div className="space-y-2">
             <div>
               <ModernSelect
-                label="Assign To*"
-                name="assignee"
-                value={form.assignee}
-                onChange={(e) => set("assignee", e.target.value)}
-                options={userOptions}
-                placeholder={
-                  loadingOptions
-                    ? "Loading project members..."
-                    : projectMembers.length === 0
-                    ? "No members in this project"
-                    : "Select assignee"
+                label={
+                  form.assignees.length === 0
+                    ? "Assign To*"
+                    : form.assignees.length === 1
+                    ? "Assign To* (Add 2nd Assignee)"
+                    : `Assign To* (${form.assignees.length} assigned)`
                 }
-                required
-                error={errors.assignee}
+                name="assigneeSelect"
+                value=""
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val && !form.assignees.includes(val)) {
+                    set("assignees", [...form.assignees, val]);
+                  }
+                }}
+                options={[
+                  {
+                    value: "",
+                    label: loadingOptions
+                      ? "Loading project members..."
+                      : projectMembers.length === 0
+                      ? "No members in this project"
+                      : form.assignees.length === 0
+                      ? "Select assignee"
+                      : form.assignees.length === 1
+                      ? "Add 2nd assignee..."
+                      : "Add another assignee...",
+                  },
+                  ...projectMembers
+                    .filter((m) => !form.assignees.includes(String(m._id || m.id)))
+                    .map((u) => ({
+                      value: String(u._id || u.id),
+                      label: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email,
+                    })),
+                ]}
+                placeholder={
+                  form.assignees.length === 0
+                    ? "Select assignee"
+                    : form.assignees.length === 1
+                    ? "Add 2nd assignee..."
+                    : "Add another assignee..."
+                }
+                error={errors.assignees}
               />
-              {errors.assignee && <p className="text-danger text-xs mt-1">{errors.assignee}</p>}
-              {projectMembers.length > 0 && (
-                <p className="text-[11px] text-muted mt-1">
-                  Showing only {projectMembers.length} member{projectMembers.length === 1 ? "" : "s"} included in this project
-                </p>
-              )}
+              {errors.assignees && <p className="text-danger text-xs mt-1">{errors.assignees}</p>}
             </div>
 
+            {/* Selected Assignees Chips */}
+            {form.assignees.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-card border border-border-subtle">
+                <span className="text-[10px] font-black uppercase tracking-wider text-muted mr-1">
+                  Assigned ({form.assignees.length}):
+                </span>
+                {form.assignees.map((id) => {
+                  const member = projectMembers.find((m) => String(m._id || m.id) === String(id));
+                  const name = member ? member.name || member.email : "Member";
+                  return (
+                    <span
+                      key={id}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-surface border border-border-accent text-heading shadow-sm"
+                    >
+                      <TableAvatar name={name} src={member?.avatar} size="xs" />
+                      <span className="truncate max-w-[120px]">{name}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = form.assignees.filter((mId) => mId !== id);
+                          set("assignees", updated);
+                        }}
+                        className="p-0.5 rounded-full hover:bg-danger-bg text-muted hover:text-danger transition-colors"
+                        title={`Remove ${name}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {projectMembers.length > 0 && (
+              <p className="text-[11px] text-muted">
+                Showing {projectMembers.length} member{projectMembers.length === 1 ? "" : "s"} in this project · Select multiple assignees (e.g. 2 co-assignees)
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <ModernSelect
               label="Priority"
               name="priority"
@@ -294,9 +366,6 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
               onChange={(e) => set("priority", e.target.value)}
               options={PRIORITIES.map((p) => ({ value: p, label: p }))}
             />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <ModernSelect
               label="Status"
               name="status"
@@ -304,7 +373,6 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
               onChange={(e) => set("status", e.target.value)}
               options={statusOptions}
             />
-
             <div>
               <ModernDatePicker
                 label="Due Date"
@@ -326,7 +394,10 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
                 label="Project*"
                 name="project"
                 value={form.project}
-                onChange={(e) => set("project", e.target.value)}
+                onChange={(e) => {
+                  set("project", e.target.value);
+                  set("assignees", []);
+                }}
                 options={projectOptions}
                 placeholder={loadingOptions ? "Loading projects..." : "Select project"}
                 required
@@ -337,20 +408,88 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
 
             <div>
               <ModernSelect
-                label="Assign To*"
-                name="assignee"
-                value={form.assignee}
-                onChange={(e) => set("assignee", e.target.value)}
-                options={userOptions}
-                placeholder={loadingOptions ? "Loading people..." : "Select assignee"}
-                required
-                error={errors.assignee}
+                label={
+                  form.assignees.length === 0
+                    ? "Assign To*"
+                    : form.assignees.length === 1
+                    ? "Assign To* (Add 2nd Assignee)"
+                    : `Assign To* (${form.assignees.length} assigned)`
+                }
+                name="assigneeSelect"
+                value=""
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val && !form.assignees.includes(val)) {
+                    set("assignees", [...form.assignees, val]);
+                  }
+                }}
+                options={[
+                  {
+                    value: "",
+                    label: loadingOptions
+                      ? "Loading people..."
+                      : projectMembers.length === 0
+                      ? "No members available"
+                      : form.assignees.length === 0
+                      ? "Select assignee"
+                      : form.assignees.length === 1
+                      ? "Add 2nd assignee..."
+                      : "Add another assignee...",
+                  },
+                  ...projectMembers
+                    .filter((m) => !form.assignees.includes(String(m._id || m.id)))
+                    .map((u) => ({
+                      value: String(u._id || u.id),
+                      label: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email,
+                    })),
+                ]}
+                placeholder={
+                  form.assignees.length === 0
+                    ? "Select assignee"
+                    : form.assignees.length === 1
+                    ? "Add 2nd assignee..."
+                    : "Add another assignee..."
+                }
+                error={errors.assignees}
               />
-              {errors.assignee && <p className="text-danger text-xs mt-1">{errors.assignee}</p>}
+              {errors.assignees && <p className="text-danger text-xs mt-1">{errors.assignees}</p>}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Selected Assignees Chips */}
+          {form.assignees.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-card border border-border-subtle">
+              <span className="text-[10px] font-black uppercase tracking-wider text-muted mr-1">
+                Assigned ({form.assignees.length}):
+              </span>
+              {form.assignees.map((id) => {
+                const member = projectMembers.find((m) => String(m._id || m.id) === String(id));
+                const name = member ? member.name || member.email : "Member";
+                return (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-surface border border-border-accent text-heading shadow-sm"
+                  >
+                    <TableAvatar name={name} src={member?.avatar} size="xs" />
+                    <span className="truncate max-w-[120px]">{name}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = form.assignees.filter((mId) => mId !== id);
+                        set("assignees", updated);
+                      }}
+                      className="p-0.5 rounded-full hover:bg-danger-bg text-muted hover:text-danger transition-colors"
+                      title={`Remove ${name}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <ModernSelect
               label="Priority"
               name="priority"
@@ -365,18 +504,17 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
               onChange={(e) => set("status", e.target.value)}
               options={statusOptions}
             />
-          </div>
-
-          <div>
-            <ModernDatePicker
-              label="Due Date"
-              name="dueDate"
-              value={form.dueDate}
-              onChange={(e) => set("dueDate", e.target.value)}
-              maxDate={projectMaxDate}
-              error={errors.dueDate}
-            />
-            {errors.dueDate && <p className="text-danger text-xs mt-1">{errors.dueDate}</p>}
+            <div>
+              <ModernDatePicker
+                label="Due Date"
+                name="dueDate"
+                value={form.dueDate}
+                onChange={(e) => set("dueDate", e.target.value)}
+                maxDate={projectMaxDate}
+                error={errors.dueDate}
+              />
+              {errors.dueDate && <p className="text-danger text-xs mt-1">{errors.dueDate}</p>}
+            </div>
           </div>
         </>
       )}

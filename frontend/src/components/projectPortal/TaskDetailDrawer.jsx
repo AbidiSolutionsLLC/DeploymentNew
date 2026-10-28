@@ -2,14 +2,14 @@ import React, { useState, useEffect, useMemo } from "react";
 import usePermission from "../../hooks/usePermission";
 import { useSelector } from "react-redux";
 import { FaDownload } from "react-icons/fa";
-import { Link2, ArrowRight, ShieldAlert, Trash2, UserPlus, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { Link2, ArrowRight, ShieldAlert, Trash2, UserPlus, Users, ChevronDown, ChevronUp, X } from "lucide-react";
 import GlassModal from "../ui/GlassModal";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
 import ModernDatePicker from "../ui/ModernDatePicker";
 import { TablePriority, TableStatus, TableAvatar } from "../ui/TableCells";
 import Progress from "./Progress";
-import { isOverdue, taskProgress, getTaskAssignee, getAssigneeName } from "./helpers";
+import { isOverdue, taskProgress, getTaskAssignee, getAssigneeName, getTaskAssignees, personName } from "./helpers";
 import TaskComments from "./TaskComments";
 import { downloadFile } from "../../utils/downloadFile";
 import taskApi from "../../api/taskApi";
@@ -256,7 +256,7 @@ export default function TaskDetailDrawer({
         payload.priority = priority;
         payload.duration = duration === "" ? null : Number(duration);
         payload.dependencies = dependencies.map((d) => (d?._id || d)?.toString());
-        payload.team = selectedTeam;
+        payload.team = [...new Set((selectedTeam || []).filter(Boolean).map(String))];
       }
 
       await onTaskUpdate(payload);
@@ -517,36 +517,105 @@ export default function TaskDetailDrawer({
                 </div>
               </div>
 
-              {/* Assignee / Reassignment Section */}
-              {hasFullTaskControl && (
-                <div className="p-4 rounded-xl bg-card border border-border-subtle">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-brand" />
-                      <span>Assigned Team Member</span>
-                    </label>
-                    <span className="text-[10px] text-muted">Reassign to any project contributor</span>
-                  </div>
-                  <div className="w-full sm:w-80">
-                    <ModernSelect
-                      value={selectedTeam[0] || ""}
-                      disabled={loadingMembers}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setSelectedTeam(val ? [val] : []);
-                      }}
-                      options={[
-                        { value: "", label: "Unassigned" },
-                        ...projectMembers.map((m) => ({
-                          value: (m._id || m.id).toString(),
-                          label: m.name ? `${m.name}${m.email ? ` (${m.email})` : ""}` : m.email || "Member",
-                        })),
-                      ]}
-                      placeholder="Assign to..."
-                    />
-                  </div>
+              {/* Assignee / Multiple Assignees Section */}
+              <div className="p-4 rounded-xl bg-card border border-border-subtle">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-black uppercase tracking-widest text-muted flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-brand" />
+                    <span>Assigned Team Members ({selectedTeam.length})</span>
+                  </label>
+                  <span className="text-[10px] text-muted">
+                    {hasFullTaskControl ? "Assign 1, 2, or multiple project contributors" : "(Read only)"}
+                  </span>
                 </div>
-              )}
+
+                {/* Current Assignees Pill Display */}
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {selectedTeam.length > 0 ? (
+                    selectedTeam.map((memberId) => {
+                      const member =
+                        projectMembers.find((m) => (m._id || m.id)?.toString() === memberId?.toString()) ||
+                        (task?.team || []).find((m) => (m?._id || m)?.toString() === memberId?.toString()) ||
+                        { _id: memberId, name: "Team Member" };
+                      const name = personName(member);
+
+                      return (
+                        <div
+                          key={memberId}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-border-accent text-heading text-xs font-semibold shadow-sm"
+                        >
+                          <TableAvatar name={name} src={member?.avatar} size="xs" />
+                          <span>{name}</span>
+                          {hasFullTaskControl && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTeam((prev) => prev.filter((id) => id !== memberId))}
+                              className="ml-1 p-0.5 rounded-full hover:bg-danger-bg text-muted hover:text-danger transition-colors"
+                              title={`Remove ${name}`}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <span className="text-xs text-muted italic">No team members assigned</span>
+                  )}
+                </div>
+
+                {/* Add / Reassign Control (only for managers/admins) */}
+                {hasFullTaskControl && (
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2 border-t border-border-subtle">
+                    <div className="w-full sm:w-80">
+                      <ModernSelect
+                        value=""
+                        disabled={loadingMembers}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val && !selectedTeam.includes(val)) {
+                            setSelectedTeam((prev) => [...prev, val]);
+                          }
+                        }}
+                        options={[
+                          {
+                            value: "",
+                            label: loadingMembers
+                              ? "Loading members..."
+                              : selectedTeam.length === 0
+                              ? "Select Assignee..."
+                              : selectedTeam.length === 1
+                              ? "Add 2nd Assignee..."
+                              : "Add Another Assignee...",
+                          },
+                          ...projectMembers
+                            .filter((m) => !selectedTeam.includes((m._id || m.id)?.toString()))
+                            .map((m) => ({
+                              value: (m._id || m.id).toString(),
+                              label: m.name ? `${m.name}${m.email ? ` (${m.email})` : ""}` : m.email || "Member",
+                            })),
+                        ]}
+                        placeholder={
+                          selectedTeam.length === 0
+                            ? "Assign member..."
+                            : selectedTeam.length === 1
+                            ? "Add 2nd assignee..."
+                            : "Add another assignee..."
+                        }
+                      />
+                    </div>
+                    {selectedTeam.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTeam([])}
+                        className="text-xs text-muted hover:text-danger px-2.5 py-1.5 rounded-lg hover:bg-card transition-colors self-start sm:self-center"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Description Section */}
               <div className="p-4 rounded-xl bg-card border border-border-subtle">

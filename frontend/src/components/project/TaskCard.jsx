@@ -2,7 +2,7 @@ import React from "react";
 import { FaCalendar, FaComment, FaGripVertical, FaClock } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext"; // Keep this import
 import { TableAvatar } from "../ui/TableCells";
-import { getTaskAssignee, getAssigneeName } from "../projectPortal/helpers";
+import { getTaskAssignee, getAssigneeName, getTaskAssignees, personName } from "../projectPortal/helpers";
 
 const TaskCard = ({ task, isDragging }) => {
  const { selectedTheme } = useTheme(); // Keep this import, though colors are now via CSS vars
@@ -13,9 +13,10 @@ const getPriorityColor = (priority) => {
 
  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
  const isDueSoon = task.dueDate && new Date(task.dueDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
- const assignee = getTaskAssignee(task);
+ const assignees = getTaskAssignees(task);
+ const assignee = assignees[0] || null;
  const assigneeName = getAssigneeName(task);
- const hasAssignee = assigneeName && assigneeName !== "—";
+ const hasAssignee = assignees.length > 0;
 
  return (
  <div
@@ -69,12 +70,36 @@ const getPriorityColor = (priority) => {
  <div className="flex items-center space-x-2">
  {hasAssignee && (
  <div className="flex items-center gap-1.5" title={assigneeName}>
- <TableAvatar name={assigneeName} src={assignee?.avatar} size="xs" />
- <span 
- className="text-xs truncate max-w-[60px] sm:max-w-[80px] text-description"
- >
- {assigneeName}
- </span>
+   {assignees.length === 1 ? (
+     <>
+       <TableAvatar name={personName(assignees[0])} src={assignees[0]?.avatar} size="xs" />
+       <span className="text-xs truncate max-w-[60px] sm:max-w-[80px] text-description">
+         {personName(assignees[0])}
+       </span>
+     </>
+   ) : (
+     <div className="flex items-center gap-1.5 min-w-0">
+       <div className="flex -space-x-1.5 shrink-0">
+         {assignees.slice(0, 2).map((m, idx) => (
+           <TableAvatar
+             key={m?._id || m?.id || idx}
+             name={personName(m)}
+             src={m?.avatar}
+             size="xs"
+             className="ring-1 ring-surface"
+           />
+         ))}
+         {assignees.length > 2 && (
+           <span className="w-5 h-5 rounded-full ring-1 ring-surface bg-card flex items-center justify-center text-[9px] font-black text-muted">
+             +{assignees.length - 2}
+           </span>
+         )}
+       </div>
+       <span className="text-xs truncate max-w-[60px] sm:max-w-[80px] text-description">
+         {assigneeName}
+       </span>
+     </div>
+   )}
  </div>
  )}
  

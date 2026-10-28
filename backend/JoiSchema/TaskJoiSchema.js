@@ -12,6 +12,8 @@ const taskSchema = Joi.object({
     'any.required': 'Project ID is required.'
   }),
   team: Joi.array().items(Joi.string()).optional(),
+  assignees: Joi.array().items(Joi.string()).optional(),
+  assignee: Joi.string().allow("", null).optional(),
   dependencies: Joi.array().items(Joi.string()).optional(),
   priority: Joi.string().valid("Low", "Medium", "High").optional(),
   status: Joi.string().trim().min(1).max(100).optional(),
@@ -25,6 +27,8 @@ const taskUpdateSchema = Joi.object({
   title: Joi.string().trim().min(1).max(150).optional(),
   description: Joi.string().trim().allow("", null).optional(),
   team: Joi.array().items(Joi.string()).optional(),
+  assignees: Joi.array().items(Joi.string()).optional(),
+  assignee: Joi.string().allow("", null).optional(),
   dependencies: Joi.array().items(Joi.string()).optional(),
   priority: Joi.string().valid("Low", "Medium", "High").optional(),
   status: Joi.string().trim().min(1).max(100).optional(),

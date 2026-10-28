@@ -9,7 +9,7 @@ import {
   ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import { TablePriority, TableAvatar, TableStatus } from "../ui/TableCells";
-import { shortDate, isOverdue, taskProgress, getTaskAssignee, getAssigneeName } from "./helpers";
+import { shortDate, isOverdue, taskProgress, getTaskAssignee, getAssigneeName, getTaskAssignees, personName } from "./helpers";
 import { getDependentTasks, getPrerequisiteTasks, isStatusDone } from "../../utils/taskHierarchy";
 
 /**
@@ -38,9 +38,10 @@ export default function TaskCard({
     new Date(task.dueDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) &&
     !overdue;
   const pct = taskProgress(task);
-  const assignee = getTaskAssignee(task);
+  const assignees = getTaskAssignees(task);
+  const assignee = assignees[0] || null;
   const assigneeName = getAssigneeName(task);
-  const hasAssignee = assigneeName && assigneeName !== "—";
+  const hasAssignee = assignees.length > 0;
 
   // Sub-dependent tasks (tasks waiting on this task)
   const dependentTasks = useMemo(() => {
@@ -281,10 +282,36 @@ export default function TaskCard({
         <div className="flex items-center gap-2 min-w-0 flex-1 pl-1">
           {hasAssignee && (
             <div className="flex items-center gap-1.5 min-w-0" title={assigneeName}>
-              <TableAvatar name={assigneeName} src={assignee?.avatar} size="xs" />
-              <span className="text-xs truncate max-w-[130px] text-muted font-medium">
-                {assigneeName}
-              </span>
+              {assignees.length === 1 ? (
+                <>
+                  <TableAvatar name={personName(assignees[0])} src={assignees[0]?.avatar} size="xs" />
+                  <span className="text-xs truncate max-w-[130px] text-muted font-medium">
+                    {personName(assignees[0])}
+                  </span>
+                </>
+              ) : (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="flex -space-x-1.5 shrink-0">
+                    {assignees.slice(0, 2).map((m, idx) => (
+                      <TableAvatar
+                        key={m?._id || m?.id || idx}
+                        name={personName(m)}
+                        src={m?.avatar}
+                        size="xs"
+                        className="ring-1 ring-surface"
+                      />
+                    ))}
+                    {assignees.length > 2 && (
+                      <span className="w-5 h-5 rounded-full ring-1 ring-surface bg-card flex items-center justify-center text-[9px] font-black text-muted">
+                        +{assignees.length - 2}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs truncate max-w-[120px] text-muted font-medium">
+                    {assigneeName}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>

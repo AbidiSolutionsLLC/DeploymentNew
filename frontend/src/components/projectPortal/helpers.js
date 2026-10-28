@@ -87,20 +87,35 @@ export function personName(person) {
   );
 }
 
-/** Get assignee from task - handles assignee, team[0], assignedTo */
-export function getTaskAssignee(task) {
-  if (!task) return null;
-  // Priority: assignee (populated object) > team[0] > assignedTo
-  if (task.assignee) return task.assignee;
-  if (Array.isArray(task.team) && task.team.length > 0) return task.team[0];
-  if (task.assignedTo) return task.assignedTo;
-  return null;
+/** Get all assignees from task as an array of user objects / IDs */
+export function getTaskAssignees(task) {
+  if (!task) return [];
+  if (Array.isArray(task.team) && task.team.length > 0) {
+    return task.team.filter(Boolean);
+  }
+  if (Array.isArray(task.assignees) && task.assignees.length > 0) {
+    return task.assignees.filter(Boolean);
+  }
+  if (task.assignee) return [task.assignee];
+  if (task.assignedTo) return [task.assignedTo];
+  return [];
 }
 
-/** Get assignee name for display */
+/** Get assignee from task - handles assignee, team[0], assignedTo */
+export function getTaskAssignee(task) {
+  const assignees = getTaskAssignees(task);
+  return assignees[0] || null;
+}
+
+/** Get assignee name(s) for display: single name, "A, B" for 2, "A, B (+N)" for >2 */
 export function getAssigneeName(task) {
-  const assignee = getTaskAssignee(task);
-  return personName(assignee);
+  const assignees = getTaskAssignees(task);
+  if (!assignees || assignees.length === 0) return "—";
+  if (assignees.length === 1) return personName(assignees[0]);
+  if (assignees.length === 2) {
+    return `${personName(assignees[0])}, ${personName(assignees[1])}`;
+  }
+  return `${personName(assignees[0])}, ${personName(assignees[1])} (+${assignees.length - 2})`;
 }
 
 export const PRIORITY_RANK = { High: 0, Medium: 1, Low: 2 };
