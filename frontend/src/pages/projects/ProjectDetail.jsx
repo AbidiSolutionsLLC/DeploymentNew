@@ -472,10 +472,11 @@ const ProjectDetail = () => {
 
   const handleUpdateTask = async (taskId, updates) => {
     try {
-      await dispatch(updateTask({ id: taskId, updates })).unwrap();
+      const updated = await dispatch(updateTask({ id: taskId, updates })).unwrap();
       toast.success("Task details updated");
       await dispatch(fetchProjectTasks(id)).unwrap();
-      setShowTaskDetail((current) => current?._id === taskId ? { ...current, ...updates } : current);
+      setShowTaskDetail((current) => current?._id === taskId ? { ...current, ...updated } : current);
+      return updated;
     } catch (err) {
       toast.error(err?.message || "Failed to update task details");
       throw err;
@@ -692,7 +693,7 @@ const ProjectDetail = () => {
               >
                 <ArrowLeftIcon className="w-5 h-5" />
               </button>
-              <h1 className="text-2xl sm:text-3xl font-black text-heading tracking-tight truncate">{project.title}</h1>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-heading tracking-tight break-words leading-tight flex-1 min-w-0">{project.title}</h1>
               <div
                 className="flex items-center gap-1.5 shrink-0"
                 title={`Project Status: ${project.status || "Planning"}`}
@@ -737,9 +738,16 @@ const ProjectDetail = () => {
                 </span>
               )}
               {project.description && (
-                <p className="text-sm text-main max-w-3xl leading-relaxed">
-                  {project.description}
-                </p>
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted">Project Description</span>
+                  </div>
+                  <div className="max-h-52 overflow-y-auto custom-scrollbar-visible pr-2 rounded-xl bg-card/60 border border-border-subtle p-3.5 shadow-inner">
+                    <p className="text-sm text-main leading-relaxed whitespace-pre-wrap break-words">
+                      {project.description}
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
           )}

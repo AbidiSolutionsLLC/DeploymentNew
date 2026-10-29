@@ -141,6 +141,7 @@ const MyTask = () => {
       const updated = await dispatch(updateTask({ id, updates })).unwrap();
       toast.success("Task updated successfully");
       setDetailTask((prev) => (prev?._id === id ? { ...prev, ...updated } : prev));
+      return updated;
     } catch (err) {
       toast.error(apiError(err, "Failed to update task"));
     }
@@ -170,7 +171,7 @@ const MyTask = () => {
       key: "title",
       label: "Task",
       render: (v) => (
-        <TableTitle title={v} maxWidth="max-w-[260px]" titleClassName="font-medium" />
+        <TableTitle title={v} subtitle={row.description || undefined} maxWidth="max-w-[260px] sm:max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg" titleClassName="font-medium" allowToggle={true} />
       ),
     },
     {

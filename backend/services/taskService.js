@@ -86,12 +86,47 @@ class TaskService {
 
   mapAttachments(files) {
     return (files || []).map((file) => ({
-      public_id: file.blobName || file.filename,
+      name: file.originalname || file.name,
+      originalname: file.originalname || file.name,
       url: file.url || file.path,
-      originalname: file.originalname,
-      format: file.mimetype,
-      size: file.size
+      blobName: file.blobName || file.filename,
+      public_id: file.blobName || file.filename || file.public_id,
+      size: file.size,
+      format: file.mimetype || file.format,
+      mimetype: file.mimetype,
+      uploadedAt: new Date()
     }));
+  }
+
+  assertCanModifyTask(user, companyId, task, projectDoc) {
+    this.ensureProjectPortalAccess(user);
+    const userId = user.id || user._id;
+    const userRole = getEffectiveProjectRole(user);
+    const isProjectAdmin = userRole === 'project_administrator';
+    const isProjectManager = userRole === 'project_manager';
+    const isAssignee = task.team && task.team.some(member => {
+      const memberId = (member?._id || member || '').toString();
+      return (user._id && memberId === user._id.toString()) || (user.id && memberId === user.id.toString());
+    });
+
+    if (isProjectAdmin) return { isProjectAdmin, isProjectManager, isAssignee };
+
+    const isProjectOwner = projectDoc && projectDoc.owner && (
+      (user._id && projectDoc.owner.toString() === user._id.toString()) ||
+      (user.id && projectDoc.owner.toString() === user.id.toString())
+    );
+
+    if (isProjectManager) {
+      if (!isProjectOwner && !isAssignee) {
+        throw new ForbiddenError("You do not have permission to modify this task.");
+      }
+    } else {
+      if (!isAssignee) {
+        throw new ForbiddenError("You can only modify tasks assigned to you.");
+      }
+    }
+
+    return { isProjectAdmin, isProjectManager, isAssignee, isProjectOwner };
   }
 
   async createTask(user, companyId, data, files) {
@@ -108,8 +143,30 @@ class TaskService {
     let team = [];
     if (Array.isArray(rawTeam)) {
       team = [...new Set(rawTeam.filter(Boolean).map(String))];
+    } else if (typeof rawTeam === 'string') {
+      try {
+        const parsed = JSON.parse(rawTeam);
+        if (Array.isArray(parsed)) {
+          team = [...new Set(parsed.filter(Boolean).map(String))];
+        } else if (parsed) {
+          team = [String(parsed)];
+        }
+      } catch (e) {
+        if (rawTeam.trim()) team = [String(rawTeam.trim())];
+      }
     } else if (rawTeam) {
       team = [String(rawTeam)];
+    }
+
+    let parsedDeps = dependencies;
+    if (typeof dependencies === 'string') {
+      try {
+        const parsed = JSON.parse(dependencies);
+        if (Array.isArray(parsed)) parsedDeps = parsed;
+        else if (parsed) parsedDeps = [String(parsed)];
+      } catch (e) {
+        if (dependencies.trim()) parsedDeps = [dependencies.trim()];
+      }
     }
 
     const projectExists = await Project.findOne({ _id: project, company: companyId });
@@ -133,7 +190,7 @@ class TaskService {
     }
     await this.validateCompanyTeam(companyId, team);
     await this.validateTaskStatus(companyId, project, status);
-    const validDependencies = await this.validateDependencies(companyId, project, null, dependencies);
+    const validDependencies = await this.validateDependencies(companyId, project, null, parsedDeps);
 
     const task = new Task({
       title,
@@ -152,7 +209,21 @@ class TaskService {
       dependencies: validDependencies,
     });
 
-    const savedTask = await task.save();
+    let savedTask;
+    let attempts = 0;
+    while (!savedTask && attempts < 3) {
+      try {
+        savedTask = await task.save();
+      } catch (err) {
+        if (err.code === 11000 && (err.keyPattern?.taskID || err.message?.includes("taskID"))) {
+          attempts++;
+          task.taskID = undefined;
+          if (attempts >= 3) throw err;
+        } else {
+          throw err;
+        }
+      }
+    }
 
     require("./activityLogService").recordActivity({
       actorId: user?.id || user?._id,
@@ -268,10 +339,34 @@ class TaskService {
     if (rawTeam !== undefined) {
       if (Array.isArray(rawTeam)) {
         team = [...new Set(rawTeam.filter(Boolean).map(String))];
+      } else if (typeof rawTeam === 'string') {
+        try {
+          const parsed = JSON.parse(rawTeam);
+          if (Array.isArray(parsed)) {
+            team = [...new Set(parsed.filter(Boolean).map(String))];
+          } else if (parsed) {
+            team = [String(parsed)];
+          } else {
+            team = [];
+          }
+        } catch (e) {
+          team = rawTeam.trim() ? [rawTeam.trim()] : [];
+        }
       } else if (rawTeam) {
         team = [String(rawTeam)];
       } else {
         team = [];
+      }
+    }
+
+    let parsedDeps = dependencies;
+    if (typeof dependencies === 'string') {
+      try {
+        const parsed = JSON.parse(dependencies);
+        if (Array.isArray(parsed)) parsedDeps = parsed;
+        else if (parsed) parsedDeps = [String(parsed)];
+      } catch (e) {
+        parsedDeps = dependencies.trim() ? [dependencies.trim()] : [];
       }
     }
 
@@ -315,10 +410,10 @@ class TaskService {
         const priorityChanged = priority !== undefined && priority !== task.priority;
         const dueChanged = dueDate !== undefined && (new Date(dueDate).getTime() !== (task.dueDate ? new Date(task.dueDate).getTime() : null));
         const durationChanged = duration !== undefined && Number(duration) !== Number(task.duration);
-        const depChanged = dependencies !== undefined && JSON.stringify((dependencies || []).map(String)) !== JSON.stringify((task.dependencies || []).map(String));
+        const depChanged = parsedDeps !== undefined && JSON.stringify((parsedDeps || []).map(String)) !== JSON.stringify((task.dependencies || []).map(String));
 
         if (teamChanged || priorityChanged || dueChanged || durationChanged || depChanged) {
-          throw new ForbiddenError("Team members can only update task status, progress percentage, worked hours, and description.");
+          throw new ForbiddenError("Team members can only update task status, progress percentage, worked hours, description, and attachments.");
         }
       }
     }
@@ -338,8 +433,8 @@ class TaskService {
     if (team !== undefined) {
       await this.validateCompanyTeam(companyId, team);
     }
-    const validDependencies = dependencies !== undefined
-      ? await this.validateDependencies(companyId, task.project, taskId, dependencies)
+    const validDependencies = parsedDeps !== undefined
+      ? await this.validateDependencies(companyId, task.project, taskId, parsedDeps)
       : task.dependencies;
 
     const previousTeam = (task.team || []).map(id => (id?._id || id || '').toString());
@@ -354,6 +449,59 @@ class TaskService {
     task.workedHours = workedHours !== undefined ? workedHours : task.workedHours;
     task.status = status !== undefined ? status : task.status;
     task.dependencies = validDependencies;
+
+    // Handle deleted attachments if specified
+    if (data.deletedAttachmentIds !== undefined) {
+      let deletedIds = [];
+      if (Array.isArray(data.deletedAttachmentIds)) {
+        deletedIds = data.deletedAttachmentIds.map(String);
+      } else if (typeof data.deletedAttachmentIds === 'string') {
+        try {
+          const parsed = JSON.parse(data.deletedAttachmentIds);
+          if (Array.isArray(parsed)) deletedIds = parsed.map(String);
+          else if (parsed) deletedIds = [String(parsed)];
+        } catch (e) {
+          if (data.deletedAttachmentIds.trim()) deletedIds = [data.deletedAttachmentIds.trim()];
+        }
+      }
+
+      if (deletedIds.length > 0) {
+        task.attachments = (task.attachments || []).filter(
+          (att) => !deletedIds.includes((att._id || att.id || '').toString()) &&
+                   !deletedIds.includes((att.public_id || att.blobName || '').toString())
+        );
+      }
+    }
+
+    // Handle renamed attachments if specified
+    if (data.renamedAttachments !== undefined) {
+      let renamedList = [];
+      if (Array.isArray(data.renamedAttachments)) {
+        renamedList = data.renamedAttachments;
+      } else if (typeof data.renamedAttachments === 'string') {
+        try {
+          const parsed = JSON.parse(data.renamedAttachments);
+          if (Array.isArray(parsed)) renamedList = parsed;
+        } catch (e) {}
+      }
+
+      if (renamedList.length > 0) {
+        renamedList.forEach(({ id, name }) => {
+          if (!id || !name) return;
+          const att = (task.attachments || []).find(
+            (a) => (a._id || a.id || '').toString() === id.toString() ||
+                   (a.public_id || a.blobName || '').toString() === id.toString() ||
+                   (a.originalname || a.name || '').toString() === id.toString()
+          );
+          if (att) {
+            att.name = name.trim();
+            att.originalname = name.trim();
+          }
+        });
+      }
+    }
+
+    // Handle newly uploaded files
     if (files?.length) {
       task.attachments = [...(task.attachments || []), ...this.mapAttachments(files)];
     }
@@ -489,6 +637,188 @@ class TaskService {
     await task.deleteOne();
   }
 
+  async addAttachments(user, companyId, taskId, files) {
+    if (!files || files.length === 0) {
+      throw new BadRequestError("At least one file is required.");
+    }
+
+    const task = await Task.findOne({ _id: taskId, company: companyId });
+    if (!task) throw new NotFoundError("Task");
+
+    const ProjectModel = require("../models/projectSchema");
+    const projectDoc = await ProjectModel.findOne({ _id: task.project, company: companyId }).lean();
+    this.assertCanModifyTask(user, companyId, task, projectDoc);
+
+    const newAttachments = this.mapAttachments(files);
+    task.attachments = [...(task.attachments || []), ...newAttachments];
+    let savedTask;
+    let attempts = 0;
+    while (!savedTask && attempts < 3) {
+      try {
+        savedTask = await task.save();
+      } catch (err) {
+        if (err.code === 11000 && (err.keyPattern?.taskID || err.message?.includes("taskID"))) {
+          attempts++;
+          task.taskID = undefined;
+          if (attempts >= 3) throw err;
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    if (typeof savedTask.populate === "function") {
+      try {
+        await savedTask.populate("team", "name email avatar");
+        await savedTask.populate("project", "title");
+        await savedTask.populate("dependencies", "title status");
+      } catch (e) {}
+    }
+
+    require("./activityLogService").recordActivity({
+      actorId: user.id || user._id,
+      action: `added ${newAttachments.length} attachment(s) to task "${task.title}"`,
+      entityType: "task",
+      entityId: task._id,
+      companyId,
+      level: "info",
+    }).catch(() => {});
+
+    return savedTask;
+  }
+
+  async deleteAttachment(user, companyId, taskId, attachmentId) {
+    const task = await Task.findOne({ _id: taskId, company: companyId });
+    if (!task) throw new NotFoundError("Task");
+
+    const ProjectModel = require("../models/projectSchema");
+    const projectDoc = await ProjectModel.findOne({ _id: task.project, company: companyId }).lean();
+    this.assertCanModifyTask(user, companyId, task, projectDoc);
+
+    const attachment = (task.attachments || []).find(
+      (att) => (att._id || att.id || '').toString() === attachmentId.toString() ||
+               (att.public_id || att.blobName || '').toString() === attachmentId.toString()
+    );
+
+    if (!attachment) {
+      throw new NotFoundError("Attachment");
+    }
+
+    if (attachment.blobName) {
+      try {
+        const { containerClient } = require("../config/azureConfig");
+        if (containerClient) {
+          const blockBlobClient = containerClient.getBlockBlobClient(attachment.blobName);
+          await blockBlobClient.deleteIfExists();
+        }
+      } catch (blobErr) {
+        console.warn("[Azure Storage] Failed to delete blob:", blobErr.message);
+      }
+    }
+
+    const fileName = attachment.originalname || attachment.name || "attachment";
+    task.attachments = task.attachments.filter(
+      (att) => (att._id || att.id || '').toString() !== attachmentId.toString() &&
+               (att.public_id || att.blobName || '').toString() !== attachmentId.toString()
+    );
+
+    let savedTask;
+    let attempts = 0;
+    while (!savedTask && attempts < 3) {
+      try {
+        savedTask = await task.save();
+      } catch (err) {
+        if (err.code === 11000 && (err.keyPattern?.taskID || err.message?.includes("taskID"))) {
+          attempts++;
+          task.taskID = undefined;
+          if (attempts >= 3) throw err;
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    if (typeof savedTask.populate === "function") {
+      try {
+        await savedTask.populate("team", "name email avatar");
+        await savedTask.populate("project", "title");
+        await savedTask.populate("dependencies", "title status");
+      } catch (e) {}
+    }
+
+    require("./activityLogService").recordActivity({
+      actorId: user.id || user._id,
+      action: `removed attachment "${fileName}" from task "${task.title}"`,
+      entityType: "task",
+      entityId: task._id,
+      companyId,
+      level: "info",
+    }).catch(() => {});
+
+    return savedTask;
+  }
+
+  async renameAttachment(user, companyId, taskId, attachmentId, newName) {
+    if (!newName || !newName.trim()) {
+      throw new BadRequestError("Attachment name is required.");
+    }
+
+    const task = await Task.findOne({ _id: taskId, company: companyId });
+    if (!task) throw new NotFoundError("Task");
+
+    const ProjectModel = require("../models/projectSchema");
+    const projectDoc = await ProjectModel.findOne({ _id: task.project, company: companyId }).lean();
+    this.assertCanModifyTask(user, companyId, task, projectDoc);
+
+    const attachment = (task.attachments || []).find(
+      (att) => (att._id || att.id || '').toString() === attachmentId.toString() ||
+               (att.public_id || att.blobName || '').toString() === attachmentId.toString()
+    );
+
+    if (!attachment) {
+      throw new NotFoundError("Attachment");
+    }
+
+    const cleanName = newName.trim();
+    attachment.name = cleanName;
+    attachment.originalname = cleanName;
+
+    let savedTask;
+    let attempts = 0;
+    while (!savedTask && attempts < 3) {
+      try {
+        savedTask = await task.save();
+      } catch (err) {
+        if (err.code === 11000 && (err.keyPattern?.taskID || err.message?.includes("taskID"))) {
+          attempts++;
+          task.taskID = undefined;
+          if (attempts >= 3) throw err;
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    if (typeof savedTask.populate === "function") {
+      try {
+        await savedTask.populate("team", "name email avatar");
+        await savedTask.populate("project", "title");
+        await savedTask.populate("dependencies", "title status");
+      } catch (e) {}
+    }
+
+    require("./activityLogService").recordActivity({
+      actorId: user.id || user._id,
+      action: `renamed attachment in task "${task.title}" to "${cleanName}"`,
+      entityType: "task",
+      entityId: task._id,
+      companyId,
+      level: "info",
+    }).catch(() => {});
+
+    return savedTask;
+  }
+
   async addComment(user, companyId, taskId, data, files = []) {
     const userId = user.id || user._id;
 
@@ -545,7 +875,21 @@ class TaskService {
     }
 
     task.comments.push(commentDoc);
-    const savedTask = await task.save();
+    let savedTask;
+    let attempts = 0;
+    while (!savedTask && attempts < 3) {
+      try {
+        savedTask = await task.save();
+      } catch (err) {
+        if (err.code === 11000 && (err.keyPattern?.taskID || err.message?.includes("taskID"))) {
+          attempts++;
+          task.taskID = undefined;
+          if (attempts >= 3) throw err;
+        } else {
+          throw err;
+        }
+      }
+    }
     await savedTask.populate("comments.user", "name email avatar");
     await savedTask.populate("comments.replyTo.user", "name email avatar");
 

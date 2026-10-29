@@ -4,6 +4,8 @@ import GlassButton from "./ui/GlassButton";
 import { TablePriority, TableStatus, TableAvatar } from "./ui/TableCells";
 import Progress from "../projectPortal/Progress";
 import { formatDate, isOverdue, taskProgress, getTaskAssignees, personName } from "../projectPortal/helpers";
+import { getFileIcon, formatFileSize } from "../utils/fileIcons";
+import { downloadFile } from "../utils/downloadFile";
 
 /**
  * TaskDetailModal — read-only task detail using design tokens.
@@ -15,13 +17,17 @@ const TaskDetailModal = ({ task, onClose }) => {
   const overdue = isOverdue(task?.dueDate, task?.status);
   const assignees = getTaskAssignees(task);
 
+  const shortTitle = task?.title
+    ? (task.title.length > 80 ? `${task.title.slice(0, 80)}...` : task.title)
+    : "Task Details";
+
   return (
     <GlassModal
       isOpen={!!task}
       onClose={onClose}
-      title={task?.title}
-      description={`Task · ${task?.status}`}
-      maxWidth="max-w-md"
+      title={shortTitle}
+      description={`Task · ${task?.status || "Backlog"}`}
+      maxWidth="max-w-xl sm:max-w-2xl w-full"
       footer={
         <GlassButton variant="secondary" onClick={onClose} className="w-full">
           Close
@@ -34,15 +40,19 @@ const TaskDetailModal = ({ task, onClose }) => {
           <label className="block text-[10px] font-black text-muted mb-1 uppercase tracking-widest">
             Title
           </label>
-          <p className="text-sm font-semibold text-heading">{task?.title}</p>
+          <div className="max-h-40 overflow-y-auto custom-scrollbar-visible pr-1.5 rounded-lg bg-card/60 p-2.5 border border-border-subtle">
+            <p className="text-sm font-semibold text-heading break-words whitespace-pre-wrap">{task?.title}</p>
+          </div>
         </div>
 
-        {/* Description */}
+        {/* Description with Scroller */}
         <div>
           <label className="block text-[10px] font-black text-muted mb-1 uppercase tracking-widest">
             Description
           </label>
-          <p className="text-sm text-main whitespace-pre-wrap">{task?.description || "No description provided"}</p>
+          <div className="max-h-60 overflow-y-auto custom-scrollbar-visible pr-2 rounded-xl bg-card p-3 border border-border-subtle shadow-inner">
+            <p className="text-sm text-main whitespace-pre-wrap break-words">{task?.description || "No description provided"}</p>
+          </div>
         </div>
 
         {/* Dates Grid */}
@@ -108,6 +118,40 @@ const TaskDetailModal = ({ task, onClose }) => {
           </div>
           <Progress value={taskProgress(task)} />
         </div>
+
+        {/* Attachments */}
+        {task?.attachments?.length > 0 && (
+          <div className="pt-2">
+            <span className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2">
+              Attachments ({task.attachments.length})
+            </span>
+            <div className="space-y-2">
+              {task.attachments.map((att, idx) => {
+                const name = att.originalname || att.name || `Attachment ${idx + 1}`;
+                const source = att.blobName || att.url;
+                return (
+                  <div
+                    key={att._id || att.id || idx}
+                    className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-surface border border-border-subtle text-xs"
+                  >
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {getFileIcon(name, 14)}
+                      <span className="truncate font-medium text-heading" title={name}>{name}</span>
+                      {att.size && <span className="text-[10px] text-muted">({formatFileSize(att.size)})</span>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => downloadFile(source, name)}
+                      className="text-brand hover:text-brand-text font-semibold shrink-0 text-xs"
+                    >
+                      Download
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </GlassModal>
   );

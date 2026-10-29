@@ -15,6 +15,9 @@ const ALLOWED_FILE_TYPES = {
   'image/png': 'png',
   'image/jpg': 'jpg',
   'image/bmp': 'bmp',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'image/svg+xml': 'svg',
   'video/mp4': 'mp4',
   'audio/mpeg': 'mp3',
   'audio/mpeg3': 'mp3',
@@ -25,13 +28,23 @@ const ALLOWED_FILE_TYPES = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
   'application/vnd.ms-excel': 'xls',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'application/zip': 'zip',
+  'application/x-zip-compressed': 'zip',
+  'application/x-rar-compressed': 'rar',
+  'application/vnd.rar': 'rar',
+  'application/x-7z-compressed': '7z',
+  'application/x-tar': 'tar',
+  'application/gzip': 'gz',
+  'application/json': 'json',
   'text/plain': 'txt',
   'text/csv': 'csv'
 };
 
 const commonFileFilter = (req, file, cb) => {
   if (!ALLOWED_FILE_TYPES[file.mimetype]) {
-    return cb(new BadRequestError(400, `File type not allowed. Please upload BMP, MP4, MP3, DOC, PDF, EXCEL, PNG, JPG, TXT, or CSV.`), false);
+    return cb(new BadRequestError(400, `File type "${file.mimetype}" is not allowed. Please upload supported documents, images, audio, video, or archives.`), false);
   }
   cb(null, true);
 };

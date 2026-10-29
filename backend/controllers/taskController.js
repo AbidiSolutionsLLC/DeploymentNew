@@ -52,6 +52,21 @@ exports.getProjectTasks = catchAsync(async (req, res) => {
   res.status(200).json(ApiResponse.success(tasks, 'Project tasks retrieved successfully'));
 });
 
+exports.addAttachments = catchAsync(async (req, res) => {
+  const updatedTask = await taskService.addAttachments(req.user, req.companyId, req.params.id, req.files);
+  res.status(200).json(ApiResponse.success(updatedTask, 'Attachments added successfully'));
+});
+
+exports.deleteAttachment = catchAsync(async (req, res) => {
+  const updatedTask = await taskService.deleteAttachment(req.user, req.companyId, req.params.id, req.params.attachmentId);
+  res.status(200).json(ApiResponse.success(updatedTask, 'Attachment deleted successfully'));
+});
+
+exports.renameAttachment = catchAsync(async (req, res) => {
+  const updatedTask = await taskService.renameAttachment(req.user, req.companyId, req.params.id, req.params.attachmentId, req.body.name);
+  res.status(200).json(ApiResponse.success(updatedTask, 'Attachment renamed successfully'));
+});
+
 exports.getUserTasks = catchAsync(async (req, res) => {
   const tasks = await taskService.getUserTasks(req.user, req.companyId);
   res.status(200).json(ApiResponse.success(tasks, 'User tasks retrieved successfully'));

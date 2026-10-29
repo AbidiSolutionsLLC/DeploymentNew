@@ -108,8 +108,57 @@ const projectSchema = new mongoose.Schema(
 // Pre-save hook to generate projectID
 projectSchema.pre("save", async function (next) {
   if (!this.projectID) {
-    const count = await mongoose.models.Project.countDocuments();
-    this.projectID = `PR-${String(count + 1).padStart(2, "0")}`;
+    try {
+      const ProjectModel = mongoose.models.Project || this.constructor;
+      let maxNum = 0;
+
+      try {
+        const result = await ProjectModel.aggregate([
+          { $match: { projectID: { $regex: /^PR-\d+$/i } } },
+          {
+            $project: {
+              projNum: {
+                $toInt: {
+                  $arrayElemAt: [{ $split: ["$projectID", "-"] }, 1],
+                },
+              },
+            },
+          },
+          { $sort: { projNum: -1 } },
+          { $limit: 1 },
+        ]);
+        if (result && result.length > 0 && typeof result[0].projNum === "number") {
+          maxNum = result[0].projNum;
+        }
+      } catch (aggErr) {
+        const projects = await ProjectModel.find({ projectID: { $regex: /^PR-\d+$/i } }, { projectID: 1 })
+          .sort({ _id: -1 })
+          .limit(200)
+          .lean();
+        for (const p of projects) {
+          const match = p.projectID && p.projectID.match(/^PR-(\d+)$/i);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (!isNaN(num) && num > maxNum) {
+              maxNum = num;
+            }
+          }
+        }
+      }
+
+      const count = await ProjectModel.countDocuments();
+      let nextNum = Math.max(maxNum, count) + 1;
+
+      let candidateId = `PR-${String(nextNum).padStart(2, "0")}`;
+      while (await ProjectModel.exists({ projectID: candidateId })) {
+        nextNum++;
+        candidateId = `PR-${String(nextNum).padStart(2, "0")}`;
+      }
+
+      this.projectID = candidateId;
+    } catch (err) {
+      return next(err);
+    }
   }
   next();
 });

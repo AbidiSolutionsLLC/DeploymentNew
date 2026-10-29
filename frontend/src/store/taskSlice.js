@@ -61,6 +61,42 @@ export const deleteTask = createAsyncThunk(
   }
 );
 
+export const uploadTaskAttachments = createAsyncThunk(
+  'tasks/uploadTaskAttachments',
+  async ({ taskId, files }, { rejectWithValue }) => {
+    try {
+      const response = await api.uploadTaskAttachments(taskId, files);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+export const deleteTaskAttachment = createAsyncThunk(
+  'tasks/deleteTaskAttachment',
+  async ({ taskId, attachmentId }, { rejectWithValue }) => {
+    try {
+      const response = await api.deleteTaskAttachment(taskId, attachmentId);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+export const renameTaskAttachment = createAsyncThunk(
+  'tasks/renameTaskAttachment',
+  async ({ taskId, attachmentId, name }, { rejectWithValue }) => {
+    try {
+      const response = await api.renameTaskAttachment(taskId, attachmentId, name);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 export const fetchProjectActivities = createAsyncThunk(
   'tasks/fetchProjectActivities',
   async (projectId, { rejectWithValue }) => {
@@ -195,6 +231,39 @@ const taskSlice = createSlice({
       })
       // updateTask
       .addCase(updateTask.fulfilled, (state, action) => {
+        const index = state.tasks.findIndex(t => t._id === action.payload._id);
+        if (index !== -1) {
+          state.tasks[index] = action.payload;
+        }
+        const projIndex = state.projectTasks.findIndex(t => t._id === action.payload._id);
+        if (projIndex !== -1) {
+          state.projectTasks[projIndex] = action.payload;
+        }
+      })
+      // uploadTaskAttachments
+      .addCase(uploadTaskAttachments.fulfilled, (state, action) => {
+        const index = state.tasks.findIndex(t => t._id === action.payload._id);
+        if (index !== -1) {
+          state.tasks[index] = action.payload;
+        }
+        const projIndex = state.projectTasks.findIndex(t => t._id === action.payload._id);
+        if (projIndex !== -1) {
+          state.projectTasks[projIndex] = action.payload;
+        }
+      })
+      // deleteTaskAttachment
+      .addCase(deleteTaskAttachment.fulfilled, (state, action) => {
+        const index = state.tasks.findIndex(t => t._id === action.payload._id);
+        if (index !== -1) {
+          state.tasks[index] = action.payload;
+        }
+        const projIndex = state.projectTasks.findIndex(t => t._id === action.payload._id);
+        if (projIndex !== -1) {
+          state.projectTasks[projIndex] = action.payload;
+        }
+      })
+      // renameTaskAttachment
+      .addCase(renameTaskAttachment.fulfilled, (state, action) => {
         const index = state.tasks.findIndex(t => t._id === action.payload._id);
         if (index !== -1) {
           state.tasks[index] = action.payload;

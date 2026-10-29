@@ -249,8 +249,9 @@ body {
 
 /* Custom scrollbar styles for main content areas */
 .custom-scrollbar-visible {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border-accent) var(--color-bg-tertiary);
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--color-border-accent) var(--color-bg-tertiary) !important;
+  overflow-y: auto !important;
 }
 
 .custom-scrollbar-visible::-webkit-scrollbar {
@@ -625,12 +626,41 @@ body {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-danger-fg) 18%, transparent);
 }
 
-/* Textareas need wrapping (glass-input defaults are single-line) */
-textarea.glass-input {
-  white-space: pre-wrap;
-  overflow: hidden;
+/* Textareas need wrapping, visible scrollbar, and vertical scrolling */
+textarea.glass-input,
+textarea {
+  white-space: pre-wrap !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   text-overflow: clip;
   resize: vertical;
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--color-border-accent) var(--color-bg-tertiary) !important;
+}
+
+textarea.glass-input::-webkit-scrollbar,
+textarea::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+  display: block !important;
+}
+
+textarea.glass-input::-webkit-scrollbar-track,
+textarea::-webkit-scrollbar-track {
+  background: var(--color-bg-tertiary) !important;
+  border-radius: var(--radius-full);
+}
+
+textarea.glass-input::-webkit-scrollbar-thumb,
+textarea::-webkit-scrollbar-thumb {
+  background: var(--color-border-accent) !important;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-bg-primary);
+}
+
+textarea.glass-input::-webkit-scrollbar-thumb:hover,
+textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted) !important;
 }
 
 /* ===== ANIMATIONS ===== */

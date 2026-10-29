@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import { FaPaperclip } from "react-icons/fa";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
 import ModernDatePicker from "../ui/ModernDatePicker";
 import { TableAvatar } from "../ui/TableCells";
 import { X, Users } from "lucide-react";
+import { getFileIcon, formatFileSize } from "../../utils/fileIcons";
 import api from "../../axios";
 import projectApi from "../../api/projectApi";
 
@@ -58,6 +61,46 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [optionsError, setOptionsError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const MAX_FILES = 5;
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+
+    if (attachments.length + files.length > MAX_FILES) {
+      toast.warning(`You can attach up to ${MAX_FILES} files.`);
+    }
+
+    const available = MAX_FILES - attachments.length;
+    const toAdd = files.slice(0, available);
+
+    const validFiles = [];
+    for (const f of toAdd) {
+      if (f.size > MAX_SIZE) {
+        toast.error(`"${f.name}" exceeds the 100MB limit.`);
+        continue;
+      }
+      const isDuplicate = attachments.some(
+        (existing) => existing.name === f.name && existing.size === f.size
+      );
+      if (isDuplicate) {
+        toast.info(`"${f.name}" is already attached.`);
+        continue;
+      }
+      validFiles.push(f);
+    }
+
+    setAttachments((prev) => [...prev, ...validFiles]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
 
   // Active project resolution: prop -> redux -> fetched
   const selectedFromList = useMemo(() => {
@@ -230,6 +273,7 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
         status: form.status,
         dueDate: form.dueDate || null,
         description: form.description.trim(),
+        files: attachments,
       });
     } finally {
       setSaving(false);
@@ -255,13 +299,13 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
 
       <div>
         <label htmlFor="task-name" className={labelCls}>Task Name*</label>
-        <input
+        <textarea
           id="task-name"
-          type="text"
+          rows={2}
           placeholder="e.g. Draft launch announcement"
           value={form.title}
           onChange={(e) => set("title", e.target.value)}
-          className={`glass-input ${errors.title ? "is-error" : ""}`}
+          className={`glass-input resize-y max-h-36 overflow-y-auto custom-scrollbar-visible ${errors.title ? "is-error" : ""}`}
           required
         />
         {errors.title && <p className="text-danger text-xs mt-1">{errors.title}</p>}
@@ -527,8 +571,67 @@ export default function AddTaskForm({ projectId, project: propProject, onSubmit,
           rows={3}
           value={form.description}
           onChange={(e) => set("description", e.target.value)}
-          className="glass-input min-h-[90px] resize-y"
+          className="glass-input min-h-[90px] max-h-[300px] overflow-y-auto custom-scrollbar-visible resize-y"
         />
+      </div>
+
+      {/* Attachments Section */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className={labelCls}>
+            Attachments {attachments.length > 0 && `(${attachments.length}/5)`}
+          </label>
+          <span className="text-[10px] text-muted">Up to 5 files, max 100MB each</span>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileChange}
+          className="hidden"
+          id="task-file-input"
+        />
+
+        <div className="flex flex-col gap-2.5">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={attachments.length >= 5}
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-border-accent hover:border-brand/60 bg-surface/40 hover:bg-surface/80 text-xs font-semibold text-muted hover:text-brand transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <FaPaperclip className="w-3.5 h-3.5 text-brand" />
+            <span>
+              {attachments.length >= 5 ? "Maximum 5 attachments reached" : "Click to attach files"}
+            </span>
+          </button>
+
+          {/* Staged attachments preview */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {attachments.map((file, idx) => (
+                <div
+                  key={`${file.name}-${idx}`}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface border border-border-subtle text-xs font-medium text-heading shadow-sm"
+                >
+                  {getFileIcon(file.name, 14)}
+                  <span className="truncate max-w-[170px]" title={file.name}>
+                    {file.name}
+                  </span>
+                  <span className="text-[10px] text-muted">({formatFileSize(file.size)})</span>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(idx)}
+                    className="p-0.5 rounded-full hover:bg-danger-bg text-muted hover:text-danger transition-colors ml-1"
+                    title={`Remove ${file.name}`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

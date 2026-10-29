@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import usePermission from "../../hooks/usePermission";
 import { useSelector } from "react-redux";
-import { FaDownload } from "react-icons/fa";
-import { Link2, ArrowRight, ShieldAlert, Trash2, UserPlus, Users, ChevronDown, ChevronUp, X } from "lucide-react";
+import { toast } from "react-toastify";
+import { FaDownload, FaPaperclip } from "react-icons/fa";
+import { Link2, ArrowRight, ShieldAlert, Trash2, UserPlus, Users, ChevronDown, ChevronUp, X, Edit2, Check, Paperclip } from "lucide-react";
 import GlassModal from "../ui/GlassModal";
 import GlassButton from "../ui/GlassButton";
 import ModernSelect from "../ui/ModernSelect";
@@ -12,6 +13,7 @@ import Progress from "./Progress";
 import { isOverdue, taskProgress, getTaskAssignee, getAssigneeName, getTaskAssignees, personName } from "./helpers";
 import TaskComments from "./TaskComments";
 import { downloadFile } from "../../utils/downloadFile";
+import { getFileIcon, formatFileSize } from "../../utils/fileIcons";
 import taskApi from "../../api/taskApi";
 import projectApi from "../../api/projectApi";
 import api from "../../axios";
@@ -91,6 +93,7 @@ export default function TaskDetailDrawer({
   const canEditDescription = hasFullTaskControl || isAssignee;
   const canReassign = hasFullTaskControl;
   const canDeleteTask = hasFullTaskControl;
+  const canManageAttachments = hasFullTaskControl || isAssignee;
 
   const [title, setTitle] = useState(task?.title || "");
   const [description, setDescription] = useState(task?.description || "");
@@ -110,6 +113,17 @@ export default function TaskDetailDrawer({
   const [deletingTask, setDeletingTask] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
+
+  // Task attachments state
+  const [currentAttachments, setCurrentAttachments] = useState(task?.attachments || []);
+  const [newFiles, setNewFiles] = useState([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [editingAttachmentId, setEditingAttachmentId] = useState(null);
+  const [editingAttachmentName, setEditingAttachmentName] = useState("");
+  const [renamingAttachment, setRenamingAttachment] = useState(false);
+  const attachmentInputRef = useRef(null);
 
   // Team members list for reassignment
   const [projectMembers, setProjectMembers] = useState([]);
@@ -136,9 +150,142 @@ export default function TaskDetailDrawer({
     setSelectedTeam(
       (task?.team || []).map((m) => (m?._id || m)?.toString())
     );
+    setCurrentAttachments(task?.attachments || []);
+    setNewFiles([]);
+    setConfirmDeleteId(null);
+    setEditingAttachmentId(null);
+    setEditingAttachmentName("");
     setDepSearch("");
     setShowDeleteConfirm(false);
   }, [task]);
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const MAX_FILES = 5;
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+
+    if (newFiles.length + files.length > MAX_FILES) {
+      toast.warning(`You can select up to ${MAX_FILES} files to upload at once.`);
+    }
+
+    const available = MAX_FILES - newFiles.length;
+    const toAdd = files.slice(0, available);
+
+    const validFiles = [];
+    for (const f of toAdd) {
+      if (f.size > MAX_SIZE) {
+        toast.error(`"${f.name}" exceeds the 100MB limit.`);
+        continue;
+      }
+      const isDuplicate = newFiles.some(
+        (existing) => existing.name === f.name && existing.size === f.size
+      );
+      if (isDuplicate) {
+        toast.info(`"${f.name}" is already selected.`);
+        continue;
+      }
+      validFiles.push(f);
+    }
+
+    setNewFiles((prev) => [...prev, ...validFiles]);
+    if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+  };
+
+  const removeStagedFile = (index) => {
+    setNewFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUploadFiles = async () => {
+    if (!newFiles.length) return;
+    const taskId = task?._id || task?.id;
+    if (!taskId) return;
+
+    setUploadingFiles(true);
+    try {
+      const res = await taskApi.uploadTaskAttachments(taskId, newFiles);
+      const updatedList = res?.attachments || res?.data?.attachments || [];
+      setCurrentAttachments(updatedList);
+      setNewFiles([]);
+      toast.success("Attachment(s) uploaded successfully");
+      if (onTaskUpdate) {
+        onTaskUpdate({ attachments: updatedList });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || "Failed to upload attachments");
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId) => {
+    const taskId = task?._id || task?.id;
+    if (!taskId || !attachmentId) return;
+
+    setDeletingAttachmentId(attachmentId);
+    try {
+      const res = await taskApi.deleteTaskAttachment(taskId, attachmentId);
+      const updatedList = res?.attachments || res?.data?.attachments || (
+        currentAttachments.filter(
+          (a) => (a._id || a.id || '').toString() !== attachmentId.toString() &&
+                 (a.public_id || a.blobName || '').toString() !== attachmentId.toString()
+        )
+      );
+      setCurrentAttachments(updatedList);
+      setConfirmDeleteId(null);
+      toast.success("Attachment deleted successfully");
+      if (onTaskUpdate) {
+        onTaskUpdate({ attachments: updatedList });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || "Failed to delete attachment");
+    } finally {
+      setDeletingAttachmentId(null);
+    }
+  };
+
+  const handleStartRename = (attachment) => {
+    const id = attachment._id || attachment.id || attachment.public_id || attachment.blobName;
+    setEditingAttachmentId(id);
+    setEditingAttachmentName(attachment.originalname || attachment.name || "");
+  };
+
+  const handleSaveRename = async (attachment) => {
+    const taskId = task?._id || task?.id;
+    const attachmentId = attachment._id || attachment.id || attachment.public_id || attachment.blobName;
+    const newName = (editingAttachmentName || "").trim();
+
+    if (!newName) {
+      toast.error("Attachment name cannot be empty");
+      return;
+    }
+
+    setRenamingAttachment(true);
+    try {
+      const res = await taskApi.renameTaskAttachment(taskId, attachmentId, newName);
+      const updatedList = res?.attachments || res?.data?.attachments || (
+        currentAttachments.map((a) => {
+          if ((a._id || a.id || '').toString() === attachmentId.toString() ||
+              (a.public_id || a.blobName || '').toString() === attachmentId.toString()) {
+            return { ...a, name: newName, originalname: newName };
+          }
+          return a;
+        })
+      );
+      setCurrentAttachments(updatedList);
+      setEditingAttachmentId(null);
+      setEditingAttachmentName("");
+      toast.success("Attachment renamed successfully");
+      if (onTaskUpdate) {
+        onTaskUpdate({ attachments: updatedList });
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || "Failed to rename attachment");
+    } finally {
+      setRenamingAttachment(false);
+    }
+  };
 
   // Load project members for task reassignment
   useEffect(() => {
@@ -259,7 +406,15 @@ export default function TaskDetailDrawer({
         payload.team = [...new Set((selectedTeam || []).filter(Boolean).map(String))];
       }
 
-      await onTaskUpdate(payload);
+      if (newFiles.length > 0) {
+        payload.files = newFiles;
+      }
+
+      const updated = await onTaskUpdate(payload);
+      if (updated?.attachments) {
+        setCurrentAttachments(updated.attachments);
+      }
+      setNewFiles([]);
     } finally {
       setSavingDetails(false);
     }
@@ -365,15 +520,19 @@ export default function TaskDetailDrawer({
     { id: "details", label: "Details", icon: null },
     { id: "schedule", label: "Schedule", icon: null },
     { id: "dependencies", label: "Dependencies", icon: null },
-    { id: "attachments", label: "Attachments", icon: task?.attachments?.length ? task.attachments.length : null },
+    { id: "attachments", label: "Attachments", icon: currentAttachments?.length ? currentAttachments.length : null },
     { id: "comments", label: "Comments", icon: comments.length > 0 ? comments.length : null },
   ];
+
+  const shortModalTitle = task?.title
+    ? (task.title.length > 70 ? `${task.title.slice(0, 70)}...` : task.title)
+    : "Task Details";
 
   return (
     <GlassModal
       isOpen={!!task}
       onClose={onClose}
-      title={task?.title}
+      title={shortModalTitle}
       description={`Task · ${STATUS_DISPLAY[task?.status] || task?.status}`}
       maxWidth="max-w-4xl"
       footer={
@@ -477,16 +636,18 @@ export default function TaskDetailDrawer({
                         <label className="block text-[10px] font-black text-muted mb-1.5 uppercase tracking-widest">
                           Task Title
                         </label>
-                        <input
-                          type="text"
+                        <textarea
+                          rows={Math.min(Math.max(2, Math.ceil((title || "").length / 50)), 5)}
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
                           placeholder="Task Title"
-                          className="glass-input w-full text-base font-bold text-heading px-4 py-2.5 rounded-xl"
+                          className="glass-input w-full text-base font-bold text-heading px-4 py-2.5 rounded-xl resize-y max-h-48 overflow-y-auto custom-scrollbar-visible"
                         />
                       </div>
                     ) : (
-                      <h3 className="text-xl font-bold text-heading">{task?.title}</h3>
+                      <div className="max-h-40 overflow-y-auto custom-scrollbar-visible pr-1.5 rounded-xl bg-card/40 p-3 border border-border-subtle">
+                        <h3 className="text-xl font-bold text-heading break-words whitespace-pre-wrap">{task?.title}</h3>
+                      </div>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
@@ -617,7 +778,7 @@ export default function TaskDetailDrawer({
                 )}
               </div>
 
-              {/* Description Section */}
+              {/* Description Section with Scroller */}
               <div className="p-4 rounded-xl bg-card border border-border-subtle">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-black uppercase tracking-widest text-muted">Description</h4>
@@ -626,45 +787,99 @@ export default function TaskDetailDrawer({
                   )}
                 </div>
                 {canEditDescription ? (
-                  <textarea
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add or update task description, notes, or requirements..."
-                    className="glass-input w-full p-4 rounded-xl text-sm leading-relaxed text-main focus:ring-1 focus:ring-brand resize-y min-h-[100px]"
-                  />
+                  <div className="relative">
+                    <textarea
+                      rows={5}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Add or update task description, notes, or requirements..."
+                      className="glass-input w-full p-4 rounded-xl text-sm leading-relaxed text-main focus:ring-1 focus:ring-brand resize-y min-h-[120px] max-h-[360px] overflow-y-auto custom-scrollbar-visible"
+                    />
+                  </div>
                 ) : (
-                  <p className="text-sm text-main whitespace-pre-wrap">{task?.description || "No description provided."}</p>
+                  <div className="max-h-64 overflow-y-auto custom-scrollbar-visible pr-2 rounded-lg bg-surface/60 p-3.5 border border-border-subtle shadow-inner">
+                    <p className="text-sm text-main whitespace-pre-wrap break-words">{task?.description || "No description provided."}</p>
+                  </div>
                 )}
               </div>
 
               {/* Attachments Preview in Details Tab */}
-              {task?.attachments?.length > 0 && (
+              {currentAttachments?.length > 0 && (
                 <div className="p-4 rounded-xl bg-card border border-border-subtle">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-muted mb-3 flex items-center gap-2">
-                    <FaDownload className="w-4 h-4" />
-                    Task Attachments ({task.attachments.length})
-                  </h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-muted flex items-center gap-2">
+                      <FaPaperclip className="w-3.5 h-3.5 text-brand" />
+                      Task Attachments ({currentAttachments.length})
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("attachments")}
+                      className="text-xs font-semibold text-brand hover:underline"
+                    >
+                      Manage Attachments →
+                    </button>
+                  </div>
                   <div className="flex flex-col gap-2">
-                    {task.attachments.map((attachment, index) => {
+                    {currentAttachments.map((attachment, index) => {
+                      const attId = attachment._id || attachment.id || attachment.public_id || attachment.blobName || index;
                       const fileName = attachment.originalname || attachment.name || `Attachment ${index + 1}`;
                       const fileSource = attachment.blobName || attachment.url;
 
                       return (
                         <div
-                          key={attachment.public_id || attachment.blobName || index}
+                          key={attId}
                           className="flex items-center justify-between gap-3 rounded-lg bg-surface border border-border-subtle px-3 py-2.5 hover:border-border-accent transition-colors"
                         >
-                          <span className="text-sm text-heading truncate flex-1">{fileName}</span>
-                          <button
-                            type="button"
-                            onClick={() => downloadFile(fileSource, fileName)}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-brand-text hover:text-brand transition-colors shrink-0 px-3 py-1.5 rounded-lg bg-brand/5 hover:bg-brand/10"
-                            title={`Download ${fileName}`}
-                          >
-                            <FaDownload size={12} />
-                            <span>Download</span>
-                          </button>
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            {getFileIcon(fileName, 16)}
+                            <div className="min-w-0 flex-1">
+                              <span className="text-sm font-medium text-heading truncate block" title={fileName}>
+                                {fileName}
+                              </span>
+                              {attachment.size && (
+                                <span className="text-[10px] text-muted">
+                                  {formatFileSize(attachment.size)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => downloadFile(fileSource, fileName)}
+                              className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-brand-text hover:text-brand transition-colors px-2.5 py-1.5 rounded-lg bg-brand/5 hover:bg-brand/10"
+                              title={`Download ${fileName}`}
+                            >
+                              <FaDownload size={11} />
+                              <span>Download</span>
+                            </button>
+                            {canManageAttachments && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab("attachments");
+                                  handleStartRename(attachment);
+                                }}
+                                className="p-1.5 rounded-lg text-muted hover:text-heading hover:bg-card transition-colors"
+                                title="Edit attachment"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                            )}
+                            {canManageAttachments && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab("attachments");
+                                  setConfirmDeleteId(attId);
+                                }}
+                                className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger-bg transition-colors"
+                                title="Delete attachment"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -892,52 +1107,267 @@ export default function TaskDetailDrawer({
           {/* Attachments Tab */}
           {activeTab === "attachments" && (
             <div className="space-y-6">
-              {task?.attachments?.length > 0 ? (
-                <div className="p-4 rounded-xl bg-card border border-border-subtle">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-muted mb-4 flex items-center gap-2">
-                    <FaDownload className="w-4 h-4" />
-                    Task Attachments ({task.attachments.length})
+              {/* Add / Upload New Attachments */}
+              {canManageAttachments ? (
+                <div className="p-4 rounded-xl bg-card border border-border-subtle space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-muted flex items-center gap-2">
+                      <FaPaperclip className="w-3.5 h-3.5 text-brand" />
+                      Add Attachments
+                    </h4>
+                    <span className="text-[10px] text-muted">Up to 5 files, max 100MB each</span>
+                  </div>
+
+                  <input
+                    ref={attachmentInputRef}
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="drawer-attachment-input"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => attachmentInputRef.current?.click()}
+                    disabled={uploadingFiles || newFiles.length >= 5}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-border-accent hover:border-brand/60 bg-surface/40 hover:bg-surface/80 text-xs font-semibold text-muted hover:text-brand transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <FaPaperclip className="w-3.5 h-3.5 text-brand" />
+                    <span>
+                      {newFiles.length >= 5 ? "Maximum 5 files selected" : "Click or browse to add attachments"}
+                    </span>
+                  </button>
+
+                  {/* Staged files preview */}
+                  {newFiles.length > 0 && (
+                    <div className="space-y-2.5 pt-2 border-t border-border-subtle">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-heading">
+                          Selected Files ({newFiles.length})
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <GlassButton
+                            variant="secondary"
+                            size="xs"
+                            onClick={() => setNewFiles([])}
+                            disabled={uploadingFiles}
+                          >
+                            Clear
+                          </GlassButton>
+                          <GlassButton
+                            variant="primary"
+                            size="xs"
+                            onClick={handleUploadFiles}
+                            isLoading={uploadingFiles}
+                          >
+                            Upload {newFiles.length} File{newFiles.length > 1 ? "s" : ""}
+                          </GlassButton>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {newFiles.map((file, idx) => (
+                          <div
+                            key={`${file.name}-${idx}`}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface border border-border-subtle text-xs font-medium text-heading shadow-sm"
+                          >
+                            {getFileIcon(file.name, 14)}
+                            <span className="truncate max-w-[180px]" title={file.name}>
+                              {file.name}
+                            </span>
+                            <span className="text-[10px] text-muted">({formatFileSize(file.size)})</span>
+                            <button
+                              type="button"
+                              onClick={() => removeStagedFile(idx)}
+                              disabled={uploadingFiles}
+                              className="p-0.5 rounded-full hover:bg-danger-bg text-muted hover:text-danger transition-colors ml-1"
+                              title={`Remove ${file.name}`}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-card border border-border-subtle text-xs text-muted">
+                  Attachments can be uploaded and edited by assigned team members and project managers.
+                </div>
+              )}
+
+              {/* Existing Task Attachments List */}
+              <div className="p-4 rounded-xl bg-card border border-border-subtle">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-muted flex items-center gap-2">
+                    <FaPaperclip className="w-3.5 h-3.5 text-brand" />
+                    Task Attachments ({currentAttachments.length})
                   </h4>
+                  <span className="text-[10px] text-muted">
+                    {currentAttachments.length === 1 ? "1 file attached" : `${currentAttachments.length} files attached`}
+                  </span>
+                </div>
+
+                {currentAttachments.length > 0 ? (
                   <div className="flex flex-col gap-3">
-                    {task.attachments.map((attachment, index) => {
+                    {currentAttachments.map((attachment, index) => {
+                      const attId = attachment._id || attachment.id || attachment.public_id || attachment.blobName || index;
                       const fileName = attachment.originalname || attachment.name || `Attachment ${index + 1}`;
                       const fileSource = attachment.blobName || attachment.url;
+                      const isEditing = editingAttachmentId === attId;
+                      const isConfirmingDelete = confirmDeleteId === attId;
+                      const isDeletingThis = deletingAttachmentId === attId;
 
                       return (
                         <div
-                          key={attachment.public_id || attachment.blobName || index}
-                          className="flex items-center justify-between gap-4 rounded-lg bg-surface border border-border-subtle p-3 hover:border-border-accent transition-colors"
+                          key={attId}
+                          className="flex flex-col rounded-xl bg-surface border border-border-subtle p-3.5 hover:border-border-accent transition-colors shadow-sm"
                         >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className="p-2 rounded-lg bg-brand/10 text-brand">
-                              <FaDownload className="w-5 h-5" />
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className="p-2.5 rounded-xl bg-brand/10 text-brand shrink-0">
+                                {getFileIcon(fileName, 20)}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                {isEditing ? (
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={editingAttachmentName}
+                                      onChange={(e) => setEditingAttachmentName(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleSaveRename(attachment);
+                                        if (e.key === "Escape") setEditingAttachmentId(null);
+                                      }}
+                                      className="glass-input text-xs py-1.5 px-3 rounded-lg flex-1 font-semibold"
+                                      autoFocus
+                                    />
+                                    <GlassButton
+                                      variant="primary"
+                                      size="xs"
+                                      onClick={() => handleSaveRename(attachment)}
+                                      isLoading={renamingAttachment}
+                                    >
+                                      Save
+                                    </GlassButton>
+                                    <GlassButton
+                                      variant="secondary"
+                                      size="xs"
+                                      onClick={() => setEditingAttachmentId(null)}
+                                      disabled={renamingAttachment}
+                                    >
+                                      Cancel
+                                    </GlassButton>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <p className="text-sm font-semibold text-heading truncate" title={fileName}>
+                                      {fileName}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-0.5 text-xs text-muted">
+                                      {attachment.size && (
+                                        <span>{formatFileSize(attachment.size)}</span>
+                                      )}
+                                      {attachment.size && attachment.format && <span>•</span>}
+                                      {attachment.format && (
+                                        <span className="uppercase text-[10px]">{attachment.format.split("/").pop()}</span>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-heading truncate">{fileName}</p>
-                              <p className="text-xs text-muted">Attachment</p>
-                            </div>
+
+                            {!isEditing && (
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => downloadFile(fileSource, fileName)}
+                                  className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-brand-text hover:text-brand transition-colors px-3 py-1.5 rounded-lg bg-brand/5 hover:bg-brand/10"
+                                  title={`Download ${fileName}`}
+                                >
+                                  <FaDownload size={12} />
+                                  <span>Download</span>
+                                </button>
+
+                                {canManageAttachments && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartRename(attachment)}
+                                    className="p-1.5 rounded-lg text-muted hover:text-heading hover:bg-card transition-colors"
+                                    title="Rename attachment"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                )}
+
+                                {canManageAttachments && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteId(attId)}
+                                    className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger-bg transition-colors"
+                                    title="Delete attachment"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => downloadFile(fileSource, fileName)}
-                            className="inline-flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wider text-brand-text hover:text-brand transition-colors shrink-0 px-4 py-2 rounded-lg bg-brand/5 hover:bg-brand/10"
-                            title={`Download ${fileName}`}
-                          >
-                            <FaDownload size={13} />
-                            <span>Download</span>
-                          </button>
+
+                          {/* Delete Confirmation Inline Banner */}
+                          {isConfirmingDelete && (
+                            <div className="mt-3 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-danger text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                              <span className="font-medium">
+                                Delete "{fileName}"? This cannot be undone.
+                              </span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <GlassButton
+                                  variant="danger"
+                                  size="xs"
+                                  onClick={() => handleDeleteAttachment(attId)}
+                                  isLoading={isDeletingThis}
+                                >
+                                  Yes, Delete
+                                </GlassButton>
+                                <GlassButton
+                                  variant="secondary"
+                                  size="xs"
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  disabled={isDeletingThis}
+                                >
+                                  Cancel
+                                </GlassButton>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
                   </div>
-                </div>
-              ) : (
-                <div className="p-8 rounded-xl bg-card border border-border-subtle text-center">
-                  <FaDownload className="w-12 h-12 text-muted mx-auto mb-4 opacity-50" />
-                  <h4 className="text-sm font-medium text-heading mb-1">No Attachments</h4>
-                  <p className="text-xs text-muted">Upload files to this task to see them here.</p>
-                </div>
-              )}
+                ) : (
+                  <div className="p-8 text-center rounded-xl bg-surface/50 border border-dashed border-border-subtle">
+                    <Paperclip className="w-10 h-10 text-muted mx-auto mb-3 opacity-40" />
+                    <h5 className="text-sm font-semibold text-heading mb-1">No Attachments Yet</h5>
+                    <p className="text-xs text-muted mb-4 max-w-sm mx-auto">
+                      Files attached when creating or editing this task will appear here. Comments attachments stay in the Comments section.
+                    </p>
+                    {canManageAttachments && (
+                      <GlassButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => attachmentInputRef.current?.click()}
+                      >
+                        <FaPaperclip className="w-3.5 h-3.5 mr-1.5 text-brand" />
+                        <span>Add Attachments</span>
+                      </GlassButton>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

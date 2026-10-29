@@ -12,7 +12,7 @@ const upload = multer({
 const taskController = require("../../controllers/taskController");
 const { isLoggedIn, restrictToProjectRole } = require("../../middlewares/authMiddleware");
 const validate = require("../../middlewares/validationMiddleware");
-const { taskSchema, taskUpdateSchema, taskStatusSchema } = require("../../JoiSchema/TaskJoiSchema");
+const { taskSchema, taskUpdateSchema, taskStatusSchema, attachmentRenameSchema } = require("../../JoiSchema/TaskJoiSchema");
 
 router
   .route("/")
@@ -27,6 +27,10 @@ router
   .get(isLoggedIn, taskController.getTaskById)
   .put(isLoggedIn, handleUpload(upload.array("attachments", 5)), validate(taskUpdateSchema), taskController.updateTask)
   .delete(isLoggedIn, restrictToProjectRole('Project Administrator', 'Project Manager'), taskController.deleteTask);
+
+router.post("/:id/attachments", isLoggedIn, handleUpload(upload.array("attachments", 5)), taskController.addAttachments);
+router.delete("/:id/attachments/:attachmentId", isLoggedIn, taskController.deleteAttachment);
+router.patch("/:id/attachments/:attachmentId", isLoggedIn, validate(attachmentRenameSchema), taskController.renameAttachment);
 
 router.post("/:id/comments", isLoggedIn, handleUpload(upload.array("attachments", 5)), taskController.addComment);
 router.get("/:id/comments", isLoggedIn, taskController.getTaskComments);

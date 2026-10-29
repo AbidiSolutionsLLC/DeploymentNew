@@ -496,16 +496,16 @@ const ProjectGroups = () => {
             >
               Group Name*
             </label>
-            <input
+            <textarea
               id="group-name"
-              type="text"
+              rows={2}
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
                 if (nameError) setNameError("");
               }}
               placeholder="e.g. Core Platform Q1"
-              className={`glass-input ${nameError ? "is-error" : ""}`}
+              className={`glass-input resize-y min-h-[54px] max-h-36 overflow-y-auto custom-scrollbar-visible ${nameError ? "is-error" : ""}`}
               required
             />
             {nameError && <p className="text-danger text-xs mt-1">{nameError}</p>}
@@ -523,8 +523,8 @@ const ProjectGroups = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What strategic purpose or initiative does this group cover?"
-              rows={2}
-              className="glass-input min-h-[80px] resize-y"
+              rows={3}
+              className="glass-input min-h-[90px] max-h-[260px] overflow-y-auto custom-scrollbar-visible resize-y"
             />
           </div>
 

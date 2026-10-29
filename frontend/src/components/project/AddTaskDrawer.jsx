@@ -57,13 +57,13 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit, maxDueDate = "" }) => {
  <label className={labelCls}>
  Task Title *
  </label>
- <input
- type="text"
+ <textarea
  name="title"
+ rows={2}
  value={formData.title}
  onChange={handleChange}
  required
- className="glass-input"
+ className="glass-input resize-y min-h-[54px] max-h-36 overflow-y-auto custom-scrollbar-visible"
  placeholder="Enter task title"
  />
  </div>
@@ -77,7 +77,7 @@ const AddTaskDrawer = ({ isOpen, onClose, onSubmit, maxDueDate = "" }) => {
  value={formData.description}
  onChange={handleChange}
  rows={4}
- className="glass-input"
+ className="glass-input min-h-[100px] max-h-[300px] overflow-y-auto custom-scrollbar-visible resize-y"
  placeholder="Enter task description"
  />
  </div>

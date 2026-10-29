@@ -162,7 +162,7 @@ export default function EditProjectForm({ project, onSubmit, onClose }) {
 
       <div>
         <label htmlFor="project-title" className={labelCls}>Project Name*</label>
-        <input id="project-title" type="text" placeholder="e.g. Website Redesign" value={form.title} onChange={(e) => set("title", e.target.value)} className={`glass-input ${errors.title ? "is-error" : ""}`} required />
+        <textarea id="project-title" rows={2} placeholder="e.g. Website Redesign" value={form.title} onChange={(e) => set("title", e.target.value)} className={`glass-input resize-y min-h-[54px] max-h-36 overflow-y-auto custom-scrollbar-visible ${errors.title ? "is-error" : ""}`} required />
         {errors.title && <p className="text-danger text-xs mt-1">{errors.title}</p>}
       </div>
 

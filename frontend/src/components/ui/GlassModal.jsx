@@ -59,32 +59,36 @@ export default function GlassModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex flex-col space-y-1.5 px-6 pt-6 pb-4 border-b border-border-subtle dark:border-slate-800 flex-shrink-0">
-          <div className="flex items-start justify-between">
-            <div>
-              {typeof title === "string" ? (
+        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-border-subtle dark:border-slate-800 flex-shrink-0">
+          <div className="flex-1 min-w-0">
+            {typeof title === "string" ? (
+              <div className="max-h-24 overflow-y-auto custom-scrollbar-visible pr-1">
                 <h2
                   id="modal-title"
-                  className="text-base font-bold leading-none tracking-tight text-heading uppercase"
+                  className="text-base font-bold leading-snug tracking-tight text-heading break-words normal-case"
+                  title={title}
                 >
                   {title}
                 </h2>
-              ) : (
-                <div id="modal-title">{title}</div>
-              )}
-              {description && <p className="mt-1.5 text-xs text-muted">{description}</p>}
-            </div>
-            {!footer && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="ml-2 flex-shrink-0 p-2 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors"
-                aria-label="Close modal"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              </div>
+            ) : (
+              <div id="modal-title" className="max-h-24 overflow-y-auto custom-scrollbar-visible pr-1">{title}</div>
+            )}
+            {description && (
+              <div className="max-h-16 overflow-y-auto custom-scrollbar-visible pr-1 mt-1">
+                <p className="text-xs text-muted break-words leading-relaxed">{description}</p>
+              </div>
             )}
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-shrink-0 p-1.5 -mr-1.5 -mt-1 rounded-lg text-muted hover:text-heading hover:bg-card-hover transition-colors"
+            aria-label="Close modal"
+            title="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Scrollable Body */}

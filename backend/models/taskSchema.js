@@ -102,11 +102,18 @@ const taskSchema = new mongoose.Schema(
     ],
     attachments: [
       {
-        public_id: String,
-        url: String,
+        name: String,
         originalname: String,
-        format: String,
+        url: String,
+        blobName: String,
+        public_id: String,
         size: Number,
+        format: String,
+        mimetype: String,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
   },
@@ -124,8 +131,57 @@ taskSchema.pre("validate", function (next) {
 
 taskSchema.pre("save", async function (next) {
   if (!this.taskID) {
-    const count = await mongoose.models.Task.countDocuments();
-    this.taskID = `TSK-${String(count + 1).padStart(3, "0")}`;
+    try {
+      const TaskModel = mongoose.models.Task || this.constructor;
+      let maxNum = 0;
+
+      try {
+        const result = await TaskModel.aggregate([
+          { $match: { taskID: { $regex: /^TSK-\d+$/i } } },
+          {
+            $project: {
+              taskNum: {
+                $toInt: {
+                  $arrayElemAt: [{ $split: ["$taskID", "-"] }, 1],
+                },
+              },
+            },
+          },
+          { $sort: { taskNum: -1 } },
+          { $limit: 1 },
+        ]);
+        if (result && result.length > 0 && typeof result[0].taskNum === "number") {
+          maxNum = result[0].taskNum;
+        }
+      } catch (aggErr) {
+        const tasks = await TaskModel.find({ taskID: { $regex: /^TSK-\d+$/i } }, { taskID: 1 })
+          .sort({ _id: -1 })
+          .limit(200)
+          .lean();
+        for (const t of tasks) {
+          const match = t.taskID && t.taskID.match(/^TSK-(\d+)$/i);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (!isNaN(num) && num > maxNum) {
+              maxNum = num;
+            }
+          }
+        }
+      }
+
+      const count = await TaskModel.countDocuments();
+      let nextNum = Math.max(maxNum, count) + 1;
+
+      let candidateId = `TSK-${String(nextNum).padStart(3, "0")}`;
+      while (await TaskModel.exists({ taskID: candidateId })) {
+        nextNum++;
+        candidateId = `TSK-${String(nextNum).padStart(3, "0")}`;
+      }
+
+      this.taskID = candidateId;
+    } catch (err) {
+      return next(err);
+    }
   }
   next();
 });
